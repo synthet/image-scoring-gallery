@@ -326,19 +326,20 @@ export function useSimilarImages(
     imageId: number | null,
     options: SimilarImageSearchOptions = {}
 ) {
+
     const {
         limit = 20,
         folderId,
         folderPath,
         minSimilarity = 0.8,
     } = options;
+
     const [images, setImages] = useState<SimilarImageResult[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!imageId || !window.electron) {
-            setImages([]);
             return;
         }
 
