@@ -36,3 +36,17 @@ img {
 .app-spinner {
   animation: app-spinner 1s linear infinite;
 }
+
+/* Range Slider Styling */
+input[type="range"] {
+  accent-color: #007acc;
+  cursor: pointer;
+  height: 6px;
+  border-radius: 3px;
+  background: #444;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+}
