@@ -45,6 +45,7 @@ interface ImageViewerProps {
     onOpenFolder?: (folderId: number) => void;
     onJumpToImageFolder?: (imageId: number) => void;
     initialSimilarSearchImageId?: number | null;
+    onOpenImageById?: (id: number) => Promise<boolean>;
 }
 
 const isWebSafe = (filename: string) => {
@@ -87,7 +88,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     onDelete,
     onOpenFolder,
     onJumpToImageFolder,
-    initialSimilarSearchImageId
+    initialSimilarSearchImageId,
+    onOpenImageById
 }) => {
     const [image, setImage] = React.useState<Image>(initialImage);
     const [detailsLoaded, setDetailsLoaded] = React.useState(false);
@@ -110,11 +112,14 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
     // Update image when navigating
     useEffect(() => {
-        if (allImages && allImages[currentIndex]) {
+        if (currentIndex >= 0 && allImages && allImages[currentIndex]) {
             setImage(allImages[currentIndex]);
             setDetailsLoaded(false);
+        } else if (currentIndex === -1) {
+            setImage(initialImage);
+            setDetailsLoaded(false);
         }
-    }, [currentIndex, allImages]);
+    }, [currentIndex, allImages, initialImage]);
 
     // Fetch full details
     useEffect(() => {
@@ -912,13 +917,28 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 onClose={() => setIsSimilarDrawerOpen(false)}
                 queryImageId={similarSearchImageId ?? image.id}
                 currentFolderId={image.folder_id}
-                onSelectImage={(id) => {
+                onSelectImage={async (id) => {
                     const idx = allImages.findIndex(img => img.id === id);
                     if (idx >= 0 && onNavigate) {
                         onNavigate(idx);
-                        // Optionally close drawer or keep it open
-                    } else {
-                        alert('Image not found in current view');
+                        setIsSimilarDrawerOpen(false);
+                        return;
+                    }
+
+                    if (onOpenImageById) {
+                        const opened = await onOpenImageById(id);
+                        if (opened) {
+                            setIsSimilarDrawerOpen(false);
+                            return;
+                        }
+                    }
+
+                    if (!window.electron) return;
+                    const details = await window.electron.getImageDetails(id);
+                    if (details) {
+                        setImage(details);
+                        setDetailsLoaded(true);
+                        setIsSimilarDrawerOpen(false);
                     }
                 }}
                 onJumpToImageFolder={(id) => onJumpToImageFolder?.(id)}

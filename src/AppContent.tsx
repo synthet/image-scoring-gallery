@@ -271,6 +271,39 @@ function AppContent({ isConnected }: AppContentProps) {
     }
   };
 
+  const openImageById = useCallback(async (id: number): Promise<boolean> => {
+    if (!window.electron) return false;
+
+    try {
+      const details = await window.electron.getImageDetails(id);
+      if (!details) return false;
+
+      if (details.folder_id && details.folder_id !== selectedFolderId) {
+        setSelectedFolderId(details.folder_id);
+        setIncludeSubfolders(false);
+        setActiveStackId(null);
+        setActiveStackInfo(null);
+        setStackImages([]);
+      }
+
+      const imgList = (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
+      const idx = imgList.findIndex(img => img.id === id);
+
+      if (idx >= 0) {
+        setCurrentImageIndex(idx);
+        setOpeningImage(imgList[idx]);
+      } else {
+        setCurrentImageIndex(-1);
+        setOpeningImage(details as ImageRow);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Failed to open image by id:', err);
+      return false;
+    }
+  }, [selectedFolderId, stacksMode, activeStackId, stacks, stackImages, images]);
+
   const handleImageDelete = (id: number) => {
     if (activeStackId) {
       setStackImages(prev => prev.filter(img => img.id !== id));
@@ -735,6 +768,7 @@ function AppContent({ isConnected }: AppContentProps) {
                     onDelete={handleImageDelete}
                     initialSimilarSearchImageId={initialSimilarSearchImageId}
                     onJumpToImageFolder={openFolderAndImage}
+                    onOpenImageById={openImageById}
                     onOpenFolder={(folderId) => {
                       setSelectedFolderId(folderId);
                       setIncludeSubfolders(false);
