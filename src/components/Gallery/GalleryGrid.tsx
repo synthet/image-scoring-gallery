@@ -95,13 +95,13 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             // Only handle Escape if viewer is NOT open
-            if (e.key === 'Escape' && onNavigateToParent && !viewerOpen) {
+            if (e.key === 'Escape' && onNavigateToParent && !viewerOpen && !contextMenu) {
                 onNavigateToParent();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onNavigateToParent, viewerOpen]);
+    }, [onNavigateToParent, viewerOpen, contextMenu]);
 
     useEffect(() => {
         const el = containerRef.current;
@@ -179,7 +179,9 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 onClick={onClick}
                 onContextMenu={(e) => {
                     e.preventDefault();
-                    setContextMenu({ x: e.clientX, y: e.clientY, image: img });
+                    if (onFindSimilarImages) {
+                        setContextMenu({ x: e.clientX, y: e.clientY, image: img });
+                    }
                 }}
                 style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
             >
@@ -211,7 +213,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 </div>
             </div>
         );
-    }, [getScoreDisplay, getLabelColor]);
+    }, [getScoreDisplay, getLabelColor, onFindSimilarImages]);
 
     const renderStackCard = useCallback((stack: Image, onClick: () => void) => {
         const rawPath = stack.thumbnail_path || stack.file_path;
