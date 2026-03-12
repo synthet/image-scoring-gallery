@@ -911,6 +911,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 open={isSimilarDrawerOpen}
                 onClose={() => setIsSimilarDrawerOpen(false)}
                 queryImageId={similarSearchImageId ?? image.id}
+                currentFolderId={image.folder_id}
                 onSelectImage={(id) => {
                     const idx = allImages.findIndex(img => img.id === id);
                     if (idx >= 0 && onNavigate) {

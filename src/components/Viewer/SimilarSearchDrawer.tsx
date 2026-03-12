@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { useSimilarImages } from '../../hooks/useDatabase';
 
 interface SimilarSearchDrawerProps {
@@ -9,10 +10,21 @@ interface SimilarSearchDrawerProps {
     onJumpToImageFolder: (imageId: number) => void;
 }
 
-export function SimilarSearchDrawer({ open, onClose, queryImageId, onSelectImage, onJumpToImageFolder }: SimilarSearchDrawerProps) {
+export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolderId, onSelectImage, onJumpToImageFolder }: SimilarSearchDrawerProps) {
+    const [minSimilarityInput, setMinSimilarityInput] = useState('0.80');
+
+    const minSimilarity = useMemo(() => {
+        const parsed = Number(minSimilarityInput);
+        if (!Number.isFinite(parsed)) return 0.8;
+        return Math.min(1, Math.max(0, parsed));
+    }, [minSimilarityInput]);
     // Only pass imageId when open to avoid unnecessary fetching in the background
     const activeImageId = open ? queryImageId : null;
-    const { images, loading, error } = useSimilarImages(activeImageId, 20); // Defaulting to 20 for UI drawer
+    const { images, loading, error } = useSimilarImages(activeImageId, {
+        limit: 20,
+        folderId: currentFolderId,
+        minSimilarity,
+    });
 
     if (!open) return null;
 
@@ -57,6 +69,50 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, onSelectImage
                 </button>
             </div>
 
+            <div style={{
+                padding: '10px 15px',
+                borderBottom: '1px solid #333',
+                display: 'grid',
+                gap: 8,
+                backgroundColor: '#232323'
+            }}>
+                <label style={{ display: 'grid', gap: 4, color: '#bbb', fontSize: '0.8em' }}>
+                    <span>Minimum Similarity</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input
+                            type="range"
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            value={minSimilarity}
+                            onChange={(e) => setMinSimilarityInput(e.currentTarget.value)}
+                            style={{ flex: 1 }}
+                        />
+                        <input
+                            type="number"
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            value={minSimilarityInput}
+                            onChange={(e) => setMinSimilarityInput(e.currentTarget.value)}
+                            style={{
+                                width: 60,
+                                backgroundColor: '#1a1a1a',
+                                color: '#ddd',
+                                border: '1px solid #444',
+                                borderRadius: 4,
+                                padding: '3px 6px'
+                            }}
+                        />
+                    </div>
+                </label>
+                {currentFolderId && (
+                    <div style={{ color: '#888', fontSize: '0.75em' }}>
+                        Restricted to current folder
+                    </div>
+                )}
+            </div>
+
             <div style={{ flex: 1, overflowY: 'auto', padding: 15 }}>
                 {loading && (
                     <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
@@ -73,7 +129,7 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, onSelectImage
 
                 {!loading && !error && images.length === 0 && queryImageId && (
                     <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
-                        No similar images found (similarity {'>'} 0.80).
+                        No similar images found (similarity {'>'} {(minSimilarity * 100).toFixed(0)}%).
                     </div>
                 )}
 
