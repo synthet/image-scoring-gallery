@@ -67,7 +67,7 @@ contextBridge.exposeInMainWorld('electron', {
         // Find duplicates doesn't use standard DB envelope
         return await ipcRenderer.invoke('mcp-find-duplicates', options) as DuplicateResponse;
     },
-    searchSimilarImages: async (options: { imageId: number; limit?: number; folderPath?: string; minSimilarity?: number }) => {
+    searchSimilarImages: async (options: { imageId: number; limit?: number; folderId?: number; folderPath?: string; minSimilarity?: number }) => {
         const response = await ipcRenderer.invoke('mcp:search-similar', options);
         return unwrapEnvelope<{ query_image_id: number; results: any[]; count: number; error?: string }>(response);
     },

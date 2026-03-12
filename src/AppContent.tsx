@@ -49,6 +49,7 @@ function AppContent({ isConnected }: AppContentProps) {
   const [filters, setFilters] = useState<FilterState>({ minRating: 0, sortBy: 'score_general', order: 'DESC' });
   const [openingImage, setOpeningImage] = useState<ImageRow | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
+  const [initialSimilarSearchImageId, setInitialSimilarSearchImageId] = useState<number | null>(null);
   const [pendingOpenImageId, setPendingOpenImageId] = useState<number | null>(null);
   const [currentView, setCurrentView] = useState<'gallery' | 'duplicates'>('gallery');
 
@@ -93,7 +94,7 @@ function AppContent({ isConnected }: AppContentProps) {
       if (cleanupImport) cleanupImport();
       if (cleanupNotification) cleanupNotification();
     };
-  }, []);
+  }, [addNotification]);
 
   // Subfolders toggle
   const [includeSubfolders, setIncludeSubfolders] = useState(false);
@@ -255,6 +256,7 @@ function AppContent({ isConnected }: AppContentProps) {
   }, [stacksMode, cacheBuilt, refreshStacks]);
 
   const handleImageClick = (image: ImageRow) => {
+    setInitialSimilarSearchImageId(null);
     const imgList = (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
     const index = imgList.findIndex(img => img.id === image.id);
     setCurrentImageIndex(index >= 0 ? index : 0);
@@ -276,8 +278,23 @@ function AppContent({ isConnected }: AppContentProps) {
 
     try {
       const details = await window.electron.getImageDetails(id);
-      if (!details) return false;
+      if (!details) {
+        addNotification('Unable to locate image details', 'warning');
+        return false;
+      }
 
+      // If we are already in the correct folder and the image is loaded, just navigate to it
+      const currentList = (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
+      const existingIdx = currentList.findIndex(img => img.id === id);
+
+      if (existingIdx >= 0) {
+        setCurrentImageIndex(existingIdx);
+        setOpeningImage(currentList[existingIdx]);
+        setPendingOpenImageId(null);
+        return true;
+      }
+
+      // Otherwise, prepare to switch folders and wait for load
       setOpeningImage(details as ImageRow);
       setPendingOpenImageId(id);
 
@@ -292,9 +309,10 @@ function AppContent({ isConnected }: AppContentProps) {
       return true;
     } catch (err) {
       console.error('Failed to open image by id:', err);
+      addNotification('Failed to open image by id', 'error');
       return false;
     }
-  }, [selectedFolderId]);
+  }, [selectedFolderId, stacksMode, activeStackId, stacks, stackImages, images, addNotification]);
 
   useEffect(() => {
     if (!pendingOpenImageId) return;
@@ -309,7 +327,9 @@ function AppContent({ isConnected }: AppContentProps) {
       return;
     }
 
+    // If we've finished loading and still can't find it, clear the pending state
     if (!imagesLoading && !stackImagesLoading && !stacksLoading) {
+      console.warn('[App] Could not find pending image index after loading:', pendingOpenImageId);
       setPendingOpenImageId(null);
     }
   }, [pendingOpenImageId, stacksMode, activeStackId, stacks, stackImages, images, imagesLoading, stackImagesLoading, stacksLoading]);
@@ -361,14 +381,22 @@ function AppContent({ isConnected }: AppContentProps) {
     setSelectedFolderId(parentId);
   };
 
+
+  const handleFindSimilarFromGrid = (image: ImageRow) => {
+    handleImageClick(image);
+    setInitialSimilarSearchImageId(image.id);
+  };
+
   const closeViewer = () => {
     setPendingOpenImageId(null);
     setOpeningImage(null);
+    setInitialSimilarSearchImageId(null);
   };
 
   // Determine current display
   const currentImages = (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
   const currentTotal = stacksMode && !activeStackId ? stacksTotalCount : (activeStackId ? (activeStackInfo?.imageCount || stackImages.length) : totalCount);
+
 
   // Header title
   const headerTitle = (() => {
@@ -708,6 +736,7 @@ function AppContent({ isConnected }: AppContentProps) {
                   onSelectStack={handleSelectStack}
                   onStackEndReached={loadMoreStacks}
                   activeStackId={activeStackId}
+                  onFindSimilarImages={handleFindSimilarFromGrid}
                 />
                 {openingImage && (
                   <ImageViewer
@@ -717,6 +746,7 @@ function AppContent({ isConnected }: AppContentProps) {
                     currentIndex={currentImageIndex}
                     onNavigate={handleNavigateImage}
                     onDelete={handleImageDelete}
+                    initialSimilarSearchImageId={initialSimilarSearchImageId}
                     onOpenImageById={openImageById}
                     onOpenFolder={(folderId) => {
                       setSelectedFolderId(folderId);

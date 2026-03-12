@@ -365,12 +365,15 @@ app.whenReady().then(async () => {
 
     ipcMain.handle('mcp:search-similar', wrapIpcHandler(async (_, options) => {
         console.log(`[Main] Finding similar images via backend API`, options);
-        const { imageId, limit, folderPath, minSimilarity } = options;
+        const { imageId, limit, folderId, folderPath, minSimilarity } = options;
         if (!imageId) throw new Error("image_id is required");
+
+        const resolvedFolderPath = folderPath || (folderId ? await db.getFolderPathById(folderId) : undefined) || undefined;
+
         return await apiService.searchSimilar({
             image_id: imageId,
             limit,
-            folder_path: folderPath,
+            folder_path: resolvedFolderPath,
             min_similarity: minSimilarity,
         });
     }));
