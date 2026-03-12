@@ -43,9 +43,8 @@ interface ImageViewerProps {
     onNavigate?: (newIndex: number) => void;
     onDelete?: (id: number) => void;
     onOpenFolder?: (folderId: number) => void;
-    onJumpToImageFolder?: (imageId: number) => void;
-    initialSimilarSearchImageId?: number | null;
     onOpenImageById?: (id: number) => Promise<boolean>;
+    initialSimilarSearchImageId?: number | null;
 }
 
 const isWebSafe = (filename: string) => {
@@ -87,9 +86,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     onNavigate,
     onDelete,
     onOpenFolder,
-    onJumpToImageFolder,
-    initialSimilarSearchImageId,
-    onOpenImageById
+    onOpenImageById,
+    initialSimilarSearchImageId
 }) => {
     const [image, setImage] = React.useState<Image>(initialImage);
     const [detailsLoaded, setDetailsLoaded] = React.useState(false);
@@ -941,7 +939,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                         setIsSimilarDrawerOpen(false);
                     }
                 }}
-                onJumpToImageFolder={(id) => onJumpToImageFolder?.(id)}
+                onJumpToImageFolder={(id) => onOpenImageById?.(id)}
             />
         </div>
     );
