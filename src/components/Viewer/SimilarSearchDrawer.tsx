@@ -6,9 +6,10 @@ interface SimilarSearchDrawerProps {
     queryImageId: number | null;
     currentFolderId?: number; // Optional: to restrict search to the current folder
     onSelectImage: (imageId: number) => void;
+    onJumpToImageFolder: (imageId: number) => void;
 }
 
-export function SimilarSearchDrawer({ open, onClose, queryImageId, onSelectImage }: SimilarSearchDrawerProps) {
+export function SimilarSearchDrawer({ open, onClose, queryImageId, onSelectImage, onJumpToImageFolder }: SimilarSearchDrawerProps) {
     // Only pass imageId when open to avoid unnecessary fetching in the background
     const activeImageId = open ? queryImageId : null;
     const { images, loading, error } = useSimilarImages(activeImageId, 20); // Defaulting to 20 for UI drawer
@@ -123,9 +124,30 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, onSelectImage
                                     fontSize: '0.75em',
                                     color: '#eee',
                                     display: 'flex',
-                                    justifyContent: 'flex-end'
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    gap: 8
                                 }}>
-                                    {(img.similarity * 100).toFixed(1)}%
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onJumpToImageFolder(img.image_id);
+                                        }}
+                                        style={{
+                                            border: '1px solid rgba(255,255,255,0.35)',
+                                            background: 'rgba(0,0,0,0.45)',
+                                            color: '#fff',
+                                            borderRadius: 4,
+                                            fontSize: '0.75em',
+                                            padding: '2px 6px',
+                                            cursor: 'pointer'
+                                        }}
+                                        title="Open this image in its folder"
+                                    >
+                                        Jump to Folder
+                                    </button>
+                                    <span>{(img.similarity * 100).toFixed(1)}%</span>
                                 </div>
                             </div>
                         ))}

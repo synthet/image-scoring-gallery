@@ -49,6 +49,8 @@ function AppContent({ isConnected }: AppContentProps) {
   const [filters, setFilters] = useState<FilterState>({ minRating: 0, sortBy: 'score_general', order: 'DESC' });
   const [openingImage, setOpeningImage] = useState<ImageRow | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
+  const [initialSimilarSearchImageId, setInitialSimilarSearchImageId] = useState<number | null>(null);
+  const [pendingJumpImageId, setPendingJumpImageId] = useState<number | null>(null);
   const [currentView, setCurrentView] = useState<'gallery' | 'duplicates'>('gallery');
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -92,7 +94,7 @@ function AppContent({ isConnected }: AppContentProps) {
       if (cleanupImport) cleanupImport();
       if (cleanupNotification) cleanupNotification();
     };
-  }, []);
+  }, [addNotification]);
 
   // Subfolders toggle
   const [includeSubfolders, setIncludeSubfolders] = useState(false);
@@ -254,6 +256,7 @@ function AppContent({ isConnected }: AppContentProps) {
   }, [stacksMode, cacheBuilt, refreshStacks]);
 
   const handleImageClick = (image: ImageRow) => {
+    setInitialSimilarSearchImageId(null);
     const imgList = (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
     const index = imgList.findIndex(img => img.id === image.id);
     setCurrentImageIndex(index >= 0 ? index : 0);
@@ -315,13 +318,72 @@ function AppContent({ isConnected }: AppContentProps) {
     setSelectedFolderId(parentId);
   };
 
+  const openFolderAndImage = useCallback(async (imageId: number) => {
+    if (!window.electron) return;
+
+    try {
+      const details = await window.electron.getImageDetails(imageId);
+      if (!details?.folder_id) {
+        addNotification('Unable to locate folder for selected image', 'warning');
+        return;
+      }
+
+      setSelectedFolderId(details.folder_id);
+      setIncludeSubfolders(false);
+      setActiveStackId(null);
+      setActiveStackInfo(null);
+      setStackImages([]);
+      setInitialSimilarSearchImageId(null);
+      setPendingJumpImageId(imageId);
+
+      setOpeningImage({
+        id: details.id,
+        file_path: details.file_path,
+        file_name: details.file_name,
+        score_general: details.score_general,
+        score_technical: details.score_technical,
+        score_aesthetic: details.score_aesthetic,
+        score_spaq: details.score_spaq,
+        score_ava: details.score_ava,
+        score_liqe: details.score_liqe,
+        rating: details.rating,
+        label: details.label,
+        created_at: details.created_at,
+        thumbnail_path: details.thumbnail_path,
+        stack_id: details.stack_id,
+      });
+      setCurrentImageIndex(0);
+    } catch (err) {
+      console.error('Failed to jump to image folder', err);
+      addNotification('Failed to jump to image folder', 'error');
+    }
+  }, [addNotification]);
+
+  const handleFindSimilarFromGrid = (image: ImageRow) => {
+    handleImageClick(image);
+    setInitialSimilarSearchImageId(image.id);
+  };
+
   const closeViewer = () => {
     setOpeningImage(null);
+    setInitialSimilarSearchImageId(null);
+    setPendingJumpImageId(null);
   };
 
   // Determine current display
   const currentImages = (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
   const currentTotal = stacksMode && !activeStackId ? stacksTotalCount : (activeStackId ? (activeStackInfo?.imageCount || stackImages.length) : totalCount);
+
+  useEffect(() => {
+    if (!pendingJumpImageId || currentImages.length === 0) return;
+
+    const idx = currentImages.findIndex(img => img.id === pendingJumpImageId);
+    if (idx < 0) return;
+
+    setCurrentImageIndex(idx);
+    setOpeningImage(currentImages[idx]);
+    setPendingJumpImageId(null);
+  }, [currentImages, pendingJumpImageId]);
 
   // Header title
   const headerTitle = (() => {
@@ -661,6 +723,7 @@ function AppContent({ isConnected }: AppContentProps) {
                   onSelectStack={handleSelectStack}
                   onStackEndReached={loadMoreStacks}
                   activeStackId={activeStackId}
+                  onFindSimilarImages={handleFindSimilarFromGrid}
                 />
                 {openingImage && (
                   <ImageViewer
@@ -670,6 +733,8 @@ function AppContent({ isConnected }: AppContentProps) {
                     currentIndex={currentImageIndex}
                     onNavigate={handleNavigateImage}
                     onDelete={handleImageDelete}
+                    initialSimilarSearchImageId={initialSimilarSearchImageId}
+                    onJumpToImageFolder={openFolderAndImage}
                     onOpenFolder={(folderId) => {
                       setSelectedFolderId(folderId);
                       setIncludeSubfolders(false);
