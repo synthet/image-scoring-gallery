@@ -382,21 +382,32 @@ function AppContent({ isConnected }: AppContentProps) {
   };
 
 
+
   const handleFindSimilarFromGrid = (image: ImageRow) => {
     handleImageClick(image);
     setInitialSimilarSearchImageId(image.id);
   };
 
   const closeViewer = () => {
+    setInitialSimilarSearchImageId(null);
     setPendingOpenImageId(null);
     setOpeningImage(null);
-    setInitialSimilarSearchImageId(null);
   };
 
   // Determine current display
   const currentImages = (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
   const currentTotal = stacksMode && !activeStackId ? stacksTotalCount : (activeStackId ? (activeStackInfo?.imageCount || stackImages.length) : totalCount);
 
+  useEffect(() => {
+    if (!pendingOpenImageId || currentImages.length === 0) return;
+
+    const idx = currentImages.findIndex(img => img.id === pendingOpenImageId);
+    if (idx < 0) return;
+
+    setCurrentImageIndex(idx);
+    setOpeningImage(currentImages[idx]);
+    setPendingOpenImageId(null);
+  }, [currentImages, pendingOpenImageId]);
 
   // Header title
   const headerTitle = (() => {

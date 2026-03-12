@@ -380,44 +380,70 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 itemContent={itemContent}
             />
 
-            {contextMenu && onFindSimilarImages && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: contextMenu.y,
-                        left: contextMenu.x,
-                        zIndex: 2000,
-                        minWidth: 220,
-                        background: '#252526',
-                        border: '1px solid #3b3b3b',
-                        borderRadius: 6,
-                        boxShadow: '0 10px 24px rgba(0,0,0,0.45)',
-                        padding: 4
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <button
-                        onClick={() => {
-                            onFindSimilarImages(contextMenu.image);
-                            setContextMenu(null);
-                        }}
+            {contextMenu && onFindSimilarImages && (() => {
+                const MENU_WIDTH = 220;
+                const MENU_HEIGHT = 45; // Approx height for one item + padding
+                const margin = 10;
+
+                let x = contextMenu.x;
+                let y = contextMenu.y;
+
+                if (x + MENU_WIDTH + margin > window.innerWidth) {
+                    x = window.innerWidth - MENU_WIDTH - margin;
+                }
+                if (y + MENU_HEIGHT + margin > window.innerHeight) {
+                    y = window.innerHeight - MENU_HEIGHT - margin;
+                }
+
+                return (
+                    <div
                         style={{
-                            width: '100%',
-                            textAlign: 'left',
-                            padding: '8px 10px',
-                            border: 'none',
-                            background: 'transparent',
-                            color: '#e6e6e6',
-                            borderRadius: 4,
-                            cursor: 'pointer'
+                            position: 'fixed',
+                            top: y,
+                            left: x,
+                            zIndex: 2000,
+                            minWidth: MENU_WIDTH,
+                            background: '#252526',
+                            border: '1px solid #3b3b3b',
+                            borderRadius: 6,
+                            boxShadow: '0 10px 24px rgba(0,0,0,0.45)',
+                            padding: 4,
+                            animation: 'menu-scale-in 0.1s ease-out',
+                            transformOrigin: 'top left'
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#3a3d41'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        Find Similar Images…
-                    </button>
-                </div>
-            )}
+                        <style>{`
+                            @keyframes menu-scale-in {
+                                from { opacity: 0; transform: scale(0.95); }
+                                to { opacity: 1; transform: scale(1); }
+                            }
+                        `}</style>
+                        <button
+                            onClick={() => {
+                                onFindSimilarImages(contextMenu.image);
+                                setContextMenu(null);
+                            }}
+                            style={{
+                                width: '100%',
+                                textAlign: 'left',
+                                padding: '8px 10px',
+                                border: 'none',
+                                background: 'transparent',
+                                color: '#e6e6e6',
+                                borderRadius: 4,
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                transition: 'background-color 0.1s'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#3a3d41'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                        >
+                            Find Similar Images…
+                        </button>
+                    </div>
+                );
+            })()}
         </div>
     );
 };
