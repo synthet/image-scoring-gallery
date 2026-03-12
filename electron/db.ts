@@ -671,6 +671,12 @@ export async function getFolders(): Promise<unknown[]> {
     return rows;
 }
 
+
+export async function getFolderPathById(id: number): Promise<string | null> {
+    const rows = await query<{ path: string }>('SELECT path FROM folders WHERE id = ?', [id]);
+    return rows.length > 0 ? rows[0].path : null;
+}
+
 export async function deleteFolder(id: number): Promise<boolean> {
     try {
         await query('DELETE FROM folders WHERE id = ?', [id]);

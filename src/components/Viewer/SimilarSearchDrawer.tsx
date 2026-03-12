@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useSimilarImages } from '../../hooks/useDatabase';
 
 interface SimilarSearchDrawerProps {
@@ -9,10 +10,55 @@ interface SimilarSearchDrawerProps {
     onJumpToImageFolder: (imageId: number) => void;
 }
 
-export function SimilarSearchDrawer({ open, onClose, queryImageId, onSelectImage, onJumpToImageFolder }: SimilarSearchDrawerProps) {
+interface FolderRow {
+    id: number;
+    path: string;
+}
+
+export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolderId, onSelectImage, onJumpToImageFolder }: SimilarSearchDrawerProps) {
+    const [folderPathById, setFolderPathById] = useState<string | undefined>(undefined);
+    const [minSimilarityInput, setMinSimilarityInput] = useState('0.80');
+
+    const minSimilarity = useMemo(() => {
+        const parsed = Number(minSimilarityInput);
+        if (!Number.isFinite(parsed)) return 0.8;
+        return Math.min(1, Math.max(0, parsed));
+    }, [minSimilarityInput]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        if (!open || !window.electron || !currentFolderId) {
+            return;
+        }
+
+        window.electron.getFolders()
+            .then((folders: FolderRow[]) => {
+                if (!isMounted) return;
+                const matchedFolder = folders.find((folder) => folder.id === currentFolderId);
+                setFolderPathById(matchedFolder?.path);
+            })
+            .catch((err) => {
+                if (!isMounted) return;
+                console.error('[SimilarSearchDrawer] Failed to resolve folder path from folder id:', err);
+                setFolderPathById(undefined);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [open, currentFolderId]);
+
+    const resolvedFolderPath = currentFolderId ? folderPathById : undefined;
+
     // Only pass imageId when open to avoid unnecessary fetching in the background
     const activeImageId = open ? queryImageId : null;
-    const { images, loading, error } = useSimilarImages(activeImageId, 20); // Defaulting to 20 for UI drawer
+    const { images, loading, error } = useSimilarImages(activeImageId, {
+        limit: 20,
+        folderId: currentFolderId,
+        folderPath: resolvedFolderPath,
+        minSimilarity,
+    });
 
     if (!open) return null;
 
@@ -57,6 +103,59 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, onSelectImage
                 </button>
             </div>
 
+            <div style={{
+                padding: '10px 15px',
+                borderBottom: '1px solid #333',
+                display: 'grid',
+                gap: 8,
+                backgroundColor: '#232323'
+            }}>
+                <label style={{ display: 'grid', gap: 4, color: '#bbb', fontSize: '0.8em' }}>
+                    <span>Minimum Similarity</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input
+                            type="range"
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            value={minSimilarity}
+                            onChange={(e) => setMinSimilarityInput(e.currentTarget.value)}
+                            style={{ flex: 1 }}
+                            aria-label="Minimum Similarity Threshold Slider"
+                        />
+                        <input
+                            type="number"
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            value={minSimilarityInput}
+                            onChange={(e) => setMinSimilarityInput(e.currentTarget.value)}
+                            aria-label="Minimum Similarity Threshold Value"
+                            style={{
+                                width: 60,
+                                backgroundColor: '#1a1a1a',
+                                color: '#ddd',
+                                border: '1px solid #444',
+                                borderRadius: 4,
+                                padding: '3px 6px'
+                            }}
+                        />
+                    </div>
+                </label>
+                <div style={{
+                    height: resolvedFolderPath ? '1.5em' : '0px',
+                    overflow: 'hidden',
+                    transition: 'height 0.2s ease-in-out, opacity 0.2s ease-in-out',
+                    opacity: resolvedFolderPath ? 1 : 0
+                }}>
+                    {resolvedFolderPath && (
+                        <div style={{ color: '#888', fontSize: '0.75em' }} title={resolvedFolderPath}>
+                            Restricted to folder: {resolvedFolderPath}
+                        </div>
+                    )}
+                </div>
+            </div>
+
             <div style={{ flex: 1, overflowY: 'auto', padding: 15 }}>
                 {loading && (
                     <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
@@ -73,7 +172,7 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, onSelectImage
 
                 {!loading && !error && images.length === 0 && queryImageId && (
                     <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
-                        No similar images found (similarity {'>'} 0.80).
+                        No similar images found (similarity {'>'} {(minSimilarity * 100).toFixed(0)}%).
                     </div>
                 )}
 

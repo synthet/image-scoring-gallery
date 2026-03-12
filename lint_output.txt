@@ -1,0 +1,54 @@
+
+> electron-gallery@3.35.1 lint
+> eslint .
+
+
+D:\Projects\electron-image-scoring\electron\main.ts
+  109:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projects\electron-image-scoring\electron\preload.ts
+   72:66  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  117:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projects\electron-image-scoring\mcp-server\src\tools\cdp.ts
+  1:42  error  'listTargets' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Projects\electron-image-scoring\src\AppContent.tsx
+  95:6  warning  React Hook useEffect has a missing dependency: 'addNotification'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Projects\electron-image-scoring\src\components\Import\ImportModal.tsx
+  26:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Projects\electron-image-scoring\src\components\Import\ImportModal.tsx:26:9
+  24 |
+  25 |         runRef.current = true;
+> 26 |         setIsRunning(true);
+     |         ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  27 |         setIsComplete(false);
+  28 |         setError(null);
+  29 |         setCurrent(0);  react-hooks/set-state-in-effect
+
+D:\Projects\electron-image-scoring\src\components\Viewer\ImageViewer.tsx
+  398:8  warning  React Hook useEffect has a missing dependency: 'buildExportPayload'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Projects\electron-image-scoring\src\electron.d.ts
+  121:191  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  138:53   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projects\electron-image-scoring\src\services\gradioClient.ts
+    4:21   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   41:40   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   69:76   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   78:76   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   87:107  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   96:55   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:37   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Γ£û 16 problems (14 errors, 2 warnings)
+

@@ -43,7 +43,7 @@ interface ImageViewerProps {
     onNavigate?: (newIndex: number) => void;
     onDelete?: (id: number) => void;
     onOpenFolder?: (folderId: number) => void;
-    onJumpToImageFolder?: (imageId: number) => void;
+    onOpenImageById?: (id: number) => Promise<boolean>;
     initialSimilarSearchImageId?: number | null;
 }
 
@@ -86,7 +86,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     onNavigate,
     onDelete,
     onOpenFolder,
-    onJumpToImageFolder,
+    onOpenImageById,
     initialSimilarSearchImageId
 }) => {
     const [image, setImage] = React.useState<Image>(initialImage);
@@ -110,11 +110,14 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
     // Update image when navigating
     useEffect(() => {
-        if (allImages && allImages[currentIndex]) {
+        if (currentIndex >= 0 && allImages && allImages[currentIndex]) {
             setImage(allImages[currentIndex]);
             setDetailsLoaded(false);
+        } else if (currentIndex === -1) {
+            setImage(initialImage);
+            setDetailsLoaded(false);
         }
-    }, [currentIndex, allImages]);
+    }, [currentIndex, allImages, initialImage]);
 
     // Fetch full details
     useEffect(() => {
@@ -340,39 +343,39 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
     const src = previewSrc;
 
-    const buildExportPayload = async () => {
-        if (!src) {
-            return { error: 'No preview loaded yet.' };
-        }
-
-        try {
-            const response = await fetch(src);
-            const blob = await response.blob();
-            const buffer = await blob.arrayBuffer();
-            const bytes = Array.from(new Uint8Array(buffer));
-            const mimeType = blob.type || 'image/jpeg';
-
-            const baseName = image.file_name.replace(/\.[^/.]+$/, '');
-            const suggestedFileName = mimeType.includes('jpeg') || mimeType.includes('jpg')
-                ? `${baseName}.jpg`
-                : image.file_name;
-
-            return {
-                bytes,
-                mimeType,
-                suggestedFileName,
-                id: image.id,
-                sourcePath: image.win_path || image.file_path,
-                imageUuid: image.image_uuid || null
-            };
-        } catch (e) {
-            console.error('Failed to read displayed preview bytes:', e);
-            return { error: 'Could not read displayed preview bytes.' };
-        }
-    };
-
     useEffect(() => {
         let active = true;
+
+        const buildExportPayload = async () => {
+            if (!src) {
+                return { error: 'No preview loaded yet.' };
+            }
+
+            try {
+                const response = await fetch(src);
+                const blob = await response.blob();
+                const buffer = await blob.arrayBuffer();
+                const bytes = Array.from(new Uint8Array(buffer));
+                const mimeType = blob.type || 'image/jpeg';
+
+                const baseName = image.file_name.replace(/\.[^/.]+$/, '');
+                const suggestedFileName = mimeType.includes('jpeg') || mimeType.includes('jpg')
+                    ? `${baseName}.jpg`
+                    : image.file_name;
+
+                return {
+                    bytes,
+                    mimeType,
+                    suggestedFileName,
+                    id: image.id,
+                    sourcePath: image.win_path || image.file_path,
+                    imageUuid: image.image_uuid || null
+                };
+            } catch (e) {
+                console.error('Failed to read displayed preview bytes:', e);
+                return { error: 'Could not read displayed preview bytes.' };
+            }
+        };
 
         const syncExportContext = async () => {
             if (!window.electron) return;
@@ -408,7 +411,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 void window.electron.setCurrentExportImageContext(null);
             }
         };
-    }, [src, image.file_name]);
+    }, [src, image.file_name, image.file_path, image.id, image.image_uuid, image.win_path]);
 
     // Format date
     const dateStr = image.created_at ? new Date(image.created_at).toLocaleString() : 'Unknown';
@@ -911,16 +914,32 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 open={isSimilarDrawerOpen}
                 onClose={() => setIsSimilarDrawerOpen(false)}
                 queryImageId={similarSearchImageId ?? image.id}
-                onSelectImage={(id) => {
+                currentFolderId={image.folder_id}
+                onSelectImage={async (id) => {
                     const idx = allImages.findIndex(img => img.id === id);
                     if (idx >= 0 && onNavigate) {
                         onNavigate(idx);
-                        // Optionally close drawer or keep it open
-                    } else {
-                        alert('Image not found in current view');
+                        setIsSimilarDrawerOpen(false);
+                        return;
+                    }
+
+                    if (onOpenImageById) {
+                        const opened = await onOpenImageById(id);
+                        if (opened) {
+                            setIsSimilarDrawerOpen(false);
+                            return;
+                        }
+                    }
+
+                    if (!window.electron) return;
+                    const details = await window.electron.getImageDetails(id);
+                    if (details) {
+                        setImage(details);
+                        setDetailsLoaded(true);
+                        setIsSimilarDrawerOpen(false);
                     }
                 }}
-                onJumpToImageFolder={(id) => onJumpToImageFolder?.(id)}
+                onJumpToImageFolder={(id) => onOpenImageById?.(id)}
             />
         </div>
     );
