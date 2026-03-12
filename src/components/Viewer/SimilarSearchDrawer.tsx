@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSimilarImages } from '../../hooks/useDatabase';
 
 interface SimilarSearchDrawerProps {
@@ -7,10 +7,16 @@ interface SimilarSearchDrawerProps {
     queryImageId: number | null;
     currentFolderId?: number; // Optional: to restrict search to the current folder
     onSelectImage: (imageId: number) => void;
+    onJumpToImageFolder: (imageId: number) => void;
 }
 
+interface FolderRow {
+    id: number;
+    path: string;
+}
 
-export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolderId, onSelectImage }: SimilarSearchDrawerProps) {
+export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolderId, onSelectImage, onJumpToImageFolder }: SimilarSearchDrawerProps) {
+    const [folderPathById, setFolderPathById] = useState<string | undefined>(undefined);
     const [minSimilarityInput, setMinSimilarityInput] = useState('0.80');
 
     const minSimilarity = useMemo(() => {
@@ -19,11 +25,38 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
         return Math.min(1, Math.max(0, parsed));
     }, [minSimilarityInput]);
 
+    useEffect(() => {
+        let isMounted = true;
+
+        if (!open || !window.electron || !currentFolderId) {
+            return;
+        }
+
+        window.electron.getFolders()
+            .then((folders: FolderRow[]) => {
+                if (!isMounted) return;
+                const matchedFolder = folders.find((folder) => folder.id === currentFolderId);
+                setFolderPathById(matchedFolder?.path);
+            })
+            .catch((err) => {
+                if (!isMounted) return;
+                console.error('[SimilarSearchDrawer] Failed to resolve folder path from folder id:', err);
+                setFolderPathById(undefined);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [open, currentFolderId]);
+
+    const resolvedFolderPath = currentFolderId ? folderPathById : undefined;
+
     // Only pass imageId when open to avoid unnecessary fetching in the background
     const activeImageId = open ? queryImageId : null;
     const { images, loading, error } = useSimilarImages(activeImageId, {
         limit: 20,
         folderId: currentFolderId,
+        folderPath: resolvedFolderPath,
         minSimilarity,
     });
 
@@ -88,6 +121,7 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
                             value={minSimilarity}
                             onChange={(e) => setMinSimilarityInput(e.currentTarget.value)}
                             style={{ flex: 1 }}
+                            aria-label="Minimum Similarity Threshold Slider"
                         />
                         <input
                             type="number"
@@ -96,6 +130,7 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
                             step={0.01}
                             value={minSimilarityInput}
                             onChange={(e) => setMinSimilarityInput(e.currentTarget.value)}
+                            aria-label="Minimum Similarity Threshold Value"
                             style={{
                                 width: 60,
                                 backgroundColor: '#1a1a1a',
@@ -107,11 +142,18 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
                         />
                     </div>
                 </label>
-                {currentFolderId && (
-                    <div style={{ color: '#888', fontSize: '0.75em' }}>
-                        Restricted to current folder
-                    </div>
-                )}
+                <div style={{
+                    height: resolvedFolderPath ? '1.5em' : '0px',
+                    overflow: 'hidden',
+                    transition: 'height 0.2s ease-in-out, opacity 0.2s ease-in-out',
+                    opacity: resolvedFolderPath ? 1 : 0
+                }}>
+                    {resolvedFolderPath && (
+                        <div style={{ color: '#888', fontSize: '0.75em' }} title={resolvedFolderPath}>
+                            Restricted to folder: {resolvedFolderPath}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: 15 }}>
@@ -181,9 +223,30 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
                                     fontSize: '0.75em',
                                     color: '#eee',
                                     display: 'flex',
-                                    justifyContent: 'flex-end'
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    gap: 8
                                 }}>
-                                    {(img.similarity * 100).toFixed(1)}%
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onJumpToImageFolder(img.image_id);
+                                        }}
+                                        style={{
+                                            border: '1px solid rgba(255,255,255,0.35)',
+                                            background: 'rgba(0,0,0,0.45)',
+                                            color: '#fff',
+                                            borderRadius: 4,
+                                            fontSize: '0.75em',
+                                            padding: '2px 6px',
+                                            cursor: 'pointer'
+                                        }}
+                                        title="Open this image in its folder"
+                                    >
+                                        Jump to Folder
+                                    </button>
+                                    <span>{(img.similarity * 100).toFixed(1)}%</span>
                                 </div>
                             </div>
                         ))}

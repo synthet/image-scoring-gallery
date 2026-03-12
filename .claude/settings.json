@@ -19,7 +19,8 @@
       "Bash(grep -A5 \"selectFolder\\\\|pickFolder\\\\|chooseFolder\\\\|browseFolder\" ./src/components/**/*.tsx)",
       "Bash(xargs grep -l \"ImportModal\\\\|onImportFolderSelected\")",
       "mcp__mcp-firebird__list-tables",
-      "Bash(ls ../image-scoring/*.md ../image-scoring/*.json)"
+      "Bash(ls ../image-scoring/*.md ../image-scoring/*.json)",
+      "Bash(tasklist)"
     ],
     "additionalDirectories": [
       "../image-scoring"

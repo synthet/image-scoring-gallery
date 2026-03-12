@@ -326,6 +326,7 @@ export function useSimilarImages(
     imageId: number | null,
     options: SimilarImageSearchOptions = {}
 ) {
+
     const {
         limit = 20,
         folderId,
