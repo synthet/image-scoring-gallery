@@ -11,6 +11,23 @@ Last evaluated: 2026-03-14.
 | `[DB]` | Firebird schema, queries, connection layer, or migration |
 | `[DB+Python]` | Coordinated DB work across both repos (e.g. Firebird→Postgres migration) |
 
+### Count Snapshot Rules
+
+Use these rules whenever reporting counts in this file (or in linked planning docs):
+
+- **What counts as “open”**: any unchecked checkbox line (`- [ ] ...`) counts as one open item.
+- **How grouped checklist items are counted**: each unchecked checkbox line counts independently. If a parent has its own checkbox and child checkboxes, count all unchecked lines (parent + each child).
+- **Cross-repo markers**: any open item containing `[Python]`, `[Gradio]`, `[DB]`, or `[DB+Python]` is counted as a **cross-repo dependency item**.
+  - Items with none of those markers are counted as **Electron-only**.
+  - `[DB+Python]` is a single cross-repo class (do not double-count it as both `[DB]` and `[Python]`).
+
+#### Compact Counting Example (from `Python / Backend Integration`)
+
+- Open items in the section: **5**
+- Cross-repo items: **4** (`[Gradio]` ×2, `[Python]` ×2)
+- Electron-only items: **1** (`Document config.api.url / config.api.port override in user-facing docs`)
+- Check: `open (5) = cross-repo (4) + Electron-only (1)`
+
 ---
 
 ## Unfinished Business Evaluation (2026-03-14)
