@@ -1,5 +1,7 @@
 # 02 - Near-Duplicate Detection (Frontend)
 
+*Status: **Implemented***
+
 *Part of [Embedding Applications - Frontend Implementation Index](README.md).*
 
 ## Goal
@@ -8,25 +10,26 @@ Provide a dedicated maintenance interface to review, manage, and clean up visual
 
 ## UI Integration Points
 
-1. **Duplicate Finder View (`src/components/Views/DuplicateFinder.tsx`)**
-   - Accessible via a new sidebar navigation item: "Maintenance" -> "Find Duplicates".
+1. **Duplicate Finder View (`src/components/Duplicates/DuplicateFinder.tsx`)**
+   - **Status**: Fully Implemented.
+   - Accessible via Sidebar -> "Maintenance" -> "Find Duplicates".
    - **Controls:**
-     - Folder scope selection (Entire Library vs. Specific Folder).
+     - Folder scope selection (Restricted to current folder or library-wide).
      - Similarity Threshold slider (Default 0.98).
-     - "Scan Now" button with progress indication (may take several seconds via backend).
+     - "Scan Now" button with progress indication.
    - **Layout:**
-     - Data arrives from backend as arrays of image pairs/groups `[{id, file_path, score, resolution...}, ...]`.
-     - Render as a grid of "Duplicate Sets". Each set displays 2+ images side-by-side.
-     - Overlay visual cues showing differences: score delta, resolution delta, file size delta.
+     - Displays sets of duplicates with side-by-side comparison.
+     - Highlights pixel dimensions and score differences.
    
-2. **Action Buttons per Set**
-   - **"Keep Best Only"**: Automatically rejects (sets rating=-1 or flags as cull) all but the highest scoring image in that set.
-   - **"Manual Resolve"**: Expands the group in a larger modal for pixel-peeping.
+2. **Action Workflow**
+   - **"Reject Duplicates"**: User can manually select images to reject (rating -1).
+   - **"Auto-Reject"**: Logic to keep the highest score/resolution and reject the rest.
 
-3. **IPC / MCP Flow**
-   - Connects to the `find_near_duplicates` server tool via the MCP client integration.
-   - Triggers `window.electron.ipcRenderer.invoke('mcp-find-duplicates', { threshold, folder })`.
+3. **IPC Flow**
+   - Triggers `window.electron.findNearDuplicates({ threshold, folderPath })`.
+   - Results are returned as a structured array of clusters.
 
 ## Design Considerations
 
-- Because scanning large libraries is compute-heavy, the UI must handle long-running timeouts gracefully or show a determinate progress bar via job status polling.
+- **Visual Comparison:** Images are rendered side-by-side for pixel-perfect comparison.
+- **Performance:** Scanning large folders is handled as an async IPC call to avoid freezing the renderer thread.

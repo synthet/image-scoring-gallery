@@ -21,16 +21,19 @@ function loadConfig() {
 const config = loadConfig();
 const dbConfig = config.database || {};
 
-// Add test detection
+// Add test detection — tests must NEVER use production DB
 const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST;
 
 // Database options
 // If path is relative in config, it's relative to the project root (one level up from dist-electron)
-let rawDbPath = dbConfig.path || '../image-scoring/SCORING_HISTORY.FDB';
+let rawDbPath: string;
 
-if (isTestEnv && rawDbPath.toUpperCase().includes('SCORING_HISTORY.FDB')) {
-    console.warn('[DB] Test environment detected! Switching to SCORING_HISTORY_TEST.FDB');
-    rawDbPath = rawDbPath.replace(/SCORING_HISTORY\.FDB/i, 'SCORING_HISTORY_TEST.FDB');
+if (isTestEnv) {
+    // Force test DB only — matches image-scoring/scripts/setup_test_db.py (scoring_history_test.fdb)
+    rawDbPath = '../image-scoring/scoring_history_test.fdb';
+    console.warn('[DB] Test environment detected! Using test DB only: scoring_history_test.fdb');
+} else {
+    rawDbPath = dbConfig.path || '../image-scoring/SCORING_HISTORY.FDB';
 }
 
 const dbPath = path.isAbsolute(rawDbPath)

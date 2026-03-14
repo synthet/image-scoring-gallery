@@ -7,10 +7,12 @@ import type {
     ScoringStartRequest,
     TaggingStartRequest,
     TaggingSingleRequest,
+    TagPropagationRequest,
     ClusteringStartRequest,
     PipelineSubmitRequest,
     JobInfo,
     DatabaseStats,
+    SimilarSearchResult,
 } from './apiTypes';
 
 /**
@@ -69,7 +71,7 @@ contextBridge.exposeInMainWorld('electron', {
     },
     searchSimilarImages: async (options: { imageId: number; limit?: number; folderId?: number; folderPath?: string; minSimilarity?: number }) => {
         const response = await ipcRenderer.invoke('mcp:search-similar', options);
-        return unwrapEnvelope<{ query_image_id: number; results: any[]; count: number; error?: string }>(response);
+        return unwrapEnvelope<SimilarSearchResult>(response);
     },
     getStacks: async (options?: ImageQueryOptions) => {
         const response = await ipcRenderer.invoke('db:get-stacks', options);
@@ -114,7 +116,7 @@ contextBridge.exposeInMainWorld('electron', {
     },
     readExif: async (filePath: string) => {
         const response = await ipcRenderer.invoke('nef:read-exif', filePath);
-        return unwrapEnvelope<any>(response);
+        return unwrapEnvelope<Record<string, unknown>>(response);
     },
     onOpenSettings: (callback: () => void) => {
         const handler = () => callback();
@@ -208,6 +210,10 @@ contextBridge.exposeInMainWorld('electron', {
         },
         tagSingleImage: async (opts: TaggingSingleRequest) => {
             const r = await ipcRenderer.invoke('api:tagging-single', opts);
+            return unwrapEnvelope<BackendApiResponse>(r);
+        },
+        propagateTags: async (opts: TagPropagationRequest) => {
+            const r = await ipcRenderer.invoke('api:tagging-propagate', opts);
             return unwrapEnvelope<BackendApiResponse>(r);
         },
 

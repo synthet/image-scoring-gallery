@@ -6,8 +6,7 @@
  */
 
 import { net } from 'electron';
-import fs from 'fs';
-import path from 'path';
+import { resolveBaseUrl } from './apiUrlResolver';
 import type {
     ApiResponse,
     HealthResponse,
@@ -16,6 +15,7 @@ import type {
     SingleImageRequest,
     TaggingStartRequest,
     TaggingSingleRequest,
+    TagPropagationRequest,
     ClusteringStartRequest,
     FindDuplicatesRequest,
     SimilarSearchParams,
@@ -41,51 +41,9 @@ export class ApiService {
 
     // ── URL Resolution ──────────────────────────────────────────────────────
 
-    /**
-     * Resolve the backend base URL.
-     * Priority: config.api.url → lock file discovery → default.
-     */
     private resolveBaseUrl(): string {
         if (this.baseUrl) return this.baseUrl;
-
-        const config = this.configLoader();
-
-        // 1. Explicit URL in config
-        if (config.api?.url) {
-            this.baseUrl = config.api.url.replace(/\/$/, '');
-            console.log(`[ApiService] Using configured URL: ${this.baseUrl}`);
-            return this.baseUrl;
-        }
-
-        // 2. Try lock file discovery
-        let port = config.api?.port ?? 7860;
-        const host = config.api?.host ?? '127.0.0.1';
-
-        try {
-            const projectRoot = path.resolve(__dirname, '..');
-            const projectsDir = path.resolve(projectRoot, '..');
-            const locks = [
-                path.join(projectsDir, 'image-scoring', 'webui.lock'),
-                path.join(projectsDir, 'image-scoring', 'webui-debug.lock'),
-            ];
-
-            for (const lockFile of locks) {
-                if (fs.existsSync(lockFile)) {
-                    const content = fs.readFileSync(lockFile, 'utf8');
-                    const data = JSON.parse(content);
-                    if (data?.port) {
-                        port = data.port;
-                        console.log(`[ApiService] Discovered port ${port} from ${path.basename(lockFile)}`);
-                        break;
-                    }
-                }
-            }
-        } catch (e) {
-            console.error('[ApiService] Lock file read error:', e);
-        }
-
-        this.baseUrl = `http://${host}:${port}`;
-        console.log(`[ApiService] Resolved URL: ${this.baseUrl}`);
+        this.baseUrl = resolveBaseUrl(this.configLoader());
         return this.baseUrl;
     }
 
@@ -229,6 +187,10 @@ export class ApiService {
 
     tagSingleImage(opts: TaggingSingleRequest) {
         return this.post<ApiResponse>('/api/tagging/single', opts, LONG_TIMEOUT);
+    }
+
+    propagateTags(opts: TagPropagationRequest) {
+        return this.post<ApiResponse>('/api/tagging/propagate', opts, LONG_TIMEOUT);
     }
 
     // ── Clustering ──────────────────────────────────────────────────────────

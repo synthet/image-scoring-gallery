@@ -61,6 +61,28 @@ const isRaw = (filename: string) => {
     return ['nef', 'nrw', 'cr2', 'cr3', 'arw', 'orf', 'rw2', 'dng'].includes(ext);
 };
 
+const normalizeKeywords = (keywords: string): string => (
+    keywords
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0)
+        .join(', ')
+);
+
+const getFolderPathFromFilePath = (filePath?: string): string | null => {
+    if (!filePath) return null;
+    const normalized = filePath.replace(/[\\/]+$/, '');
+    const lastSeparator = Math.max(normalized.lastIndexOf('/'), normalized.lastIndexOf('\\'));
+
+    if (lastSeparator < 0) return null;
+    if (lastSeparator === 0) return normalized[0];
+    if (lastSeparator === 2 && /^[a-zA-Z]:[\\/]/.test(normalized)) {
+        return normalized.slice(0, 3);
+    }
+
+    return normalized.slice(0, lastSeparator);
+};
+
 const ScoreBar = ({ label, value, color = '#ff9800' }: { label: string, value: number, color?: string }) => (
     <div style={{ marginBottom: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8em', color: '#888', textTransform: 'uppercase', marginBottom: 2 }}>
@@ -112,7 +134,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             return true;
         }
         return false;
-    }, [onClose, onNavigate, currentIndex, allImages]));
+    }, [onClose, onNavigate, currentIndex, allImages]), !isDeleteDialogOpen);
 
     // Update image when navigating
     useEffect(() => {
@@ -258,16 +280,18 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const handleSave = async () => {
         if (!window.electron) return;
         try {
+            const normalizedKeywords = normalizeKeywords(editForm.keywords);
             const updates = {
                 title: editForm.title,
                 description: editForm.description,
                 rating: editForm.rating,
                 label: editForm.label,
-                keywords: editForm.keywords
+                keywords: normalizedKeywords
             };
             const success = await window.electron.updateImageDetails(image.id, updates);
             if (success) {
                 setImage({ ...image, ...updates });
+                setEditForm(prev => ({ ...prev, keywords: normalizedKeywords }));
                 setIsEditing(false);
             } else {
                 addNotification('Failed to save changes', 'error');
@@ -302,6 +326,53 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             addNotification('Error deleting image', 'error');
         }
     };
+
+    const handlePropagateTags = useCallback(async () => {
+        if (!window.electron) return;
+
+        const normalizedKeywords = normalizeKeywords(editForm.keywords);
+        const currentKeywords = normalizeKeywords(image.keywords || '');
+        const folderPath = getFolderPathFromFilePath(image.win_path || image.file_path);
+
+        if (!folderPath) {
+            addNotification('Cannot determine the current folder for tag propagation', 'warning');
+            return;
+        }
+
+        if (!normalizedKeywords) {
+            addNotification('Add at least one keyword before propagating tags', 'warning');
+            return;
+        }
+
+        if (normalizedKeywords !== currentKeywords) {
+            const saveSucceeded = await window.electron.updateImageDetails(image.id, { keywords: normalizedKeywords });
+            if (!saveSucceeded) {
+                addNotification('Failed to save keywords before propagation', 'error');
+                return;
+            }
+
+            setImage(prev => ({ ...prev, keywords: normalizedKeywords }));
+            setEditForm(prev => ({ ...prev, keywords: normalizedKeywords }));
+        }
+
+        try {
+            const result = await propagate({
+                folder_path: folderPath,
+                dry_run: false,
+            });
+
+            if (result?.success) {
+                const propagated = Number(result.data?.propagated ?? 0);
+                addNotification(`Propagated tags to ${propagated} images`, 'success');
+                return;
+            }
+
+            addNotification(result?.message || 'Tag propagation did not complete', 'warning');
+        } catch (e) {
+            addNotification('Propagation failed', 'error');
+            console.error('Propagation failed:', e);
+        }
+    }, [addNotification, editForm.keywords, image.file_path, image.id, image.keywords, image.win_path, propagate]);
 
     const [previewSrc, setPreviewSrc] = React.useState<string>('');
     const [loading, setLoading] = React.useState(false);
@@ -452,11 +523,13 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             image.label === 'Green' ? '#43a047' :
                 image.label === 'Blue' ? '#1e88e5' :
                     image.label === 'Purple' ? '#8e24aa' : 'None';
+    const normalizedEditKeywords = normalizeKeywords(editForm.keywords);
     const keywordSource = isEditing ? editForm.keywords : image.keywords || '';
     const keywordItems = keywordSource
         .split(',')
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0);
+    const propagationFolderPath = getFolderPathFromFilePath(image.win_path || image.file_path);
 
     return (
         <div style={{
@@ -629,29 +702,17 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                         <div style={{ fontSize: '0.8em', color: '#888' }}>KEYWORDS</div>
                         {isEditing && (
                             <button
-                                onClick={async () => {
-                                    if (!image.folder_id && !image.win_path) return;
-                                    // Get folder path from win_path if possible
-                                    let folderPath = '';
-                                    if (image.win_path) {
-                                        const lastBackslash = image.win_path.lastIndexOf('\\');
-                                        folderPath = image.win_path.substring(0, lastBackslash);
-                                    }
-                                    
-                                    try {
-                                        const result = await propagate({
-                                            folder_path: folderPath,
-                                            dry_run: false
-                                        });
-                                        if (result?.success) {
-                                            addNotification(`Propagated tags to ${result.data?.propagated || 0} images`, 'success');
-                                        }
-                                    } catch (e) {
-                                        addNotification('Propagation failed', 'error');
-                                        console.error('Propagation failed:', e);
-                                    }
+                                onClick={() => {
+                                    void handlePropagateTags();
                                 }}
-                                disabled={propagateLoading}
+                                disabled={propagateLoading || !propagationFolderPath || !normalizedEditKeywords}
+                                title={
+                                    !propagationFolderPath
+                                        ? 'Folder path unavailable for propagation'
+                                        : !normalizedEditKeywords
+                                            ? 'Add keywords before propagating'
+                                            : 'Propagate tags in this folder'
+                                }
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
@@ -662,8 +723,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     borderRadius: 4,
                                     color: '#ccc',
                                     fontSize: '0.75em',
-                                    cursor: propagateLoading ? 'default' : 'pointer',
-                                    opacity: propagateLoading ? 0.6 : 1
+                                    cursor: propagateLoading || !propagationFolderPath || !normalizedEditKeywords ? 'default' : 'pointer',
+                                    opacity: propagateLoading || !propagationFolderPath || !normalizedEditKeywords ? 0.6 : 1
                                 }}
                             >
                                 {propagateLoading ? <Loader2 size={12} className="animate-spin" /> : <Tag size={12} />}
