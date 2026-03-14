@@ -9,6 +9,8 @@ High-performance Electron desktop gallery app with image scoring, browsing, and 
 | **Python Backend** | `D:\Projects\image-scoring` | AI scoring engine, FastAPI server, Firebird DB schema owner |
 | **Electron Frontend** (this) | `D:\Projects\electron-image-scoring` | Desktop UI, IPC query layer, React/Vite |
 
+**Project layout:** For automatic API port discovery, this project expects `image-scoring` and `electron-image-scoring` to be sibling directories (e.g. `D:\Projects\image-scoring` and `D:\Projects\electron-image-scoring`). The backend writes `webui.lock` with its port when running. To override, set `config.api.url` or `config.api.port` in `config.json`; config takes precedence over lock file discovery.
+
 The backend owns all DDL/schema migrations (`modules/db.py`). This project queries the shared Firebird database but does NOT create or alter tables (except `STACK_CACHE` probe).
 
 ## Key Files

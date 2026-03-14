@@ -55,6 +55,17 @@ export interface TaggingSingleRequest {
     generate_captions?: boolean;
 }
 
+export interface TagPropagationRequest {
+    folder_path?: string | null;
+    dry_run?: boolean;
+    k?: number | null;
+    min_similarity?: number | null;
+    min_keyword_confidence?: number | null;
+    min_support_neighbors?: number | null;
+    write_mode?: 'replace_missing_only' | 'append' | null;
+    max_keywords?: number | null;
+}
+
 // ── Clustering ──────────────────────────────────────────────────────────────
 
 export interface ClusteringStartRequest {

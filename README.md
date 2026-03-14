@@ -19,6 +19,7 @@ This application provides a high-performance interface for browsing and filterin
 
 - **Node.js**: (v18 or higher recommended)
 - **Shared Database**: This app expects a Firebird database managed by the core [Image Scoring](https://github.com/synthet/image-scoring) project.
+- **Project layout**: For automatic API port discovery, keep `image-scoring` and `electron-image-scoring` as sibling directories. Override via `config.json` (`api.url` or `api.port`) if your layout differs.
 
 ## Getting Started
 

@@ -1,5 +1,7 @@
 # 03 - Tag Propagation (Frontend)
 
+*Status: **Planned***
+
 *Part of [Embedding Applications - Frontend Implementation Index](README.md).*
 
 ## Goal
@@ -8,22 +10,22 @@ Provide a frictionless UX for accepting or rejecting AI-propagated tags based on
 
 ## UI Integration Points
 
-1. **Tagging Metadata Panel (`src/components/Sidebar/MetadataPanel.tsx`)**
-   - The current keyword view shows confirmed/added tags.
-   - Introduce an "Inferred Tags" or "Suggested Tags" subsection below the main tags.
+1. **Metadata Section (`src/components/Viewer/ImageViewer.tsx`)**
+   - Instead of a standalone `MetadataPanel`, this feature will be integrated into the sidebar of the full-screen `ImageViewer`.
+   - Add an **"AI Suggested Keywords"** section below the manual keywords.
    
-2. **Quick Action "Suggest Tags"**
-   - A button (e.g., magic wand icon) to trigger the `propagate_tags` backend function for the current active image.
-   
-3. **Visual Distinction**
-   - Suggested tags must look different from manual keywords.
-   - **Styles:** Dashed border, translucent background, italic font (`opacity-70 border-dashed`).
-   - Clicking a suggested tag turns it into a confirmed tag (solidifies styling and triggers a DB update to save the keyword).
-   - Clicking an `(x)` on a suggested tag dismisses it for that session.
+2. **Suggested Tag Interaction**
+   - Markers for suggested tags appear as ghost/dashed badges.
+   - **Actions:**
+     - **Accept (Checkmark)**: Saves the keyword to the database and converts it to a standard keyword.
+     - **Reject (X)**: Removes the suggestion and prevents it from reappearing for this image.
+     - **Apply All**: Convenience button to accept all high-confidence suggestions.
 
-4. **IPC Flow**
-   - `window.electron.ipcRenderer.invoke('mcp-suggest-tags', { imageId })` returns an array of inferred strings.
-   
+3. **IPC Flow**
+   - `window.electron.propagateTags({ imageId, k: 5, dryRun: true })`.
+   - Returns a list of strings with confidence scores.
+
 ## Design Considerations
 
-- It may be useful to allow bulk action: "Suggest Tags for all images in folder" -> then prompt the user to review the inferred tags in a grid view mode where tag badges are layered over the thumbnails.
+- **Visual Polish:** Suggested tags should have a subtle animation or distinct styling (e.g., italics, lower opacity) to indicate they are "pending" user approval.
+- **Confidence Thresholding:** Only show suggestions with similarity > 0.85 to minimize noise.

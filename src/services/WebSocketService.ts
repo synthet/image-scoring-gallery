@@ -5,6 +5,33 @@ interface WebSocketMessage {
 
 type MessageHandler = (data: unknown) => void;
 
+/**
+ * WebSocket event types broadcast by the Python backend (/ws/updates).
+ * Subscribe via webSocketService.on(type, handler).
+ *
+ * Job events:
+ *   job_started   - { job_id, job_type, input_path }
+ *   job_progress  - { job_id, current, total, ... }
+ *   job_completed  - { job_id, status: "completed"|"failed", error? }
+ *
+ * Image events:
+ *   image_scored  - { file_path, image_id?, ... }
+ *   image_updated - { image_id, ... } - use to refresh gallery
+ *   image_discovered - { path }
+ *
+ * Folder events:
+ *   folder_updated  - { folder_path } - use to refresh folder tree
+ *   folder_deleted  - { path }
+ *   folder_discovered - { path }
+ *   folder_scanned  - { folder_path, new_images }
+ *
+ * Stack events:
+ *   stack_created  - { summary }
+ *   stack_updated - { stack_id }
+ *   stack_deleted - { stack_id }
+ *   stacks_cleared - {}
+ */
+
 class WebSocketService {
     private ws: WebSocket | null = null;
     private url: string = '';

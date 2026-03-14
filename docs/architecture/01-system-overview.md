@@ -40,3 +40,4 @@ Primary goals:
 - **media:// protocol**: Custom protocol for serving image files; requires path validation.
 - **NEF previews**: Multi-tier fallback (ExifTool → SubIFD Parser → Marker Scan).
 - **Database**: All DB access must occur in Main Process only.
+- **Import progress**: When using the API (Python backend), import runs in a single request; progress is reported once at completion. Direct DB fallback reports per-file progress.

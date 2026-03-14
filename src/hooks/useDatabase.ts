@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+const MAX_LOADED_ITEMS = 2000;
+
 interface ImageQueryOptions {
     limit?: number;
     offset?: number;
@@ -164,11 +166,39 @@ function usePaginatedData<T extends { id: number }>(
     const [totalCount, setTotalCount] = useState(0);
 
     // Use refs to avoid stale closures
+    const itemsRef = useRef<T[]>([]);
     const offsetRef = useRef(0);
     const filtersRef = useRef<ImageQueryOptions | undefined>(filters);
     const folderIdRef = useRef(folderId);
+    const loadingRef = useRef(false);
+    const hasMoreRef = useRef(true);
+    const queryVersionRef = useRef(0);
+    const requestIdRef = useRef(0);
+
+    const trimItems = useCallback((nextItems: T[]) => {
+        if (nextItems.length <= MAX_LOADED_ITEMS) {
+            return nextItems;
+        }
+        return nextItems.slice(nextItems.length - MAX_LOADED_ITEMS);
+    }, []);
+
+    const dedupeItems = useCallback((nextItems: T[]) => {
+        const seenKeys = new Set<string | number>();
+        return nextItems.filter(item => {
+            const key = getUniqueKey(item);
+            if (seenKeys.has(key)) {
+                return false;
+            }
+            seenKeys.add(key);
+            return true;
+        });
+    }, [getUniqueKey]);
 
     // Update refs when deps change
+    useEffect(() => {
+        itemsRef.current = items;
+    }, [items]);
+
     useEffect(() => {
         offsetRef.current = offset;
     }, [offset]);
@@ -181,11 +211,26 @@ function usePaginatedData<T extends { id: number }>(
         folderIdRef.current = folderId;
     }, [folderId]);
 
+    useEffect(() => {
+        loadingRef.current = loading;
+    }, [loading]);
+
+    useEffect(() => {
+        hasMoreRef.current = hasMore;
+    }, [hasMore]);
+
     // Reset when folder or filters change (shallow comparison)
     useEffect(() => {
+        queryVersionRef.current += 1;
+        requestIdRef.current += 1;
+        offsetRef.current = 0;
+        loadingRef.current = false;
+        hasMoreRef.current = true;
+
         setItems([]);
         setOffset(0);
         setHasMore(true);
+        setLoading(false);
 
         if (window.electron) {
             const options: ImageQueryOptions = { folderId, ...filters };
@@ -198,16 +243,25 @@ function usePaginatedData<T extends { id: number }>(
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [folderId, JSON.stringify(filters)]);
 
-    // Load more with memory cap
+    // Load a page and ignore stale responses from previous refresh/filter versions.
     const loadMore = useCallback(async () => {
-        if (!window.electron || loading || !hasMore) return;
+        if (!window.electron || loadingRef.current || !hasMoreRef.current) return;
 
+        const requestId = ++requestIdRef.current;
+        const queryVersionAtStart = queryVersionRef.current;
+        loadingRef.current = true;
         setLoading(true);
         try {
             const options: ImageQueryOptions = { limit: pageSize, offset: offsetRef.current, folderId: folderIdRef.current, ...filtersRef.current };
             const newItems = await fetchFunc(options);
 
+            // Ignore outdated request results (e.g. old events racing a newer refresh).
+            if (queryVersionAtStart !== queryVersionRef.current || requestId !== requestIdRef.current) {
+                return;
+            }
+
             if (newItems.length < pageSize) {
+                hasMoreRef.current = false;
                 setHasMore(false);
             }
 
@@ -215,7 +269,7 @@ function usePaginatedData<T extends { id: number }>(
                 // Deduplicate by unique key
                 const existingKeys = new Set(prev.map(item => getUniqueKey(item)));
                 const filtered = newItems.filter(item => !existingKeys.has(getUniqueKey(item)));
-                const merged = [...prev, ...filtered];
+                const merged = trimItems([...prev, ...filtered]);
 
                 return merged;
             });
@@ -224,10 +278,12 @@ function usePaginatedData<T extends { id: number }>(
         } catch (err) {
             console.error("Failed to load data:", err);
         } finally {
-            setLoading(false);
+            if (requestId === requestIdRef.current) {
+                loadingRef.current = false;
+                setLoading(false);
+            }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pageSize, loading, hasMore, fetchFunc]);
+    }, [pageSize, fetchFunc, getUniqueKey, trimItems]);
 
     // Initial load when offset becomes 0
     useEffect(() => {
@@ -236,13 +292,70 @@ function usePaginatedData<T extends { id: number }>(
         }
     }, [offset, hasMore, loading, loadMore]);
 
-    const refresh = useCallback(() => {
+    const refresh = useCallback((options?: { preserveItems?: boolean }) => {
+        const preserveItems = options?.preserveItems ?? false;
+
+        queryVersionRef.current += 1;
+        requestIdRef.current += 1;
+
+        if (preserveItems && window.electron && itemsRef.current.length > 0) {
+            const nextLimit = Math.min(Math.max(itemsRef.current.length, pageSize), MAX_LOADED_ITEMS);
+            const requestId = requestIdRef.current;
+            const queryVersionAtStart = queryVersionRef.current;
+
+            loadingRef.current = true;
+            setLoading(true);
+
+            const listOptions: ImageQueryOptions = {
+                limit: nextLimit,
+                offset: 0,
+                folderId: folderIdRef.current,
+                ...filtersRef.current,
+            };
+            const countOptions: ImageQueryOptions = {
+                folderId: folderIdRef.current,
+                ...filtersRef.current,
+            };
+
+            void Promise.all([
+                fetchFunc(listOptions),
+                countFunc(countOptions),
+            ]).then(([freshItems, freshCount]) => {
+                if (queryVersionAtStart !== queryVersionRef.current || requestId !== requestIdRef.current) {
+                    return;
+                }
+
+                const normalizedItems = trimItems(dedupeItems(freshItems));
+                itemsRef.current = normalizedItems;
+                offsetRef.current = normalizedItems.length;
+                hasMoreRef.current = freshCount > normalizedItems.length;
+
+                setItems(normalizedItems);
+                setTotalCount(freshCount);
+                setOffset(normalizedItems.length);
+                setHasMore(freshCount > normalizedItems.length);
+            }).catch(err => {
+                console.error('Failed to refresh data:', err);
+            }).finally(() => {
+                if (requestId === requestIdRef.current) {
+                    loadingRef.current = false;
+                    setLoading(false);
+                }
+            });
+            return;
+        }
+
+        offsetRef.current = 0;
+        loadingRef.current = false;
+        hasMoreRef.current = true;
         setOffset(0);
         setItems([]);
         setHasMore(true);
         setLoading(false);
-        setTimeout(() => loadMore(), 0);
-    }, [loadMore]);
+        void Promise.resolve().then(() => {
+            void loadMore();
+        });
+    }, [countFunc, dedupeItems, fetchFunc, loadMore, pageSize, trimItems]);
 
     const removeItem = useCallback((key: string | number) => {
         setItems(prev => prev.filter(item => getUniqueKey(item) !== key));
@@ -275,6 +388,7 @@ export function useImages(pageSize: number = 50, folderId?: number, filters?: Im
         hasMore: result.hasMore,
         loadMore: result.loadMore,
         totalCount: result.totalCount,
+        refresh: result.refresh,
         removeImage
     };
 }
@@ -376,4 +490,27 @@ export function useSimilarImages(
         loading: imageId ? loading : false,
         error: imageId ? error : null,
     };
+}
+
+export function usePropagateTags() {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const propagate = async (options: BackendTagPropagationRequest) => {
+        if (!window.electron) return null;
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await window.electron.api.propagateTags(options);
+            return res;
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Tag propagation failed';
+            setError(message);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return { propagate, loading, error };
 }

@@ -118,7 +118,7 @@ declare global {
             getFolders: () => Promise<FolderRow[]>;
             getKeywords: () => Promise<string[]>;
             findNearDuplicates: (options?: { threshold?: number; folder_path?: string; limit?: number }) => Promise<DuplicateResponse>;
-            searchSimilarImages: (options: { imageId: number; limit?: number; folderId?: number; folderPath?: string; minSimilarity?: number }) => Promise<{ query_image_id: number; results: any[]; count: number; error?: string }>;
+            searchSimilarImages: (options: { imageId: number; limit?: number; folderId?: number; folderPath?: string; minSimilarity?: number }) => Promise<{ query_image_id: number; results: Array<Record<string, unknown>>; count: number; error?: string }>;
             getStacks: (options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getImagesByStack: (stackId: number | null, options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getStackCount: (options?: ImageQueryOptions) => Promise<number>;
@@ -135,7 +135,7 @@ declare global {
             getConfig: () => Promise<AppConfig>;
             saveConfig: (updates: Partial<AppConfig>) => Promise<AppConfig>;
             setCurrentExportImageContext: (context: { imageBytes: number[]; mimeType: string; fileName: string; id: number; sourcePath: string; imageUuid: string | null } | null) => Promise<boolean>;
-            readExif: (filePath: string) => Promise<any>;
+            readExif: (filePath: string) => Promise<Record<string, unknown>>;
             onOpenSettings: (callback: () => void) => () => void;
             onOpenDuplicates: (callback: () => void) => () => void;
             onImportFolderSelected: (callback: (folderPath: string) => void) => () => void;
@@ -161,6 +161,7 @@ declare global {
                 stopTagging: () => Promise<BackendApiResponse>;
                 getTaggingStatus: () => Promise<BackendStatusResponse>;
                 tagSingleImage: (opts: BackendTaggingSingleRequest) => Promise<BackendApiResponse>;
+                propagateTags: (opts: BackendTagPropagationRequest) => Promise<BackendApiResponse>;
 
                 // Clustering
                 startClustering: (opts: BackendClusteringStartRequest) => Promise<BackendApiResponse>;
@@ -175,87 +176,96 @@ declare global {
                 getJobDetail: (jobId: string | number) => Promise<BackendJobInfo>;
             };
         };
-    };
-}
+    }
 
-// ── Backend API types (mirrors electron/apiTypes.ts for renderer) ────
+    interface BackendApiResponse {
+        success: boolean;
+        message: string;
+        data?: Record<string, unknown>;
+    }
 
-interface BackendApiResponse {
-    success: boolean;
-    message: string;
-    data?: Record<string, unknown>;
-}
+    interface BackendHealthResponse {
+        status: string;
+        scoring_available: boolean;
+        tagging_available: boolean;
+        clustering_available: boolean;
+    }
 
-interface BackendHealthResponse {
-    status: string;
-    scoring_available: boolean;
-    tagging_available: boolean;
-    clustering_available: boolean;
-}
+    interface BackendStatusResponse {
+        is_running: boolean;
+        status_message: string;
+        progress: { current: number; total: number };
+        log: string;
+        job_type?: string | null;
+    }
 
-interface BackendStatusResponse {
-    is_running: boolean;
-    status_message: string;
-    progress: { current: number; total: number };
-    log: string;
-    job_type?: string | null;
-}
+    interface BackendScoringStartRequest {
+        input_path: string;
+        skip_existing?: boolean;
+        force_rescore?: boolean;
+    }
 
-interface BackendScoringStartRequest {
-    input_path: string;
-    skip_existing?: boolean;
-    force_rescore?: boolean;
-}
+    interface BackendTaggingStartRequest {
+        input_path: string;
+        custom_keywords?: string[] | null;
+        overwrite?: boolean;
+        generate_captions?: boolean;
+    }
 
-interface BackendTaggingStartRequest {
-    input_path: string;
-    custom_keywords?: string[] | null;
-    overwrite?: boolean;
-    generate_captions?: boolean;
-}
+    interface BackendTaggingSingleRequest {
+        file_path: string;
+        custom_keywords?: string[] | null;
+        generate_captions?: boolean;
+    }
 
-interface BackendTaggingSingleRequest {
-    file_path: string;
-    custom_keywords?: string[] | null;
-    generate_captions?: boolean;
-}
+    interface BackendTagPropagationRequest {
+        folder_path?: string | null;
+        dry_run?: boolean;
+        k?: number | null;
+        min_similarity?: number | null;
+        min_keyword_confidence?: number | null;
+        min_support_neighbors?: number | null;
+        write_mode?: 'replace_missing_only' | 'append' | null;
+        max_keywords?: number | null;
+    }
 
-interface BackendClusteringStartRequest {
-    input_path?: string | null;
-    threshold?: number | null;
-    time_gap?: number | null;
-    force_rescan?: boolean;
-}
+    interface BackendClusteringStartRequest {
+        input_path?: string | null;
+        threshold?: number | null;
+        time_gap?: number | null;
+        force_rescan?: boolean;
+    }
 
-interface BackendPipelineSubmitRequest {
-    input_path: string;
-    operations?: string[];
-    skip_existing?: boolean;
-    custom_keywords?: string[] | null;
-    generate_captions?: boolean;
-    clustering_threshold?: number | null;
-}
+    interface BackendPipelineSubmitRequest {
+        input_path: string;
+        operations?: string[];
+        skip_existing?: boolean;
+        custom_keywords?: string[] | null;
+        generate_captions?: boolean;
+        clustering_threshold?: number | null;
+    }
 
-interface BackendJobInfo {
-    job_id: string | number;
-    job_type: string;
-    status: string;
-    created_at?: string;
-    completed_at?: string;
-    progress?: { current: number; total: number };
-    [key: string]: unknown;
-}
+    interface BackendJobInfo {
+        job_id: string | number;
+        job_type: string;
+        status: string;
+        created_at?: string;
+        completed_at?: string;
+        progress?: { current: number; total: number };
+        [key: string]: unknown;
+    }
 
-interface BackendDatabaseStats {
-    total_images: number;
-    by_rating: Record<string, number>;
-    by_label: Record<string, number>;
-    score_distribution: Record<string, number>;
-    average_scores: Record<string, number>;
-    total_folders: number;
-    total_stacks: number;
-    jobs_by_status: Record<string, number>;
-    images_today: number;
-    error?: string;
-    [key: string]: unknown;
+    interface BackendDatabaseStats {
+        total_images: number;
+        by_rating: Record<string, number>;
+        by_label: Record<string, number>;
+        score_distribution: Record<string, number>;
+        average_scores: Record<string, number>;
+        total_folders: number;
+        total_stacks: number;
+        jobs_by_status: Record<string, number>;
+        images_today: number;
+        error?: string;
+        [key: string]: unknown;
+    }
 }

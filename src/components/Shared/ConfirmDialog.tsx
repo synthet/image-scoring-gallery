@@ -35,8 +35,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
     // Trap focus within dialog
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+        // Keep keyboard events inside the modal so global handlers don't act on background UI.
+        e.stopPropagation();
         if (e.key === 'Escape') {
-            e.stopPropagation();
+            e.preventDefault();
             onCancel();
             return;
         }

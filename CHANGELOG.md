@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.38.0] - 2026-03-13
+
+### Added
+- **apiUrlResolver**: Extracted backend URL resolution (config → lock file → default) for testability.
+- **Vitest**: Test config and unit tests for apiUrlResolver, treeUtils, useKeyboardLayer, Logger, WebSocketService.
+
+### Changed
+- **apiService**: Uses apiUrlResolver for base URL; improved config handling.
+- **useDatabase**: Refactored; electron.d.ts type updates.
+- **Docs**: Embeddings feature docs updates.
+
 ## [3.37.0] - 2026-03-13
 
 ### Changed

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { MainLayout } from './components/Layout/MainLayout';
 import { useImages, useKeywords, useStacks } from './hooks/useDatabase';
 import { useFolders } from './hooks/useFolders';
@@ -46,6 +46,8 @@ function AppContent({ isConnected }: AppContentProps) {
 
   const { folders, loading: foldersLoading, refresh: refreshFolders } = useFolders();
   const { keywords, loading: keywordsLoading, fetch: fetchKeywords } = useKeywords();
+  const refreshFoldersRef = useRef(refreshFolders);
+  refreshFoldersRef.current = refreshFolders;
 
   const [selectedFolderId, setSelectedFolderId] = useState<number | undefined>(undefined);
   const [filters, setFilters] = useState<FilterState>({ minRating: 0, sortBy: 'score_general', order: 'DESC' });
@@ -124,6 +126,8 @@ function AppContent({ isConnected }: AppContentProps) {
       setStackImagesLoading(false);
     }
   }, [selectedFolderId, filters]);
+  const loadStackImagesRef = useRef(loadStackImages);
+  loadStackImagesRef.current = loadStackImages;
 
   // React to filter changes while viewing a stack
   useEffect(() => {
@@ -134,39 +138,94 @@ function AppContent({ isConnected }: AppContentProps) {
 
   // Subscribe to real-time updates from Python API
   useEffect(() => {
-    let ws: { connect: () => void; disconnect: () => void; on: (type: string, handler: (data: unknown) => void) => void } | null = null;
+    type WebSocketClient = {
+      connect: () => Promise<void> | void;
+      disconnect: () => void;
+      on: (type: string, handler: (data: unknown) => void) => void;
+      off: (type: string, handler: (data: unknown) => void) => void;
+    };
+
+    let cancelled = false;
+    let ws: WebSocketClient | null = null;
+    let imageRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let folderRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const subscriptions: Array<{ type: string; handler: (data: unknown) => void }> = [];
+
+    const scheduleVisibleRefresh = () => {
+      if (imageRefreshTimer) return;
+      imageRefreshTimer = setTimeout(() => {
+        imageRefreshTimer = null;
+
+        if (activeStackIdRef.current !== null) {
+          void loadStackImagesRef.current(activeStackIdRef.current);
+          return;
+        }
+
+        if (stacksModeRef.current) {
+          refreshStacksRef.current({ preserveItems: true });
+          return;
+        }
+
+        refreshImagesRef.current({ preserveItems: true });
+      }, 500);
+    };
+
+    const scheduleFolderRefresh = () => {
+      if (folderRefreshTimer) return;
+      folderRefreshTimer = setTimeout(() => {
+        folderRefreshTimer = null;
+        refreshFoldersRef.current();
+      }, 500);
+    };
 
     import('./services/WebSocketService').then(({ webSocketService }) => {
-      ws = webSocketService;
-      ws.connect();
+      if (cancelled) return;
 
-      ws.on('stack_created', (data: unknown) => {
+      ws = webSocketService;
+      void ws.connect();
+
+      const subscribe = (type: string, handler: (data: unknown) => void) => {
+        ws?.on(type, handler);
+        subscriptions.push({ type, handler });
+      };
+
+      subscribe('stack_created', (data: unknown) => {
         const d = data as { summary?: string };
         console.log('[App] Received stack_created event:', d);
         addNotification(`New stack created: ${d.summary || 'Summary not available'}`, 'success');
         if (window.electron) {
           window.electron.rebuildStackCache().then(() => {
             console.log('[App] Stack cache rebuilt due to external event.');
+            scheduleVisibleRefresh();
           });
         }
       });
 
-      ws.on('folder_discovered', (data: unknown) => {
+      subscribe('folder_discovered', (data: unknown) => {
         const d = data as { path: string };
         console.log('[App] Folder discovered:', d.path);
         addNotification(`Discovered folder: ${d.path.split(/[\\/]/).pop()}`, 'info');
       });
 
-      ws.on('image_discovered', () => {
+      subscribe('image_discovered', () => {
         // Silent for individual images to avoid spam, but could use for status bar
       });
 
-      ws.on('image_scored', (data: unknown) => {
+      subscribe('image_scored', (data: unknown) => {
         const d = data as { file_path: string };
         console.log('[App] Image scored:', d.file_path);
       });
 
-      ws.on('job_started', (data: unknown) => {
+      subscribe('image_updated', () => {
+        scheduleVisibleRefresh();
+        scheduleFolderRefresh();
+      });
+
+      subscribe('folder_updated', () => {
+        scheduleFolderRefresh();
+      });
+
+      subscribe('job_started', (data: unknown) => {
         const d = data as { job_type: string; job_id: string };
         console.log('[App] Job started:', d);
         const typeLabel = d.job_type === 'scoring' ? 'Scoring' :
@@ -175,7 +234,7 @@ function AppContent({ isConnected }: AppContentProps) {
         addNotification(`${typeLabel} job started (ID: ${d.job_id})`, 'info');
       });
 
-      ws.on('job_completed', (data: unknown) => {
+      subscribe('job_completed', (data: unknown) => {
         const d = data as { status: string; job_id: string };
         console.log('[App] Job completed:', d);
         const status = d.status === 'completed' ? 'finished successfully' : 'failed';
@@ -186,17 +245,26 @@ function AppContent({ isConnected }: AppContentProps) {
         if (d.status === 'completed' && window.electron) {
           window.electron.rebuildStackCache().then(() => {
             console.log('[App] Stack cache rebuilt after job completion.');
+            scheduleVisibleRefresh();
+            scheduleFolderRefresh();
           });
         }
       });
 
+    }).catch(err => {
+      console.error('[App] Failed to initialize WebSocket service:', err);
     });
 
     return () => {
+      cancelled = true;
+      subscriptions.forEach(({ type, handler }) => {
+        ws?.off(type, handler);
+      });
+      if (imageRefreshTimer) clearTimeout(imageRefreshTimer);
+      if (folderRefreshTimer) clearTimeout(folderRefreshTimer);
       if (ws) ws.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [addNotification]);
 
 
   const handleSelectFolder = (folder: Folder) => {
@@ -236,8 +304,16 @@ function AppContent({ isConnected }: AppContentProps) {
   }, [includeSubfolders, currentFolder]);
 
   const imageFilters = useMemo(() => subfolderIds ? { ...filters, folderIds: subfolderIds } : filters, [filters, subfolderIds]);
-  const { images, loading: imagesLoading, loadMore, totalCount, removeImage } = useImages(50, selectedFolderId, imageFilters);
+  const { images, loading: imagesLoading, loadMore, totalCount, removeImage, refresh: refreshImages } = useImages(50, selectedFolderId, imageFilters);
+  const refreshImagesRef = useRef(refreshImages);
+  refreshImagesRef.current = refreshImages;
   const { stacks, loading: stacksLoading, loadMore: loadMoreStacks, totalCount: stacksTotalCount, refresh: refreshStacks } = useStacks(50, selectedFolderId, imageFilters);
+  const refreshStacksRef = useRef(refreshStacks);
+  refreshStacksRef.current = refreshStacks;
+  const stacksModeRef = useRef(stacksMode);
+  stacksModeRef.current = stacksMode;
+  const activeStackIdRef = useRef(activeStackId);
+  activeStackIdRef.current = activeStackId;
 
   // Determine if grid is doing an initial load
   const isInitialGridLoading = stacksMode && !activeStackId

@@ -1,5 +1,7 @@
 # 07 - More Like This UI (Frontend)
 
+*Status: **Implemented***
+
 *Part of [Embedding Applications - Frontend Implementation Index](README.md).*
 
 ## Goal
@@ -8,27 +10,22 @@ Provide a cross-folder semantic search feature, letting users find images visual
 
 ## UI Integration Points
 
-1. **Context Menu (`src/components/ContextMenu/ImageContextMenu.tsx`)**
-   - Add a right-click option on any image thumbnail: **"Find Similar Images..."**.
+1. **Results Sidebar (`src/components/Viewer/SimilarSearchDrawer.tsx`)**
+   - **Status**: Fully Implemented.
+   - Sliding panel on the right side of the `ImageViewer`.
+   - Displays similar matches with percentage indicators.
+   - Includes a "Jump to Folder" action for each result.
 
-2. **Metadata Actions Panel**
-   - Add a distinctive button (e.g., magnifying glass with a photo icon) below the image details: **"Search Visually Similar"**.
-
-3. **Results View**
-   - Opens a custom **Similar Images Drawer** (bottom or sliding side panel) or a standalone modal overlay.
-   - Displays the top N matching thumbnails (default N=20).
-   - Shows the cosine similarity score on each thumbnail badge (e.g., "96% match").
-
-4. **Interaction inside Results**
-   - Clicking a thumbnail in the similar results pane highlights that image in its native folder context, or opens it directly in Loupe view.
-   - Include a "Jump to Folder" button.
+2. **Context Menu & Viewer Integration**
+   - Right-click image -> "Find Similar Images".
+   - Magnifying glass icon in `ImageViewer` triggers the drawer.
 
 ## IPC / Data Flow
 
-- The action triggers an IPC invocation to the existing `search_similar_images` functionality on the backend.
-- `window.electron.ipcRenderer.invoke('mcp-similar-search', { referenceId: currentImage.id, limit: 20 })`.
-- This is a fast L2 proximity query and should resolve quickly, but the UI should show a standard inline spinner during fetch.
+- Uses `window.electron.searchSimilarImages({ imageId, limit, minSimilarity })`.
+- Fetches real-time neighbors using the MobileNetV2 embedding index.
 
 ## Design Considerations
 
-- This is arguably the most user-facing and magical embedding feature. Make the results gallery visually stunning. Ensure high-res thumbnails load optimally in this secondary view.
+- **Threshold Control**: Users can adjust the minimum similarity threshold dynamically within the drawer.
+- **Visual Feedback**: Matches are rendered with a "Similarity %" badge.

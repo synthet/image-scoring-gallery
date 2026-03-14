@@ -1,5 +1,7 @@
 # 06 - Smart Stack Representative (Frontend)
 
+*Status: **Planned***
+
 *Part of [Embedding Applications - Frontend Implementation Index](README.md).*
 
 ## Goal
@@ -8,20 +10,19 @@ Allow users to configure whether stack covers display the highest-scoring image 
 
 ## UI Integration Points
 
-1. **Settings View (`src/components/Settings/ClusteringSettings.tsx`)**
-   - In the "Stacks & Clustering" section, add a dropdown: **`Stack Cover Strategy`**.
-   - Options:
-     - `Top Score`: Always displays the image with the highest `score_general`.
-     - `Centroid Representative`: Displays the image visually closest to the average of all images in the stack.
-     - `Balanced`: Uses centroid but rejects images below a certain quality threshold.
+1. **Settings View (`src/components/Settings/SelectionSettings.tsx`)**
+   - Add a toggle: **"Use Smart Stack Covers (Centroid)"**.
+   - This setting dictates which `image_id` the backend returns as the `cover_id` for stacks.
 
-2. **Stack View Rendering**
-   - The UI doesn't compute the representative; it just consumes the `best_image_id` provided by the backend's clustering algorithm.
-   - Changing the setting in the UI triggers a re-clustering or a metadata refresh on the backend viaIPC `save-config`.
+2. **Stack Rendering**
+   - Display a "Target" icon badge on stack covers when chosen via centroid logic.
+   - This provides transparency to the user why a lower-scoring image might be the cover.
 
-3. **User Feedback**
-   - When "Centroid Representative" is active, consider adding a tiny icon (e.g., a bullseye or target) to the stack cover thumbnail to indicate the cover was chosen for representativeness, not pure score.
+## IPC / Configuration Flow
+
+- **Setting**: Update `clustering.smart_cover_enabled` in `config.json`.
+- **Effect**: Next time stacks are queried or rebuilt, the backend uses embedding proximity to choose the cover.
 
 ## Design Considerations
 
-- Changing this setting in real-time requires the backend to either re-evaluate all stack covers or pull from a pre-computed `centroid_id` column. The Electron UI should show a global loading spinner or progress bar if this operation takes noticeable time.
+- **Hybrid Mode**: Optionally allow a "Best of Both" where it chooses the highest-scoring image within the 10% closest to the centroid.

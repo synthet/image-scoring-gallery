@@ -47,6 +47,14 @@ Roadmap, migration plans, and task tracking.
 
 ---
 
+## Integration
+
+API and backend integration documentation.
+
+- [API Integration TODO](integration/TODO.md) - REST API and WebSocket integration tasks
+
+---
+
 ## Guides
 
 Development workflows and maintenance recommendations.
@@ -56,4 +64,4 @@ Development workflows and maintenance recommendations.
 
 ---
 
-**Navigation**: [Top](#documentation-index) | [Architecture](#architecture) | [Features](#features) | [Reports](#reports) | [Planning](#planning) | [Guides](#guides)
+**Navigation**: [Top](#documentation-index) | [Architecture](#architecture) | [Features](#features) | [Reports](#reports) | [Planning](#planning) | [Integration](#integration) | [Guides](#guides)
