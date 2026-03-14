@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.36.0] - 2026-03-13
+
+### Added
+- **useKeyboardLayer hook**: Layered keyboard handling with priority (page, drawer, menu, modal) for correct Escape key behavior across context menus, viewer, and navigation.
+- **ConfirmDialog**: Reusable shared component for confirmation dialogs with focus trap and Escape handling.
+- **Design tokens**: Added `tokens.css` for consistent theming; new CSS modules for breadcrumbs, toggles, gallery grid, notification tray, filter panel.
+
+### Changed
+- **GalleryGrid**: Migrated inline styles to CSS modules; improved context menu keyboard handling via `useKeyboardLayer`.
+- **NotificationTray**: Extracted styles to `NotificationTray.module.css`.
+- **FilterPanel**: Extracted styles to `FilterPanel.module.css`; added `aria-label` for color label buttons.
+- **AppContent**: Breadcrumbs and Stacks/Subfolders toggles now use shared CSS modules; added `aria-label`, `role="switch"`, `aria-checked` for accessibility.
+- **ImageViewer**: Improved layout and styling.
+- **FolderTree**: Minor refinements.
+- **Export metadata**: ExifTool now uses `-overwrite_original` to avoid leaving backup files on export.
+
+### Fixed
+- **GalleryGrid remount**: Added `key` prop to force remount when switching between stacks/images mode or folder, preventing stale state.
+
 ## [3.35.1] - 2026-03-10
 
 ### Added

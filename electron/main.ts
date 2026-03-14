@@ -128,7 +128,7 @@ const exportCurrentImage = async () => {
             tagsToCopy.UserComment = metadata;
 
             console.log(`[Main] Writing enriched metadata to ${targetPath}`);
-            await exiftool.write(targetPath, tagsToCopy);
+            await exiftool.write(targetPath, tagsToCopy, ['-overwrite_original']);
         } else {
             // Just write our metadata if source is missing
             await exiftool.write(targetPath, {
@@ -136,7 +136,7 @@ const exportCurrentImage = async () => {
                 Description: metadata,
                 XPComment: metadata,
                 UserComment: metadata
-            });
+            }, ['-overwrite_original']);
         }
     } catch (exifErr) {
         console.error('[Main] Metadata enrichment failed:', exifErr);

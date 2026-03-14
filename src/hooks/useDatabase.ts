@@ -1,8 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-// Maximum number of items to keep in memory
-const MAX_LOADED_ITEMS = 2000;
-
 interface ImageQueryOptions {
     limit?: number;
     offset?: number;
@@ -219,12 +216,6 @@ function usePaginatedData<T extends { id: number }>(
                 const existingKeys = new Set(prev.map(item => getUniqueKey(item)));
                 const filtered = newItems.filter(item => !existingKeys.has(getUniqueKey(item)));
                 const merged = [...prev, ...filtered];
-
-                // Trim if exceeds max loaded items
-                if (merged.length > MAX_LOADED_ITEMS) {
-                    const trimmed = merged.slice(merged.length - MAX_LOADED_ITEMS);
-                    return trimmed;
-                }
 
                 return merged;
             });

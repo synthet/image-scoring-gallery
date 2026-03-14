@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Trash2 } from 'lucide-react';
 import type { Folder as FolderType } from './treeUtils';
+import { ConfirmDialog } from '../Shared/ConfirmDialog';
 
 interface FolderTreeProps {
     folders: FolderType[];
@@ -11,6 +12,7 @@ interface FolderTreeProps {
 
 const TreeNode: React.FC<{ node: FolderType; onSelect: (f: FolderType) => void; selectedId?: number; depth: number; onRefresh?: () => void }> = ({ node, onSelect, selectedId, depth, onRefresh }) => {
     const [expanded, setExpanded] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const hasChildren = node.children && node.children.length > 0;
     const isSelected = node.id === selectedId;
 
@@ -38,14 +40,17 @@ const TreeNode: React.FC<{ node: FolderType; onSelect: (f: FolderType) => void; 
         onSelect(node);
     };
 
-    const handleDelete = async (e: React.MouseEvent) => {
+    const handleDeleteClick = (e: React.MouseEvent) => {
         e.stopPropagation();
+        setIsDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        setIsDeleteDialogOpen(false);
         if (!window.electron) return;
-        if (confirm(`Are you sure you want to remove the database folder "${node.title}"?\nThis won't delete files on disk.`)) {
-            const success = await window.electron.deleteFolder(node.id);
-            if (success && onRefresh) {
-                onRefresh();
-            }
+        const success = await window.electron.deleteFolder(node.id);
+        if (success && onRefresh) {
+            onRefresh();
         }
     };
 
@@ -82,7 +87,7 @@ const TreeNode: React.FC<{ node: FolderType; onSelect: (f: FolderType) => void; 
 
                 {node.total_image_count === 0 && (
                     <button
-                        onClick={handleDelete}
+                        onClick={handleDeleteClick}
                         style={{
                             background: 'none',
                             border: 'none',
@@ -106,6 +111,17 @@ const TreeNode: React.FC<{ node: FolderType; onSelect: (f: FolderType) => void; 
                     ))}
                 </div>
             )}
+
+            <ConfirmDialog
+                isOpen={isDeleteDialogOpen}
+                title="Remove Folder"
+                message={`Are you sure you want to remove the database folder "${node.title}"?\nThis won't delete files on disk.`}
+                confirmLabel="Remove"
+                cancelLabel="Cancel"
+                variant="danger"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setIsDeleteDialogOpen(false)}
+            />
         </div>
     );
 };

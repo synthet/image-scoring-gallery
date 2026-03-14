@@ -1,6 +1,8 @@
 import React, { useMemo, useCallback, useRef, useEffect, useState } from 'react';
 import { VirtuosoGrid } from 'react-virtuoso';
 import { Logger } from '../../services/Logger';
+import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
+import styles from './GalleryGrid.module.css';
 
 interface Image {
     id: number;
@@ -47,37 +49,14 @@ interface GalleryGridProps {
     onFindSimilarImages?: (image: Image) => void;
 }
 
-const ItemContainer = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ style, children, ...props }, ref) => (
-    <div
-        ref={ref}
-        style={{
-            ...style,
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '10px'
-        }}
-        {...props}
-    >
+const ItemContainer = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ style, children, className, ...props }, ref) => (
+    <div ref={ref} style={style} className={`${styles.listContainer} ${className || ''}`} {...props}>
         {children}
     </div>
 ));
 
-const ItemWrapper = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ children, ...props }, ref) => (
-    <div
-        ref={ref}
-        style={{
-            flex: '0 0 auto',
-            width: '180px', // Fixed width for now, could be responsive
-            height: '240px',
-            backgroundColor: '#2a2a2a',
-            borderRadius: '6px',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            cursor: 'pointer'
-        }}
-        {...props}
-    >
+const ItemWrapper = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ children, className, ...props }, ref) => (
+    <div ref={ref} className={`${styles.cardWrapper} ${className || ''}`} {...props}>
         {children}
     </div>
 ));
@@ -92,16 +71,13 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; image: Image } | null>(null);
 
     // Escape key handler for parent navigation (only when viewer is closed)
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            // Only handle Escape if viewer is NOT open
-            if (e.key === 'Escape' && onNavigateToParent && !viewerOpen && !contextMenu) {
-                onNavigateToParent();
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onNavigateToParent, viewerOpen, contextMenu]);
+    useKeyboardLayer('page', useCallback((e: KeyboardEvent) => {
+        if (e.key === 'Escape' && onNavigateToParent) {
+            onNavigateToParent();
+            return true;
+        }
+        return false;
+    }, [onNavigateToParent]), !viewerOpen && !contextMenu);
 
     useEffect(() => {
         const el = containerRef.current;
@@ -115,22 +91,25 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         });
     }, [images.length, images]);
 
+    // Close context menu on click/scroll
     useEffect(() => {
         const closeMenu = () => setContextMenu(null);
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') setContextMenu(null);
-        };
-
         window.addEventListener('click', closeMenu);
         window.addEventListener('scroll', closeMenu, true);
-        window.addEventListener('keydown', handleKeyDown);
-
         return () => {
             window.removeEventListener('click', closeMenu);
             window.removeEventListener('scroll', closeMenu, true);
-            window.removeEventListener('keydown', handleKeyDown);
         };
     }, []);
+
+    // Close context menu on Escape (menu layer takes priority over page layer)
+    useKeyboardLayer('menu', useCallback((e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            setContextMenu(null);
+            return true;
+        }
+        return false;
+    }, []), !!contextMenu);
 
     const gridComponents = useMemo(() => ({
         List: ItemContainer,
@@ -183,31 +162,24 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                         setContextMenu({ x: e.clientX, y: e.clientY, image: img });
                     }
                 }}
-                style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+                className={styles.cardInner}
             >
-                <div style={{ flex: 1, backgroundColor: '#000', position: 'relative', overflow: 'hidden' }}>
+                <div className={styles.imageArea}>
                     {src ? (
-                        <img
-                            src={src}
-                            loading="lazy"
-                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                            alt={img.file_name}
-                        />
+                        <img src={src} loading="lazy" className={styles.image} alt={img.file_name} />
                     ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#555' }}>No Image</div>
+                        <div className={styles.noImage}>No Image</div>
                     )}
-
-                    {/* Overlay Rating */}
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', padding: '4px' }}>
-                        <span style={{ color: '#ffd700', fontSize: '12px' }}>{'★'.repeat(img.rating)}</span>
+                    <div className={styles.ratingOverlay}>
+                        <span className={styles.ratingStars}>{'★'.repeat(img.rating)}</span>
                     </div>
                 </div>
 
-                <div style={{ padding: '8px', borderTop: `2px solid ${labelColor}` }}>
-                    <div style={{ fontSize: '12px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={img.file_name}>
+                <div className={styles.cardMeta} style={{ borderTop: `2px solid ${labelColor}` }}>
+                    <div className={styles.cardFileName} title={img.file_name}>
                         {img.file_name}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#888', marginTop: '4px' }}>
+                    <div className={styles.cardScore}>
                         <span>{getScoreDisplay(img)}</span>
                     </div>
                 </div>
@@ -225,61 +197,38 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         const count = stack.image_count || 1;
 
         return (
-            <div onClick={onClick} style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                {/* Stacked card effect - background layers */}
+            <div onClick={onClick} className={styles.cardInnerStack}>
                 {count > 1 && (
                     <>
-                        <div style={{
-                            position: 'absolute', top: -3, left: 3, right: -3, bottom: 3,
-                            backgroundColor: '#3a3a3a', borderRadius: '6px', zIndex: 0,
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
-                        }} />
-                        <div style={{
-                            position: 'absolute', top: -6, left: 6, right: -6, bottom: 6,
-                            backgroundColor: '#4a4a4a', borderRadius: '6px', zIndex: 0,
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                        }} />
+                        <div className={styles.stackLayer1} />
+                        <div className={styles.stackLayer2} />
                     </>
                 )}
 
-                <div style={{ flex: 1, backgroundColor: '#000', position: 'relative', overflow: 'hidden', zIndex: 1, borderRadius: '6px 6px 0 0' }}>
+                <div className={styles.imageAreaStack}>
                     {src ? (
-                        <img
-                            src={src}
-                            loading="lazy"
-                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                            alt={stack.file_name}
-                        />
+                        <img src={src} loading="lazy" className={styles.image} alt={stack.file_name} />
                     ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#555' }}>No Image</div>
+                        <div className={styles.noImage}>No Image</div>
                     )}
 
-                    {/* Stack count badge */}
                     {count > 1 && (
-                        <div style={{
-                            position: 'absolute', top: 6, right: 6,
-                            backgroundColor: 'rgba(0,0,0,0.75)',
-                            color: '#fff', fontSize: '11px', fontWeight: 600,
-                            padding: '2px 8px', borderRadius: '10px',
-                            display: 'flex', alignItems: 'center', gap: 4,
-                            backdropFilter: 'blur(4px)'
-                        }}>
+                        <div className={styles.stackBadge}>
                             <Layers size={12} />
                             {count}
                         </div>
                     )}
 
-                    {/* Overlay Rating */}
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', padding: '4px' }}>
-                        <span style={{ color: '#ffd700', fontSize: '12px' }}>{'★'.repeat(stack.rating)}</span>
+                    <div className={styles.ratingOverlay}>
+                        <span className={styles.ratingStars}>{'★'.repeat(stack.rating)}</span>
                     </div>
                 </div>
 
-                <div style={{ padding: '8px', borderTop: `2px solid ${labelColor}`, zIndex: 1, backgroundColor: '#2a2a2a', borderRadius: '0 0 6px 6px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={stack.file_name}>
+                <div className={styles.cardMetaStack} style={{ borderTop: `2px solid ${labelColor}` }}>
+                    <div className={styles.cardFileName} title={stack.file_name}>
                         {count > 1 ? `Stack (${count} photos)` : stack.file_name}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#888', marginTop: '4px' }}>
+                    <div className={styles.cardScore}>
                         <span>{getScoreDisplay(stack)}</span>
                     </div>
                 </div>
@@ -309,8 +258,13 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         }
     }, [displayData, isStacksView, renderStackCard, renderImageCard, onSelectStack, onSelect]);
 
+    const endReachedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const handleEndReached = useCallback(() => {
+        if (endReachedTimer.current) return;
         endReachedHandler?.();
+        endReachedTimer.current = setTimeout(() => {
+            endReachedTimer.current = null;
+        }, 200);
     }, [endReachedHandler]);
 
 
@@ -318,34 +272,15 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
 
     if (displayData.length === 0 && subfolders && subfolders.length > 0 && !activeStackId) {
         return (
-            <div style={{ padding: 20, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            <div className={styles.subfolderGrid}>
                 {subfolders.map(folder => (
                     <div
                         key={folder.id}
                         onClick={() => onSelectFolder?.(folder)}
-                        style={{
-                            width: 120,
-                            height: 100,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: '#252526',
-                            borderRadius: 8,
-                            cursor: 'pointer',
-                            color: '#ccc'
-                        }}
-                        className="hover:bg-gray-700"
+                        className={styles.subfolderCard}
                     >
                         <FolderIcon size={48} fill="#e8bf6a" color="#e8bf6a" />
-                        <span style={{
-                            marginTop: 8,
-                            fontSize: 12,
-                            textAlign: 'center',
-                            wordBreak: 'break-word',
-                            maxWidth: '100%',
-                            padding: '0 4px'
-                        }}>
+                        <span className={styles.subfolderLabel}>
                             {folder.title}
                         </span>
                     </div>
@@ -356,7 +291,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
 
     return (
         <div
-            style={{ height: '100%', minHeight: 0, outline: 'none', padding: '10px', boxSizing: 'border-box' }}
+            className={styles.gridContainer}
             tabIndex={0}
             ref={(el) => {
                 if (containerRef) {
@@ -373,7 +308,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
             <VirtuosoGrid
                 style={{ height: '100%' }}
                 totalCount={displayData.length}
-                overscan={400} // Increase overscan further to prevent blank areas during fast scrolling
+                overscan={200}
                 endReached={handleEndReached}
                 atBottomStateChange={() => { }}
                 components={gridComponents}
@@ -397,47 +332,16 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
 
                 return (
                     <div
-                        style={{
-                            position: 'fixed',
-                            top: y,
-                            left: x,
-                            zIndex: 2000,
-                            minWidth: MENU_WIDTH,
-                            background: '#252526',
-                            border: '1px solid #3b3b3b',
-                            borderRadius: 6,
-                            boxShadow: '0 10px 24px rgba(0,0,0,0.45)',
-                            padding: 4,
-                            animation: 'menu-scale-in 0.1s ease-out',
-                            transformOrigin: 'top left'
-                        }}
+                        className={styles.contextMenu}
+                        style={{ top: y, left: x, minWidth: MENU_WIDTH }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <style>{`
-                            @keyframes menu-scale-in {
-                                from { opacity: 0; transform: scale(0.95); }
-                                to { opacity: 1; transform: scale(1); }
-                            }
-                        `}</style>
                         <button
+                            className={styles.contextMenuItem}
                             onClick={() => {
                                 onFindSimilarImages(contextMenu.image);
                                 setContextMenu(null);
                             }}
-                            style={{
-                                width: '100%',
-                                textAlign: 'left',
-                                padding: '8px 10px',
-                                border: 'none',
-                                background: 'transparent',
-                                color: '#e6e6e6',
-                                borderRadius: 4,
-                                cursor: 'pointer',
-                                fontSize: '12px',
-                                transition: 'background-color 0.1s'
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#3a3d41'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                         >
                             Find Similar Images…
                         </button>

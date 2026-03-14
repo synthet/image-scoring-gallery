@@ -20,7 +20,9 @@
       "Bash(xargs grep -l \"ImportModal\\\\|onImportFolderSelected\")",
       "mcp__mcp-firebird__list-tables",
       "Bash(ls ../image-scoring/*.md ../image-scoring/*.json)",
-      "Bash(tasklist)"
+      "Bash(tasklist)",
+      "Read(//c/Users/dmnsy/.gemini/antigravity/**)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); deps=d.get\\(''dependencies'',{}\\); print\\(''react-virtuoso:'', deps.get\\(''react-virtuoso'',''not found''\\)\\); print\\(''react:'', deps.get\\(''react'',''not found''\\)\\)\")"
     ],
     "additionalDirectories": [
       "../image-scoring"

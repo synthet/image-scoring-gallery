@@ -1,0 +1,26 @@
+.breadcrumbButton {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font: inherit;
+  font-size: inherit;
+  color: #4dabf5;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: color 0.15s ease, text-decoration 0.15s ease;
+}
+
+.breadcrumbButton:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.breadcrumbButton:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.breadcrumbButton:disabled {
+  color: var(--text-primary);
+  font-weight: 500;
+  cursor: default;
+}

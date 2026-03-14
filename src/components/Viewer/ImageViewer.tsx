@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Search, FolderOpen } from 'lucide-react';
 import { SimilarSearchDrawer } from './SimilarSearchDrawer';
+import { ConfirmDialog } from '../Shared/ConfirmDialog';
+import { useNotificationStore } from '../../store/useNotificationStore';
+import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
 
 interface Image {
     id: number;
@@ -93,20 +96,22 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [detailsLoaded, setDetailsLoaded] = React.useState(false);
     const [exifData, setExifData] = React.useState<ExifData | null>(null);
     const [exifLoading, setExifLoading] = React.useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+    const addNotification = useNotificationStore(state => state.addNotification);
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                onClose();
-            } else if (e.key === 'ArrowLeft' && onNavigate && currentIndex > 0) {
-                onNavigate(currentIndex - 1);
-            } else if (e.key === 'ArrowRight' && onNavigate && allImages && currentIndex < allImages.length - 1) {
-                onNavigate(currentIndex + 1);
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onClose, onNavigate, currentIndex, allImages]);
+    useKeyboardLayer('drawer', useCallback((e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            onClose();
+            return true;
+        } else if (e.key === 'ArrowLeft' && onNavigate && currentIndex > 0) {
+            onNavigate(currentIndex - 1);
+            return true;
+        } else if (e.key === 'ArrowRight' && onNavigate && allImages && currentIndex < allImages.length - 1) {
+            onNavigate(currentIndex + 1);
+            return true;
+        }
+        return false;
+    }, [onClose, onNavigate, currentIndex, allImages]));
 
     // Update image when navigating
     useEffect(() => {
@@ -244,17 +249,21 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 setImage({ ...image, ...updates });
                 setIsEditing(false);
             } else {
-                alert('Failed to save changes');
+                addNotification('Failed to save changes', 'error');
             }
         } catch (e) {
             console.error('Failed to update image:', e);
-            alert('Error updating image');
+            addNotification('Error updating image', 'error');
         }
     };
 
-    const handleDelete = async () => {
+    const handleDeleteClick = () => {
+        setIsDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        setIsDeleteDialogOpen(false);
         if (!window.electron) return;
-        if (!confirm('Are you sure you want to delete this source image (NEF file) AND the database record? This cannot be undone.')) return;
 
         try {
             const success = await window.electron.deleteImage(image.id);
@@ -265,11 +274,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     onClose();
                 }
             } else {
-                alert('Failed to delete image');
+                addNotification('Failed to delete image', 'error');
             }
         } catch (e) {
             console.error('Failed to delete image:', e);
-            alert('Error deleting image');
+            addNotification('Error deleting image', 'error');
         }
     };
 
@@ -537,7 +546,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 <button onClick={() => setIsEditing(true)} style={{ flex: 1, padding: 8, background: '#007acc', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                                     <Edit2 size={16} /> Edit
                                 </button>
-                                <button onClick={handleDelete} style={{ flex: 1, padding: 8, background: '#d32f2f', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                                <button onClick={handleDeleteClick} style={{ flex: 1, padding: 8, background: '#d32f2f', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                                     <Trash2 size={16} /> Delete
                                 </button>
                             </>
@@ -940,6 +949,17 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     }
                 }}
                 onJumpToImageFolder={(id) => onOpenImageById?.(id)}
+            />
+
+            <ConfirmDialog
+                isOpen={isDeleteDialogOpen}
+                title="Delete Image"
+                message="Are you sure you want to delete this source image (NEF file) AND the database record? This cannot be undone."
+                confirmLabel="Delete"
+                cancelLabel="Cancel"
+                variant="danger"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setIsDeleteDialogOpen(false)}
             />
         </div>
     );

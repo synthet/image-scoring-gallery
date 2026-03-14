@@ -1,4 +1,5 @@
 import React from 'react';
+import styles from './FilterPanel.module.css';
 
 export interface FilterState {
     minRating: number;
@@ -24,24 +25,15 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange }) =
     };
 
     return (
-        <div style={{ padding: '10px', borderBottom: '1px solid #333' }}>
-            <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: '12px', color: '#888', marginBottom: 5 }}>Minimum Rating</div>
-                <div style={{ display: 'flex', gap: 5 }}>
+        <div className={styles.panel}>
+            <div className={styles.section}>
+                <div className={styles.sectionLabel}>Minimum Rating</div>
+                <div className={styles.ratingRow}>
                     {[0, 1, 2, 3, 4, 5].map(r => (
                         <button
                             key={r}
                             onClick={() => handleRatingChange(r)}
-                            style={{
-                                flex: 1,
-                                padding: '4px 0',
-                                background: filters.minRating === r ? '#007acc' : '#333',
-                                color: '#eee',
-                                border: 'none',
-                                borderRadius: 4,
-                                cursor: 'pointer',
-                                fontSize: '11px'
-                            }}
+                            className={filters.minRating === r ? styles.ratingButtonActive : styles.ratingButton}
                         >
                             {r === 0 ? 'All' : r}
                         </button>
@@ -50,9 +42,15 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange }) =
             </div>
 
             <div>
-                <div style={{ fontSize: '12px', color: '#888', marginBottom: 5 }}>Color Label</div>
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    <button onClick={() => handleColorChange(undefined)} style={{ padding: '4px 8px', fontSize: 11, background: !filters.colorLabel ? '#555' : '#333', border: 'none', borderRadius: 4, color: '#ddd', cursor: 'pointer' }}>All</button>
+                <div className={styles.sectionLabel}>Color Label</div>
+                <div className={styles.colorRow}>
+                    <button
+                        onClick={() => handleColorChange(undefined)}
+                        className={styles.colorAllButton}
+                        style={{ background: !filters.colorLabel ? '#555' : '#333' }}
+                    >
+                        All
+                    </button>
                     {[
                         { id: 'Red', color: '#e53935', tooltip: 'Red: Reject (technical failure)' },
                         { id: 'Yellow', color: '#fdd835', tooltip: 'Yellow: Maybe (the middle)' },
@@ -63,14 +61,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange }) =
                         <button
                             key={id}
                             onClick={() => handleColorChange(id === filters.colorLabel ? undefined : id)}
-                            style={{
-                                width: 24, height: 24,
-                                borderRadius: '50%',
-                                background: color,
-                                border: filters.colorLabel === id ? '2px solid white' : '2px solid transparent',
-                                cursor: 'pointer'
-                            }}
+                            className={`${styles.colorDot} ${filters.colorLabel === id ? styles.colorDotActive : ''}`}
+                            style={{ background: color }}
                             title={tooltip}
+                            aria-label={tooltip}
                         />
                     ))}
                 </div>

@@ -14,6 +14,8 @@ import { SettingsModal } from './components/Settings/SettingsModal';
 import { DuplicateFinder } from './components/Duplicates/DuplicateFinder';
 import { ImportModal } from './components/Import/ImportModal';
 import { Loader2, ChevronRight } from 'lucide-react';
+import breadcrumbStyles from './styles/breadcrumbs.module.css';
+import toggleStyles from './styles/toggle.module.css';
 
 interface ImageRow {
   id: number;
@@ -472,24 +474,15 @@ function AppContent({ isConnected }: AppContentProps) {
       <>
         {parts.map((part, index) => (
           <span key={index} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span
+            <button
               onClick={part.isActive ? undefined : part.onClick}
-              title={part.isActive ? undefined : 'Go to folder'}
-              style={{
-                color: part.isActive ? '#e0e0e0' : '#4dabf5',
-                fontWeight: part.isActive ? 500 : 'normal',
-                cursor: part.isActive ? 'default' : 'pointer',
-                transition: 'color 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                if (!part.isActive) e.currentTarget.style.textDecoration = 'underline';
-              }}
-              onMouseLeave={(e) => {
-                if (!part.isActive) e.currentTarget.style.textDecoration = 'none';
-              }}
+              disabled={part.isActive}
+              aria-current={part.isActive ? 'page' : undefined}
+              title={part.isActive ? undefined : `Go to ${part.label}`}
+              className={breadcrumbStyles.breadcrumbButton}
             >
               {part.label}
-            </span>
+            </button>
             {index < parts.length - 1 && (
               <ChevronRight size={14} color="#666" />
             )}
@@ -557,30 +550,18 @@ function AppContent({ isConnected }: AppContentProps) {
               }}>
                 <span style={{ fontSize: '12px', color: '#ccc' }}>Stacks</span>
                 <button
+                  role="switch"
+                  aria-checked={stacksMode}
+                  aria-label="Stacks mode"
+                  className={toggleStyles.toggle}
                   onClick={() => {
                     setStacksMode(!stacksMode);
                     setActiveStackId(null);
                     setActiveStackInfo(null);
                     setStackImages([]);
                   }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 0,
-                    background: 'none', border: '1px solid #666', borderRadius: 12,
-                    padding: 0, cursor: 'pointer', overflow: 'hidden'
-                  }}
                 >
-                  <span style={{
-                    padding: '3px 10px', fontSize: '11px', fontWeight: 600,
-                    background: !stacksMode ? '#007acc' : '#444',
-                    color: !stacksMode ? '#fff' : '#999',
-                    transition: 'all 0.15s ease'
-                  }}>OFF</span>
-                  <span style={{
-                    padding: '3px 10px', fontSize: '11px', fontWeight: 600,
-                    background: stacksMode ? '#007acc' : '#444',
-                    color: stacksMode ? '#fff' : '#999',
-                    transition: 'all 0.15s ease'
-                  }}>ON</span>
+                  <span className={toggleStyles.thumb} />
                 </button>
               </div>
 
@@ -592,31 +573,19 @@ function AppContent({ isConnected }: AppContentProps) {
                 }}>
                   <span style={{ fontSize: '12px', color: '#ccc' }}>Show Subfolders</span>
                   <button
+                    role="switch"
+                    aria-checked={includeSubfolders}
+                    aria-label="Show subfolders"
+                    className={toggleStyles.toggle}
                     onClick={() => setIncludeSubfolders(!includeSubfolders)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 0,
-                      background: 'none', border: '1px solid #666', borderRadius: 12,
-                      padding: 0, cursor: 'pointer', overflow: 'hidden'
-                    }}
-                    title={includeSubfolders ? 'Showing all subfolders' : 'Show images from subfolders'}
                   >
-                    <span style={{
-                      padding: '3px 10px', fontSize: '11px', fontWeight: 600,
-                      background: !includeSubfolders ? '#007acc' : '#444',
-                      color: !includeSubfolders ? '#fff' : '#999',
-                      transition: 'all 0.15s ease'
-                    }}>OFF</span>
-                    <span style={{
-                      padding: '3px 10px', fontSize: '11px', fontWeight: 600,
-                      background: includeSubfolders ? '#007acc' : '#444',
-                      color: includeSubfolders ? '#fff' : '#999',
-                      transition: 'all 0.15s ease'
-                    }}>ON</span>
+                    <span className={toggleStyles.thumb} />
                   </button>
                 </div>
               )}
 
               <select
+                aria-label="Filter by keyword"
                 value={filters.keyword || ''}
                 onChange={(e) => setFilters({ ...filters, keyword: e.target.value || undefined })}
                 onFocus={fetchKeywords}
@@ -640,6 +609,7 @@ function AppContent({ isConnected }: AppContentProps) {
               </select>
 
               <select
+                aria-label="Sort by"
                 value={filters.sortBy || 'score_general'}
                 onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
                 style={{
@@ -663,6 +633,7 @@ function AppContent({ isConnected }: AppContentProps) {
               </select>
 
               <select
+                aria-label="Sort order"
                 value={filters.order || 'DESC'}
                 onChange={(e) => setFilters({ ...filters, order: e.target.value as 'ASC' | 'DESC' })}
                 style={{
@@ -698,7 +669,7 @@ function AppContent({ isConnected }: AppContentProps) {
           </div>
         }
         content={
-          <div style={{ height: '100%', overflow: 'hidden', position: 'relative' }}>
+          <div style={{ height: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {currentView === 'duplicates' ? (
               <DuplicateFinder currentFolder={currentFolder} />
             ) : (
@@ -723,6 +694,7 @@ function AppContent({ isConnected }: AppContentProps) {
                   </div>
                 )}
                 <GalleryGrid
+                  key={`${selectedFolderId ?? 'all'}-${activeStackId ?? 'none'}-${stacksMode ? 'stacks' : 'images'}`}
                   images={currentImages}
                   onSelect={handleImageClick}
                   onEndReached={activeStackId ? undefined : loadMore}

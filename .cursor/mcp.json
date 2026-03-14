@@ -28,6 +28,13 @@
             ],
             "disabled": false
         },
+        "playwright": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@playwright/mcp@latest"
+            ]
+        },
         "mcp-firebird": {
             "command": "npx",
             "args": [

@@ -1,0 +1,40 @@
+/* Design tokens — spacing, typography, and component-level colors */
+
+:root {
+  /* Spacing scale */
+  --space-xs: 4px;
+  --space-sm: 6px;
+  --space-md: 10px;
+  --space-lg: 15px;
+  --space-xl: 20px;
+
+  /* Typography scale */
+  --font-xs: 0.75em;
+  --font-sm: 0.8em;
+  --font-md: 0.85em;
+  --font-base: 0.9em;
+  --font-lg: 1em;
+  --font-xl: 1.1em;
+  --font-2xl: 1.2em;
+
+  /* Component colors */
+  --card-bg: #2a2a2a;
+  --input-bg: #333;
+  --input-border: #555;
+  --overlay-bg: rgba(0, 0, 0, 0.95);
+  --modal-backdrop: rgba(0, 0, 0, 0.75);
+  --score-gold: #ffd700;
+  --danger: #d32f2f;
+  --success: #43a047;
+
+  /* Label colors */
+  --label-red: #e53935;
+  --label-yellow: #fdd835;
+  --label-green: #43a047;
+  --label-blue: #1e88e5;
+  --label-purple: #8e24aa;
+
+  /* Focus */
+  --focus-ring: 2px solid var(--accent);
+  --focus-offset: 2px;
+}

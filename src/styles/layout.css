@@ -1,3 +1,5 @@
+@import './tokens.css';
+
 :root {
   --sidebar-width: 250px;
   --bg-dark: #1e1e1e;
@@ -39,6 +41,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
 }
 
 .top-bar {
@@ -78,4 +81,5 @@ body {
   flex: 1;
   overflow: hidden;
   padding: 0;
+  min-height: 0;
 }
