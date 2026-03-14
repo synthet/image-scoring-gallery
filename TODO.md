@@ -2,12 +2,38 @@
 
 Project-level task list. Items marked `[Python]`, `[Gradio]`, or `[DB]` involve the Python image-scoring project or database integrations.
 
+Last evaluated: 2026-03-14.
+
 | Marker | Use when |
 |--------|----------|
 | `[Python]` | Requires changes in `D:\Projects\image-scoring` or coordination with Python backend |
 | `[Gradio]` | Gradio/WebSocket bridge or real-time AI pipeline integration |
 | `[DB]` | Firebird schema, queries, connection layer, or migration |
 | `[DB+Python]` | Coordinated DB work across both repos (e.g. Firebird→Postgres migration) |
+
+---
+
+## Unfinished Business Evaluation (2026-03-14)
+
+### Current Status Snapshot
+
+- **Total open items**: 21
+- **Electron-only (unblocked) items**: 7
+- **Cross-repo dependency items** (`[Python]`, `[Gradio]`, `[DB]`, `[DB+Python]`): 14
+
+### Highest-Impact Next Steps (Recommended Sequence)
+
+1. **Harden data-loading race safety in `useImages`** (request token / in-flight guard) to reduce duplicate pagination fetches and stale UI updates.
+2. **Stabilize runtime observability** (log rotation/retention + bounded WebSocket reconnect policy) to keep long-running sessions predictable.
+3. **Decompose `AppContent.tsx` and align styling strategy** to lower feature-delivery friction before adding more embedding UI surfaces.
+4. **Close remaining local quality debt** (`no-explicit-any`, `useImages`/`useStacks` closure and dependency issues) so future backend integrations are lower-risk.
+5. **Execute embedding feature wave with backend coordination** (Tag Propagation → Outlier Detection → 2D Map → Smart Stack Representative).
+
+### Dependency Notes
+
+- **Backend-gated work**: Similarity endpoints, Gradio live progress, and semantic embedding features require coordinated Python API support.
+- **Migration-gated work**: Firebird driver replacement and provider abstraction should be planned together with Python's Firebird→Postgres cutover milestones.
+- **Docs drift risk**: Keep this file, `docs/planning/01-roadmap-todo.md`, and feature-specific TODO docs synchronized whenever statuses change.
 
 ---
 
