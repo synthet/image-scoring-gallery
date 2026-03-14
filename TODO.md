@@ -25,11 +25,11 @@ Last evaluated: 2026-03-14.
 
 ### Highest-Impact Next Steps (Recommended Sequence)
 
-1. **Harden data-loading race safety in `useImages`** (request token / in-flight guard) to reduce duplicate pagination fetches and stale UI updates.
-2. **Stabilize runtime observability** (log rotation/retention + bounded WebSocket reconnect policy) to keep long-running sessions predictable.
-3. **Decompose `AppContent.tsx` and align styling strategy** to lower feature-delivery friction before adding more embedding UI surfaces.
-4. **Close remaining local quality debt** (`no-explicit-any`, `useImages`/`useStacks` closure and dependency issues) so future backend integrations are lower-risk.
-5. **Execute embedding feature wave with backend coordination** (Tag Propagation → Outlier Detection → 2D Map → Smart Stack Representative).
+1. **[EIS-101](docs/planning/03-high-impact-tracked-tasks.md#eis-101---harden-useimages-data-loading-race-safety) - Harden data-loading race safety in `useImages`** (request token / in-flight guard) to reduce duplicate pagination fetches and stale UI updates.
+2. **[EIS-102](docs/planning/03-high-impact-tracked-tasks.md#eis-102---stabilize-runtime-observability) - Stabilize runtime observability** (log rotation/retention + bounded WebSocket reconnect policy) to keep long-running sessions predictable.
+3. **[EIS-103](docs/planning/03-high-impact-tracked-tasks.md#eis-103---decompose-appcontenttsx--styling-strategy-alignment) - Decompose `AppContent.tsx` and align styling strategy** to lower feature-delivery friction before adding more embedding UI surfaces.
+4. **[EIS-104](docs/planning/03-high-impact-tracked-tasks.md#eis-104---close-local-quality-debt-prior-to-backend-expansion) - Close remaining local quality debt** (`no-explicit-any`, `useImages`/`useStacks` closure and dependency issues) so future backend integrations are lower-risk.
+5. **[EIS-105](docs/planning/03-high-impact-tracked-tasks.md#eis-105---execute-embedding-feature-wave-with-backend-coordination) - Execute embedding feature wave with backend coordination** (Tag Propagation → Outlier Detection → 2D Map → Smart Stack Representative).
 
 ### Dependency Notes
 
@@ -110,3 +110,4 @@ Last evaluated: 2026-03-14.
 - [API Integration TODO](docs/integration/TODO.md)
 - [Embedding Features TODO](docs/features/planned/embeddings/TODO.md)
 - [Code Design Review](docs/reports/01-code-design-review-2026-03.md)
+- [High-Impact Tracked Tasks](docs/planning/03-high-impact-tracked-tasks.md)
