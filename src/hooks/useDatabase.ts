@@ -299,20 +299,43 @@ function usePaginatedData<T extends { id: number }>(
         requestIdRef.current += 1;
 
         if (preserveItems && window.electron && itemsRef.current.length > 0) {
-            const nextLimit = Math.min(Math.max(itemsRef.current.length, pageSize), MAX_LOADED_ITEMS);
             const requestId = requestIdRef.current;
             const queryVersionAtStart = queryVersionRef.current;
 
             loadingRef.current = true;
             setLoading(true);
 
-            const listOptions: ImageQueryOptions = {
-                limit: nextLimit,
-                offset: 0,
+            const countOptions: ImageQueryOptions = {
                 folderId: folderIdRef.current,
                 ...filtersRef.current,
             };
-            const countOptions: ImageQueryOptions = {
+            const hasTrimmedItems = offsetRef.current > itemsRef.current.length;
+
+            if (hasTrimmedItems) {
+                void countFunc(countOptions).then(freshCount => {
+                    if (queryVersionAtStart !== queryVersionRef.current || requestId !== requestIdRef.current) {
+                        return;
+                    }
+
+                    const hasMoreItems = freshCount > offsetRef.current;
+                    hasMoreRef.current = hasMoreItems;
+                    setTotalCount(freshCount);
+                    setHasMore(hasMoreItems);
+                }).catch(err => {
+                    console.error('Failed to refresh data count:', err);
+                }).finally(() => {
+                    if (requestId === requestIdRef.current) {
+                        loadingRef.current = false;
+                        setLoading(false);
+                    }
+                });
+                return;
+            }
+
+            const nextLimit = Math.min(Math.max(itemsRef.current.length, pageSize), MAX_LOADED_ITEMS);
+            const listOptions: ImageQueryOptions = {
+                limit: nextLimit,
+                offset: 0,
                 folderId: folderIdRef.current,
                 ...filtersRef.current,
             };
