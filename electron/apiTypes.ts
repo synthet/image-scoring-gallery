@@ -1,6 +1,13 @@
 /**
  * TypeScript interfaces for the Python backend REST API.
  * Mirrors the FastAPI Pydantic models in modules/api.py.
+ *
+ * Machine-generated types from the OpenAPI schema live in api.generated.ts.
+ * Run `npm run generate:api-types` after backend schema changes.
+ * See docs/technical/API_CONTRACT.md for the full contract.
+ *
+ * Migration: Use generated types in new code; migrate existing consumers
+ * incrementally when touching them.
  */
 
 // ── Standard response envelope ──────────────────────────────────────────────
@@ -101,6 +108,35 @@ export interface SimilarSearchResult {
         [key: string]: unknown;
     }>;
     count: number;
+}
+
+// ── Outlier Detection ──────────────────────────────────────────────────────
+
+export interface OutlierSearchParams {
+    folder_path: string;
+    z_threshold?: number;
+    k?: number;
+    limit?: number;
+}
+
+export interface NeighborInfo {
+    image_id: number;
+    file_path: string;
+    similarity: number;
+}
+
+export interface OutlierInfo {
+    image_id: number;
+    file_path: string;
+    outlier_score: number;
+    z_score: number;
+    nearest_neighbors: NeighborInfo[];
+}
+
+export interface OutlierSearchResult {
+    outliers: OutlierInfo[];
+    stats: Record<string, unknown>;
+    skipped: Array<Record<string, unknown>>;
 }
 
 // ── Import ───────────────────────────────────────────────────────────────────

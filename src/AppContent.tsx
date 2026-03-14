@@ -9,6 +9,7 @@ import { FilterPanel } from './components/Sidebar/FilterPanel';
 import type { FilterState } from './components/Sidebar/FilterPanel';
 import { ImageViewer } from './components/Viewer/ImageViewer';
 import { useNotificationStore } from './store/useNotificationStore';
+import { useJobProgressStore } from './store/useJobProgressStore';
 import { NotificationTray } from './components/Layout/NotificationTray';
 import { SettingsModal } from './components/Settings/SettingsModal';
 import { DuplicateFinder } from './components/Duplicates/DuplicateFinder';
@@ -232,6 +233,12 @@ function AppContent({ isConnected }: AppContentProps) {
           d.job_type === 'tagging' ? 'Tagging' :
             d.job_type === 'clustering' ? 'Clustering' : 'Process';
         addNotification(`${typeLabel} job started (ID: ${d.job_id})`, 'info');
+        useJobProgressStore.getState().startJob(String(d.job_id), d.job_type);
+      });
+
+      subscribe('job_progress', (data: unknown) => {
+        const d = data as { job_id: string | number; current: number; total: number; message?: string };
+        useJobProgressStore.getState().updateProgress(String(d.job_id), d.current, d.total, d.message);
       });
 
       subscribe('job_completed', (data: unknown) => {
@@ -240,6 +247,7 @@ function AppContent({ isConnected }: AppContentProps) {
         const status = d.status === 'completed' ? 'finished successfully' : 'failed';
         const type = d.status === 'completed' ? 'success' : 'error';
         addNotification(`Job ${d.job_id} ${status}`, type);
+        useJobProgressStore.getState().completeJob(String(d.job_id));
 
         // Refresh stacks if it was a clustering/selection job
         if (d.status === 'completed' && window.electron) {

@@ -378,6 +378,18 @@ app.whenReady().then(async () => {
         });
     }));
 
+    ipcMain.handle('api:outliers', wrapIpcHandler(async (_, options) => {
+        console.log(`[Main] Finding outliers via backend API`, options);
+        const { folderPath, zThreshold, k, limit } = options;
+        if (!folderPath) throw new Error("folder_path is required");
+        return await apiService.getOutliers({
+            folder_path: folderPath,
+            z_threshold: zThreshold,
+            k,
+            limit,
+        });
+    }));
+
     ipcMain.handle('db:get-stacks', wrapIpcHandler(async (_, options) => {
         return await db.getStacks(options);
     }));

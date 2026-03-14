@@ -20,6 +20,8 @@ import type {
     FindDuplicatesRequest,
     SimilarSearchParams,
     SimilarSearchResult,
+    OutlierSearchParams,
+    OutlierSearchResult,
     ImportRegisterRequest,
     ImportRegisterResponse,
     PipelineSubmitRequest,
@@ -233,6 +235,19 @@ export class ApiService {
                 limit: opts.limit,
                 folder_path: opts.folder_path,
                 min_similarity: opts.min_similarity,
+            },
+            LONG_TIMEOUT,
+        );
+    }
+
+    getOutliers(opts: OutlierSearchParams) {
+        return this.get<OutlierSearchResult>(
+            '/api/outliers',
+            {
+                folder_path: opts.folder_path,
+                z_threshold: opts.z_threshold,
+                k: opts.k,
+                limit: opts.limit,
             },
             LONG_TIMEOUT,
         );

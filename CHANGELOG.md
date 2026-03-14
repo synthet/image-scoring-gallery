@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.39.0] - 2026-03-14
+
+### Added
+- **Job progress bar**: `JobProgressBar` component and `useJobProgressStore` for real-time pipeline job progress display.
+- **API contract sync**: `scripts/sync-api-contract.mjs` and `api-contract/openapi.json` for generated API types.
+- **Generated API types**: `electron/api.generated.ts` from OpenAPI schema for type-safe backend calls.
+
+### Changed
+- **apiService**: Extended with job progress and pipeline status methods.
+- **MainLayout**: Integrated job progress bar into layout.
+- **IPC**: Added `job:get-progress` handler for progress polling.
+
+### Removed
+- **apiClient.ts**: Replaced by apiService and generated types.
+
 ## [3.38.0] - 2026-03-13
 
 ### Added
@@ -175,7 +190,7 @@ All notable changes to this project will be documented in this file.
 - **NEF extraction**: Improved `nefViewer.ts` and `libraw-wasm` integration for better raw image handling.
 
 ### Fixed
-- **API and WebSocket**: Robust error handling in `apiClient.ts` and `WebSocketService.ts`.
+- **API and WebSocket**: Robust error handling in `WebSocketService.ts`.
 - **Tree Navigation**: Fixed edge cases in `treeUtils.ts` for large folder structures.
 
 ## [3.25.0] - 2026-03-03

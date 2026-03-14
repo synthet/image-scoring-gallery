@@ -13,6 +13,7 @@ import type {
     JobInfo,
     DatabaseStats,
     SimilarSearchResult,
+    OutlierSearchResult,
 } from './apiTypes';
 
 /**
@@ -72,6 +73,10 @@ contextBridge.exposeInMainWorld('electron', {
     searchSimilarImages: async (options: { imageId: number; limit?: number; folderId?: number; folderPath?: string; minSimilarity?: number }) => {
         const response = await ipcRenderer.invoke('mcp:search-similar', options);
         return unwrapEnvelope<SimilarSearchResult>(response);
+    },
+    findOutliers: async (options: { folderPath: string; zThreshold?: number; k?: number; limit?: number }) => {
+        const response = await ipcRenderer.invoke('api:outliers', options);
+        return unwrapEnvelope<OutlierSearchResult>(response);
     },
     getStacks: async (options?: ImageQueryOptions) => {
         const response = await ipcRenderer.invoke('db:get-stacks', options);

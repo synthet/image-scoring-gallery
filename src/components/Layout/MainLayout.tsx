@@ -1,4 +1,5 @@
 import React from 'react';
+import { JobProgressBar } from './JobProgressBar';
 import '../../styles/layout.css';
 
 interface MainLayoutProps {
@@ -26,6 +27,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content, header
                 <div className="content-area">
                     {content}
                 </div>
+                <JobProgressBar />
             </main>
         </div>
     );

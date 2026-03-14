@@ -119,6 +119,11 @@ declare global {
             getKeywords: () => Promise<string[]>;
             findNearDuplicates: (options?: { threshold?: number; folder_path?: string; limit?: number }) => Promise<DuplicateResponse>;
             searchSimilarImages: (options: { imageId: number; limit?: number; folderId?: number; folderPath?: string; minSimilarity?: number }) => Promise<{ query_image_id: number; results: Array<Record<string, unknown>>; count: number; error?: string }>;
+            findOutliers: (options: { folderPath: string; zThreshold?: number; k?: number; limit?: number }) => Promise<{
+                outliers: Array<{ image_id: number; file_path: string; outlier_score: number; z_score: number; nearest_neighbors: Array<{ image_id: number; file_path: string; similarity: number }> }>;
+                stats: Record<string, unknown>;
+                skipped: Array<Record<string, unknown>>;
+            }>;
             getStacks: (options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getImagesByStack: (stackId: number | null, options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getStackCount: (options?: ImageQueryOptions) => Promise<number>;
