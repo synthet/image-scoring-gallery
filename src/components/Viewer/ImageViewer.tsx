@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Search, FolderOpen } from 'lucide-react';
+import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Search, FolderOpen, Tag, Loader2 } from 'lucide-react';
 import { SimilarSearchDrawer } from './SimilarSearchDrawer';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
+import { usePropagateTags } from '../../hooks/useDatabase';
 
 interface Image {
     id: number;
@@ -151,6 +152,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     // Lazy load or use DB EXIF data
     useEffect(() => {
         let active = true;
+        console.log('[ImageViewer] EXIF effect triggered', { 
+            id: image.id, 
+            hasDbExif: !!(image.exif_iso || image.exif_shutter || image.exif_aperture) 
+        });
         setExifData(null);
         setExifLoading(false);
 
@@ -159,6 +164,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             image.exif_iso || image.exif_shutter || image.exif_aperture ||
             image.exif_focal_length || image.exif_model || image.exif_lens_model
         ) {
+            console.log('[ImageViewer] Using DB EXIF data', image.id);
             setExifData({
                 ISO: image.exif_iso || undefined,
                 ShutterSpeed: image.exif_shutter || undefined,
@@ -174,11 +180,20 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         const fetchExif = async () => {
             if (!window.electron) return;
             const pathSchema = image.win_path || image.file_path;
-            if (!pathSchema) return;
+            if (!pathSchema) {
+                console.warn('[ImageViewer] No path for EXIF fetch', image.id);
+                return;
+            }
 
+            console.log('[ImageViewer] Fetching lazy EXIF for', pathSchema);
             setExifLoading(true);
             try {
                 const exif = await window.electron.readExif(pathSchema);
+                console.log('[ImageViewer] Lazy EXIF result:', { 
+                    id: image.id, 
+                    success: !!exif,
+                    active 
+                });
                 if (active && exif) {
                     setExifData({
                         ISO: exif.ISO,
@@ -192,19 +207,23 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             } catch (e) {
                 console.error('Failed to parse lazy EXIF', e);
             } finally {
-                if (active) setExifLoading(false);
+                if (active) {
+                    console.log('[ImageViewer] Setting exifLoading to false after fetch', image.id);
+                    setExifLoading(false);
+                }
             }
         };
 
         fetchExif();
         return () => { active = false; };
     }, [
-        image.win_path, image.file_path, image.exif_iso, image.exif_shutter,
+        image.id, image.win_path, image.file_path, image.exif_iso, image.exif_shutter,
         image.exif_aperture, image.exif_focal_length, image.exif_model, image.exif_lens_model
     ]);
 
     // Editing & Drawer State
     const [isEditing, setIsEditing] = useState(false);
+    const { propagate, loading: propagateLoading } = usePropagateTags();
     const [isSimilarDrawerOpen, setIsSimilarDrawerOpen] = useState(!!initialSimilarSearchImageId);
     const [similarSearchImageId, setSimilarSearchImageId] = useState<number | null>(initialSimilarSearchImageId ?? null);
     const [editForm, setEditForm] = useState({
@@ -606,7 +625,52 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
                 {/* Keywords / Tags */}
                 <div style={{ marginTop: 5, marginBottom: 5 }}>
-                    <div style={{ fontSize: '0.8em', color: '#888', marginBottom: 8 }}>KEYWORDS</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ fontSize: '0.8em', color: '#888' }}>KEYWORDS</div>
+                        {isEditing && (
+                            <button
+                                onClick={async () => {
+                                    if (!image.folder_id && !image.win_path) return;
+                                    // Get folder path from win_path if possible
+                                    let folderPath = '';
+                                    if (image.win_path) {
+                                        const lastBackslash = image.win_path.lastIndexOf('\\');
+                                        folderPath = image.win_path.substring(0, lastBackslash);
+                                    }
+                                    
+                                    try {
+                                        const result = await propagate({
+                                            folder_path: folderPath,
+                                            dry_run: false
+                                        });
+                                        if (result?.success) {
+                                            addNotification(`Propagated tags to ${result.data?.propagated || 0} images`, 'success');
+                                        }
+                                    } catch (e) {
+                                        addNotification('Propagation failed', 'error');
+                                        console.error('Propagation failed:', e);
+                                    }
+                                }}
+                                disabled={propagateLoading}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    padding: '2px 8px',
+                                    background: '#333',
+                                    border: '1px solid #555',
+                                    borderRadius: 4,
+                                    color: '#ccc',
+                                    fontSize: '0.75em',
+                                    cursor: propagateLoading ? 'default' : 'pointer',
+                                    opacity: propagateLoading ? 0.6 : 1
+                                }}
+                            >
+                                {propagateLoading ? <Loader2 size={12} className="animate-spin" /> : <Tag size={12} />}
+                                Propagate Tags
+                            </button>
+                        )}
+                    </div>
                     {isEditing ? (
                         <>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>

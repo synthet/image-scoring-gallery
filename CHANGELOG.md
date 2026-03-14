@@ -2,7 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.37.0] - 2026-03-13
+
+### Changed
+- **Tag propagation feedback**: Replaced `alert()` with in-app notifications for tag propagation success and failure in ImageViewer.
+
+### Fixed
+- **ESLint**: Replaced `any` with `Record<string, unknown>` in main.ts exiftool metadata handling.
+- **ESLint**: Added `image.id` to ImageViewer EXIF effect dependency array.
+- **ESLint**: Added `release-builds-v2` to global ignores.
+
 ## [3.36.1] - 2026-03-13
+
+### Removed
+- **Gradio client**: Removed unused `gradioClient.ts` and `@gradio/client` dependency; integration uses REST API and WebSocket only.
 
 ### Fixed
 - **ImageViewer EXIF loading**: Fixed race condition where Photography Stats could remain stuck in "Loading camera data..." when EXIF was available from the database; now clears `exifLoading` at effect start and in the early-return path.

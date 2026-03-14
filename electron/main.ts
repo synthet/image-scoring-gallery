@@ -106,7 +106,7 @@ const exportCurrentImage = async () => {
 
             // I'll use the library to read source and write to target.
             const sourceTags = await exiftool.read(sourcePath);
-            const tagsToCopy: any = {};
+            const tagsToCopy: Record<string, unknown> = {};
 
             // Define list of tags to preserve (standard photography tags)
             const preserveTags = [
@@ -453,6 +453,9 @@ app.whenReady().then(async () => {
         if (useApi) {
             try {
                 console.log('[Main] Import via API (Gradio backend)');
+                // NOTE: API import processes the folder in a single request. Progress is sent once
+                // at completion; no incremental updates during import. For large folders, the UI
+                // may appear frozen until the request returns. Direct DB fallback sends per-file progress.
                 const res = await apiService.importRegister({ folder_path: folderPath });
                 const data = res?.data;
                 const added = data?.added ?? 0;
@@ -657,6 +660,12 @@ app.whenReady().then(async () => {
     });
 
     ipcMain.handle('system:get-api-port', async () => {
+        const config = loadConfig();
+        if (config.api?.port) return config.api.port;
+        if (config.api?.url) {
+            const match = config.api.url.match(/:(\d+)(?:\/|$)/);
+            if (match) return parseInt(match[1], 10);
+        }
         try {
             const projectRoot = path.resolve(__dirname, '..');
             const projectsDir = path.resolve(projectRoot, '..');
@@ -760,6 +769,10 @@ app.whenReady().then(async () => {
 
     ipcMain.handle('api:tagging-single', wrapIpcHandler(async (_, opts) => {
         return await apiService.tagSingleImage(opts);
+    }));
+
+    ipcMain.handle('api:tagging-propagate', wrapIpcHandler(async (_, opts) => {
+        return await apiService.propagateTags(opts);
     }));
 
     // Clustering
