@@ -6,3 +6,6 @@ Roadmap, migration plans, and task tracking.
 - [02 - Firebird to PostgreSQL Migration](02-firebird-postgresql-migration.md) - Coordinated platform migration plan
 
 [← Back to Documentation Index](../README.md)
+
+
+Roadmap status in this folder should be reconciled weekly and after any major completion-status change in the root `TODO.md`.
