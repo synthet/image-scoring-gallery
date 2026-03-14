@@ -24,7 +24,7 @@ The backend owns all DDL/schema migrations (`modules/db.py`). This project queri
 ## Backend Integration Points
 
 - **Shared DB:** `SCORING_HISTORY.FDB` (Firebird), schema managed by `D:\Projects\image-scoring\modules\db.py`
-- **REST API:** Electron calls Python backend via `http://localhost:8000` for scoring/tagging jobs
+- **REST API:** Electron calls Python backend via `http://localhost:7860` for scoring/tagging jobs
 - **Config:** `D:\Projects\image-scoring\config.json` controls backend behavior
 
 ## Commands

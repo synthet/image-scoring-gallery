@@ -61,7 +61,7 @@ Last evaluated: 2026-03-14.
 - [ ] Add log rotation and retention for session logs
 - [ ] Further decompose `AppContent.tsx` into modular domain hooks/components
 - [ ] Consolidate styling into a unified system (CSS Modules or Tailwind)
-- [ ] Implement semantic **Tag Propagation** UI [Python]: `propagateTags` service, AI Suggestions sidebar in `ImageViewer.tsx`, Accept/Reject interaction logic
+- [ ] Implement semantic **Tag Propagation** UI [Python]: `propagateTags` service, AI Suggestions sidebar in `ImageViewer.tsx`, Accept/Reject interaction logic — backend endpoint ready (`POST /tagging/propagate`)
 
 ---
 
@@ -77,7 +77,7 @@ Last evaluated: 2026-03-14.
 
 ## Python / Backend Integration [Python] [Gradio]
 
-- [ ] [Gradio] Gradio Integration: Enhance IPC/WebSocket bridge for real-time AI updates
+- [ ] [Gradio] Gradio Integration: Enhance IPC/WebSocket bridge for real-time AI updates — coordinate bidirectional command channel protocol with Python backend (see `image-scoring/TODO.md` → Clustering & Embeddings)
 - [ ] [Gradio] Subscribe to `job_progress` for live progress bar (optional; currently job_started/job_completed only)
 - [ ] [Python] Add IPC handlers for new similarity endpoints when backend exposes them (`/api/similarity/*`)
 - [ ] [Python] Sync `electron/apiTypes.ts` when backend API contract changes
