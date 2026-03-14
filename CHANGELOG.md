@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.36.1] - 2026-03-13
+
+### Fixed
+- **ImageViewer EXIF loading**: Fixed race condition where Photography Stats could remain stuck in "Loading camera data..." when EXIF was available from the database; now clears `exifLoading` at effect start and in the early-return path.
+
 ## [3.36.0] - 2026-03-13
 
 ### Added

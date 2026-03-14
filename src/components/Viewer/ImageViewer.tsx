@@ -152,6 +152,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     useEffect(() => {
         let active = true;
         setExifData(null);
+        setExifLoading(false);
 
         // First check if EXIF is populated from our recent specific DB fetch
         if (
@@ -166,6 +167,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 Model: image.exif_model || undefined,
                 LensModel: image.exif_lens_model || undefined
             });
+            setExifLoading(false);
             return;
         }
 
