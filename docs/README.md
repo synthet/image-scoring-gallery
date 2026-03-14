@@ -2,6 +2,8 @@
 
 Welcome to the **Electron Image Scoring** documentation. This index provides a structured overview of the project's architecture, features, and planning.
 
+Roadmap/TODO status should be reconciled at least once per week and immediately after any task is marked complete or reopened.
+
 ---
 
 ## Architecture

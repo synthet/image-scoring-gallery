@@ -2,6 +2,8 @@
 
 Project-level task list. Items marked `[Python]`, `[Gradio]`, or `[DB]` involve the Python image-scoring project or database integrations.
 
+> **Source of truth & update order:** This file is the canonical task ledger (owner: Electron maintainers). Update this file first, then sync `docs/planning/01-roadmap-todo.md`, then `docs/integration/TODO.md`, and finally `docs/features/planned/embeddings/TODO.md`.
+
 Last evaluated: 2026-03-14.
 
 | Marker | Use when |
@@ -80,6 +82,7 @@ Last evaluated: 2026-03-14.
 - [ ] [Python] Add IPC handlers for new similarity endpoints when backend exposes them (`/api/similarity/*`)
 - [ ] [Python] Sync `electron/apiTypes.ts` when backend API contract changes
 - [ ] Document `config.api.url` / `config.api.port` override in user-facing docs
+- [x] [Python] Ensure `image_updated` and `folder_updated` handlers refresh correct views
 
 ---
 

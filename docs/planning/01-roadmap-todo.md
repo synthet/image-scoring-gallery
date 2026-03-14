@@ -1,6 +1,8 @@
 # TODO - Electron Image Scoring
 
-Consolidated list of unfinished work items. Last Updated: Mar 10, 2026.
+Consolidated list of unfinished work items. Last Updated: Mar 14, 2026.
+
+> **Source of truth & update order:** Secondary roadmap mirror (owner: planning/docs maintainers). Sync only after `TODO.md`, then reconcile this file before updating `docs/integration/TODO.md` and `docs/features/planned/embeddings/TODO.md`.
 
 ---
 
@@ -18,11 +20,12 @@ Consolidated list of unfinished work items. Last Updated: Mar 10, 2026.
 
 ## P1 (High Priority)
 
-- [ ] **Embedding Feature Integration**:
+- [ ] **Embedding Feature Integration** [Python]:
     - [ ] Add "Find Similar" to context menu and details panel
     - [ ] Integrate "Duplicate Finder" into main navigation
 - [ ] Add explicit request token / in-flight guard to `useImages` for pagination races
-- [ ] Setup `Vitest` and basic test coverage for hooks/services
+- [x] Setup `Vitest` and basic test coverage for hooks/services
+- [x] Ensure `image_updated` and `folder_updated` handlers refresh correct views
 
 ## P2 (Medium Priority)
 
@@ -37,3 +40,4 @@ Consolidated list of unfinished work items. Last Updated: Mar 10, 2026.
 - [ ] Cleanup remaining lint/type warnings (`no-explicit-any`)
 - [ ] 2D Embedding Map (WebGL visualization)
 - [ ] Outlier Detection UI
+- [ ] Smart Stack Representative
