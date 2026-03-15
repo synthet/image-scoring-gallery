@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.40.0] - 2026-03-14
+
+### Changed
+- Version bump to 3.40.0.
+
 ## [3.39.0] - 2026-03-14
 
 ### Added
