@@ -207,6 +207,14 @@ const rebuildApplicationMenu = () => {
                             mainWindow.webContents.send('open-duplicates');
                         }
                     }
+                },
+                {
+                    label: 'Processing',
+                    click: () => {
+                        if (mainWindow) {
+                            mainWindow.webContents.send('open-processing');
+                        }
+                    }
                 }
             ]
         },
@@ -805,7 +813,27 @@ app.whenReady().then(async () => {
         return await apiService.submitPipeline(opts);
     }));
 
+    ipcMain.handle('api:pipeline-skip', wrapIpcHandler(async (_, opts) => {
+        return await apiService.skipPipelinePhase(opts);
+    }));
+
+    ipcMain.handle('api:pipeline-retry', wrapIpcHandler(async (_, opts) => {
+        return await apiService.retryPipelinePhase(opts);
+    }));
+
     // Jobs
+    ipcMain.handle('api:status-all', wrapIpcHandler(async () => {
+        return await apiService.getAllStatus();
+    }));
+
+    ipcMain.handle('api:jobs-queue', wrapIpcHandler(async (_, limit?: number) => {
+        return await apiService.getJobsQueue(limit);
+    }));
+
+    ipcMain.handle('api:job-cancel', wrapIpcHandler(async (_, jobId: string | number) => {
+        return await apiService.cancelJob(jobId);
+    }));
+
     ipcMain.handle('api:jobs-recent', wrapIpcHandler(async () => {
         return await apiService.getRecentJobs();
     }));

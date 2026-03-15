@@ -13,6 +13,7 @@ import { useJobProgressStore } from './store/useJobProgressStore';
 import { NotificationTray } from './components/Layout/NotificationTray';
 import { SettingsModal } from './components/Settings/SettingsModal';
 import { DuplicateFinder } from './components/Duplicates/DuplicateFinder';
+import { ProcessingPage } from './components/Processing/ProcessingPage';
 import { ImportModal } from './components/Import/ImportModal';
 import { Loader2, ChevronRight } from 'lucide-react';
 import breadcrumbStyles from './styles/breadcrumbs.module.css';
@@ -56,7 +57,7 @@ function AppContent({ isConnected }: AppContentProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [initialSimilarSearchImageId, setInitialSimilarSearchImageId] = useState<number | null>(null);
   const [pendingOpenImageId, setPendingOpenImageId] = useState<number | null>(null);
-  const [currentView, setCurrentView] = useState<'gallery' | 'duplicates'>('gallery');
+  const [currentView, setCurrentView] = useState<'gallery' | 'duplicates' | 'processing'>('gallery');
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -78,6 +79,13 @@ function AppContent({ isConnected }: AppContentProps) {
       });
     }
 
+    let cleanupProcessing: (() => void) | undefined;
+    if (window.electron?.onOpenProcessing) {
+      cleanupProcessing = window.electron.onOpenProcessing(() => {
+        setCurrentView('processing');
+      });
+    }
+
     let cleanupImport: (() => void) | undefined;
     if (window.electron?.onImportFolderSelected) {
       cleanupImport = window.electron.onImportFolderSelected((path) => {
@@ -96,6 +104,7 @@ function AppContent({ isConnected }: AppContentProps) {
     return () => {
       if (cleanupSettings) cleanupSettings();
       if (cleanupDuplicates) cleanupDuplicates();
+      if (cleanupProcessing) cleanupProcessing();
       if (cleanupImport) cleanupImport();
       if (cleanupNotification) cleanupNotification();
     };
@@ -754,7 +763,14 @@ function AppContent({ isConnected }: AppContentProps) {
         }
         content={
           <div style={{ height: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            {currentView === 'duplicates' ? (
+            {currentView === 'processing' ? (
+              <ProcessingPage
+                folders={folders}
+                foldersLoading={foldersLoading}
+                onRefreshFolders={refreshFolders}
+                onBackToGallery={() => setCurrentView('gallery')}
+              />
+            ) : currentView === 'duplicates' ? (
               <DuplicateFinder currentFolder={currentFolder} />
             ) : (
               <>
