@@ -4,7 +4,7 @@ Project-level task list. Items marked `[Python]`, `[Gradio]`, or `[DB]` involve 
 
 > **Source of truth & update order:** This file is the canonical task ledger (owner: Electron maintainers). Update this file first, then sync `docs/planning/01-roadmap-todo.md`, then `docs/integration/TODO.md`, and finally `docs/features/planned/embeddings/TODO.md`.
 
-Last evaluated: 2026-03-14.
+Last evaluated: 2026-03-15.
 
 | Marker | Use when |
 |--------|----------|
@@ -45,13 +45,14 @@ Last evaluated: 2026-03-14.
 - [x] Implement Database Connection Pooling (`electron/db.ts`)
 - [x] Scale protection for `useImages` (2000 item limit + pagination)
 - [x] Centralized REST API client for Python backend (`ApiService.ts`)
+- [x] [EIS-101] Harden `useImages` / `useStacks` data-loading race safety (stable func refs, loadMore stability, filterKey, race tests)
 
 ---
 
 ## P1 - High Priority
 
 - [ ] **Embedding feature integration** [Python]: Add "Find Similar" to context menu and details panel; integrate "Duplicate Finder" into main navigation
-- [ ] Add explicit request token / in-flight guard to `useImages` for pagination races
+- [x] Add explicit request token / in-flight guard to `useImages` for pagination races
 - [x] Setup Vitest and basic test coverage for hooks/services
 
 ---
@@ -98,7 +99,7 @@ Last evaluated: 2026-03-14.
 ## Technical Debt (Code Design Review)
 
 - [ ] Unbounded WebSocket reconnection backoff: add max retries, exponential backoff, connection jitter
-- [ ] Race conditions in `useImages` / `useStacks`: fix closure capture in `loadMore()`, `JSON.stringify` deps in `useEffect`
+- [x] Race conditions in `useImages` / `useStacks`: fix closure capture in `loadMore()`, `JSON.stringify` deps in `useEffect`
 - [ ] MCP server: expand tooling scope (DB query tools, image caching controls)
 
 ---
