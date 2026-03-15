@@ -8,6 +8,7 @@ import { nefExtractor } from './nefExtractor';
 import { ExifTool } from 'exiftool-vendored';
 import { ApiService } from './apiService';
 import { ExportImageContext } from './types';
+import { SessionLogManager } from './sessionLogManager';
 
 const exiftool = new ExifTool({ maxProcs: 2 });
 
@@ -18,6 +19,7 @@ const exiftool = new ExifTool({ maxProcs: 2 });
 
 let mainWindow: BrowserWindow | null = null;
 let currentExportImageContext: ExportImageContext | null = null;
+let sessionLogManager: SessionLogManager | null = null;
 
 function getDialogWindow(): BrowserWindow | null {
     const focused = BrowserWindow.getFocusedWindow();
@@ -615,8 +617,12 @@ app.whenReady().then(async () => {
 
     ipcMain.handle('debug:log', async (_, { level, message, data, timestamp }) => {
         const logDir = app.getPath('userData');
-        const dateStr = new Date().toISOString().split('T')[0];
-        const logFile = path.join(logDir, `session_${dateStr}.log`);
+
+        if (!sessionLogManager) {
+            sessionLogManager = new SessionLogManager(logDir);
+        }
+
+        const logFile = await sessionLogManager.getWritableLogPath(new Date());
 
         const logEntry = JSON.stringify({
             timestamp,
