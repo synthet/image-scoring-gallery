@@ -20,6 +20,7 @@ Consolidated list of unfinished work items. Last Updated: Mar 14, 2026.
 
 ## P1 (High Priority)
 
+- [ ] Migrate Gradio Pipeline UI into Electron **Processing** workspace (menu entry, phase controls, logs, queue status)
 - [ ] **Embedding Feature Integration** [Python]:
     - [ ] Add "Find Similar" to context menu and details panel
     - [ ] Integrate "Duplicate Finder" into main navigation
