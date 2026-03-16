@@ -153,6 +153,14 @@ export interface ImportRegisterResponse {
 
 // ── Pipeline ────────────────────────────────────────────────────────────────
 
+export interface PipelinePhaseControlRequest {
+    input_path: string;
+    /** Phase code as used by backend: 'indexing' | 'metadata' | 'score' | 'tag' | 'cluster' */
+    phase_code: string;
+    reason?: string | null;
+    actor?: string | null;
+}
+
 export interface PipelineSubmitRequest {
     input_path: string;
     operations?: string[];
@@ -160,6 +168,14 @@ export interface PipelineSubmitRequest {
     custom_keywords?: string[] | null;
     generate_captions?: boolean;
     clustering_threshold?: number | null;
+}
+
+// ── All-runners status ───────────────────────────────────────────────────────
+
+export interface AllRunnersStatus {
+    scoring: StatusResponse & { available?: boolean };
+    tagging: StatusResponse & { available?: boolean };
+    [key: string]: unknown;
 }
 
 // ── Jobs ────────────────────────────────────────────────────────────────────
@@ -175,6 +191,14 @@ export interface JobInfo {
     completed_at?: string;
     log?: string;
     progress?: { current: number; total: number };
+    [key: string]: unknown;
+}
+
+// ── Queue ────────────────────────────────────────────────────────────────────
+
+export interface QueueResponse {
+    queue_depth: number;
+    jobs: JobInfo[];
     [key: string]: unknown;
 }
 
