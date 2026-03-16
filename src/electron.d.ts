@@ -119,6 +119,11 @@ declare global {
             getKeywords: () => Promise<string[]>;
             findNearDuplicates: (options?: { threshold?: number; folder_path?: string; limit?: number }) => Promise<DuplicateResponse>;
             searchSimilarImages: (options: { imageId: number; limit?: number; folderId?: number; folderPath?: string; minSimilarity?: number }) => Promise<{ query_image_id: number; results: Array<Record<string, unknown>>; count: number; error?: string }>;
+            findOutliers: (options: { folderPath: string; zThreshold?: number; k?: number; limit?: number }) => Promise<{
+                outliers: Array<{ image_id: number; file_path: string; outlier_score: number; z_score: number; nearest_neighbors: Array<{ image_id: number; file_path: string; similarity: number }> }>;
+                stats: Record<string, unknown>;
+                skipped: Array<Record<string, unknown>>;
+            }>;
             getStacks: (options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getImagesByStack: (stackId: number | null, options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getStackCount: (options?: ImageQueryOptions) => Promise<number>;
@@ -138,6 +143,7 @@ declare global {
             readExif: (filePath: string) => Promise<Record<string, unknown>>;
             onOpenSettings: (callback: () => void) => () => void;
             onOpenDuplicates: (callback: () => void) => () => void;
+            onOpenProcessing: (callback: () => void) => () => void;
             onImportFolderSelected: (callback: (folderPath: string) => void) => () => void;
             importRun: (folderPath: string) => Promise<{ added: number; skipped: number; errors: string[] }>;
             onImportProgress: (callback: (data: { current: number; total: number; path?: string }) => void) => () => void;
@@ -170,10 +176,15 @@ declare global {
 
                 // Pipeline
                 submitPipeline: (opts: BackendPipelineSubmitRequest) => Promise<BackendApiResponse>;
+                skipPipelinePhase: (opts: BackendPipelinePhaseControlRequest) => Promise<BackendApiResponse>;
+                retryPipelinePhase: (opts: BackendPipelinePhaseControlRequest) => Promise<BackendApiResponse>;
 
                 // Jobs
                 getRecentJobs: () => Promise<BackendJobInfo[]>;
                 getJobDetail: (jobId: string | number) => Promise<BackendJobInfo>;
+                getAllStatus: () => Promise<BackendAllRunnersStatus>;
+                getJobsQueue: (limit?: number) => Promise<BackendQueueResponse>;
+                cancelJob: (jobId: string | number) => Promise<BackendApiResponse>;
             };
         };
     }
@@ -234,6 +245,25 @@ declare global {
         threshold?: number | null;
         time_gap?: number | null;
         force_rescan?: boolean;
+    }
+
+    interface BackendPipelinePhaseControlRequest {
+        input_path: string;
+        phase_code: string;
+        reason?: string | null;
+        actor?: string | null;
+    }
+
+    interface BackendAllRunnersStatus {
+        scoring: BackendStatusResponse & { available?: boolean };
+        tagging: BackendStatusResponse & { available?: boolean };
+        [key: string]: unknown;
+    }
+
+    interface BackendQueueResponse {
+        queue_depth: number;
+        jobs: BackendJobInfo[];
+        [key: string]: unknown;
     }
 
     interface BackendPipelineSubmitRequest {

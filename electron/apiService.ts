@@ -11,6 +11,7 @@ import type {
     ApiResponse,
     HealthResponse,
     StatusResponse,
+    AllRunnersStatus,
     ScoringStartRequest,
     SingleImageRequest,
     TaggingStartRequest,
@@ -20,9 +21,13 @@ import type {
     FindDuplicatesRequest,
     SimilarSearchParams,
     SimilarSearchResult,
+    OutlierSearchParams,
+    OutlierSearchResult,
     ImportRegisterRequest,
     ImportRegisterResponse,
     PipelineSubmitRequest,
+    PipelinePhaseControlRequest,
+    QueueResponse,
     JobInfo,
     DatabaseStats,
 } from './apiTypes';
@@ -219,6 +224,14 @@ export class ApiService {
         return this.post<ApiResponse>('/api/pipeline/submit', opts, LONG_TIMEOUT);
     }
 
+    skipPipelinePhase(opts: PipelinePhaseControlRequest) {
+        return this.post<ApiResponse>('/api/pipeline/phase/skip', opts);
+    }
+
+    retryPipelinePhase(opts: PipelinePhaseControlRequest) {
+        return this.post<ApiResponse>('/api/pipeline/phase/retry', opts);
+    }
+
     // ── Duplicates & Similarity ─────────────────────────────────────────────
 
     findDuplicates(opts?: FindDuplicatesRequest) {
@@ -233,6 +246,19 @@ export class ApiService {
                 limit: opts.limit,
                 folder_path: opts.folder_path,
                 min_similarity: opts.min_similarity,
+            },
+            LONG_TIMEOUT,
+        );
+    }
+
+    getOutliers(opts: OutlierSearchParams) {
+        return this.get<OutlierSearchResult>(
+            '/api/outliers',
+            {
+                folder_path: opts.folder_path,
+                z_threshold: opts.z_threshold,
+                k: opts.k,
+                limit: opts.limit,
             },
             LONG_TIMEOUT,
         );
@@ -264,7 +290,20 @@ export class ApiService {
         return this.get<DatabaseStats>('/api/stats');
     }
 
+    /** Returns combined status for all runners (scoring + tagging). */
+    getAllStatus() {
+        return this.get<AllRunnersStatus>('/api/status');
+    }
+
     // ── Jobs ────────────────────────────────────────────────────────────────
+
+    getJobsQueue(limit?: number) {
+        return this.get<QueueResponse>('/api/jobs/queue', limit !== undefined ? { limit } : undefined);
+    }
+
+    cancelJob(jobId: string | number) {
+        return this.post<ApiResponse>(`/api/jobs/${jobId}/cancel`);
+    }
 
     getRecentJobs() {
         return this.get<JobInfo[]>('/api/jobs/recent').then((jobs) =>

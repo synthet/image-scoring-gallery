@@ -2,7 +2,9 @@
 
 Project-level task list. Items marked `[Python]`, `[Gradio]`, or `[DB]` involve the Python image-scoring project or database integrations.
 
-Last evaluated: 2026-03-14.
+> **Source of truth & update order:** This file is the canonical task ledger (owner: Electron maintainers). Update this file first, then sync `docs/planning/01-roadmap-todo.md`, then `docs/integration/TODO.md`, and finally `docs/features/planned/embeddings/TODO.md`.
+
+Last evaluated: 2026-03-15.
 
 | Marker | Use when |
 |--------|----------|
@@ -40,11 +42,11 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 
 ### Highest-Impact Next Steps (Recommended Sequence)
 
-1. **Harden data-loading race safety in `useImages`** (request token / in-flight guard) to reduce duplicate pagination fetches and stale UI updates.
-2. **Stabilize runtime observability** (log rotation/retention + bounded WebSocket reconnect policy) to keep long-running sessions predictable.
-3. **Decompose `AppContent.tsx` and align styling strategy** to lower feature-delivery friction before adding more embedding UI surfaces.
-4. **Close remaining local quality debt** (`no-explicit-any`, `useImages`/`useStacks` closure and dependency issues) so future backend integrations are lower-risk.
-5. **Execute embedding feature wave with backend coordination** (Tag Propagation → Outlier Detection → 2D Map → Smart Stack Representative).
+1. **[EIS-101](docs/planning/03-high-impact-tracked-tasks.md#eis-101---harden-useimages-data-loading-race-safety) - Harden data-loading race safety in `useImages`** (request token / in-flight guard) to reduce duplicate pagination fetches and stale UI updates.
+2. **[EIS-102](docs/planning/03-high-impact-tracked-tasks.md#eis-102---stabilize-runtime-observability) - Stabilize runtime observability** (log rotation/retention + bounded WebSocket reconnect policy) to keep long-running sessions predictable.
+3. **[EIS-103](docs/planning/03-high-impact-tracked-tasks.md#eis-103---decompose-appcontenttsx--styling-strategy-alignment) - Decompose `AppContent.tsx` and align styling strategy** to lower feature-delivery friction before adding more embedding UI surfaces.
+4. **[EIS-104](docs/planning/03-high-impact-tracked-tasks.md#eis-104---close-local-quality-debt-prior-to-backend-expansion) - Close remaining local quality debt** (`no-explicit-any`, `useImages`/`useStacks` closure and dependency issues) so future backend integrations are lower-risk.
+5. **[EIS-105](docs/planning/03-high-impact-tracked-tasks.md#eis-105---execute-embedding-feature-wave-with-backend-coordination) - Execute embedding feature wave with backend coordination** (Tag Propagation → Outlier Detection → 2D Map → Smart Stack Representative).
 
 ### Dependency Notes
 
@@ -60,13 +62,14 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 - [x] Implement Database Connection Pooling (`electron/db.ts`)
 - [x] Scale protection for `useImages` (2000 item limit + pagination)
 - [x] Centralized REST API client for Python backend (`ApiService.ts`)
+- [x] [EIS-101] Harden `useImages` / `useStacks` data-loading race safety (stable func refs, loadMore stability, filterKey, race tests)
 
 ---
 
 ## P1 - High Priority
 
 - [ ] **Embedding feature integration** [Python]: Add "Find Similar" to context menu and details panel; integrate "Duplicate Finder" into main navigation
-- [ ] Add explicit request token / in-flight guard to `useImages` for pagination races
+- [x] Add explicit request token / in-flight guard to `useImages` for pagination races
 - [x] Setup Vitest and basic test coverage for hooks/services
 
 ---
@@ -76,7 +79,7 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 - [ ] Add log rotation and retention for session logs
 - [ ] Further decompose `AppContent.tsx` into modular domain hooks/components
 - [ ] Consolidate styling into a unified system (CSS Modules or Tailwind)
-- [ ] Implement semantic **Tag Propagation** UI [Python]: `propagateTags` service, AI Suggestions sidebar in `ImageViewer.tsx`, Accept/Reject interaction logic
+- [ ] Implement semantic **Tag Propagation** UI [Python]: `propagateTags` service, AI Suggestions sidebar in `ImageViewer.tsx`, Accept/Reject interaction logic — backend endpoint ready (`POST /tagging/propagate`)
 
 ---
 
@@ -92,11 +95,12 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 
 ## Python / Backend Integration [Python] [Gradio]
 
-- [ ] [Gradio] Gradio Integration: Enhance IPC/WebSocket bridge for real-time AI updates
+- [ ] [Gradio] Gradio Integration: Enhance IPC/WebSocket bridge for real-time AI updates — coordinate bidirectional command channel protocol with Python backend (see `image-scoring/TODO.md` → Clustering & Embeddings)
 - [ ] [Gradio] Subscribe to `job_progress` for live progress bar (optional; currently job_started/job_completed only)
 - [ ] [Python] Add IPC handlers for new similarity endpoints when backend exposes them (`/api/similarity/*`)
 - [ ] [Python] Sync `electron/apiTypes.ts` when backend API contract changes
 - [ ] Document `config.api.url` / `config.api.port` override in user-facing docs
+- [x] [Python] Ensure `image_updated` and `folder_updated` handlers refresh correct views
 
 ---
 
@@ -112,7 +116,7 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 ## Technical Debt (Code Design Review)
 
 - [ ] Unbounded WebSocket reconnection backoff: add max retries, exponential backoff, connection jitter
-- [ ] Race conditions in `useImages` / `useStacks`: fix closure capture in `loadMore()`, `JSON.stringify` deps in `useEffect`
+- [x] Race conditions in `useImages` / `useStacks`: fix closure capture in `loadMore()`, `JSON.stringify` deps in `useEffect`
 - [ ] MCP server: expand tooling scope (DB query tools, image caching controls)
 
 ---
@@ -124,3 +128,4 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 - [API Integration TODO](docs/integration/TODO.md)
 - [Embedding Features TODO](docs/features/planned/embeddings/TODO.md)
 - [Code Design Review](docs/reports/01-code-design-review-2026-03.md)
+- [High-Impact Tracked Tasks](docs/planning/03-high-impact-tracked-tasks.md)

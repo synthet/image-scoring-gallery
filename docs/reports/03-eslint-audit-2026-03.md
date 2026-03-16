@@ -98,9 +98,6 @@ release-builds-v2/
 #### `src/services/WebSocketService.ts`
 - **Lines 3–129:** 3 uses of `any`
 
-#### `src/services/apiClient.ts`
-- **Lines 3–122:** 3 uses of `any`
-
 #### `src/utils/nefViewer.ts`
 - **Line 14:** 1 use of `any`
 - **Line 314:** Use `@ts-expect-error` instead of `@ts-ignore`

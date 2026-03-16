@@ -9,9 +9,11 @@ import { FilterPanel } from './components/Sidebar/FilterPanel';
 import type { FilterState } from './components/Sidebar/FilterPanel';
 import { ImageViewer } from './components/Viewer/ImageViewer';
 import { useNotificationStore } from './store/useNotificationStore';
+import { useJobProgressStore } from './store/useJobProgressStore';
 import { NotificationTray } from './components/Layout/NotificationTray';
 import { SettingsModal } from './components/Settings/SettingsModal';
 import { DuplicateFinder } from './components/Duplicates/DuplicateFinder';
+import { ProcessingPage } from './components/Processing/ProcessingPage';
 import { ImportModal } from './components/Import/ImportModal';
 import { Loader2, ChevronRight } from 'lucide-react';
 import breadcrumbStyles from './styles/breadcrumbs.module.css';
@@ -55,7 +57,7 @@ function AppContent({ isConnected }: AppContentProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [initialSimilarSearchImageId, setInitialSimilarSearchImageId] = useState<number | null>(null);
   const [pendingOpenImageId, setPendingOpenImageId] = useState<number | null>(null);
-  const [currentView, setCurrentView] = useState<'gallery' | 'duplicates'>('gallery');
+  const [currentView, setCurrentView] = useState<'gallery' | 'duplicates' | 'processing'>('gallery');
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -77,6 +79,13 @@ function AppContent({ isConnected }: AppContentProps) {
       });
     }
 
+    let cleanupProcessing: (() => void) | undefined;
+    if (window.electron?.onOpenProcessing) {
+      cleanupProcessing = window.electron.onOpenProcessing(() => {
+        setCurrentView('processing');
+      });
+    }
+
     let cleanupImport: (() => void) | undefined;
     if (window.electron?.onImportFolderSelected) {
       cleanupImport = window.electron.onImportFolderSelected((path) => {
@@ -95,6 +104,7 @@ function AppContent({ isConnected }: AppContentProps) {
     return () => {
       if (cleanupSettings) cleanupSettings();
       if (cleanupDuplicates) cleanupDuplicates();
+      if (cleanupProcessing) cleanupProcessing();
       if (cleanupImport) cleanupImport();
       if (cleanupNotification) cleanupNotification();
     };
@@ -232,6 +242,12 @@ function AppContent({ isConnected }: AppContentProps) {
           d.job_type === 'tagging' ? 'Tagging' :
             d.job_type === 'clustering' ? 'Clustering' : 'Process';
         addNotification(`${typeLabel} job started (ID: ${d.job_id})`, 'info');
+        useJobProgressStore.getState().startJob(String(d.job_id), d.job_type);
+      });
+
+      subscribe('job_progress', (data: unknown) => {
+        const d = data as { job_id: string | number; current: number; total: number; message?: string };
+        useJobProgressStore.getState().updateProgress(String(d.job_id), d.current, d.total, d.message);
       });
 
       subscribe('job_completed', (data: unknown) => {
@@ -240,6 +256,7 @@ function AppContent({ isConnected }: AppContentProps) {
         const status = d.status === 'completed' ? 'finished successfully' : 'failed';
         const type = d.status === 'completed' ? 'success' : 'error';
         addNotification(`Job ${d.job_id} ${status}`, type);
+        useJobProgressStore.getState().completeJob(String(d.job_id));
 
         // Refresh stacks if it was a clustering/selection job
         if (d.status === 'completed' && window.electron) {
@@ -746,7 +763,14 @@ function AppContent({ isConnected }: AppContentProps) {
         }
         content={
           <div style={{ height: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            {currentView === 'duplicates' ? (
+            {currentView === 'processing' ? (
+              <ProcessingPage
+                folders={folders}
+                foldersLoading={foldersLoading}
+                onRefreshFolders={refreshFolders}
+                onBackToGallery={() => setCurrentView('gallery')}
+              />
+            ) : currentView === 'duplicates' ? (
               <DuplicateFinder currentFolder={currentFolder} />
             ) : (
               <>

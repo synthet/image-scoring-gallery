@@ -2,13 +2,15 @@
 
 This document tracks the remaining work for the embedding-based features in the Electron Gallery.
 
+> **Source of truth & update order:** Embeddings feature-detail mirror (owner: feature maintainers). Update only after `TODO.md` and `docs/planning/01-roadmap-todo.md`; use `docs/integration/TODO.md` to confirm backend milestone status before changing Gradio/API states.
+
 ## 🟢 Implemented
 - [x] **Diversity-Aware Selection**: Settings and MMR logic integrated.
 - [x] **Near-Duplicate Detection**: Duplicate finder view and IPC bridge.
 - [x] **"More Like This" Search**: Similarity search drawer and context menu.
 
 ## 🟡 In Progress
-- [ ] **Gradio Integration**: Enhancing the IPC/WebSocket bridge for real-time AI updates.
+- [ ] **Gradio Integration**: Enhance IPC/WebSocket bridge for real-time AI updates (job progress subscription still pending).
 
 ## 🔴 Planned (Missing)
 ### Feature 3: Tag Propagation

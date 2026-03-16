@@ -8,6 +8,7 @@ import { nefExtractor } from './nefExtractor';
 import { ExifTool } from 'exiftool-vendored';
 import { ApiService } from './apiService';
 import { ExportImageContext } from './types';
+import { SessionLogManager } from './sessionLogManager';
 
 const exiftool = new ExifTool({ maxProcs: 2 });
 
@@ -18,6 +19,7 @@ const exiftool = new ExifTool({ maxProcs: 2 });
 
 let mainWindow: BrowserWindow | null = null;
 let currentExportImageContext: ExportImageContext | null = null;
+let sessionLogManager: SessionLogManager | null = null;
 
 function getDialogWindow(): BrowserWindow | null {
     const focused = BrowserWindow.getFocusedWindow();
@@ -207,6 +209,14 @@ const rebuildApplicationMenu = () => {
                             mainWindow.webContents.send('open-duplicates');
                         }
                     }
+                },
+                {
+                    label: 'Processing',
+                    click: () => {
+                        if (mainWindow) {
+                            mainWindow.webContents.send('open-processing');
+                        }
+                    }
                 }
             ]
         },
@@ -375,6 +385,18 @@ app.whenReady().then(async () => {
             limit,
             folder_path: resolvedFolderPath,
             min_similarity: minSimilarity,
+        });
+    }));
+
+    ipcMain.handle('api:outliers', wrapIpcHandler(async (_, options) => {
+        console.log(`[Main] Finding outliers via backend API`, options);
+        const { folderPath, zThreshold, k, limit } = options;
+        if (!folderPath) throw new Error("folder_path is required");
+        return await apiService.getOutliers({
+            folder_path: folderPath,
+            z_threshold: zThreshold,
+            k,
+            limit,
         });
     }));
 
@@ -603,8 +625,12 @@ app.whenReady().then(async () => {
 
     ipcMain.handle('debug:log', async (_, { level, message, data, timestamp }) => {
         const logDir = app.getPath('userData');
-        const dateStr = new Date().toISOString().split('T')[0];
-        const logFile = path.join(logDir, `session_${dateStr}.log`);
+
+        if (!sessionLogManager) {
+            sessionLogManager = new SessionLogManager(logDir);
+        }
+
+        const logFile = await sessionLogManager.getWritableLogPath(new Date());
 
         const logEntry = JSON.stringify({
             timestamp,
@@ -793,7 +819,27 @@ app.whenReady().then(async () => {
         return await apiService.submitPipeline(opts);
     }));
 
+    ipcMain.handle('api:pipeline-skip', wrapIpcHandler(async (_, opts) => {
+        return await apiService.skipPipelinePhase(opts);
+    }));
+
+    ipcMain.handle('api:pipeline-retry', wrapIpcHandler(async (_, opts) => {
+        return await apiService.retryPipelinePhase(opts);
+    }));
+
     // Jobs
+    ipcMain.handle('api:status-all', wrapIpcHandler(async () => {
+        return await apiService.getAllStatus();
+    }));
+
+    ipcMain.handle('api:jobs-queue', wrapIpcHandler(async (_, limit?: number) => {
+        return await apiService.getJobsQueue(limit);
+    }));
+
+    ipcMain.handle('api:job-cancel', wrapIpcHandler(async (_, jobId: string | number) => {
+        return await apiService.cancelJob(jobId);
+    }));
+
     ipcMain.handle('api:jobs-recent', wrapIpcHandler(async () => {
         return await apiService.getRecentJobs();
     }));

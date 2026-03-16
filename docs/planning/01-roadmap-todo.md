@@ -1,6 +1,8 @@
 # TODO - Electron Image Scoring
 
-Consolidated list of unfinished work items. Last Updated: Mar 10, 2026.
+Consolidated list of unfinished work items. Last Updated: Mar 14, 2026.
+
+> **Source of truth & update order:** Secondary roadmap mirror (owner: planning/docs maintainers). Sync only after `TODO.md`, then reconcile this file before updating `docs/integration/TODO.md` and `docs/features/planned/embeddings/TODO.md`.
 
 ---
 
@@ -16,10 +18,10 @@ Use these rules for any count snapshots in this document:
 
 ### Compact Counting Example (from `P1 (High Priority)`)
 
-- Open items in this section: **4** (Embedding parent + 2 child items + request token item; Vitest is completed)
-- Cross-repo items: **0**
-- Electron-only items: **4**
-- Check: `open (4) = cross-repo (0) + Electron-only (4)`
+- Open items in this section: **5** (Gradio Pipeline + Embedding parent + 2 child items + request token; Vitest and handlers completed)
+- Cross-repo items: **3** (Embedding parent + 2 children with `[Python]`)
+- Electron-only items: **2** (Gradio Pipeline, request token)
+- Check: `open (5) = cross-repo (3) + Electron-only (2)`
 
 ---
 
@@ -37,11 +39,13 @@ Use these rules for any count snapshots in this document:
 
 ## P1 (High Priority)
 
-- [ ] **Embedding Feature Integration**:
+- [ ] Migrate Gradio Pipeline UI into Electron **Processing** workspace (menu entry, phase controls, logs, queue status)
+- [ ] **Embedding Feature Integration** [Python]:
     - [ ] Add "Find Similar" to context menu and details panel
     - [ ] Integrate "Duplicate Finder" into main navigation
 - [ ] Add explicit request token / in-flight guard to `useImages` for pagination races
 - [x] Setup `Vitest` and basic test coverage for hooks/services
+- [x] Ensure `image_updated` and `folder_updated` handlers refresh correct views
 
 ## P2 (Medium Priority)
 
@@ -56,3 +60,4 @@ Use these rules for any count snapshots in this document:
 - [ ] Cleanup remaining lint/type warnings (`no-explicit-any`)
 - [ ] 2D Embedding Map (WebGL visualization)
 - [ ] Outlier Detection UI
+- [ ] Smart Stack Representative

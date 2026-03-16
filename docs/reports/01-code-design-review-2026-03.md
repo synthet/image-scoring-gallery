@@ -70,7 +70,7 @@ The `nef:extract-preview` handler converts large binary image buffers to `Array.
 *Recommendation:* Refactor to utilize Electron's native buffer/Uint8Array passing capabilities securely over IPC context bridges.
 
 #### 7. Unbounded WebSocket Reconnection Backoff
-**Files:** `src/services/WebSocketService.ts`, `src/services/apiClient.ts`
+**Files:** `src/services/WebSocketService.ts`
 Reconnection logic targets the backend API on a static 5-second interval infinitely. It lacks maximum retry limits, connection jitter, or exponential backoff, which could unnecessarily hammer a restarting or temporarily downed API server.
 
 #### 8. Race Conditions in React State Hooks
@@ -166,7 +166,7 @@ The following findings have been implemented and verified (TypeScript compilatio
 | 4 | Inconsistent IPC Error Handling | Critical | **Resolved** | `electron/main.ts`, `electron/preload.ts` |
 | 5 | Lack of Test Coverage | Critical | Deferred | — |
 | 6 | NEF Buffer Serialization | High | **Resolved** | `electron/main.ts` |
-| 7 | WebSocket Reconnection Backoff | High | **Resolved** | `src/services/WebSocketService.ts`, `src/services/apiClient.ts` |
+| 7 | WebSocket Reconnection Backoff | High | **Resolved** | `src/services/WebSocketService.ts` |
 | 8 | Race Conditions in Hooks | High | **Resolved** | `src/hooks/useDatabase.ts` |
 | 9 | Excessive `any` Types | High | **Partial** | `src/electron.d.ts`, `src/hooks/useDatabase.ts` |
 | 10 | Missing Design System | Medium | Deferred | — |
@@ -204,7 +204,7 @@ The following findings have been implemented and verified (TypeScript compilatio
 - Fixed stale closures using `useRef` for offset/filters/folderId
 - Added `useCallback` with proper dependency arrays
 
-#### `src/services/WebSocketService.ts` + `apiClient.ts` — Backoff
+#### `src/services/WebSocketService.ts` — Backoff
 - Exponential backoff: 1s, 2s, 4s, ... up to 30s max
 - ±20% jitter to prevent thundering herd
 - Max 50 retry attempts before stopping

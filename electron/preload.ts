@@ -4,15 +4,19 @@ import type {
     ApiResponse as BackendApiResponse,
     HealthResponse,
     StatusResponse,
+    AllRunnersStatus,
     ScoringStartRequest,
     TaggingStartRequest,
     TaggingSingleRequest,
     TagPropagationRequest,
     ClusteringStartRequest,
     PipelineSubmitRequest,
+    PipelinePhaseControlRequest,
+    QueueResponse,
     JobInfo,
     DatabaseStats,
     SimilarSearchResult,
+    OutlierSearchResult,
 } from './apiTypes';
 
 /**
@@ -73,6 +77,10 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('mcp:search-similar', options);
         return unwrapEnvelope<SimilarSearchResult>(response);
     },
+    findOutliers: async (options: { folderPath: string; zThreshold?: number; k?: number; limit?: number }) => {
+        const response = await ipcRenderer.invoke('api:outliers', options);
+        return unwrapEnvelope<OutlierSearchResult>(response);
+    },
     getStacks: async (options?: ImageQueryOptions) => {
         const response = await ipcRenderer.invoke('db:get-stacks', options);
         return unwrapEnvelope<ImageRow[]>(response);
@@ -130,6 +138,13 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.on('open-duplicates', handler);
         return () => {
             ipcRenderer.removeListener('open-duplicates', handler);
+        };
+    },
+    onOpenProcessing: (callback: () => void) => {
+        const handler = () => callback();
+        ipcRenderer.on('open-processing', handler);
+        return () => {
+            ipcRenderer.removeListener('open-processing', handler);
         };
     },
     onImportFolderSelected: (callback: (folderPath: string) => void) => {
@@ -236,6 +251,14 @@ contextBridge.exposeInMainWorld('electron', {
             const r = await ipcRenderer.invoke('api:pipeline-submit', opts);
             return unwrapEnvelope<BackendApiResponse>(r);
         },
+        skipPipelinePhase: async (opts: PipelinePhaseControlRequest) => {
+            const r = await ipcRenderer.invoke('api:pipeline-skip', opts);
+            return unwrapEnvelope<BackendApiResponse>(r);
+        },
+        retryPipelinePhase: async (opts: PipelinePhaseControlRequest) => {
+            const r = await ipcRenderer.invoke('api:pipeline-retry', opts);
+            return unwrapEnvelope<BackendApiResponse>(r);
+        },
 
         // Jobs
         getRecentJobs: async () => {
@@ -245,6 +268,18 @@ contextBridge.exposeInMainWorld('electron', {
         getJobDetail: async (jobId: string | number) => {
             const r = await ipcRenderer.invoke('api:job-detail', jobId);
             return unwrapEnvelope<JobInfo>(r);
+        },
+        getAllStatus: async () => {
+            const r = await ipcRenderer.invoke('api:status-all');
+            return unwrapEnvelope<AllRunnersStatus>(r);
+        },
+        getJobsQueue: async (limit?: number) => {
+            const r = await ipcRenderer.invoke('api:jobs-queue', limit);
+            return unwrapEnvelope<QueueResponse>(r);
+        },
+        cancelJob: async (jobId: string | number) => {
+            const r = await ipcRenderer.invoke('api:job-cancel', jobId);
+            return unwrapEnvelope<BackendApiResponse>(r);
         },
     },
 });

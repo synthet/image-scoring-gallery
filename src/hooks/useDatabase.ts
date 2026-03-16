@@ -175,6 +175,15 @@ function usePaginatedData<T extends { id: number }>(
     const queryVersionRef = useRef(0);
     const requestIdRef = useRef(0);
 
+    // Stable refs for caller-provided functions — updated each render so
+    // loadMore/refresh never close over stale implementations.
+    const fetchFuncRef = useRef(fetchFunc);
+    fetchFuncRef.current = fetchFunc;
+    const countFuncRef = useRef(countFunc);
+    countFuncRef.current = countFunc;
+    const getUniqueKeyRef = useRef(getUniqueKey);
+    getUniqueKeyRef.current = getUniqueKey;
+
     const trimItems = useCallback((nextItems: T[]) => {
         if (nextItems.length <= MAX_LOADED_ITEMS) {
             return nextItems;
@@ -182,17 +191,18 @@ function usePaginatedData<T extends { id: number }>(
         return nextItems.slice(nextItems.length - MAX_LOADED_ITEMS);
     }, []);
 
+    // dedupeItems uses the ref so the callback itself is stable.
     const dedupeItems = useCallback((nextItems: T[]) => {
         const seenKeys = new Set<string | number>();
         return nextItems.filter(item => {
-            const key = getUniqueKey(item);
+            const key = getUniqueKeyRef.current(item);
             if (seenKeys.has(key)) {
                 return false;
             }
             seenKeys.add(key);
             return true;
         });
-    }, [getUniqueKey]);
+    }, []);
 
     // Update refs when deps change
     useEffect(() => {
@@ -219,7 +229,11 @@ function usePaginatedData<T extends { id: number }>(
         hasMoreRef.current = hasMore;
     }, [hasMore]);
 
-    // Reset when folder or filters change (shallow comparison)
+    // Serialise filters to a primitive so the reset effect below can use a
+    // stable dep without suppressing exhaustive-deps for an expression.
+    const filterKey = JSON.stringify(filters);
+
+    // Reset when folder or filters change.
     useEffect(() => {
         queryVersionRef.current += 1;
         requestIdRef.current += 1;
@@ -233,17 +247,21 @@ function usePaginatedData<T extends { id: number }>(
         setLoading(false);
 
         if (window.electron) {
-            const options: ImageQueryOptions = { folderId, ...filters };
-            countFunc(options).then((c: number) => {
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            const options: ImageQueryOptions = { folderId, ...filtersRef.current };
+            countFuncRef.current(options).then((c: number) => {
                 setTotalCount(c);
             }).catch(err => {
                 console.error('Failed to fetch count:', err);
             });
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [folderId, JSON.stringify(filters)]);
+    // filterKey is a stable string derived from filters; folderId is primitive.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [folderId, filterKey]);
 
     // Load a page and ignore stale responses from previous refresh/filter versions.
+    // loadMore is stable (only depends on pageSize and trimItems) because all
+    // other dependencies are read via refs at call time.
     const loadMore = useCallback(async () => {
         if (!window.electron || loadingRef.current || !hasMoreRef.current) return;
 
@@ -253,7 +271,7 @@ function usePaginatedData<T extends { id: number }>(
         setLoading(true);
         try {
             const options: ImageQueryOptions = { limit: pageSize, offset: offsetRef.current, folderId: folderIdRef.current, ...filtersRef.current };
-            const newItems = await fetchFunc(options);
+            const newItems = await fetchFuncRef.current(options);
 
             // Ignore outdated request results (e.g. old events racing a newer refresh).
             if (queryVersionAtStart !== queryVersionRef.current || requestId !== requestIdRef.current) {
@@ -267,8 +285,8 @@ function usePaginatedData<T extends { id: number }>(
 
             setItems(prev => {
                 // Deduplicate by unique key
-                const existingKeys = new Set(prev.map(item => getUniqueKey(item)));
-                const filtered = newItems.filter(item => !existingKeys.has(getUniqueKey(item)));
+                const existingKeys = new Set(prev.map(item => getUniqueKeyRef.current(item)));
+                const filtered = newItems.filter(item => !existingKeys.has(getUniqueKeyRef.current(item)));
                 const merged = trimItems([...prev, ...filtered]);
 
                 return merged;
@@ -283,14 +301,24 @@ function usePaginatedData<T extends { id: number }>(
                 setLoading(false);
             }
         }
-    }, [pageSize, fetchFunc, getUniqueKey, trimItems]);
+    }, [pageSize, trimItems]);
+
+    // Keep a ref to loadMore so the initial-load effect can call the latest
+    // version without listing loadMore as a dep (which would re-run the effect
+    // every render since loadMore changes when pageSize/trimItems change).
+    const loadMoreRef = useRef(loadMore);
+    loadMoreRef.current = loadMore;
 
     // Initial load when offset becomes 0
     useEffect(() => {
         if (offset === 0 && hasMore && !loading) {
-            loadMore();
+            loadMoreRef.current();
         }
-    }, [offset, hasMore, loading, loadMore]);
+    // loadMoreRef is intentionally excluded — it is a ref (stable object) whose
+    // .current is always up to date. Listing loadMore directly would cause this
+    // effect to re-fire on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [offset, hasMore, loading]);
 
     const refresh = useCallback((options?: { preserveItems?: boolean }) => {
         const preserveItems = options?.preserveItems ?? false;
@@ -312,7 +340,7 @@ function usePaginatedData<T extends { id: number }>(
             const hasTrimmedItems = offsetRef.current > itemsRef.current.length;
 
             if (hasTrimmedItems) {
-                void countFunc(countOptions).then(freshCount => {
+                void countFuncRef.current(countOptions).then(freshCount => {
                     if (queryVersionAtStart !== queryVersionRef.current || requestId !== requestIdRef.current) {
                         return;
                     }
@@ -341,8 +369,8 @@ function usePaginatedData<T extends { id: number }>(
             };
 
             void Promise.all([
-                fetchFunc(listOptions),
-                countFunc(countOptions),
+                fetchFuncRef.current(listOptions),
+                countFuncRef.current(countOptions),
             ]).then(([freshItems, freshCount]) => {
                 if (queryVersionAtStart !== queryVersionRef.current || requestId !== requestIdRef.current) {
                     return;
@@ -376,9 +404,9 @@ function usePaginatedData<T extends { id: number }>(
         setHasMore(true);
         setLoading(false);
         void Promise.resolve().then(() => {
-            void loadMore();
+            void loadMoreRef.current();
         });
-    }, [countFunc, dedupeItems, fetchFunc, loadMore, pageSize, trimItems]);
+    }, [dedupeItems, pageSize, trimItems]);
 
     const removeItem = useCallback((key: string | number) => {
         setItems(prev => prev.filter(item => getUniqueKey(item) !== key));

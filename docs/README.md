@@ -2,6 +2,8 @@
 
 Welcome to the **Electron Image Scoring** documentation. This index provides a structured overview of the project's architecture, features, and planning.
 
+Roadmap/TODO status should be reconciled at least once per week and immediately after any task is marked complete or reopened.
+
 ---
 
 ## Architecture
@@ -44,6 +46,7 @@ Roadmap, migration plans, and task tracking.
 
 - [01 - Roadmap (TODO)](planning/01-roadmap-todo.md) - Current roadmap, pending tasks, and recent hardening status
 - [02 - Firebird to PostgreSQL Migration](planning/02-firebird-postgresql-migration.md) - Coordinated platform migration plan
+- [04 - Gradio to Electron Processing Migration](planning/04-gradio-to-electron-processing-migration.md) - Plan/spec for replacing Gradio pipeline UI with Electron Processing workspace
 
 ---
 
