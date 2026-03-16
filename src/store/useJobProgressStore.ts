@@ -44,7 +44,8 @@ export const useJobProgressStore = create<JobProgressState>((set) => ({
         }),
     completeJob: (job_id) =>
         set((state) => {
-            const { [job_id]: _, ...rest } = state.activeJobs;
+            const { [job_id]: _removedJob, ...rest } = state.activeJobs;
+            void _removedJob;
             return { activeJobs: rest };
         }),
 }));
