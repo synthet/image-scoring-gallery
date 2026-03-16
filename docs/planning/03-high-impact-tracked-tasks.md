@@ -4,10 +4,19 @@ Source: `TODO.md` → **Highest-Impact Next Steps (Recommended Sequence)**.
 
 These tracked tasks are the auditable execution records for the five highest-impact items and include explicit boundaries, cross-repo dependencies, definition of done, and ownership suggestions.
 
-## EIS-101 - Harden `useImages` data-loading race safety
+## EIS-101 - Harden `useImages` data-loading race safety ✅ DONE (2026-03-15)
 
 - **Source item**: "Harden data-loading race safety in `useImages` (request token / in-flight guard)"
 - **Suggested owner/team**: Electron Frontend (Gallery/Hooks)
+- **Completed**: 2026-03-15
+- **Changes made**:
+  - Added stable refs (`fetchFuncRef`, `countFuncRef`, `getUniqueKeyRef`) in `usePaginatedData` so `loadMore`/`refresh` never close over stale function instances.
+  - `loadMore` `useCallback` deps reduced to `[pageSize, trimItems]`; all other state read via refs at call time.
+  - Added `loadMoreRef` so the initial-load `useEffect` does not list `loadMore` as a dep (preventing spurious re-runs on every render).
+  - Replaced inline `JSON.stringify(filters)` expression in `useEffect` deps with a computed `filterKey` variable.
+  - `dedupeItems` stabilised (`[]` deps) by using `getUniqueKeyRef`.
+  - `refresh` deps reduced to `[dedupeItems, pageSize, trimItems]`; `countFunc`/`fetchFunc`/`loadMore` removed (now read via refs).
+  - Added `src/hooks/useImages.race.test.tsx` with three tests: stale-response guard, concurrent-request in-flight guard, and folder-switch stale-response guard.
 - **Scope boundaries**:
   - In scope:
     - Add request token or generation guard in `useImages` pagination flow.
@@ -21,10 +30,10 @@ These tracked tasks are the auditable execution records for the five highest-imp
   - Backend: None required (client-side correctness hardening).
   - Migration: None.
 - **Definition of done**:
-  - Reproduction scenario for duplicate pagination/stale overwrite is no longer reproducible.
-  - Existing hook behavior remains unchanged for normal load path.
-  - Tests cover at least one stale-response and one concurrent-request scenario.
-  - TODO references updated with completion status.
+  - [x] Reproduction scenario for duplicate pagination/stale overwrite is no longer reproducible.
+  - [x] Existing hook behavior remains unchanged for normal load path.
+  - [x] Tests cover at least one stale-response and one concurrent-request scenario.
+  - [x] TODO references updated with completion status.
 
 ## EIS-102 - Stabilize runtime observability
 
