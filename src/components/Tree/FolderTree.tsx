@@ -3,6 +3,21 @@ import { ChevronRight, ChevronDown, Folder, FolderOpen, Trash2 } from 'lucide-re
 import type { Folder as FolderType } from './treeUtils';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
 
+const STATUS_COLOR: Record<string, string> = {
+    not_started: '#555',
+    queued: '#888',
+    running: '#4a9eff',
+    done: '#4caf50',
+    skipped: '#f0a500',
+    failed: '#e05050',
+};
+
+const PHASE_LABELS: [keyof Pick<FolderType, 'indexing_status' | 'scoring_status' | 'tagging_status'>, string][] = [
+    ['indexing_status', 'Indexing'],
+    ['scoring_status', 'Scoring'],
+    ['tagging_status', 'Tagging'],
+];
+
 interface FolderTreeProps {
     folders: FolderType[];
     onSelect: (folder: FolderType) => void;
@@ -84,6 +99,28 @@ const TreeNode: React.FC<{ node: FolderType; onSelect: (f: FolderType) => void; 
                 <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>
                     {node.title}
                 </span>
+
+                {PHASE_LABELS.some(([field]) => node[field] && node[field] !== 'not_started') && (
+                    <span style={{ display: 'flex', gap: 2, marginRight: 4 }}>
+                        {PHASE_LABELS.map(([field, label]) => {
+                            const status = node[field] ?? 'not_started';
+                            return (
+                                <span
+                                    key={field}
+                                    title={`${label}: ${status}`}
+                                    style={{
+                                        width: 6,
+                                        height: 6,
+                                        borderRadius: '50%',
+                                        backgroundColor: STATUS_COLOR[status] ?? STATUS_COLOR.not_started,
+                                        display: 'inline-block',
+                                        flexShrink: 0,
+                                    }}
+                                />
+                            );
+                        })}
+                    </span>
+                )}
 
                 {node.total_image_count === 0 && (
                     <button

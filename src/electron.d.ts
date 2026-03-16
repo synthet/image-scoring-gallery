@@ -185,6 +185,17 @@ declare global {
                 getAllStatus: () => Promise<BackendAllRunnersStatus>;
                 getJobsQueue: (limit?: number) => Promise<BackendQueueResponse>;
                 cancelJob: (jobId: string | number) => Promise<BackendApiResponse>;
+
+                // Scope tree
+                getScopeTree: () => Promise<{
+                    folders: Array<{
+                        folder_id: number;
+                        folder_path: string;
+                        indexing_status: string;
+                        scoring_status: string;
+                        tagging_status: string;
+                    }>;
+                }>;
             };
         };
     }

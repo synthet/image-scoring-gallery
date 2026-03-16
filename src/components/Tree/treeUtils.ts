@@ -7,6 +7,9 @@ export interface Folder {
     total_image_count?: number;
     title?: string;
     children?: Folder[];
+    indexing_status?: string;
+    scoring_status?: string;
+    tagging_status?: string;
 }
 
 interface FolderRow {
