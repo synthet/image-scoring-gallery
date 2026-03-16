@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.41.1] - 2026-03-15
+
+### Fixed
+- **apiService**: Extended params type to support `boolean` in `request`, `get`, and `getImages` for API query parameters.
+
 ## [3.41.0] - 2026-03-15
 
 ### Added

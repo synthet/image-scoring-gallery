@@ -65,7 +65,7 @@ export class ApiService {
         apiPath: string,
         options?: {
             body?: unknown;
-            params?: Record<string, string | number | undefined>;
+            params?: Record<string, string | number | boolean | undefined>;
             timeout?: number;
         },
     ): Promise<T> {
@@ -116,7 +116,7 @@ export class ApiService {
         }
     }
 
-    private get<T>(apiPath: string, params?: Record<string, string | number | undefined>, timeout?: number) {
+    private get<T>(apiPath: string, params?: Record<string, string | number | boolean | undefined>, timeout?: number) {
         return this.request<T>('GET', apiPath, { params, timeout });
     }
 
@@ -271,7 +271,7 @@ export class ApiService {
 
     // ── Data (read-only) ────────────────────────────────────────────────────
 
-    getImages(params?: Record<string, string | number | undefined>) {
+    getImages(params?: Record<string, string | number | boolean | undefined>) {
         return this.get<unknown>('/api/images', params);
     }
 
