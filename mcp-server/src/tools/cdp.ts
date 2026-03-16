@@ -1,4 +1,4 @@
-import { sendCdpCommand, findPageTarget, listTargets } from "../utils/cdp.js";
+import { sendCdpCommand, findPageTarget } from "../utils/cdp.js";
 
 interface ToolDef {
     name: string;

@@ -11,6 +11,7 @@ interface WebSocketServiceInternals {
   reconnectAttempts: number;
   handlers: Map<string, Set<(data: unknown) => void>>;
   reconnectTimeout: ReturnType<typeof setTimeout> | null;
+  intentionalDisconnect: boolean;
   getReconnectDelay: () => number;
   scheduleReconnect: () => void;
 }
@@ -68,6 +69,7 @@ describe('WebSocketService', () => {
       clearTimeout(service.reconnectTimeout);
       service.reconnectTimeout = null;
     }
+    service.intentionalDisconnect = false;
   });
 
   afterEach(() => {
@@ -142,6 +144,18 @@ describe('WebSocketService', () => {
       delay = service.getReconnectDelay();
       expect(delay).toBeGreaterThanOrEqual(24000); // 30000 - 6000 jitter
       expect(delay).toBeLessThanOrEqual(36000); // 30000 + 6000 jitter
+    });
+
+
+
+    it('does not schedule reconnect after intentional disconnect', async () => {
+      await webSocketService.connect();
+      mockWs._triggerOpen();
+
+      webSocketService.disconnect();
+      mockWs.onclose?.();
+
+      expect(vi.getTimerCount()).toBe(0);
     });
 
     it('schedules reconnect on close', async () => {
