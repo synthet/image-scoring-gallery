@@ -57,12 +57,21 @@ function extractServiceEndpoints(filePath) {
     const content = readFileSync(filePath, 'utf-8');
     const endpoints = new Set();
 
-    // Match this.get/this.post calls with API paths
-    const callRegex = /this\.(get|post)<[^>]+>\(\s*['"]([^'"]+)['"]/g;
+    // Match this.get/this.post calls with quoted API paths
+    const quotedRegex = /this\.(get|post)<[^>]+>\(\s*['"]([^'"]+)['"]/g;
     let match;
-
-    while ((match = callRegex.exec(content)) !== null) {
+    while ((match = quotedRegex.exec(content)) !== null) {
         endpoints.add(match[2]);
+    }
+
+    // Match template literal paths (e.g. `/api/images/${id}`) — normalize to OpenAPI-style for comparison
+    const templateRegex = /this\.(get|post)<[^>]+>\(\s*`([^`]*)`/g;
+    while ((match = templateRegex.exec(content)) !== null) {
+        const path = match[2].replace(/\$\{[^}]+\}/g, (param) => {
+            const name = param.slice(2, -1);
+            return `{${name}}`;
+        });
+        endpoints.add(path);
     }
 
     return endpoints;
@@ -85,7 +94,7 @@ function main() {
             // Check if it's a parameterized path like /api/images/{image_id}
             const pattern = path.replace(/\{[^}]+\}/g, '\\d+');
             const hasMatch = [...serviceEndpoints].some((ep) => {
-                const epPattern = ep.replace(/\$\{[^}]+\}/g, '\\d+');
+                const epPattern = ep.replace(/\$\{[^}]+\}/g, '\\d+').replace(/\{[^}]+\}/g, '\\d+');
                 return epPattern === pattern || ep.includes(path.split('{')[0]);
             });
             if (!hasMatch) {

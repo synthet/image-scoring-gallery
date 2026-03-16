@@ -38,7 +38,12 @@ export interface StatusResponse {
 // ── Scoring ─────────────────────────────────────────────────────────────────
 
 export interface ScoringStartRequest {
-    input_path: string;
+    input_path?: string | null;
+    image_ids?: number[] | null;
+    image_paths?: string[] | null;
+    folder_ids?: number[] | null;
+    folder_paths?: string[] | null;
+    recursive?: boolean;
     skip_existing?: boolean;
     force_rescore?: boolean;
 }
@@ -50,7 +55,12 @@ export interface SingleImageRequest {
 // ── Tagging ─────────────────────────────────────────────────────────────────
 
 export interface TaggingStartRequest {
-    input_path: string;
+    input_path?: string | null;
+    image_ids?: number[] | null;
+    image_paths?: string[] | null;
+    folder_ids?: number[] | null;
+    folder_paths?: string[] | null;
+    recursive?: boolean;
     custom_keywords?: string[] | null;
     overwrite?: boolean;
     generate_captions?: boolean;
@@ -77,6 +87,11 @@ export interface TagPropagationRequest {
 
 export interface ClusteringStartRequest {
     input_path?: string | null;
+    image_ids?: number[] | null;
+    image_paths?: string[] | null;
+    folder_ids?: number[] | null;
+    folder_paths?: string[] | null;
+    recursive?: boolean;
     threshold?: number | null;
     time_gap?: number | null;
     force_rescan?: boolean;
@@ -139,6 +154,33 @@ export interface OutlierSearchResult {
     skipped: Array<Record<string, unknown>>;
 }
 
+/** Response model for visual outlier detection (OpenAPI schema name). */
+export interface OutlierResponse {
+    outliers: OutlierInfo[];
+    stats: Record<string, unknown>;
+    skipped: Array<Record<string, unknown>>;
+}
+
+/** Phase policy decision details for one image+phase. */
+export interface PhaseDecisionResponse {
+    image_id: number;
+    phase_code: string;
+    should_run: boolean;
+    reason: string;
+    force_run: boolean;
+    current_executor_version?: string | null;
+    stored_status?: string | null;
+    stored_executor_version?: string | null;
+}
+
+/** Request model for skip/retry controls on a pipeline phase. */
+export interface PipelinePhaseControlRequest {
+    input_path: string;
+    phase_code: string;
+    reason?: string | null;
+    actor?: string | null;
+}
+
 // ── Import ───────────────────────────────────────────────────────────────────
 
 export interface ImportRegisterRequest {
@@ -168,6 +210,8 @@ export interface PipelineSubmitRequest {
     custom_keywords?: string[] | null;
     generate_captions?: boolean;
     clustering_threshold?: number | null;
+    clustering_time_gap?: number | null;
+    clustering_force_rescan?: boolean;
 }
 
 // ── All-runners status ───────────────────────────────────────────────────────

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.41.0] - 2026-03-15
+
+### Added
+- **Session log manager**: `electron/sessionLogManager.ts` with tests.
+
+### Changed
+- **apiService**: Extended with additional API methods.
+- **apiTypes**: Expanded type definitions for backend contract.
+- **validate-api-types**: Improved validation script.
+
 ## [3.40.0] - 2026-03-14
 
 ### Changed

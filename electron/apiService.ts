@@ -28,6 +28,7 @@ import type {
     PipelineSubmitRequest,
     PipelinePhaseControlRequest,
     QueueResponse,
+    PhaseDecisionResponse,
     JobInfo,
     DatabaseStats,
 } from './apiTypes';
@@ -225,11 +226,15 @@ export class ApiService {
     }
 
     skipPipelinePhase(opts: PipelinePhaseControlRequest) {
-        return this.post<ApiResponse>('/api/pipeline/phase/skip', opts);
+        return this.post<ApiResponse>('/api/pipeline/phase/skip', opts, LONG_TIMEOUT);
     }
 
     retryPipelinePhase(opts: PipelinePhaseControlRequest) {
-        return this.post<ApiResponse>('/api/pipeline/phase/retry', opts);
+        return this.post<ApiResponse>('/api/pipeline/phase/retry', opts, LONG_TIMEOUT);
+    }
+
+    getPhaseDecision(params: { image_id: number; phase_code: string; current_executor_version?: string; force_run?: boolean }) {
+        return this.get<PhaseDecisionResponse>('/api/phases/decision', params);
     }
 
     // ── Duplicates & Similarity ─────────────────────────────────────────────
@@ -276,6 +281,10 @@ export class ApiService {
 
     getFolders() {
         return this.get<unknown>('/api/folders');
+    }
+
+    rebuildFolders() {
+        return this.post<ApiResponse>('/api/folders/rebuild', undefined, LONG_TIMEOUT);
     }
 
     getStacks() {
