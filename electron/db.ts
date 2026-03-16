@@ -432,7 +432,6 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.score_aesthetic,
             i.score_spaq,
             i.score_ava,
-            i.score_ava,
             i.score_liqe,
             i.rating, 
             i.label, 

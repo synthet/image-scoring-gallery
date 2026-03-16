@@ -848,6 +848,11 @@ app.whenReady().then(async () => {
         return await apiService.getJob(jobId);
     }));
 
+    // Scope tree (per-folder phase status from the backend phase summary table)
+    ipcMain.handle('api:get-scope-tree', wrapIpcHandler(async () => {
+        return await apiService.getScopeTree();
+    }));
+
     console.log('[Main] All IPC handlers registered. Creating window...');
     createWindow();
     rebuildApplicationMenu();
