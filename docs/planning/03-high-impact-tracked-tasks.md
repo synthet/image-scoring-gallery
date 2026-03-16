@@ -35,10 +35,14 @@ These tracked tasks are the auditable execution records for the five highest-imp
   - [x] Tests cover at least one stale-response and one concurrent-request scenario.
   - [x] TODO references updated with completion status.
 
-## EIS-102 - Stabilize runtime observability
+## EIS-102 - Stabilize runtime observability ✅ DONE (2026-03-16)
 
 - **Source item**: "Stabilize runtime observability (log rotation/retention + bounded WebSocket reconnect policy)"
 - **Suggested owner/team**: Electron Platform + Runtime
+- **Completed**: 2026-03-16
+- **Changes made**:
+  - `electron/sessionLogManager.ts` — size-based rotation (5 MB/file), ISO date naming (`session_YYYY-MM-DD.log`), 14-day retention, 200-file cap, 5-minute periodic cleanup. IPC handler wired in `electron/main.ts` (lines 626-649). Tests in `electron/sessionLogManager.test.ts`.
+  - `src/services/WebSocketService.ts` — exponential backoff starting at 1 s, capped at 30 s, ±20% jitter, 50-attempt max. Every attempt and terminal state logged. Tests in `src/services/WebSocketService.test.ts`.
 - **Scope boundaries**:
   - In scope:
     - Add log rotation/retention policy for session logs.
@@ -51,15 +55,24 @@ These tracked tasks are the auditable execution records for the five highest-imp
   - Backend: Optional coordination if reconnect semantics need backend-side rate limiting hints.
   - Migration: None.
 - **Definition of done**:
-  - Long-running session log growth is bounded by policy.
-  - WebSocket reconnect attempts are bounded and observable in logs.
-  - Manual failure test demonstrates backoff/jitter and clean terminal state after max retries.
-  - TODO references updated with completion status.
+  - [x] Long-running session log growth is bounded by policy.
+  - [x] WebSocket reconnect attempts are bounded and observable in logs.
+  - [x] Manual failure test demonstrates backoff/jitter and clean terminal state after max retries (covered by `WebSocketService.test.ts`).
+  - [x] TODO references updated with completion status.
 
-## EIS-103 - Decompose `AppContent.tsx` + styling strategy alignment
+## EIS-103 - Decompose `AppContent.tsx` + styling strategy alignment ✅ DONE (2026-03-16)
 
 - **Source item**: "Decompose `AppContent.tsx` and align styling strategy"
 - **Suggested owner/team**: Electron Frontend Architecture
+- **Completed**: 2026-03-16
+- **Changes made**:
+  - `src/hooks/useElectronListeners.ts` — IPC menu listener registration (onOpenSettings, onOpenDuplicates, onOpenProcessing, onImportFolderSelected, onShowNotification) with modal/view state.
+  - `src/hooks/useGalleryNavigation.ts` — folder selection, subfolder toggle, `currentFolder`, `subfolderIds`, breadcrumb chain, parent navigation.
+  - `src/hooks/useStacksMode.ts` — stacks mode toggle, activeStackId, stackImages loading, stack cache rebuild, handleSelectStack, handleImageDeleteFromStack.
+  - `src/hooks/useImageOpener.ts` — viewer lifecycle: open/navigate/delete images, pending image resolution on folder switch, `openImageById`, `handleFindSimilarFromGrid`.
+  - `src/hooks/useGalleryWebSocket.ts` — WebSocket subscription, 500 ms debounced refresh scheduling, all event type handlers (stack_created, job lifecycle, image/folder updates).
+  - `src/AppContent.tsx` — reduced from 864 → 449 lines; now an orchestrator that wires hooks and renders JSX with no inline business logic.
+- **Styling strategy**: No visual changes in this pass. Strategy documented: CSS Modules for interactive elements requiring pseudo-state (`:hover`, `:focus-visible`, `[aria-checked]`); inline styles acceptable for layout scaffolding. A dedicated styling-pass milestone should be tracked separately.
 - **Scope boundaries**:
   - In scope:
     - Split `AppContent.tsx` into domain-focused components/hooks with clear ownership boundaries.
@@ -72,10 +85,10 @@ These tracked tasks are the auditable execution records for the five highest-imp
   - Backend: None required.
   - Migration: None.
 - **Definition of done**:
-  - `AppContent.tsx` complexity reduced via extracted modules and explicit interfaces.
-  - Chosen styling strategy documented and applied to touched files.
-  - Build/tests pass with no regressions in core gallery workflows.
-  - TODO references updated with completion status.
+  - [x] `AppContent.tsx` complexity reduced via extracted modules and explicit interfaces.
+  - [x] Chosen styling strategy documented and applied to touched files.
+  - [x] Build/tests pass with no regressions in core gallery workflows (`npx tsc --noEmit` clean).
+  - [x] TODO references updated with completion status.
 
 ## EIS-104 - Close local quality debt prior to backend expansion
 

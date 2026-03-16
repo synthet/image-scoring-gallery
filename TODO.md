@@ -4,7 +4,7 @@ Project-level task list. Items marked `[Python]`, `[Gradio]`, or `[DB]` involve 
 
 > **Source of truth & update order:** This file is the canonical task ledger (owner: Electron maintainers). Update this file first, then sync `docs/planning/01-roadmap-todo.md`, then `docs/integration/TODO.md`, and finally `docs/features/planned/embeddings/TODO.md`.
 
-Last evaluated: 2026-03-15.
+Last evaluated: 2026-03-16.
 
 | Marker | Use when |
 |--------|----------|
@@ -36,8 +36,8 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 
 ### Current Status Snapshot
 
-- **Total open items**: 21
-- **Electron-only (unblocked) items**: 7
+- **Total open items**: 18
+- **Electron-only (unblocked) items**: 4
 - **Cross-repo dependency items** (`[Python]`, `[Gradio]`, `[DB]`, `[DB+Python]`): 14
 
 ### Highest-Impact Next Steps (Recommended Sequence)
@@ -63,6 +63,8 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 - [x] Scale protection for `useImages` (2000 item limit + pagination)
 - [x] Centralized REST API client for Python backend (`ApiService.ts`)
 - [x] [EIS-101] Harden `useImages` / `useStacks` data-loading race safety (stable func refs, loadMore stability, filterKey, race tests)
+- [x] [EIS-102] Stabilize runtime observability (log rotation/retention via `sessionLogManager.ts` + bounded WebSocket reconnect with exponential backoff, jitter, 50-attempt cap)
+- [x] [EIS-103] Decompose `AppContent.tsx` into domain hooks: `useElectronListeners`, `useGalleryNavigation`, `useStacksMode`, `useImageOpener`, `useGalleryWebSocket` (864 → 449 lines)
 
 ---
 
@@ -76,8 +78,8 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 
 ## P2 - Medium Priority
 
-- [ ] Add log rotation and retention for session logs
-- [ ] Further decompose `AppContent.tsx` into modular domain hooks/components
+- [x] Add log rotation and retention for session logs
+- [x] Further decompose `AppContent.tsx` into modular domain hooks/components
 - [ ] Consolidate styling into a unified system (CSS Modules or Tailwind)
 - [ ] Implement semantic **Tag Propagation** UI [Python]: `propagateTags` service, AI Suggestions sidebar in `ImageViewer.tsx`, Accept/Reject interaction logic — backend endpoint ready (`POST /tagging/propagate`)
 
@@ -115,7 +117,7 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 
 ## Technical Debt (Code Design Review)
 
-- [ ] Unbounded WebSocket reconnection backoff: add max retries, exponential backoff, connection jitter
+- [x] Unbounded WebSocket reconnection backoff: add max retries, exponential backoff, connection jitter
 - [x] Race conditions in `useImages` / `useStacks`: fix closure capture in `loadMore()`, `JSON.stringify` deps in `useEffect`
 - [ ] MCP server: expand tooling scope (DB query tools, image caching controls)
 
