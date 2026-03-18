@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.42.0] - 2026-03-18
+
+### Changed
+- **useDatabase**: Refactored hook with improved state handling.
+- **ProcessingPage, ProcessingControls**: UI refinements.
+- **FolderTree**: Component updates.
+- **NotificationTray**: Minor improvements.
+- **AppContent**: Cleanup.
+- **apiService, preload**: API and IPC updates.
+- **Tests**: useDatabase, useDataHooks, useImages, Logger, WebSocketService, apiClient test updates.
+
 ## [3.41.2] - 2026-03-17
 
 ### Fixed

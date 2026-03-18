@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 const MAX_LOADED_ITEMS = 2000;
 
@@ -414,54 +414,50 @@ function usePaginatedData<T extends { id: number }>(
 
     }, [getUniqueKey]);
 
-    return { items, loading, hasMore, loadMore, totalCount, refresh, removeItem };
+    return React.useMemo(() => ({ items, loading, hasMore, loadMore, totalCount, refresh, removeItem }), [items, loading, hasMore, loadMore, totalCount, refresh, removeItem]);
 }
 
 export function useImages(pageSize: number = 50, folderId?: number, filters?: ImageQueryOptions) {
+    const getUniqueKey = React.useCallback((img: ImageRow) => img.id, []);
     const result = usePaginatedData(
         pageSize,
         folderId,
         filters,
         (opts) => window.electron!.getImages(opts),
         (opts) => window.electron!.getImageCount(opts),
-        (img: ImageRow) => img.id
+        getUniqueKey
     );
 
-    // Remove image from state (e.g. after delete)
-    const removeImage = useCallback((id: number) => {
-        result.removeItem(id);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [result.removeItem]);
-
-    return {
+    return React.useMemo(() => ({
         images: result.items,
         loading: result.loading,
         hasMore: result.hasMore,
         loadMore: result.loadMore,
         totalCount: result.totalCount,
         refresh: result.refresh,
-        removeImage
-    };
+        removeImage: (id: number) => result.removeItem(id)
+    }), [result.items, result.loading, result.hasMore, result.loadMore, result.totalCount, result.refresh, result.removeItem]);
 }
 
 export function useStacks(pageSize: number = 50, folderId?: number, filters?: ImageQueryOptions) {
+    const getUniqueKey = React.useCallback((stack: ImageRow) => stack.stack_key || stack.id, []);
     const result = usePaginatedData(
         pageSize,
         folderId,
         filters,
         (opts) => window.electron!.getStacks(opts),
         (opts) => window.electron!.getStackCount(opts),
-        (stack: ImageRow) => stack.stack_key || stack.id
+        getUniqueKey
     );
 
-    return {
+    return React.useMemo(() => ({
         stacks: result.items,
         loading: result.loading,
         hasMore: result.hasMore,
         loadMore: result.loadMore,
         totalCount: result.totalCount,
         refresh: result.refresh
-    };
+    }), [result.items, result.loading, result.hasMore, result.loadMore, result.totalCount, result.refresh]);
 }
 
 export interface SimilarImageResult {
@@ -536,11 +532,11 @@ export function useSimilarImages(
         };
     }, [imageId, limit, folderId, folderPath, minSimilarity]);
 
-    return {
+    return React.useMemo(() => ({
         images: imageId ? images : [],
         loading: imageId ? loading : false,
         error: imageId ? error : null,
-    };
+    }), [images, loading, error, imageId]);
 }
 
 export function usePropagateTags() {
@@ -563,5 +559,5 @@ export function usePropagateTags() {
         }
     };
 
-    return { propagate, loading, error };
+    return React.useMemo(() => ({ propagate, loading, error }), [propagate, loading, error]);
 }

@@ -40,12 +40,12 @@ describe('useImages race safety (EIS-101)', () => {
             getImages: vi.fn(),
             getImageCount: vi.fn().mockResolvedValue(100),
         };
-        (window as Window & { electron?: MockElectron }).electron = electron;
+        (window as any).electron = electron;
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
-        delete (window as Window & { electron?: MockElectron }).electron;
+        (window as any).electron = undefined;
     });
 
     it('discards stale response when a newer request completes first', async () => {

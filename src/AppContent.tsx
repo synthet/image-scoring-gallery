@@ -409,26 +409,6 @@ function AppContent({ isConnected }: AppContentProps) {
     }
   }, [selectedFolderId, stacksMode, activeStackId, stacks, stackImages, images, addNotification]);
 
-  useEffect(() => {
-    if (!pendingOpenImageId) return;
-
-    const imgList = (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
-    const idx = imgList.findIndex(img => img.id === pendingOpenImageId);
-
-    if (idx >= 0) {
-      setCurrentImageIndex(idx);
-      setOpeningImage(imgList[idx]);
-      setPendingOpenImageId(null);
-      return;
-    }
-
-    // If we've finished loading and still can't find it, clear the pending state
-    if (!imagesLoading && !stackImagesLoading && !stacksLoading) {
-      console.warn('[App] Could not find pending image index after loading:', pendingOpenImageId);
-      setPendingOpenImageId(null);
-    }
-  }, [pendingOpenImageId, stacksMode, activeStackId, stacks, stackImages, images, imagesLoading, stackImagesLoading, stacksLoading]);
-
   const handleImageDelete = (id: number) => {
     if (activeStackId) {
       setStackImages(prev => prev.filter(img => img.id !== id));

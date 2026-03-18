@@ -57,7 +57,7 @@ describe('WebSocketService', () => {
     } as unknown as new (url: string) => WebSocket;
     vi.stubGlobal('WebSocket', MockWebSocket as new (url: string) => WebSocket);
 
-    (globalThis.window as TestWindow).electron = {
+    (globalThis.window as any).electron = {
       getApiConfig: vi.fn().mockResolvedValue({ url: 'http://localhost:8000' }),
     };
 
@@ -75,7 +75,7 @@ describe('WebSocketService', () => {
   afterEach(() => {
     webSocketService.disconnect();
     vi.unstubAllGlobals();
-    delete (globalThis.window as TestWindow).electron;
+    (globalThis.window as any).electron = undefined;
   });
 
   it('calls getApiConfig and creates WebSocket with correct URL on connect', async () => {

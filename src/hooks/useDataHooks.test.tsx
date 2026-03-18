@@ -7,6 +7,9 @@ type ElectronApi = {
   getFolders: ReturnType<typeof vi.fn>;
   getImageCount: ReturnType<typeof vi.fn>;
   getKeywords: ReturnType<typeof vi.fn>;
+  api?: {
+    getScopeTree: ReturnType<typeof vi.fn>;
+  };
 };
 
 describe('data hooks', () => {
@@ -17,13 +20,16 @@ describe('data hooks', () => {
       getFolders: vi.fn(),
       getImageCount: vi.fn(),
       getKeywords: vi.fn(),
+      api: {
+        getScopeTree: vi.fn().mockResolvedValue(null),
+      },
     };
-    (window as Window & { electron?: ElectronApi }).electron = electronApi;
+    (window as any).electron = electronApi;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    delete (window as Window & { electron?: ElectronApi }).electron;
+    (window as any).electron = undefined;
   });
 
   it('useFolders loads folder tree and supports refresh', async () => {
