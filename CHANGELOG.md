@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.41.2] - 2026-03-17
+
+### Fixed
+- **ImageViewer**: Only update image state when target ID changes to avoid infinite re-render when parent passes new `allImages` reference each render.
+
 ## [3.41.1] - 2026-03-15
 
 ### Fixed

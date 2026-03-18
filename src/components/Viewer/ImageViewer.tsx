@@ -136,13 +136,15 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         return false;
     }, [onClose, onNavigate, currentIndex, allImages]), !isDeleteDialogOpen);
 
-    // Update image when navigating
+    // Update image when navigating. Only update when target image ID changes to avoid
+    // infinite loops when parent passes a new allImages array reference each render.
     useEffect(() => {
         if (currentIndex >= 0 && allImages && allImages[currentIndex]) {
-            setImage(allImages[currentIndex]);
+            const target = allImages[currentIndex];
+            setImage(prev => (prev.id === target.id ? prev : target));
             setDetailsLoaded(false);
         } else if (currentIndex === -1) {
-            setImage(initialImage);
+            setImage(prev => (prev.id === initialImage.id ? prev : initialImage));
             setDetailsLoaded(false);
         }
     }, [currentIndex, allImages, initialImage]);
@@ -210,7 +212,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             console.log('[ImageViewer] Fetching lazy EXIF for', pathSchema);
             setExifLoading(true);
             try {
-                const exif = await window.electron.readExif(pathSchema);
+                const exif = await (window.electron as any).readExif(pathSchema);
                 console.log('[ImageViewer] Lazy EXIF result:', { 
                     id: image.id, 
                     success: !!exif,
