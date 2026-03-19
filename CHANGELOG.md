@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.43.0] - 2026-03-19
+
+### Changed
+- **apiService**: `getScopeTree` now passes `include_phase_status: false` by default.
+- **db**: Added `stripConcatenatedAbsolutePath` to fix erroneously concatenated paths (e.g. `D:/Projects/.../D:/Photos/...`) in folder creation and path normalization.
+- **AppContent**: Header label shows "items (grouped)" instead of "stacks" when in stacks mode.
+
 ## [3.42.0] - 2026-03-18
 
 ### Changed

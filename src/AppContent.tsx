@@ -575,7 +575,7 @@ function AppContent({ isConnected }: AppContentProps) {
               {headerTitle}
             </h2>
             <span style={{ fontSize: '0.9em', color: '#888' }}>
-              ({currentTotal} {stacksMode && !activeStackId ? 'stacks' : 'items'})
+              ({currentTotal} {stacksMode && !activeStackId ? 'items (grouped)' : 'items'})
             </span>
 
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '15px', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>

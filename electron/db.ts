@@ -690,12 +690,44 @@ export async function deleteFolder(id: number): Promise<boolean> {
 }
 
 /**
+ * Strip erroneously concatenated absolute path (e.g. D:/Projects/image-scoring/D:/Photos/...).
+ * Returns the canonical absolute path.
+ */
+function stripConcatenatedAbsolutePath(filePath: string): string {
+    const withSlashes = filePath.replace(/\\/g, '/');
+    const parts = withSlashes.split('/').filter(Boolean);
+    const driveIndices: number[] = [];
+    for (let i = 0; i < parts.length; i++) {
+        if (parts[i].length === 2 && parts[i][1] === ':' && /^[a-zA-Z]$/.test(parts[i][0])) {
+            driveIndices.push(i);
+        }
+    }
+    if (driveIndices.length >= 2) {
+        const start = driveIndices[driveIndices.length - 1];
+        return parts.slice(start).join('/');
+    }
+    // Mixed: /mnt/x/.../X:/ (WSL base + Windows path)
+    const match = withSlashes.match(/\/([A-Za-z]):\//);
+    if (match && withSlashes.includes('/mnt/')) {
+        return withSlashes.slice((match.index ?? 0) + 1);
+    }
+    // /mnt/x/ appearing twice
+    const firstMnt = withSlashes.indexOf('/mnt/');
+    const secondMnt = withSlashes.indexOf('/mnt/', firstMnt + 6);
+    if (secondMnt !== -1) {
+        return withSlashes.slice(secondMnt);
+    }
+    return filePath;
+}
+
+/**
  * Normalize a file system path for consistent storage in the database.
  * Always stores paths in WSL format (/mnt/d/...) to match the Python backend.
  * On Windows, converts drive-letter paths (D:\... or D:/...) to /mnt/d/...
  * Paths already in WSL format are returned as-is (before resolve, to avoid mangling).
  */
 function normalizePathForDb(filePath: string): string {
+    filePath = stripConcatenatedAbsolutePath(filePath);
     const withSlashes = filePath.replace(/\\/g, '/');
     if (process.platform === 'win32') {
         // Pass through paths already in WSL format (e.g. from Python backend)
@@ -719,6 +751,7 @@ function normalizePathForDb(filePath: string): string {
  * Get or create a folder by path. Creates parent folders recursively if needed.
  */
 export async function getOrCreateFolder(folderPath: string): Promise<number> {
+    folderPath = stripConcatenatedAbsolutePath(folderPath);
     const normalized = normalizePathForDb(folderPath);
     const existing = await query<{ id: number }>('SELECT id FROM folders WHERE path = ?', [normalized]);
     if (existing.length > 0) {

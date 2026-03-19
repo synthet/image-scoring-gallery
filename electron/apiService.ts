@@ -337,6 +337,6 @@ export class ApiService {
     // ── Scope Tree ──────────────────────────────────────────────────────────
 
     getScopeTree() {
-        return this.get<ScopeTreeResponse>('/api/scope/tree', undefined, LONG_TIMEOUT);
+        return this.get<ScopeTreeResponse>('/api/scope/tree', { include_phase_status: false }, LONG_TIMEOUT);
     }
 }
