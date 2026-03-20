@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.44.0] - 2026-03-19
+
+### Changed
+- **MCP**: `.cursor/mcp.json` server naming and transport alignment with image-scoring workspace merge.
+- **Docs**: `AGENTS.md`, Firebird MCP rule (`.cursor/rules/mcp-firebird.mdc`), image-scoring MCP skill copy.
+
 ## [3.43.0] - 2026-03-19
 
 ### Changed
