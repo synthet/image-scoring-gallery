@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { buildFolderTree } from '../components/Tree/treeUtils';
 import type { Folder } from '../components/Tree/treeUtils';
 
@@ -16,33 +16,20 @@ interface FolderRow {
 export function useFolders(): { folders: Folder[]; loading: boolean; refresh: () => void } {
     const [flatFolders, setFlatFolders] = useState<FolderRow[]>([]);
     const [loading, setLoading] = useState(true);
+    const initialLoadDone = useRef(false);
 
     const fetchFolders = () => {
         if (!window.electron) return;
-        setLoading(true);
+        
+        if (!initialLoadDone.current) {
+            setLoading(true);
+        }
 
         const foldersPromise = window.electron.getFolders();
-        const scopeTreePromise = window.electron.api.getScopeTree().catch(() => null);
-
-        Promise.all([foldersPromise, scopeTreePromise]).then(([folderRows, scopeTree]) => {
-            if (scopeTree?.folders?.length) {
-                const statusByPath = new Map(
-                    scopeTree.folders.map(f => [f.folder_path, f])
-                );
-                const merged: FolderRow[] = folderRows.map(row => {
-                    const phaseStatus = statusByPath.get(row.path);
-                    if (!phaseStatus) return row;
-                    return {
-                        ...row,
-                        indexing_status: phaseStatus.indexing_status,
-                        scoring_status: phaseStatus.scoring_status,
-                        tagging_status: phaseStatus.tagging_status,
-                    };
-                });
-                setFlatFolders(merged);
-            } else {
-                setFlatFolders(folderRows);
-            }
+        
+        foldersPromise.then(folderRows => {
+            setFlatFolders(folderRows);
+            initialLoadDone.current = true;
             setLoading(false);
         }).catch(err => {
             console.error('[useFolders] Failed to fetch folders:', err);

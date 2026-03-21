@@ -11,7 +11,7 @@ import { ImageViewer } from './components/Viewer/ImageViewer';
 import { NotificationTray } from './components/Layout/NotificationTray';
 import { SettingsModal } from './components/Settings/SettingsModal';
 import { DuplicateFinder } from './components/Duplicates/DuplicateFinder';
-import { ProcessingPage } from './components/Processing/ProcessingPage';
+import { RunsPage } from './components/Runs/RunsPage';
 import { ImportModal } from './components/Import/ImportModal';
 import { Loader2, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
@@ -357,8 +357,8 @@ function AppContent({ isConnected }: AppContentProps) {
         }
         content={
           <div style={{ height: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            {currentView === 'processing' ? (
-              <ProcessingPage
+            {currentView === 'runs' ? (
+              <RunsPage
                 folders={folders}
                 foldersLoading={foldersLoading}
                 onRefreshFolders={refreshFolders}

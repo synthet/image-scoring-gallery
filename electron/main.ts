@@ -283,10 +283,10 @@ const rebuildApplicationMenu = () => {
                     }
                 },
                 {
-                    label: 'Processing',
+                    label: 'Runs',
                     click: () => {
                         if (mainWindow) {
-                            mainWindow.webContents.send('open-processing');
+                            mainWindow.webContents.send('open-runs');
                         }
                     }
                 }
@@ -544,7 +544,17 @@ app.whenReady().then(async () => {
             return true;
         });
 
-        return processed;
+        const existsAsDir = async (dirPath: string): Promise<boolean> => {
+            try {
+                const st = await fs.promises.stat(dirPath);
+                return st.isDirectory();
+            } catch {
+                return false;
+            }
+        };
+
+        const flags = await Promise.all(processed.map((f: { path: string }) => existsAsDir(f.path)));
+        return processed.filter((_: unknown, i: number) => flags[i]);
     }));
 
     ipcMain.handle('db:delete-folder', wrapIpcHandler(async (_, id) => {

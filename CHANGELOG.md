@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.0.0] - 2026-03-21
+
+### Added
+- **Runs**: **`RunsPage`** / **`RunsConsole`** replace the old Processing screen — recent jobs (API polling), queue depth, create-run controls, and WebSocket-backed log buffer via **`useRunsStore`** (buffered worker/pipeline lines with clear/reset).
+
+### Changed
+- **Application menu**: **Processing** renamed to **Runs**; opens the Runs view.
+- **`useFolders`**: Initial load shows loading only on first fetch; folder list uses DB rows directly (no merge with `getScopeTree` phase columns).
+- **`buildFolderTree`**: Path-based parent linking when **`parent_id`** is missing or stale (normalized path keys, Windows drive roots).
+- **`db:list-folders`**: Drops entries whose path is not a directory (async stat filter).
+
+### Removed
+- **Processing UI**: `ProcessingPage`, `ProcessingConsole`, `ProcessingControls`, `ProcessingPhaseCard`, and **`useProcessingStore`**.
+
+### Breaking
+- **Preload / IPC**: **`onOpenProcessing`** → **`onOpenRuns`**; main channel **`open-processing`** → **`open-runs`**. Renderer **`currentView`** union uses **`'runs'`** instead of **`'processing'`**. Update any code or tests that referenced the old names.
+
 ## [3.46.0] - 2026-03-21
 
 ### Added

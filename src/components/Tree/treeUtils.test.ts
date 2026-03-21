@@ -105,4 +105,16 @@ describe('buildFolderTree', () => {
     const result = buildFolderTree(folders);
     expect(result[0].title).toBe('Unknown');
   });
+
+  it('nests under path parent when DB parent_id row is missing', () => {
+    const folders = [
+      row(1, '/photos', null, 1),
+      row(2, '/photos/2024', 999, 2),
+    ];
+    const result = buildFolderTree(folders);
+    expect(result).toHaveLength(1);
+    expect(result[0].children).toHaveLength(1);
+    expect(result[0].children![0].id).toBe(2);
+    expect(result[0].total_image_count).toBe(3);
+  });
 });

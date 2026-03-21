@@ -12,7 +12,7 @@ export function useElectronListeners() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importFolderPath, setImportFolderPath] = useState('');
-  const [currentView, setCurrentView] = useState<'gallery' | 'duplicates' | 'processing'>('gallery');
+  const [currentView, setCurrentView] = useState<'gallery' | 'duplicates' | 'runs'>('gallery');
 
   useEffect(() => {
     let cleanupSettings: (() => void) | undefined;
@@ -29,10 +29,10 @@ export function useElectronListeners() {
       });
     }
 
-    let cleanupProcessing: (() => void) | undefined;
-    if (window.electron?.onOpenProcessing) {
-      cleanupProcessing = window.electron.onOpenProcessing(() => {
-        setCurrentView('processing');
+    let cleanupRuns: (() => void) | undefined;
+    if (window.electron?.onOpenRuns) {
+      cleanupRuns = window.electron.onOpenRuns(() => {
+        setCurrentView('runs');
       });
     }
 
@@ -54,7 +54,7 @@ export function useElectronListeners() {
     return () => {
       if (cleanupSettings) cleanupSettings();
       if (cleanupDuplicates) cleanupDuplicates();
-      if (cleanupProcessing) cleanupProcessing();
+      if (cleanupRuns) cleanupRuns();
       if (cleanupImport) cleanupImport();
       if (cleanupNotification) cleanupNotification();
     };

@@ -141,11 +141,11 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.removeListener('open-duplicates', handler);
         };
     },
-    onOpenProcessing: (callback: () => void) => {
+    onOpenRuns: (callback: () => void) => {
         const handler = () => callback();
-        ipcRenderer.on('open-processing', handler);
+        ipcRenderer.on('open-runs', handler);
         return () => {
-            ipcRenderer.removeListener('open-processing', handler);
+            ipcRenderer.removeListener('open-runs', handler);
         };
     },
     onImportFolderSelected: (callback: (folderPath: string) => void) => {
