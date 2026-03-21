@@ -1,4 +1,5 @@
 import fs from "fs/promises";
+import fsSync from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -8,7 +9,20 @@ const __dirname = path.dirname(__filename);
 // Project root is two levels up from utils/
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..", "..");
 const CONFIG_PATH = path.join(PROJECT_ROOT, "config.json");
-const IMAGE_SCORING_ROOT = path.resolve(PROJECT_ROOT, "..", "image-scoring");
+
+function resolveImageScoringRoot(): string {
+    const gallerySibling = path.resolve(PROJECT_ROOT, "..");
+    const candidates = [
+        path.join(gallerySibling, "image-scoring-backend"),
+        path.join(gallerySibling, "image-scoring"),
+    ];
+    for (const c of candidates) {
+        if (fsSync.existsSync(c)) return c;
+    }
+    return candidates[0];
+}
+
+const IMAGE_SCORING_ROOT = resolveImageScoringRoot();
 
 export interface AppConfig {
     database?: {

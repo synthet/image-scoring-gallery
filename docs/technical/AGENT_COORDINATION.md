@@ -1,16 +1,16 @@
 # Agent Coordination: Integration Guide
 
-This document defines the coordination protocols for AI agents working across the [image-scoring](https://github.com/synthet/image-scoring) (backend) and [electron-image-scoring](https://github.com/synthet/electron-image-scoring) (gallery) projects.
+This document defines the coordination protocols for AI agents working across the [image-scoring](https://github.com/synthet/image-scoring) (backend) and [image-scoring-gallery](https://github.com/synthet/electron-image-scoring) (gallery) projects.
 
 ## 🏗️ Architectural Overview
 
 The integration relies on two primary shared components:
 1.  **Shared Database**: `SCORING_HISTORY.FDB` (Firebird).
     *   **Owner**: `image-scoring` project defines the schema and DDL in `modules/db.py`.
-    *   **Consumer**: `electron-image-scoring` performs high-speed queries for the UI.
+    *   **Consumer**: `image-scoring-gallery` performs high-speed queries for the UI.
 2.  **Service Interface**: FastAPI backend (default port `7860`).
     *   **Provider**: `image-scoring` exposes endpoints for scoring, tagging, and clustering.
-    *   **Consumer**: `electron-image-scoring` triggers jobs via this API.
+    *   **Consumer**: `image-scoring-gallery` triggers jobs via this API.
 
 ## 🤝 Coordination Protocols
 
@@ -25,7 +25,7 @@ The integration relies on two primary shared components:
 *   **Sync Point**: The frontend agent must update `electron/apiService.ts` and relevant frontend hooks.
 
 ### 3. Shared Resource Configuration
-*   **Protocol**: Configuration paths in `electron-image-scoring/config.json` point to resources in `image-scoring/`.
+*   **Protocol**: Configuration paths in `image-scoring-gallery/config.json` point to resources in `image-scoring/`.
 *   **Agent Action**: Moving the database file or the Firebird engine binaries necessitates path updates in both projects.
 
 ## 🔍 Troubleshooting with MCP

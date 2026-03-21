@@ -55,7 +55,7 @@ def get_db_stats(dsn):
     except Exception as e:
         return f"Error: {str(e)}"
 
-log_file = r'd:\Projects\electron-image-scoring\compare_report.txt'
+log_file = r'd:\Projects\image-scoring-gallery\compare_report.txt'
 with open(log_file, 'w', encoding='utf-8') as f:
     def log(msg):
         print(msg)

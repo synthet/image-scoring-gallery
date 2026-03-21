@@ -9,11 +9,11 @@ description: Start the Electron app in development mode (Vite HMR + Electron)
 // turbo
 2. **Launch dev mode**:
    ```pwsh
-   npm run dev --prefix "d:\Projects\electron-image-scoring"
+   npm run dev --prefix "d:\Projects\image-scoring-gallery"
    ```
    *Alternatively, use the batch launcher:*
    ```cmd
-   d:\Projects\electron-image-scoring\run.bat
+   d:\Projects\image-scoring-gallery\run.bat
    ```
 
 3. **Wait for startup**:

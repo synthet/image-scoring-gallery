@@ -5,7 +5,7 @@ description: Run ESLint to check for code quality issues
 // turbo
 1. **Run lint**:
    ```pwsh
-   npm run lint --prefix "d:\Projects\electron-image-scoring"
+   npm run lint --prefix "d:\Projects\image-scoring-gallery"
    ```
 
 2. **Interpret results**:
@@ -15,5 +15,5 @@ description: Run ESLint to check for code quality issues
 
 3. **Auto-fix** (optional):
    ```pwsh
-   npx eslint --fix . --prefix "d:\Projects\electron-image-scoring"
+   npx eslint --fix . --prefix "d:\Projects\image-scoring-gallery"
    ```

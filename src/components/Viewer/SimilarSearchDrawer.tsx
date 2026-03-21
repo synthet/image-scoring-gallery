@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSimilarImages } from '../../hooks/useDatabase';
+import { GalleryThumbnail } from '../Gallery/GalleryThumbnail';
 
 interface SimilarSearchDrawerProps {
     open: boolean;
@@ -178,7 +179,13 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
 
                 {!loading && !error && images.length > 0 && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                        {images.map(img => (
+                        {images.map(img => {
+                            const baseName = img.file_path.replace(/[/\\]+$/, '').split(/[/\\]/).pop() || 'image';
+                            const thumb =
+                                typeof (img as { thumbnail_path?: string }).thumbnail_path === 'string'
+                                    ? (img as { thumbnail_path?: string }).thumbnail_path
+                                    : undefined;
+                            return (
                             <div
                                 key={img.image_id}
                                 onClick={() => onSelectImage(img.image_id)}
@@ -201,17 +208,19 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
                                     e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
                                 }}
                             >
-                                <img
-                                    src={`media://${img.file_path}`}
-                                    alt={`Similar match ${(img.similarity * 100).toFixed(1)}%`}
-                                    style={{
+                                <GalleryThumbnail
+                                    fileName={baseName}
+                                    filePath={img.file_path}
+                                    thumbnailPath={thumb}
+                                    imageStyle={{
                                         position: 'absolute',
                                         top: 0,
                                         left: 0,
                                         width: '100%',
                                         height: '100%',
-                                        objectFit: 'cover'
+                                        objectFit: 'cover',
                                     }}
+                                    alt={`Similar match ${(img.similarity * 100).toFixed(1)}%`}
                                 />
                                 <div style={{
                                     position: 'absolute',
@@ -249,7 +258,8 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
                                     <span>{(img.similarity * 100).toFixed(1)}%</span>
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

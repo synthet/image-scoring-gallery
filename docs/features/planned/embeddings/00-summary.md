@@ -1,6 +1,6 @@
 # Integrating `image_embedding` Features into Electron App
 
-Based on the [backend proposals](../../../../image-scoring/docs/technical/EMBEDDING_APPLICATIONS.md) for leveraging MobileNetV2 1280-d feature vectors, this document summarizes how the `electron-image-scoring` frontend will expose these capabilities. 
+Based on the [backend proposals](../../../../image-scoring/docs/technical/EMBEDDING_APPLICATIONS.md) for leveraging MobileNetV2 1280-d feature vectors, this document summarizes how the `image-scoring-gallery` frontend will expose these capabilities. 
 
 For a detailed breakdown of each feature's UI integration, refer to the [Embedding Applications Index](README.md).
 

@@ -24,7 +24,7 @@ This is a high-performance image gallery application built with Electron, React,
 ## Directory Structure
 
 ```
-electron-image-scoring/
+image-scoring-gallery/
 ├── electron/              # Electron main process source
 │   ├── main.ts            # Entry point
 │   ├── db.ts              # Database operations

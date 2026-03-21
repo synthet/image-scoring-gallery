@@ -4,7 +4,7 @@
         "port": 3050,
         "user": "sysdba",
         "password": "masterkey",
-        "path": "../image-scoring/SCORING_HISTORY.FDB"
+        "path": "../image-scoring-backend/SCORING_HISTORY.FDB"
     },
     "dev": {
         "url": "http://localhost:5173"
@@ -13,6 +13,24 @@
         "url": "http://127.0.0.1:7860"
     },
     "firebird": {
-        "path": "./Firebird"
+        "path": "../image-scoring-backend/Firebird"
+    },
+    "paths": {
+        "remap_legacy_image_scoring_thumbnails": true,
+        "thumbnail_base_dir": "D:\\Projects\\image-scoring-backend\\thumbnails",
+        "thumbnail_path_remap": [
+            {
+                "from": "D:\\Projects\\image-scoring\\thumbnails",
+                "to": "D:\\Projects\\image-scoring-backend\\thumbnails"
+            },
+            {
+                "from": "D:/Projects/image-scoring/thumbnails",
+                "to": "D:/Projects/image-scoring-backend/thumbnails"
+            },
+            {
+                "from": "/mnt/d/Projects/image-scoring/thumbnails",
+                "to": "/mnt/d/Projects/image-scoring-backend/thumbnails"
+            }
+        ]
     }
 }

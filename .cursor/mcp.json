@@ -6,9 +6,9 @@
                 "-m",
                 "modules.mcp_server"
             ],
-            "cwd": "d:\\Projects\\image-scoring",
+            "cwd": "d:\\Projects\\image-scoring-backend",
             "env": {
-                "PYTHONPATH": "d:\\Projects\\image-scoring"
+                "PYTHONPATH": "d:\\Projects\\image-scoring-backend"
             }
         },
         "imgscore-el-sse": {
@@ -25,7 +25,7 @@
         "imgscore-el-debug": {
             "command": "node",
             "args": [
-                "d:\\Projects\\electron-image-scoring\\mcp-server\\dist\\index.js"
+                "d:\\Projects\\image-scoring-gallery\\mcp-server\\dist\\index.js"
             ],
             "disabled": false
         },
@@ -42,7 +42,7 @@
                 "-y",
                 "mcp-firebird",
                 "--database",
-                "d:\\Projects\\image-scoring\\SCORING_HISTORY.FDB",
+                "d:\\Projects\\image-scoring-backend\\SCORING_HISTORY.FDB",
                 "--user",
                 "sysdba",
                 "--password",

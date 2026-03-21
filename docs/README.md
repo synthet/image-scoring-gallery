@@ -63,7 +63,7 @@ API and backend integration documentation.
 Development workflows and maintenance recommendations.
 
 - [01 - Lint Recommendations](guides/01-lint-recommendations.md) - Code quality and ESLint fix guidance
-- [Agent Coordination](https://github.com/synthet/musiq-image-scoring/blob/main/docs/technical/AGENT_COORDINATION.md) - Cross-project integration and coordination protocols (External)
+- [Agent Coordination](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) - Cross-project integration and coordination protocols (External)
 
 ---
 

@@ -29,6 +29,8 @@ export function resolveBaseUrl(config: AppConfig, options?: ResolveOptions): str
   try {
     const projectsDir = pathMod.resolve(projectRoot, '..');
     const locks = [
+      pathMod.join(projectsDir, 'image-scoring-backend', 'webui.lock'),
+      pathMod.join(projectsDir, 'image-scoring-backend', 'webui-debug.lock'),
       pathMod.join(projectsDir, 'image-scoring', 'webui.lock'),
       pathMod.join(projectsDir, 'image-scoring', 'webui-debug.lock'),
     ];

@@ -1,13 +1,13 @@
 ---
 name: git-changelog
-description: Git workflow, changelog conventions, and commit practices for the electron-image-scoring project.
+description: Git workflow, changelog conventions, and commit practices for the image-scoring-gallery project.
 ---
 
 # Git & Changelog Conventions
 
 ## Git MCP Server
 
-The `git` MCP server is enabled and configured for the `image-scoring` repo. For the `electron-image-scoring` repo, use the built-in git tools or run git commands directly.
+The `git` MCP server is enabled and configured for the `image-scoring` repo. For the `image-scoring-gallery` repo, use the built-in git tools or run git commands directly.
 
 ### Available MCP Git Tools
 
@@ -24,7 +24,7 @@ The `git` MCP server is enabled and configured for the `image-scoring` repo. For
 | `mcp_git_git_checkout` | Switch branches |
 
 > [!NOTE]
-> The MCP git server is configured for `d:\Projects\image-scoring`. For the Electron project at `d:\Projects\electron-image-scoring`, use shell `git` commands instead.
+> The MCP git server is configured for `d:\Projects\image-scoring`. For the Electron project at `d:\Projects\image-scoring-gallery`, use shell `git` commands instead.
 
 ## Changelog Format
 
@@ -59,7 +59,7 @@ All notable changes to this project will be documented in this file.
 
 ### Step 1: Research Recent Changes
 ```bash
-cd d:\Projects\electron-image-scoring
+cd d:\Projects\image-scoring-gallery
 git log --oneline -10
 git status
 git diff --stat HEAD~5

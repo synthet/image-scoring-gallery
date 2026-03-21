@@ -117,6 +117,14 @@ export interface AppConfig {
         path?: string;
     };
     selection?: Record<string, unknown>;
+    /** Optional path remaps for renamed backend folders (thumbnail JPEG locations) */
+    paths?: {
+        thumbnail_path_remap?: Array<{ from: string; to: string }>;
+        /** Default true: map .../image-scoring/thumbnails/ → .../image-scoring-backend/thumbnails/ */
+        remap_legacy_image_scoring_thumbnails?: boolean;
+        /** Absolute thumbnails root, e.g. D:\\Projects\\image-scoring-backend\\thumbnails */
+        thumbnail_base_dir?: string;
+    };
     [key: string]: unknown;
 }
 export interface ExportImageContext {

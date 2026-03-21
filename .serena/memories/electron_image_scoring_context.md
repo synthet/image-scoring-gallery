@@ -1,7 +1,7 @@
 # Electron Image Scoring Context
 
 ## Overview
-The `electron-image-scoring` project is the frontend application for the image scoring system.
+The `image-scoring-gallery` project is the frontend application for the image scoring system.
 It provides a rich desktop interface for browsing, filtering, and organizing images.
 
 ## Key Technologies

@@ -2,7 +2,7 @@
 
 ## Overview
 The `image-scoring` project is the backend and core logic provider for the image scoring system.
-It exposes an MCP server that the `electron-image-scoring` app can interact with.
+It exposes an MCP server that the `image-scoring-gallery` app can interact with.
 
 ## Key Paths
 - **Root**: `D:\Projects\image-scoring`

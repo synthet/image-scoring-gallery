@@ -1,5 +1,37 @@
 $processName = "firebird"
-$firebirdPath = "d:\Projects\image-scoring\run_firebird.bat"
+
+# Resolve Python backend root: env override, then sibling folders (image-scoring-backend | image-scoring).
+$galleryRoot = Split-Path -Parent $PSScriptRoot
+$candidates = @()
+if ($env:IMAGE_SCORING_ROOT) {
+    $envRoot = $env:IMAGE_SCORING_ROOT -replace '[/\\]+$', ''
+    $candidates += (Join-Path $envRoot "run_firebird.bat")
+}
+$candidates += @(
+    (Join-Path $galleryRoot "..\image-scoring-backend\run_firebird.bat"),
+    (Join-Path $galleryRoot "..\image-scoring\run_firebird.bat")
+)
+
+$firebirdPath = $null
+foreach ($p in $candidates) {
+    $resolved = [System.IO.Path]::GetFullPath($p)
+    if (Test-Path -LiteralPath $resolved) {
+        $firebirdPath = $resolved
+        break
+    }
+}
+
+if (-not $firebirdPath) {
+    Write-Error @"
+Could not find run_firebird.bat in the Python backend repo.
+Tried:
+$(($candidates | ForEach-Object { "  - $_" }) -join "`n")
+Set IMAGE_SCORING_ROOT to your backend clone root (folder containing run_firebird.bat), or place the backend next to this repo as image-scoring-backend or image-scoring.
+"@
+    exit 1
+}
+
+Write-Host "Using Firebird launcher: $firebirdPath"
 
 $running = Get-Process -Name $processName -ErrorAction SilentlyContinue
 
@@ -8,19 +40,8 @@ if ($running) {
     $running | Wait-Process
 } else {
     Write-Host "Starting Firebird server..."
-    # Start the batch file. We use Start-Process to ensure it runs correctly.
-    # We want it to stay running, but not block this script if it's meant to be a background task.
-    # However, for 'concurrently' in npm scripts, we often want a long-running process.
-    # If we just start it and exit, 'concurrently' might think the task is done.
-    # But run_firebird.bat runs firebird.exe -a which is an application mode (blocking).
-    
-    # If we run it directly here, this script will block until Firebird exits.
-    # This is what we want for 'concurrently' usage in 'npm run dev'.
-    # cmd /c $firebirdPath
-    
-    # Using Start-Process to spawn it in a new window might be better for visibility,
-    # OR running it inline so it shares the console lifetime.
-    
-    # Let's try running it inline first as that's usually better for dev setups.
     & $firebirdPath
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
 }

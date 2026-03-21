@@ -19,14 +19,14 @@ This application provides a high-performance interface for browsing and filterin
 
 - **Node.js**: (v18 or higher recommended)
 - **Shared Database**: This app expects a Firebird database managed by the core [Image Scoring](https://github.com/synthet/image-scoring) project.
-- **Project layout**: For automatic API port discovery, keep `image-scoring` and `electron-image-scoring` as sibling directories. Override via `config.json` (`api.url` or `api.port`) if your layout differs.
+- **Project layout**: For automatic API port discovery, keep `image-scoring` and `image-scoring-gallery` as sibling directories. Override via `config.json` (`api.url` or `api.port`) if your layout differs.
 
 ## Getting Started
 
 1.  **Clone the repository** (if you haven't already):
     ```bash
-    git clone git@github.com:synthet/electron-image-scoring.git
-    cd electron-image-scoring
+    git clone git@github.com:synthet/electron-image-scoring.git image-scoring-gallery
+    cd image-scoring-gallery
     ```
 
 2.  **Install dependencies**:

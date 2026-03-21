@@ -20,6 +20,141 @@ function loadConfig() {
 
 const config = loadConfig();
 const dbConfig = config.database || {};
+const projectRoot = path.resolve(__dirname, '..');
+
+/** Optional config: see config.example.json → paths */
+interface PathsConfig {
+    /** Explicit from→to replacements for thumbnail_path (applied after win/WSL resolution) */
+    thumbnail_path_remap?: Array<{ from: string; to: string }>;
+    /**
+     * When true (default), rewrite .../image-scoring/thumbnails/ → .../image-scoring-backend/thumbnails/
+     * so a renamed backend repo folder still finds on-disk JPEGs.
+     */
+    remap_legacy_image_scoring_thumbnails?: boolean;
+    /**
+     * Absolute folder where JPEG thumbnails live (e.g. D:\\Projects\\image-scoring-backend\\thumbnails).
+     * Used when the DB stores a repo-relative path like thumbnails\\ab\\hash.jpg.
+     * If unset, uses ../image-scoring-backend/thumbnails next to the gallery repo when that folder exists.
+     */
+    thumbnail_base_dir?: string;
+}
+
+function getPathsConfig(): PathsConfig {
+    return ((config as { paths?: PathsConfig }).paths) || {};
+}
+
+/** Match Python modules/thumbnails.thumb_path_to_win */
+function thumbPathStringToWin(wslPath: string | null | undefined): string | undefined {
+    if (!wslPath || typeof wslPath !== 'string') return undefined;
+    const p = wslPath.replace(/\\/g, '/');
+    const m = p.match(/^\/?mnt\/([a-zA-Z])\/(.*)/i);
+    if (m) {
+        const drive = m[1].toUpperCase();
+        const rest = m[2].replace(/\//g, '\\');
+        return `${drive}:\\${rest}`;
+    }
+    return wslPath;
+}
+
+/** After repo rename image-scoring → image-scoring-backend; optional user remaps from config */
+function applyThumbnailPathRemaps(p: string): string {
+    let out = p;
+    const pathsCfg = getPathsConfig();
+    for (const pair of pathsCfg.thumbnail_path_remap || []) {
+        const from = pair?.from;
+        const to = pair?.to;
+        if (from && to && out.includes(from)) {
+            out = out.split(from).join(to);
+        }
+    }
+    if (pathsCfg.remap_legacy_image_scoring_thumbnails !== false) {
+        out = out.replace(/([/\\])image-scoring([/\\]thumbnails[/\\])/gi, '$1image-scoring-backend$2');
+    }
+    return out;
+}
+
+/** Resolve repo-relative thumbnail paths against thumbnail_base_dir or sibling backend thumbnails/. */
+function absolutizeThumbnailIfRelative(p: string): string {
+    const flat = p.replace(/\\/g, '/');
+    if (/^[a-zA-Z]:\//i.test(flat) || /^\/mnt\//i.test(flat) || flat.startsWith('//')) {
+        return p;
+    }
+
+    const cfgBase = getPathsConfig().thumbnail_base_dir?.trim();
+    let base: string | undefined;
+    if (cfgBase) {
+        base = path.normalize(cfgBase);
+    } else {
+        const auto = path.resolve(projectRoot, '../image-scoring-backend/thumbnails');
+        if (fs.existsSync(auto)) {
+            base = auto;
+        }
+    }
+    if (!base) {
+        return p;
+    }
+
+    let rest = flat.replace(/^\//, '');
+    if (/^thumbnails\//i.test(rest)) {
+        rest = rest.replace(/^thumbnails\//i, '');
+    }
+    return path.normalize(path.join(base, rest));
+}
+
+/**
+ * Paths the renderer should use for media:// (Windows: prefer thumbnail_path_win).
+ * Applies optional folder remaps for renamed backend checkouts.
+ */
+export function resolveThumbnailPathForDisplay(
+    thumbnailPathWin: unknown,
+    thumbnailPathWsl: unknown
+): string | undefined {
+    const win = typeof thumbnailPathWin === 'string' && thumbnailPathWin.trim() ? thumbnailPathWin.trim() : undefined;
+    const wsl = typeof thumbnailPathWsl === 'string' && thumbnailPathWsl.trim() ? thumbnailPathWsl.trim() : undefined;
+    let raw: string | undefined;
+    if (process.platform === 'win32') {
+        raw = win || thumbPathStringToWin(wsl) || wsl;
+    } else {
+        raw = wsl || win;
+    }
+    if (!raw) return undefined;
+    const remapped = applyThumbnailPathRemaps(raw);
+    return absolutizeThumbnailIfRelative(remapped);
+}
+
+function normalizeImageRowThumbnails(row: Record<string, unknown>): void {
+    const win = row.thumbnail_path_win ?? row.THUMBNAIL_PATH_WIN;
+    const wsl = row.thumbnail_path ?? row.THUMBNAIL_PATH;
+    const resolved = resolveThumbnailPathForDisplay(win, wsl);
+    if (resolved !== undefined) {
+        row.thumbnail_path = resolved;
+    }
+    delete row.thumbnail_path_win;
+    delete row.THUMBNAIL_PATH_WIN;
+}
+
+function mapRowsThumbnails(rows: unknown[]): unknown[] {
+    for (const r of rows) {
+        if (r && typeof r === 'object') {
+            normalizeImageRowThumbnails(r as Record<string, unknown>);
+        }
+    }
+    return rows;
+}
+
+/** Prefer sibling `image-scoring-backend`, then legacy `image-scoring`. */
+function resolveSiblingDbPath(filename: string): string {
+    const candidates = [
+        `../image-scoring-backend/${filename}`,
+        `../image-scoring/${filename}`,
+    ];
+    for (const rel of candidates) {
+        if (fs.existsSync(path.resolve(projectRoot, rel))) {
+            return rel;
+        }
+    }
+    return candidates[0];
+}
 
 // Add test detection — tests must NEVER use production DB
 const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST;
@@ -30,15 +165,15 @@ let rawDbPath: string;
 
 if (isTestEnv) {
     // Force test DB only — matches image-scoring/scripts/setup_test_db.py (scoring_history_test.fdb)
-    rawDbPath = '../image-scoring/scoring_history_test.fdb';
+    rawDbPath = resolveSiblingDbPath('scoring_history_test.fdb');
     console.warn('[DB] Test environment detected! Using test DB only: scoring_history_test.fdb');
 } else {
-    rawDbPath = dbConfig.path || '../image-scoring/SCORING_HISTORY.FDB';
+    rawDbPath = dbConfig.path || resolveSiblingDbPath('SCORING_HISTORY.FDB');
 }
 
 const dbPath = path.isAbsolute(rawDbPath)
     ? rawDbPath
-    : path.resolve(path.join(__dirname, '..', rawDbPath));
+    : path.resolve(projectRoot, rawDbPath);
 
 console.log('Connecting to DB at:', dbPath);
 
@@ -436,7 +571,8 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.rating, 
             i.label, 
             i.created_at, 
-            i.thumbnail_path
+            i.thumbnail_path,
+            i.thumbnail_path_win
         FROM images i
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
@@ -444,7 +580,8 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
         ORDER BY ${sortColumn} ${sortOrder}
         OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
     `;
-    return query(sql, params);
+    const rows = await query(sql, params);
+    return mapRowsThumbnails(rows);
 }
 
 // Cache for getKeywords to avoid re-fetching 45k+ rows repeatedly
@@ -574,6 +711,7 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
             CAST(i.description AS VARCHAR(8191)) as description,
             i.metadata,
             i.thumbnail_path,
+            i.thumbnail_path_win,
             i.scores_json,
             i.model_version,
             i.rating,
@@ -604,6 +742,13 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
     }
 
     const image: ImageDetailRow = rows[0] as ImageDetailRow;
+
+    const thumbWin = (image as { thumbnail_path_win?: string }).thumbnail_path_win;
+    const resolvedThumb = resolveThumbnailPathForDisplay(thumbWin, image.thumbnail_path);
+    if (resolvedThumb !== undefined) {
+        image.thumbnail_path = resolvedThumb;
+    }
+    delete (image as { thumbnail_path_win?: string }).thumbnail_path_win;
 
     // Discard win_path if it's actually a thumbnail path (bad data in file_paths table)
     if (image.win_path && image.file_name) {
@@ -1170,9 +1315,10 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.score_ava,
                 i.score_liqe,
                 i.rating,
-                i.label,
-                i.created_at,
-                i.thumbnail_path
+            i.label,
+            i.created_at,
+            i.thumbnail_path,
+            i.thumbnail_path_win
             FROM stack_cache sc
             JOIN images i ON i.id = sc.rep_image_id
             LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
@@ -1199,7 +1345,8 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.rating,
                 i.label,
                 i.created_at,
-                i.thumbnail_path
+                i.thumbnail_path,
+                i.thumbnail_path_win
             FROM images i
             LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
                 AND POSITION('/thumbnails/' IN fp.path) = 0
@@ -1209,7 +1356,8 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
         OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
     `;
 
-    return query(sql, [...topParams, ...botParams, offset, limit]);
+    const rows = await query(sql, [...topParams, ...botParams, offset, limit]);
+    return mapRowsThumbnails(rows);
 }
 
 export async function getImagesByStack(stackId: number | null, options: ImageQueryOptions = {}): Promise<unknown[]> {
@@ -1269,6 +1417,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             i.label, 
             i.created_at, 
             i.thumbnail_path,
+            i.thumbnail_path_win,
             i.stack_id
         FROM images i
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
@@ -1277,7 +1426,8 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
         ORDER BY ${sortColumn} ${sortOrder}
         OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
     `;
-    return query(sql, params);
+    const rows = await query(sql, params);
+    return mapRowsThumbnails(rows);
 }
 
 export async function getStackCount(options: StackQueryOptions = {}): Promise<number> {

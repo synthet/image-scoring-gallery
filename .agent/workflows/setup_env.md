@@ -9,11 +9,11 @@ description: Set up the Node.js development environment
 2. **Install dependencies**:
    // turbo
    ```pwsh
-   npm install --prefix "d:\Projects\electron-image-scoring"
+   npm install --prefix "d:\Projects\image-scoring-gallery"
    ```
 
 3. **Configure Firebird connection**:
-   Edit `d:\Projects\electron-image-scoring\config.json` with your Firebird credentials:
+   Edit `d:\Projects\image-scoring-gallery\config.json` with your Firebird credentials:
    ```json
    {
      "host": "localhost",
@@ -27,7 +27,7 @@ description: Set up the Node.js development environment
 4. **Verify setup**:
    // turbo
    ```pwsh
-   npm run lint --prefix "d:\Projects\electron-image-scoring"
+   npm run lint --prefix "d:\Projects\image-scoring-gallery"
    ```
    **Success**: No ESLint errors.
 

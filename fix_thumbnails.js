@@ -8,7 +8,10 @@ const Firebird = require('node-firebird');
 const options = {};
 options.host = '127.0.0.1';
 options.port = 3050;
-options.database = process.env.DB_PATH || path.join(__dirname, '..', 'image-scoring', 'SCORING_HISTORY.FDB');
+const siblingDb = ['image-scoring-backend', 'image-scoring'].map((d) =>
+    path.join(__dirname, '..', d, 'SCORING_HISTORY.FDB')
+).find((p) => fs.existsSync(p));
+options.database = process.env.DB_PATH || siblingDb || path.join(__dirname, '..', 'image-scoring-backend', 'SCORING_HISTORY.FDB');
 options.user = 'sysdba';
 options.password = 'masterkey';
 options.lowercase_keys = true;

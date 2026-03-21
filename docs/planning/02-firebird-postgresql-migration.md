@@ -2,11 +2,11 @@
 
 Date: 2026-03-08  
 Status: Draft (Refined)  
-Scope: image-scoring + electron-image-scoring coordinated migration
+Scope: image-scoring + image-scoring-gallery coordinated migration
 
 ## Summary
 
-- Treat this as a **coordinated platform migration** across both repos (`image-scoring` and `electron-image-scoring`), not a frontend-only or backend-only DB split.
+- Treat this as a **coordinated platform migration** across both repos (`image-scoring` and `image-scoring-gallery`), not a frontend-only or backend-only DB split.
 - Keep your selected rollout defaults: **phased dual-write**, **Postgres in local Docker**, **Python app + MCP as day-1 cutover scope**.
 - Add explicit **Electron migration gates** before final Firebird retirement, aligned with Electron docs that currently recommend Firebird until coordinated migration is ready.
 

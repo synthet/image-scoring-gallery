@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, protocol, net, Menu, dialog } from 'electron';
 import path from 'path';
+import { pathToFileURL } from 'url';
 import fs from 'fs';
 import os from 'os';
 import isDev from 'electron-is-dev';
@@ -20,6 +21,77 @@ const exiftool = new ExifTool({ maxProcs: 2 });
 let mainWindow: BrowserWindow | null = null;
 let currentExportImageContext: ExportImageContext | null = null;
 let sessionLogManager: SessionLogManager | null = null;
+
+/**
+ * Thumbnails may not exist at the exact path from the DB:
+ * - Repo renamed to image-scoring-backend while JPEGs still live under .../image-scoring/thumbnails
+ * - DB stores flat thumbnails/<hash>.jpg but on-disk layout is nested thumbnails/<aa>/<hash>.jpg
+ */
+function resolveMediaFilePathWithFallbacks(normalizedPath: string): string {
+    if (fs.existsSync(normalizedPath)) {
+        return normalizedPath;
+    }
+
+    const tryLegacyRepo = (p: string): string | null => {
+        if (/image-scoring-backend/i.test(p)) {
+            const alt = p.replace(/image-scoring-backend/gi, 'image-scoring');
+            if (alt !== p && fs.existsSync(alt)) {
+                return alt;
+            }
+        }
+        return null;
+    };
+
+    const legacy = tryLegacyRepo(normalizedPath);
+    if (legacy) {
+        return legacy;
+    }
+
+    const dir = path.dirname(normalizedPath);
+    const base = path.basename(normalizedPath);
+    const flat = /^([a-f0-9]{32})\.(jpe?g|png)$/i.exec(base);
+    if (flat && path.basename(dir).toLowerCase() === 'thumbnails') {
+        const hash = flat[1];
+        const nested = path.join(dir, hash.slice(0, 2), base);
+        if (fs.existsSync(nested)) {
+            return nested;
+        }
+        const nestedLegacy = tryLegacyRepo(nested);
+        if (nestedLegacy) {
+            return nestedLegacy;
+        }
+    }
+
+    return normalizedPath;
+}
+
+/**
+ * Map a media:// request URL to a filesystem path.
+ * Chromium parses `media://D:/path` as host "D" + pathname "/path", which drops the colon;
+ * recover that on Windows. Correct `media:///D:/path` yields pathname "/D:/path".
+ */
+function parseMediaUrlToFilePath(requestUrl: string): string {
+    const u = new URL(requestUrl);
+    let pathname = u.pathname;
+    try {
+        pathname = decodeURIComponent(pathname);
+    } catch {
+        throw new Error('invalid encoding');
+    }
+
+    if (process.platform === 'win32' && /^[a-zA-Z]$/.test(u.hostname) && pathname.length > 1) {
+        return `${u.hostname.toUpperCase()}:${pathname}`;
+    }
+
+    let filePath = pathname;
+    if (filePath.match(/^\/?mnt\/[a-zA-Z]\//)) {
+        filePath = filePath.replace(/^\/?mnt\/([a-zA-Z])\//, '$1:/');
+    }
+    if (process.platform === 'win32' && /^\/[a-zA-Z]:\//.test(filePath)) {
+        filePath = filePath.slice(1);
+    }
+    return filePath;
+}
 
 function getDialogWindow(): BrowserWindow | null {
     const focused = BrowserWindow.getFocusedWindow();
@@ -301,28 +373,51 @@ app.whenReady().then(async () => {
     // Handle media:// requests with path sanitization
     protocol.handle('media', (request) => {
         console.log('[Main] Media request:', request.url);
-        const url = request.url.replace('media://', '');
-        let filePath = decodeURIComponent(url);
-
-        // Convert WSL paths to Windows paths
-        if (filePath.match(/^\/?mnt\/[a-zA-Z]\//)) {
-            filePath = filePath.replace(/^\/?mnt\/([a-zA-Z])\//, '$1:/');
-        }
-
-        // Sanitize path: resolve and normalize to prevent traversal attacks
         try {
-            const resolvedPath = path.resolve(filePath);
-            const normalizedPath = path.normalize(resolvedPath);
+            let filePath = request.url.replace(/^media:\/\/(local\/)?/i, '');
+            try {
+                filePath = decodeURIComponent(filePath);
+            } catch {
+                return new Response('Invalid encoding', { status: 400 });
+            }
 
-            // Ensure the path doesn't contain .. or resolve outside expected boundaries
-            if (normalizedPath.includes('..') || !normalizedPath.includes(':')) {
-                console.error('[Main] Blocked suspicious path:', filePath);
+            // Reconstruct missing colon for Windows drive letters (e.g. from media://d/Projects...)
+            if (process.platform === 'win32' && /^[a-zA-Z]\//.test(filePath) && !filePath.includes(':')) {
+                const reconstructed = filePath[0] + ':' + filePath.slice(1);
+                if (path.isAbsolute(reconstructed)) {
+                    filePath = reconstructed;
+                }
+            }
+
+            // Convert WSL paths to Windows paths
+            if (filePath.match(/^\/?mnt\/[a-zA-Z]\//)) {
+                filePath = filePath.replace(/^\/?mnt\/([a-zA-Z])\//, '$1:/');
+            }
+
+            // media:///D:/... → /D:/... after strip — normalize to D:/...
+            if (process.platform === 'win32' && /^\/[a-zA-Z]:\//.test(filePath)) {
+                filePath = filePath.slice(1);
+            }
+
+            // Check before path.resolve: resolve() always yields an absolute path, so the old
+            // check on normalizedPath could not block relative paths like d/Projects/... (bad URL parse).
+            if (!path.isAbsolute(filePath)) {
+                console.error('[Main] Blocked non-absolute path:', filePath);
                 return new Response('Access denied', { status: 403 });
             }
 
-            return net.fetch('file:///' + normalizedPath);
+            const resolvedPath = path.resolve(filePath);
+            const normalizedPath = path.normalize(resolvedPath);
+
+            const mediaPath = resolveMediaFilePathWithFallbacks(normalizedPath);
+            if (mediaPath !== normalizedPath && fs.existsSync(mediaPath)) {
+                console.log('[Main] Media path fallback:', normalizedPath, '->', mediaPath);
+            }
+
+            const fileUrl = pathToFileURL(mediaPath).href;
+            return net.fetch(fileUrl);
         } catch (e) {
-            console.error('[Main] Invalid media path:', filePath, e);
+            console.error('[Main] Invalid media path:', request.url, e);
             return new Response('Invalid path', { status: 400 });
         }
     });
@@ -663,8 +758,10 @@ app.whenReady().then(async () => {
             const projectRoot = path.resolve(__dirname, '..');
             const projectsDir = path.resolve(projectRoot, '..');
             const locks = [
+                path.join(projectsDir, 'image-scoring-backend', 'webui.lock'),
+                path.join(projectsDir, 'image-scoring-backend', 'webui-debug.lock'),
                 path.join(projectsDir, 'image-scoring', 'webui.lock'),
-                path.join(projectsDir, 'image-scoring', 'webui-debug.lock')
+                path.join(projectsDir, 'image-scoring', 'webui-debug.lock'),
             ];
 
             for (const lockFile of locks) {
@@ -695,16 +792,23 @@ app.whenReady().then(async () => {
         try {
             const projectRoot = path.resolve(__dirname, '..');
             const projectsDir = path.resolve(projectRoot, '..');
-            const lockFile = path.join(projectsDir, 'image-scoring', 'webui.lock');
+            const lockFiles = [
+                path.join(projectsDir, 'image-scoring-backend', 'webui.lock'),
+                path.join(projectsDir, 'image-scoring-backend', 'webui-debug.lock'),
+                path.join(projectsDir, 'image-scoring', 'webui.lock'),
+                path.join(projectsDir, 'image-scoring', 'webui-debug.lock'),
+            ];
 
-            console.log('[Main] Looking for API lock file at:', lockFile);
+            for (const lockFile of lockFiles) {
+                console.log('[Main] Looking for API lock file at:', lockFile);
 
-            if (fs.existsSync(lockFile)) {
-                const content = await fs.promises.readFile(lockFile, 'utf8');
-                const data = JSON.parse(content);
-                console.log('[Main] Found API lock file:', data);
-                if (data && data.port) {
-                    return data.port;
+                if (fs.existsSync(lockFile)) {
+                    const content = await fs.promises.readFile(lockFile, 'utf8');
+                    const data = JSON.parse(content);
+                    console.log('[Main] Found API lock file:', data);
+                    if (data && data.port) {
+                        return data.port;
+                    }
                 }
             }
         } catch (e) {

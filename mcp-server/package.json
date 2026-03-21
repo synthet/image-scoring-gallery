@@ -1,7 +1,7 @@
 {
     "name": "electron-debug-mcp",
     "version": "1.0.0",
-    "description": "MCP server for debugging electron-image-scoring",
+    "description": "MCP server for debugging image-scoring-gallery",
     "main": "dist/index.js",
     "type": "module",
     "scripts": {

@@ -3,7 +3,7 @@
 This guide provides instructions for AI agents on how to navigate, maintain, and execute the Electron-based Image Scoring Gallery.
 
 ## Project Context
-`electron-image-scoring` is the frontend viewer for the Image Scoring ecosystem. It is built with Electron and React and connects to a shared Firebird database populated by the core scoring engine.
+`image-scoring-gallery` is the frontend viewer for the Image Scoring ecosystem. It is built with Electron and React and connects to a shared Firebird database populated by the core scoring engine.
 
 ## Core Agentic Skills (Commands)
 

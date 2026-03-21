@@ -12,14 +12,14 @@ description: Verify the Electron app environment and dependencies
 // turbo
 2. **Verify npm packages**:
    ```pwsh
-   npm ls --depth=0 --prefix "d:\Projects\electron-image-scoring"
+   npm ls --depth=0 --prefix "d:\Projects\image-scoring-gallery"
    ```
    **Success**: All direct dependencies resolved without errors.
 
 // turbo
 3. **Verify TypeScript**:
    ```pwsh
-   npx tsc --noEmit --prefix "d:\Projects\electron-image-scoring"
+   npx tsc --noEmit --prefix "d:\Projects\image-scoring-gallery"
    ```
    **Success**: No type errors.
 
@@ -30,6 +30,6 @@ description: Verify the Electron app environment and dependencies
 // turbo
 5. **Verify ESLint**:
    ```pwsh
-   npm run lint --prefix "d:\Projects\electron-image-scoring"
+   npm run lint --prefix "d:\Projects\image-scoring-gallery"
    ```
    **Success**: No errors.

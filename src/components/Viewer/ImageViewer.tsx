@@ -5,6 +5,7 @@ import { ConfirmDialog } from '../Shared/ConfirmDialog';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
 import { usePropagateTags } from '../../hooks/useDatabase';
+import { toMediaUrl } from '../../utils/mediaUrl';
 
 interface Image {
     id: number;
@@ -396,7 +397,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
                 // Case 1: Web safe image - use direct path
                 if (isWebSafe(image.file_name)) {
-                    if (active) setPreviewSrc(`media://${pathSchema}`);
+                    if (active) setPreviewSrc(toMediaUrl(pathSchema));
                     return;
                 }
 
@@ -423,7 +424,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
                 // Case 3: Fallback to thumbnail (server generated) or show error
                 if (image.thumbnail_path && active) {
-                    setPreviewSrc(`media://${image.thumbnail_path}`);
+                    setPreviewSrc(toMediaUrl(image.thumbnail_path));
                 } else if (active) {
                     setError('No preview available');
                 }

@@ -8,7 +8,7 @@ description: Create a production build of the Electron app
 // turbo
 2. **Run production build**:
    ```pwsh
-   npm run build --prefix "d:\Projects\electron-image-scoring"
+   npm run build --prefix "d:\Projects\image-scoring-gallery"
    ```
    This runs in sequence:
    - TypeScript compilation for `electron/` (main process)

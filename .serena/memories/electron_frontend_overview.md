@@ -1,6 +1,6 @@
 # Electron Image Scoring Frontend Overview
 
-This repository (`electron-image-scoring`) is the dedicated frontend application for the Image Scoring system.
+This repository (`image-scoring-gallery`) is the dedicated frontend application for the Image Scoring system.
 
 ## Key Technologies
 - **Electron**: For cross-platform desktop application capabilities.

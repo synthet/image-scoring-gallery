@@ -2,11 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.45.0] - 2026-03-21
+
+### Added
+- **GalleryThumbnail**: Grid tile component for web-safe formats via `media://`, RAW via embedded preview extraction (same strategy as ImageViewer), with LRU cache (`galleryRawPreviewCache`) and `rawPreviewLimiter` concurrency.
+- **`imageFormats` / `mediaUrl`**: Helpers (`isWebSafe`, `isRaw`, `toMediaUrl`) including `media://local/...` for Windows drive letters so Chromium does not mangle hosts.
+- **`.cursor/commands/release`**: Documented semver release workflow for this repo.
+
+### Changed
+- **`media://` handler** (`main.ts`): Strips `media://` and optional `local/` prefix; keeps absolute-path validation before `path.resolve`; thumbnail path fallbacks (repo rename, nested `thumbnails/<aa>/` layout).
+- **`db.ts`**: Expanded image/path handling and thumbnail resolution aligned with backend path options.
+- **Gallery / viewer / similar search**: Use the new thumbnail stack and utilities; minor IPC-related wiring.
+- **Config & tooling**: `config.example.json` and `mcp-server` config for gallery/backend paths; `scripts/start_db.ps1` updates; workspace file renamed to `image-scoring-gallery.code-workspace`.
+- **Docs & agent metadata**: Paths and naming aligned with `image-scoring-backend` / `image-scoring-gallery` sibling layout.
+
+## [3.44.1] - 2026-03-20
+
+### Fixed
+- **`media://` Windows paths**: `toMediaUrl` now emits `media:///D:/...` (three slashes) so Chromium does not parse `D:` as the URL host (which produced `media://d/Projects/...` and broken file loads). The main-process handler checks `path.isAbsolute(filePath)` **before** `path.resolve()` so relative paths from bad parses are rejected instead of resolving under the app CWD.
+- **`media://` thumbnails**: If the resolved file is missing, try the same path under `...\image-scoring\thumbnails\` (JPEGs not copied after renaming the repo to `image-scoring-backend`), then try nested `thumbnails\<aa>\<hash>.jpg` when the DB has a flat `thumbnails\<hash>.jpg` path.
+
 ## [3.44.0] - 2026-03-19
 
 ### Changed
 - **MCP**: `.cursor/mcp.json` server naming and transport alignment with image-scoring workspace merge.
 - **Docs**: `AGENTS.md`, Firebird MCP rule (`.cursor/rules/mcp-firebird.mdc`), image-scoring MCP skill copy.
+
+### Fixed
+- **Gallery thumbnails**: Grid and similar-search tiles no longer point `<img>` at `.NEF`/RAW files (browsers cannot decode them). Prefer `thumbnail_path` JPEGs; otherwise use the same embedded-JPEG extraction path as the viewer, with a small concurrency limit and LRU blob cache. **`media://` handler** now uses `pathToFileURL` for correct Windows `file:` URLs and allows absolute paths without the old `:` heuristic that blocked UNC locations.
+- **Thumbnail paths from DB**: List/detail queries now load `thumbnail_path_win` and resolve **`thumbnail_path` for the renderer** (Windows prefers the native column, matching Python `get_thumb_win`). Default remap **`.../image-scoring/thumbnails/` → `.../image-scoring-backend/thumbnails/`** when the backend repo was renamed; **`paths.thumbnail_base_dir`** (e.g. `D:\\Projects\\image-scoring-backend\\thumbnails`) joins repo-relative DB paths; **`paths.thumbnail_path_remap`** handles other prefixes. `config.json` / `config.example.json` include the usual layout.
 
 ## [3.43.0] - 2026-03-19
 
@@ -132,7 +156,7 @@ All notable changes to this project will be documented in this file.
 ## [3.35.0] - 2026-03-10
 
 ### Added
-- **Agent Coordination Documentation**: Formalized cross-project integration protocols between frontend and backend in [AGENT_COORDINATION.md](https://github.com/synthet/musiq-image-scoring/blob/main/docs/technical/AGENT_COORDINATION.md).
+- **Agent Coordination Documentation**: Formalized cross-project integration protocols between frontend and backend in [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md).
 - **Cross-Project Linking**: Linked agent coordination guide in `AGENTS.md` and `docs/README.md`.
 
 ## [3.34.0] - 2026-03-10

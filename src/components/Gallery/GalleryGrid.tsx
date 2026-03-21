@@ -3,6 +3,7 @@ import { VirtuosoGrid } from 'react-virtuoso';
 import { Logger } from '../../services/Logger';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
 import styles from './GalleryGrid.module.css';
+import { toMediaUrl } from '../../utils/mediaUrl';
 
 interface Image {
     id: number;
@@ -146,11 +147,6 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     }, []);
 
     const renderImageCard = useCallback((img: Image, onClick: () => void) => {
-        const rawPath = img.thumbnail_path || img.file_path;
-        let src = '';
-        if (rawPath) {
-            src = `media://${rawPath}`;
-        }
         const labelColor = getLabelColor(img.label);
 
         return (
@@ -165,8 +161,8 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 className={styles.cardInner}
             >
                 <div className={styles.imageArea}>
-                    {src ? (
-                        <img src={src} loading="lazy" className={styles.image} alt={img.file_name} />
+                    {(img.thumbnail_path || img.file_path) ? (
+                        <img src={toMediaUrl(img.thumbnail_path || img.file_path!)} loading="lazy" className={styles.image} alt={img.file_name} />
                     ) : (
                         <div className={styles.noImage}>No Image</div>
                     )}
@@ -188,11 +184,6 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     }, [getScoreDisplay, getLabelColor, onFindSimilarImages]);
 
     const renderStackCard = useCallback((stack: Image, onClick: () => void) => {
-        const rawPath = stack.thumbnail_path || stack.file_path;
-        let src = '';
-        if (rawPath) {
-            src = `media://${rawPath}`;
-        }
         const labelColor = getLabelColor(stack.label);
         const count = stack.image_count || 1;
 
@@ -206,8 +197,8 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 )}
 
                 <div className={styles.imageAreaStack}>
-                    {src ? (
-                        <img src={src} loading="lazy" className={styles.image} alt={stack.file_name} />
+                    {(stack.thumbnail_path || stack.file_path) ? (
+                        <img src={toMediaUrl(stack.thumbnail_path || stack.file_path!)} loading="lazy" className={styles.image} alt={stack.file_name} />
                     ) : (
                         <div className={styles.noImage}>No Image</div>
                     )}

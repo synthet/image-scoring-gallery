@@ -4,17 +4,17 @@ description: Update CHANGELOG.md with recent changes, commit, and push
 
 // turbo-all
 
-Follow the `git-changelog` skill (`d:\Projects\electron-image-scoring\.agent\skills\git-changelog\SKILL.md`).
+Follow the `git-changelog` skill (`d:\Projects\image-scoring-gallery\.agent\skills\git-changelog\SKILL.md`).
 
 1. **Check status & recent history**:
    ```pwsh
-   git -C "d:\Projects\electron-image-scoring" status
-   git -C "d:\Projects\electron-image-scoring" log --oneline -10
+   git -C "d:\Projects\image-scoring-gallery" status
+   git -C "d:\Projects\image-scoring-gallery" log --oneline -10
    ```
 
 2. **Review unstaged changes**:
    ```pwsh
-   git -C "d:\Projects\electron-image-scoring" diff --stat
+   git -C "d:\Projects\image-scoring-gallery" diff --stat
    ```
    Read `CHANGELOG.md` to find the current version.
 
@@ -28,21 +28,21 @@ Follow the `git-changelog` skill (`d:\Projects\electron-image-scoring\.agent\ski
 
 5. **Stage all changes**:
    ```pwsh
-   git -C "d:\Projects\electron-image-scoring" add -A
+   git -C "d:\Projects\image-scoring-gallery" add -A
    ```
 
 6. **Commit with a descriptive message**:
    ```pwsh
-   git -C "d:\Projects\electron-image-scoring" commit -m "<summary of changes>"
+   git -C "d:\Projects\image-scoring-gallery" commit -m "<summary of changes>"
    ```
 
 7. **Push**:
    ```pwsh
-   git -C "d:\Projects\electron-image-scoring" push
+   git -C "d:\Projects\image-scoring-gallery" push
    ```
 
 8. **Verify**:
    ```pwsh
-   git -C "d:\Projects\electron-image-scoring" log --oneline -1
-   git -C "d:\Projects\electron-image-scoring" status
+   git -C "d:\Projects\image-scoring-gallery" log --oneline -1
+   git -C "d:\Projects\image-scoring-gallery" status
    ```
