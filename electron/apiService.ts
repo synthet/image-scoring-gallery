@@ -31,6 +31,7 @@ import type {
     PhaseDecisionResponse,
     JobInfo,
     DatabaseStats,
+    ScopeTreeResponse,
 } from './apiTypes';
 import type { AppConfig } from './types';
 
@@ -331,5 +332,11 @@ export class ApiService {
 
     getRawPreview(filePath: string) {
         return this.get<unknown>('/api/raw-preview', { path: filePath });
+    }
+
+    // ── Scope Tree ──────────────────────────────────────────────────────────
+
+    getScopeTree() {
+        return this.get<ScopeTreeResponse>('/api/scope/tree', { include_phase_status: false }, LONG_TIMEOUT);
     }
 }

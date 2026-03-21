@@ -5,10 +5,13 @@ alwaysApply: true
 
 ## MCP Firebird Server
 
-- **Server identifier**: `project-0-electron-image-scoring-mcp-firebird`
+- **Server identifier**: `project-0-image-scoring-mcp-firebird` (Cursor may show different identifiers per workspace)
+- **Config key in this repo**: **`imgscore-el-firebird`** in `.cursor/mcp.json` (Python repo uses **`imgscore-py-firebird`** — same `npx mcp-firebird` command, unique names when Cursor merges configs)
 - **Upstream project**: `https://github.com/PuroDelphi/mcpFirebird`
-- **Config file**: `.cursor/mcp.json` (`mcp-firebird` section)
+- **Config file**: `.cursor/mcp.json`
 - **Connection**: Uses the same `SCORING_HISTORY.FDB` database as the Electron app.
+
+**Before calling**: Check the tool schema in `mcps/project-0-image-scoring-mcp-firebird/tools/<tool>.json` for required parameters.
 
 ## Safety and Usage Guidelines
 
@@ -16,6 +19,15 @@ alwaysApply: true
 - **Never restore automatically**: Do **not** call `restore-database` unless the user explicitly asks for a restore operation.
 - **Backups only on request**: Use `backup-database` only when the user explicitly requests a backup and confirms storage location/impact.
 - **Be transparent**: When running diagnostics or performance analysis, summarize which tools were used and what they found.
+
+## image-scoring vs mcp-firebird
+
+| Use Case | Prefer | Reason |
+|----------|--------|--------|
+| App-level diagnostics (errors, jobs, phase consistency) | image-scoring | Uses app modules, domain logic |
+| Raw schema inspection (tables, columns, indexes) | mcp-firebird | Generic Firebird tools |
+| Read-only SELECT for app tables | image-scoring `execute_sql` | Enforces SELECT-only |
+| Ad-hoc SQL, schema discovery, performance analysis | mcp-firebird `execute-query` | Full Firebird SQL |
 
 ## Core Tool Categories
 

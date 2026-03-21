@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type MutableRefObject } from 'react';
 import type { Folder } from '../components/Tree/treeUtils';
 
 /**
@@ -7,7 +7,7 @@ import type { Folder } from '../components/Tree/treeUtils';
  */
 export function useGalleryNavigation(
   folders: Folder[],
-  activeStackId: number | null,
+  activeStackIdRef: MutableRefObject<number | null>,
   onClearStack: () => void,
 ) {
   const [selectedFolderId, setSelectedFolderId] = useState<number | undefined>(undefined);
@@ -48,7 +48,7 @@ export function useGalleryNavigation(
   };
 
   const handleNavigateToParent = () => {
-    if (activeStackId !== null) {
+    if (activeStackIdRef.current !== null) {
       onClearStack();
       return;
     }

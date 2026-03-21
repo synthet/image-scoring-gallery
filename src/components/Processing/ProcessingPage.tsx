@@ -23,10 +23,15 @@ export function ProcessingPage({
     onRefreshFolders,
     onBackToGallery,
 }: ProcessingPageProps) {
-    const {
-        folderPath, phases, logBuffer, actor,
-        setFolder, updatePhase, appendLog, clearLog, setQueueDepth,
-    } = useProcessingStore();
+    const folderPath = useProcessingStore(s => s.folderPath);
+    const phases = useProcessingStore(s => s.phases);
+    const logBuffer = useProcessingStore(s => s.logBuffer);
+    const actor = useProcessingStore(s => s.actor);
+    const setFolder = useProcessingStore(s => s.setFolder);
+    const updatePhase = useProcessingStore(s => s.updatePhase);
+    const appendLog = useProcessingStore(s => s.appendLog);
+    const clearLog = useProcessingStore(s => s.clearLog);
+    const setQueueDepth = useProcessingStore(s => s.setQueueDepth);
 
     // ── Hydrate initial status from API ───────────────────────────────────────
 

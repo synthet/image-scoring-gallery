@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNotificationStore } from '../store/useNotificationStore';
 
 interface ImageRow {
@@ -29,9 +29,6 @@ interface UseImageOpenerParams {
   stacksMode: boolean;
   activeStackId: number | null;
   selectedFolderId: number | undefined;
-  imagesLoading: boolean;
-  stackImagesLoading: boolean;
-  stacksLoading: boolean;
   onNavigateToFolder: (folderId: number) => void;
   removeImage: (id: number) => void;
   handleImageDeleteFromStack: (id: number) => void;
@@ -48,9 +45,6 @@ export function useImageOpener({
   stacksMode,
   activeStackId,
   selectedFolderId,
-  imagesLoading,
-  stackImagesLoading,
-  stacksLoading,
   onNavigateToFolder,
   removeImage,
   handleImageDeleteFromStack,
@@ -119,25 +113,21 @@ export function useImageOpener({
     }
   }, [selectedFolderId, stacksMode, activeStackId, stacks, stackImages, images, addNotification, onNavigateToFolder]);
 
-  // Resolve pending image once the new list has loaded
+  const currentImages = useMemo(
+    () => (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images),
+    [stacksMode, activeStackId, stacks, stackImages, images],
+  );
+
   useEffect(() => {
-    if (!pendingOpenImageId) return;
+    if (!pendingOpenImageId || currentImages.length === 0) return;
 
-    const imgList = (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
-    const idx = imgList.findIndex(img => img.id === pendingOpenImageId);
+    const idx = currentImages.findIndex(img => img.id === pendingOpenImageId);
+    if (idx < 0) return;
 
-    if (idx >= 0) {
-      setCurrentImageIndex(idx);
-      setOpeningImage(imgList[idx]);
-      setPendingOpenImageId(null);
-      return;
-    }
-
-    if (!imagesLoading && !stackImagesLoading && !stacksLoading) {
-      console.warn('[App] Could not find pending image index after loading:', pendingOpenImageId);
-      setPendingOpenImageId(null);
-    }
-  }, [pendingOpenImageId, stacksMode, activeStackId, stacks, stackImages, images, imagesLoading, stackImagesLoading, stacksLoading]);
+    setCurrentImageIndex(idx);
+    setOpeningImage(currentImages[idx]);
+    setPendingOpenImageId(null);
+  }, [currentImages, pendingOpenImageId]);
 
   const handleImageDelete = (id: number) => {
     if (activeStackId) {

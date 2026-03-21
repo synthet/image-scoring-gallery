@@ -1,19 +1,20 @@
 {
     "mcpServers": {
-        "image-scoring": {
+        "imgscore-el-stdio": {
             "command": "python",
             "args": [
                 "-m",
                 "modules.mcp_server"
             ],
+            "cwd": "d:\\Projects\\image-scoring",
             "env": {
                 "PYTHONPATH": "d:\\Projects\\image-scoring"
-            },
-            "disabledTools": [
-                "search_similar_images"
-            ]
+            }
         },
-        "chrome-devtools": {
+        "imgscore-el-sse": {
+            "url": "http://127.0.0.1:7860/mcp/sse"
+        },
+        "imgscore-el-chrome-devtools": {
             "command": "npx",
             "args": [
                 "-y",
@@ -21,21 +22,21 @@
                 "--browser-url=http://127.0.0.1:9222"
             ]
         },
-        "electron-debug": {
+        "imgscore-el-debug": {
             "command": "node",
             "args": [
                 "d:\\Projects\\electron-image-scoring\\mcp-server\\dist\\index.js"
             ],
             "disabled": false
         },
-        "playwright": {
+        "imgscore-el-playwright": {
             "command": "npx",
             "args": [
                 "-y",
                 "@playwright/mcp@latest"
             ]
         },
-        "mcp-firebird": {
+        "imgscore-el-firebird": {
             "command": "npx",
             "args": [
                 "-y",
@@ -51,19 +52,13 @@
             "disabledTools": [
                 "verify-wire-encryption",
                 "restore-database",
+                "backup-database",
                 "analyze-table-statistics",
                 "get-field-descriptions",
                 "system-health-check",
                 "get-database-info",
                 "get-server-info",
-                "execute-batch-queries",
-                "describe-batch-tables",
-                "analyze-missing-indexes",
-                "get-tool-help",
-                "list-available-tools",
-                "get-execution-plan",
-                "analyze-query-performance",
-                "backup-database"
+                "analyze-missing-indexes"
             ]
         }
     }

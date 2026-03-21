@@ -246,6 +246,21 @@ export interface QueueResponse {
     [key: string]: unknown;
 }
 
+// ── Scope Tree ──────────────────────────────────────────────────────────────
+
+/** Per-folder phase status summary returned by GET /api/scope/tree. */
+export interface FolderPhaseStatus {
+    folder_id: number;
+    folder_path: string;
+    indexing_status: string;
+    scoring_status: string;
+    tagging_status: string;
+}
+
+export interface ScopeTreeResponse {
+    folders: FolderPhaseStatus[];
+}
+
 // ── Stats ───────────────────────────────────────────────────────────────────
 
 /** Matches get_database_stats() from modules/mcp_server.py. Does not include scored_images or tagged_images. */

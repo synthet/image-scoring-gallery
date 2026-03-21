@@ -17,6 +17,7 @@ import type {
     DatabaseStats,
     SimilarSearchResult,
     OutlierSearchResult,
+    ScopeTreeResponse,
 } from './apiTypes';
 
 /**
@@ -280,6 +281,12 @@ contextBridge.exposeInMainWorld('electron', {
         cancelJob: async (jobId: string | number) => {
             const r = await ipcRenderer.invoke('api:job-cancel', jobId);
             return unwrapEnvelope<BackendApiResponse>(r);
+        },
+
+        // Scope tree
+        getScopeTree: async () => {
+            const r = await ipcRenderer.invoke('api:get-scope-tree');
+            return unwrapEnvelope<ScopeTreeResponse>(r);
         },
     },
 });

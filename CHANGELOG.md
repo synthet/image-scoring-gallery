@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.44.0] - 2026-03-19
+
+### Changed
+- **MCP**: `.cursor/mcp.json` server naming and transport alignment with image-scoring workspace merge.
+- **Docs**: `AGENTS.md`, Firebird MCP rule (`.cursor/rules/mcp-firebird.mdc`), image-scoring MCP skill copy.
+
+## [3.43.0] - 2026-03-19
+
+### Changed
+- **apiService**: `getScopeTree` now passes `include_phase_status: false` by default.
+- **db**: Added `stripConcatenatedAbsolutePath` to fix erroneously concatenated paths (e.g. `D:/Projects/.../D:/Photos/...`) in folder creation and path normalization.
+- **AppContent**: Header label shows "items (grouped)" instead of "stacks" when in stacks mode.
+
+## [3.42.0] - 2026-03-18
+
+### Changed
+- **useDatabase**: Refactored hook with improved state handling.
+- **ProcessingPage, ProcessingControls**: UI refinements.
+- **FolderTree**: Component updates.
+- **NotificationTray**: Minor improvements.
+- **AppContent**: Cleanup.
+- **apiService, preload**: API and IPC updates.
+- **Tests**: useDatabase, useDataHooks, useImages, Logger, WebSocketService, apiClient test updates.
+
+## [3.41.2] - 2026-03-17
+
+### Fixed
+- **ImageViewer**: Only update image state when target ID changes to avoid infinite re-render when parent passes new `allImages` reference each render.
+
 ## [3.41.1] - 2026-03-15
 
 ### Fixed

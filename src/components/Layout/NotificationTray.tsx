@@ -4,7 +4,8 @@ import { Info, CheckCircle, AlertTriangle, XCircle, X } from 'lucide-react';
 import styles from './NotificationTray.module.css';
 
 export const NotificationTray: React.FC = () => {
-    const { notifications, removeNotification } = useNotificationStore();
+    const notifications = useNotificationStore(s => s.notifications);
+    const removeNotification = useNotificationStore(s => s.removeNotification);
 
     if (notifications.length === 0) return null;
 

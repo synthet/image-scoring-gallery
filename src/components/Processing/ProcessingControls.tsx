@@ -10,11 +10,9 @@ interface ProcessingControlsProps {
 export function ProcessingControls({ folderPath, onBack }: ProcessingControlsProps) {
     const [busy, setBusy] = useState(false);
     const addNotification = useNotificationStore((s) => s.addNotification);
-    const { actor, setActor, appendLog } = useProcessingStore((s) => ({
-        actor: s.actor,
-        setActor: s.setActor,
-        appendLog: s.appendLog,
-    }));
+    const actor = useProcessingStore(s => s.actor);
+    const setActor = useProcessingStore(s => s.setActor);
+    const appendLog = useProcessingStore(s => s.appendLog);
 
     const logEntry = (message: string, level: 'info' | 'warn' | 'error' = 'info') => {
         appendLog({ ts: new Date().toISOString(), level, source: 'system', message });

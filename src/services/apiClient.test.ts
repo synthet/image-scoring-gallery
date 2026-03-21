@@ -1,11 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ApiClient } from './apiClient';
 
-type TestWindow = Window & typeof globalThis & {
-  electron?: {
-    getApiPort?: ReturnType<typeof vi.fn>;
-  };
-};
+
 
 // Private internals we access for testing
 interface ApiClientInternals {
@@ -66,19 +62,19 @@ describe('ApiClient', () => {
 
     vi.stubGlobal('WebSocket', MockWebSocket);
 
-    (globalThis.window as TestWindow).electron = {
+    (globalThis.window as any).electron = {
       getApiPort: vi.fn().mockResolvedValue(7860),
     };
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    delete (globalThis.window as TestWindow).electron;
+    (globalThis.window as any).electron = undefined;
     vi.useRealTimers();
   });
 
   it('connects to the default port when no electron api', async () => {
-    delete (globalThis.window as TestWindow).electron;
+    (globalThis.window as any).electron = undefined;
     const client = new ApiClient();
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(mockWs.url).toBe('ws://127.0.0.1:7860/ws/updates');
@@ -86,7 +82,7 @@ describe('ApiClient', () => {
   });
 
   it('uses the port returned by getApiPort', async () => {
-    (globalThis.window as TestWindow).electron!.getApiPort = vi.fn().mockResolvedValue(9000);
+    (globalThis.window as any).electron.getApiPort = vi.fn().mockResolvedValue(9000);
     const client = new ApiClient();
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(mockWs.url).toContain(':9000/');
@@ -94,7 +90,7 @@ describe('ApiClient', () => {
   });
 
   it('falls back to default port when getApiPort rejects', async () => {
-    (globalThis.window as TestWindow).electron!.getApiPort = vi.fn().mockRejectedValue(new Error('fail'));
+    (globalThis.window as any).electron.getApiPort = vi.fn().mockRejectedValue(new Error('fail'));
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const client = new ApiClient();
     await new Promise(resolve => setTimeout(resolve, 0));

@@ -5,14 +5,14 @@ description: How to use the image-scoring MCP server for database diagnostics, q
 
 # Image Scoring MCP Server
 
-The `image-scoring` MCP server provides direct access to the Firebird database and scoring engine status. It is defined in the MCP config but **disabled by default** — enable it when you need database debugging that goes beyond the Electron app's built-in queries.
+In this **Electron** workspace, the stdio MCP entry is **`imgscore-el-stdio`** (`cwd` / `PYTHONPATH` → sibling **image-scoring**). The **Python** repo uses **`imgscore-py-stdio`** when that workspace is open. For WebUI / **`execute_code`**, add **`imgscore-el-sse`**. **`imgscore-el-stdio` may be disabled by default** — enable when you need DB debugging beyond the Electron app.
 
 ## MCP Config
 
 In `mcp_config.json`, the server is configured as:
 
 ```json
-"image-scoring": {
+"imgscore-el-stdio": {
     "command": "python",
     "args": ["-m", "modules.mcp_server"],
     "cwd": "d:\\Projects\\image-scoring",
@@ -23,6 +23,8 @@ In `mcp_config.json`, the server is configured as:
 
 > [!NOTE]
 > When this server is disabled, its tools are unavailable. Ask the user to enable it before attempting to use these tools.
+
+Add **`imgscore-el-sse`** with `"url": "http://127.0.0.1:7860/mcp/sse"` when the Python WebUI is running and you need **`execute_code`** (`ENABLE_MCP_EXECUTE_CODE=1` on the WebUI).
 
 ## Available Tools
 

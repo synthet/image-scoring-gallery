@@ -41,6 +41,7 @@ class WebSocketService {
     private maxReconnectInterval: number = 30000; // 30 seconds
     private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
     private handlers: Map<string, Set<MessageHandler>> = new Map();
+    private intentionalDisconnect: boolean = false;
 
     constructor() {
     }
@@ -60,6 +61,8 @@ class WebSocketService {
     }
 
     public async connect() {
+        this.intentionalDisconnect = false;
+
         if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
             return;
         }
@@ -93,6 +96,11 @@ class WebSocketService {
             };
 
             this.ws.onclose = () => {
+                if (this.intentionalDisconnect) {
+                    console.log('[WebSocket] Disconnected intentionally');
+                    return;
+                }
+
                 console.log('[WebSocket] Disconnected, scheduling reconnect...');
                 this.scheduleReconnect();
             };
@@ -131,6 +139,8 @@ class WebSocketService {
     }
 
     public disconnect() {
+        this.intentionalDisconnect = true;
+
         if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
             this.reconnectTimeout = null;

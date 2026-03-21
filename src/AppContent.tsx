@@ -49,7 +49,7 @@ function AppContent({ isConnected }: AppContentProps) {
     currentFolder, subfolderIds,
     handleSelectFolder: handleSelectFolderNav,
     handleNavigateToParent: handleNavigateToParentNav,
-  } = useGalleryNavigation(folders, activeStackIdRef.current, () => {
+  } = useGalleryNavigation(folders, activeStackIdRef, () => {
     // cleared by useStacksMode on folder change
   });
 
@@ -136,9 +136,6 @@ function AppContent({ isConnected }: AppContentProps) {
     stacksMode,
     activeStackId,
     selectedFolderId,
-    imagesLoading,
-    stackImagesLoading,
-    stacksLoading,
     onNavigateToFolder: handleNavigateToFolder,
     removeImage,
     handleImageDeleteFromStack,
@@ -231,7 +228,7 @@ function AppContent({ isConnected }: AppContentProps) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h2 style={{ margin: 0, fontSize: '1.2em' }}>{headerTitle}</h2>
             <span style={{ fontSize: '0.9em', color: '#888' }}>
-              ({currentTotal} {stacksMode && !activeStackId ? 'stacks' : 'items'})
+              ({currentTotal} {stacksMode && !activeStackId ? 'items (grouped)' : 'items'})
             </span>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '15px', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
               {/* Header actions can go here */}
