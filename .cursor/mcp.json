@@ -12,7 +12,8 @@
             }
         },
         "imgscore-el-sse": {
-            "url": "http://127.0.0.1:7860/mcp/sse"
+            "url": "http://127.0.0.1:7860/mcp/sse",
+            "disabled": true
         },
         "imgscore-el-chrome-devtools": {
             "command": "npx",
@@ -20,7 +21,8 @@
                 "-y",
                 "chrome-devtools-mcp",
                 "--browser-url=http://127.0.0.1:9222"
-            ]
+            ],
+            "disabled": true
         },
         "imgscore-el-debug": {
             "command": "node",
@@ -34,7 +36,8 @@
             "args": [
                 "-y",
                 "@playwright/mcp@latest"
-            ]
+            ],
+            "disabled": true
         },
         "imgscore-el-firebird": {
             "command": "npx",
@@ -58,7 +61,13 @@
                 "system-health-check",
                 "get-database-info",
                 "get-server-info",
-                "analyze-missing-indexes"
+                "execute-batch-queries",
+                "describe-batch-tables",
+                "analyze-missing-indexes",
+                "get-tool-help",
+                "list-available-tools",
+                "get-execution-plan",
+                "analyze-query-performance"
             ]
         }
     }

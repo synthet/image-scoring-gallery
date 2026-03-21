@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.46.0] - 2026-03-21
+
+### Added
+- **`config.json` `paths`**: Thumbnail base directory, legacy thumbnail path remaps (`image-scoring` → `image-scoring-backend`), and `remap_legacy_image_scoring_thumbnails` flag.
+
+### Changed
+- **`config.json`**: Firebird database and client paths aligned with sibling `image-scoring-backend` layout (relative paths).
+- **`.cursor/mcp.json`**: Some MCP servers disabled by default (SSE, Playwright, Chrome DevTools); Firebird MCP `disabledTools` list extended.
+- **`.claude/settings.json`**: Claude Code allowlist and `additionalDirectories` updated for `imgscore-el-*` MCP tools and explicit gallery/backend project paths.
+
 ## [3.45.0] - 2026-03-21
 
 ### Added
