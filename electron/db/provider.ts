@@ -5,16 +5,14 @@ import net from 'net';
 import path from 'path';
 
 export type QueryParam = string | number | null;
+export type TxQuery = <R = unknown>(sql: string, params?: QueryParam[]) => Promise<R[]>;
 
 export interface DbProvider {
     readonly type: 'firebird' | 'postgres';
     connect(): Promise<unknown>;
     close(): Promise<void>;
     query<T = unknown>(sql: string, params?: QueryParam[]): Promise<T[]>;
-    runTransaction<T>(
-        callback: (tx: Firebird.Transaction, txQuery: <R = unknown>(sql: string, params?: QueryParam[]) => Promise<R[]>) => Promise<T>,
-        isolation?: Firebird.Isolation,
-    ): Promise<T>;
+    runTransaction<T>(callback: (txQuery: TxQuery) => Promise<T>): Promise<T>;
     checkConnection(): Promise<boolean>;
     verifyStartup(): Promise<boolean>;
 }
@@ -154,11 +152,9 @@ export class FirebirdProvider implements DbProvider {
         });
     }
 
-    async runTransaction<T>(
-        callback: (tx: Firebird.Transaction, txQuery: <R = unknown>(sql: string, params?: QueryParam[]) => Promise<R[]>) => Promise<T>,
-        isolation: Firebird.Isolation = Firebird.ISOLATION_READ_COMMITTED,
-    ): Promise<T> {
+    async runTransaction<T>(callback: (txQuery: TxQuery) => Promise<T>): Promise<T> {
         const db = await this.getConnection();
+        const isolation = Firebird.ISOLATION_READ_COMMITTED;
 
         return new Promise((resolve, reject) => {
             db.transaction(isolation, async (err, transaction) => {
@@ -167,7 +163,7 @@ export class FirebirdProvider implements DbProvider {
                     return reject(err);
                 }
 
-                const txQuery = <R = unknown>(sql: string, params: QueryParam[] = []): Promise<R[]> => {
+                const txQuery: TxQuery = <R = unknown>(sql: string, params: QueryParam[] = []): Promise<R[]> => {
                     return new Promise((qResolve, qReject) => {
                         transaction.query(sql, params, (qErr, result) => {
                             if (qErr) return qReject(qErr);
@@ -177,7 +173,7 @@ export class FirebirdProvider implements DbProvider {
                 };
 
                 try {
-                    const result = await callback(transaction, txQuery);
+                    const result = await callback(txQuery);
                     transaction.commit((commitErr) => {
                         if (commitErr) {
                             this.persistentConnection = null;
@@ -288,14 +284,27 @@ type PgRow = Record<string, unknown>;
 
 interface PgPoolLike {
     query<T extends PgRow = PgRow>(sql: string, params?: QueryParam[]): Promise<{ rows: T[] }>;
+    connect(): Promise<PgPoolClientLike>;
     end(): Promise<void>;
 }
+
+interface PgPoolClientLike {
+    query<T extends PgRow = PgRow>(sql: string, params?: QueryParam[]): Promise<{ rows: T[] }>;
+    release(): void;
+}
+
+interface PgModuleLike {
+    Pool: new (config: PostgresConfig) => PgPoolLike;
+}
+
+const runtimeImport = new Function('moduleName', 'return import(moduleName)') as (moduleName: string) => Promise<unknown>;
 
 export class PostgresProvider implements DbProvider {
     readonly type = 'postgres' as const;
 
     private readonly poolConfig: PostgresConfig;
     private pool: PgPoolLike | null = null;
+    private poolPromise: Promise<PgPoolLike> | null = null;
 
     constructor(poolConfig: PostgresConfig = {}) {
         this.poolConfig = poolConfig;
@@ -317,11 +326,26 @@ export class PostgresProvider implements DbProvider {
         return result.rows as T[];
     }
 
-    async runTransaction<T>(
-        _callback: (tx: Firebird.Transaction, txQuery: <R = unknown>(sql: string, params?: QueryParam[]) => Promise<R[]>) => Promise<T>,
-        _isolation: Firebird.Isolation = Firebird.ISOLATION_READ_COMMITTED,
-    ): Promise<T> {
-        throw new Error('runTransaction is currently only supported by the Firebird provider.');
+    async runTransaction<T>(callback: (txQuery: TxQuery) => Promise<T>): Promise<T> {
+        const pool = await this.getPool();
+        const client = await pool.connect();
+
+        const txQuery: TxQuery = async <R = unknown>(sql: string, params: QueryParam[] = []): Promise<R[]> => {
+            const result = await client.query<R & PgRow>(sql, params);
+            return result.rows as R[];
+        };
+
+        try {
+            await client.query('BEGIN');
+            const result = await callback(txQuery);
+            await client.query('COMMIT');
+            return result;
+        } catch (e) {
+            await client.query('ROLLBACK');
+            throw e;
+        } finally {
+            client.release();
+        }
     }
 
     async checkConnection(): Promise<boolean> {
@@ -343,20 +367,34 @@ export class PostgresProvider implements DbProvider {
             return this.pool;
         }
 
-        const pg = require('pg') as { Pool: new (config: PostgresConfig) => PgPoolLike };
-        this.pool = new pg.Pool({
-            host: this.poolConfig.host || '127.0.0.1',
-            port: this.poolConfig.port || 5432,
-            user: this.poolConfig.user,
-            password: this.poolConfig.password,
-            database: this.poolConfig.database,
-            max: this.poolConfig.max,
-            idleTimeoutMillis: this.poolConfig.idleTimeoutMillis,
-            connectionTimeoutMillis: this.poolConfig.connectionTimeoutMillis,
-            ssl: this.poolConfig.ssl,
-        });
+        if (this.poolPromise) {
+            return this.poolPromise;
+        }
 
-        return this.pool;
+        this.poolPromise = (async () => {
+            try {
+                const pg = (await runtimeImport('pg')) as PgModuleLike;
+                this.pool = new pg.Pool({
+                    host: this.poolConfig.host || '127.0.0.1',
+                    port: this.poolConfig.port || 5432,
+                    user: this.poolConfig.user,
+                    password: this.poolConfig.password,
+                    database: this.poolConfig.database,
+                    max: this.poolConfig.max,
+                    idleTimeoutMillis: this.poolConfig.idleTimeoutMillis,
+                    connectionTimeoutMillis: this.poolConfig.connectionTimeoutMillis,
+                    ssl: this.poolConfig.ssl,
+                });
+                return this.pool;
+            } catch (error) {
+                const cause = error instanceof Error ? error.message : String(error);
+                throw new Error(`[DB] Failed to load "pg". Install it with "npm i pg" to use Postgres provider. Cause: ${cause}`);
+            } finally {
+                this.poolPromise = null;
+            }
+        })();
+
+        return this.poolPromise;
     }
 }
 
@@ -377,8 +415,11 @@ export function createDbProvider(config: {
     const provider = config.dbConfig.provider?.toLowerCase();
 
     if (provider === 'postgres' || provider === 'postgresql') {
+        if (!config.dbConfig.postgres) {
+            throw new Error('[DB] database.postgres config is required when provider is "postgres".');
+        }
         console.log('[DB] Using Postgres provider');
-        return new PostgresProvider(config.dbConfig.postgres || config.dbConfig);
+        return new PostgresProvider(config.dbConfig.postgres);
     }
 
     console.log('[DB] Using Firebird provider');

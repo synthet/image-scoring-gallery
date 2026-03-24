@@ -1,8 +1,7 @@
-import Firebird from 'node-firebird';
 import path from 'path';
 import fs from 'fs';
 
-import { createDbProvider, DbProvider, QueryParam } from './db/provider';
+import { createDbProvider, DbProvider, QueryParam, TxQuery } from './db/provider';
 
 // Load configuration
 function loadConfig() {
@@ -181,14 +180,17 @@ const provider: DbProvider = createDbProvider({
     firebirdDatabasePath: dbPath,
 });
 
-export async function connectDB(): Promise<unknown> {
-    return provider.connect();
+export async function connectDB(): Promise<void> {
+    await provider.connect();
 }
 
 export function closeConnection(): void {
-    void provider.close();
+    void provider.close().catch((e) => {
+        console.error('[DB] Error while closing database connection:', e);
+    });
 }
 
+/** Historical name preserved for IPC compatibility; now validates whichever DB provider is configured. */
 export async function ensureFirebirdRunning(): Promise<boolean> {
     return provider.verifyStartup();
 }
@@ -202,10 +204,9 @@ export async function query<T = unknown>(sql: string, params: QueryParam[] = [])
 }
 
 export async function runTransaction<T>(
-    callback: (tx: Firebird.Transaction, txQuery: <R = unknown>(sql: string, params?: QueryParam[]) => Promise<R[]>) => Promise<T>,
-    isolation: Firebird.Isolation = Firebird.ISOLATION_READ_COMMITTED
+    callback: (txQuery: TxQuery) => Promise<T>
 ): Promise<T> {
-    return provider.runTransaction(callback, isolation);
+    return provider.runTransaction(callback);
 }
 
 function pushFolderFilter(
@@ -900,7 +901,7 @@ export async function rebuildStackCache(): Promise<number> {
         try {
             await ensureStackCacheTable();
 
-            return await runTransaction(async (tx, txQuery) => {
+            return await runTransaction(async (txQuery) => {
                 // Clear existing cache
                 await txQuery('DELETE FROM stack_cache');
 
