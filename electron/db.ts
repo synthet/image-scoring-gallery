@@ -16,7 +16,7 @@ function loadConfig(): AppConfig {
 const config = loadConfig();
 const dbConfig = config.database || {};
 const projectRoot = path.resolve(__dirname, '..');
-const dbEngine = dbConfig.engine || 'firebird';
+const dbEngine = dbConfig.engine || dbConfig.provider || 'firebird';
 const firebirdDbConfig: FirebirdDatabaseConfig = dbEngine === 'firebird'
     ? dbConfig as FirebirdDatabaseConfig
     : {};

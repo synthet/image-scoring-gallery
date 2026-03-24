@@ -28,6 +28,10 @@ function toEngine(value: unknown): DatabaseEngine {
     return value === 'postgres' ? 'postgres' : 'firebird';
 }
 
+function getEngineFromDatabaseConfig(rawDatabase: JsonRecord): DatabaseEngine {
+    return toEngine(rawDatabase.engine ?? rawDatabase.provider);
+}
+
 function normalizePostgresSsl(value: unknown): boolean | PostgresSslConfig | undefined {
     if (typeof value === 'boolean') return value;
     if (!isRecord(value)) return undefined;
@@ -88,11 +92,12 @@ export function validatePostgresConfig(databaseConfig: JsonRecord): PostgresConf
 export function normalizeAppConfig(rawConfig: unknown): AppConfig {
     const cfg = isRecord(rawConfig) ? { ...rawConfig } : {};
     const rawDatabase = isRecord(cfg.database) ? { ...cfg.database } : {};
-    const engine = toEngine(rawDatabase.engine);
+    const engine = getEngineFromDatabaseConfig(rawDatabase);
 
     if (engine === 'firebird') {
         const normalizedDatabase: FirebirdDatabaseConfig = {
             engine: 'firebird',
+            provider: 'firebird',
             host: asString(rawDatabase.host) || '127.0.0.1',
             port: asNumber(rawDatabase.port) || 3050,
             user: asString(rawDatabase.user) || 'sysdba',
@@ -111,6 +116,7 @@ export function normalizeAppConfig(rawConfig: unknown): AppConfig {
     } else {
         const normalizedDatabase: PostgresDatabaseConfig = {
             engine: 'postgres',
+            provider: 'postgres',
             postgres: validatePostgresConfig(rawDatabase),
         };
         return {
