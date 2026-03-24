@@ -124,16 +124,24 @@ export interface PostgresConfig {
     pool?: PostgresPoolConfig;
 }
 
+export interface FirebirdDatabaseConfig {
+    engine?: 'firebird';
+    host?: string;
+    port?: number;
+    path?: string;
+    user?: string;
+    password?: string;
+}
+
+export interface PostgresDatabaseConfig {
+    engine: 'postgres';
+    postgres: PostgresConfig;
+}
+
+export type DatabaseConfig = FirebirdDatabaseConfig | PostgresDatabaseConfig;
+
 export interface AppConfig {
-    database?: {
-        engine?: DatabaseEngine;
-        host?: string;
-        port?: number;
-        path?: string;
-        user?: string;
-        password?: string;
-        postgres?: Partial<PostgresConfig>;
-    };
+    database?: DatabaseConfig;
     dev?: {
         url?: string;
     };

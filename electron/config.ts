@@ -3,6 +3,8 @@ import path from 'path';
 import type {
     AppConfig,
     DatabaseEngine,
+    FirebirdDatabaseConfig,
+    PostgresDatabaseConfig,
     PostgresPoolConfig,
     PostgresSslConfig,
     PostgresConfig,
@@ -87,25 +89,35 @@ export function normalizeAppConfig(rawConfig: unknown): AppConfig {
     const rawDatabase = isRecord(cfg.database) ? { ...cfg.database } : {};
     const engine = toEngine(rawDatabase.engine);
 
-    const normalizedDatabase: AppConfig['database'] = {
-        ...rawDatabase,
-        engine,
-    };
-
     if (engine === 'firebird') {
-        normalizedDatabase.host = asString(rawDatabase.host) || '127.0.0.1';
-        normalizedDatabase.port = asNumber(rawDatabase.port) || 3050;
-        normalizedDatabase.user = asString(rawDatabase.user) || 'sysdba';
-        normalizedDatabase.password = asString(rawDatabase.password) || 'masterkey';
-        normalizedDatabase.path = asString(rawDatabase.path) || rawDatabase.path as string | undefined;
-    } else {
-        normalizedDatabase.postgres = validatePostgresConfig(rawDatabase);
-    }
+        const normalizedDatabase: FirebirdDatabaseConfig = {
+            ...rawDatabase,
+            engine: 'firebird',
+            host: asString(rawDatabase.host) || '127.0.0.1',
+            port: asNumber(rawDatabase.port) || 3050,
+            user: asString(rawDatabase.user) || 'sysdba',
+            password: asString(rawDatabase.password) || 'masterkey',
+        };
 
-    return {
-        ...cfg,
-        database: normalizedDatabase,
-    };
+        const dbPath = asString(rawDatabase.path);
+        if (dbPath) {
+            normalizedDatabase.path = dbPath;
+        }
+
+        return {
+            ...cfg,
+            database: normalizedDatabase,
+        };
+    } else {
+        const normalizedDatabase: PostgresDatabaseConfig = {
+            engine: 'postgres',
+            postgres: validatePostgresConfig(rawDatabase),
+        };
+        return {
+            ...cfg,
+            database: normalizedDatabase,
+        };
+    }
 }
 
 export function loadAppConfig(configPath: string): AppConfig {

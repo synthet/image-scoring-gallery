@@ -108,16 +108,24 @@ interface PostgresConfig {
     pool?: PostgresPoolConfig;
 }
 
+interface FirebirdDatabaseConfig {
+    engine?: 'firebird';
+    host?: string;
+    port?: number;
+    path?: string;
+    user?: string;
+    password?: string;
+}
+
+interface PostgresDatabaseConfig {
+    engine: 'postgres';
+    postgres: PostgresConfig;
+}
+
+type DatabaseConfig = FirebirdDatabaseConfig | PostgresDatabaseConfig;
+
 interface AppConfig {
-    database?: {
-        engine?: DatabaseEngine;
-        host?: string;
-        port?: number;
-        path?: string;
-        user?: string;
-        password?: string;
-        postgres?: Partial<PostgresConfig>;
-    };
+    database?: DatabaseConfig;
     dev?: {
         url?: string;
     };

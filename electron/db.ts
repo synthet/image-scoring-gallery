@@ -6,6 +6,7 @@ import { spawn } from 'child_process';
 import net from 'net';
 import { getConfigPath, loadAppConfig } from './config';
 import type { AppConfig } from './types';
+import type { FirebirdDatabaseConfig } from './types';
 
 // Load configuration
 function loadConfig(): AppConfig {
@@ -16,6 +17,9 @@ const config = loadConfig();
 const dbConfig = config.database || {};
 const projectRoot = path.resolve(__dirname, '..');
 const dbEngine = dbConfig.engine || 'firebird';
+const firebirdDbConfig: FirebirdDatabaseConfig = dbEngine === 'firebird'
+    ? dbConfig as FirebirdDatabaseConfig
+    : {};
 
 function assertFirebirdEngine(): void {
     if (dbEngine === 'postgres') {
@@ -169,8 +173,8 @@ if (isTestEnv) {
     rawDbPath = resolveSiblingDbPath('scoring_history_test.fdb');
     console.warn('[DB] Test environment detected! Using test DB only: scoring_history_test.fdb');
 } else {
-    rawDbPath = (dbConfig.path && dbEngine === 'firebird')
-        ? dbConfig.path
+    rawDbPath = firebirdDbConfig.path
+        ? firebirdDbConfig.path
         : resolveSiblingDbPath('SCORING_HISTORY.FDB');
 }
 
@@ -181,11 +185,11 @@ const dbPath = path.isAbsolute(rawDbPath)
 console.log('Connecting to DB at:', dbPath);
 
 const options: Firebird.Options = {
-    host: dbConfig.host || '127.0.0.1',
-    port: dbConfig.port || 3050,
+    host: firebirdDbConfig.host || '127.0.0.1',
+    port: firebirdDbConfig.port || 3050,
     database: dbPath,
-    user: dbConfig.user || 'sysdba',
-    password: dbConfig.password || 'masterkey',
+    user: firebirdDbConfig.user || 'sysdba',
+    password: firebirdDbConfig.password || 'masterkey',
     lowercase_keys: true,
     role: '',
     pageSize: 4096
@@ -310,9 +314,11 @@ function isPortOpen(port: number, host: string = '127.0.0.1'): Promise<boolean> 
 
 // Ensure Firebird is running
 export async function ensureFirebirdRunning(): Promise<boolean> {
-    assertFirebirdEngine();
-    const port = dbConfig.port || 3050; // Use configured port or default
-    const host = dbConfig.host || '127.0.0.1';
+    if (dbEngine === 'postgres') {
+        return true;
+    }
+    const port = firebirdDbConfig.port || 3050; // Use configured port or default
+    const host = firebirdDbConfig.host || '127.0.0.1';
 
     console.log(`[DB] Checking if Firebird is running on ${host}:${port}...`);
     const isOpen = await isPortOpen(port, host);
