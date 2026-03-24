@@ -119,7 +119,7 @@ export interface PostgresConfig {
     port: number;
     database: string;
     user: string;
-    password: string;
+    password?: string;
     ssl?: boolean | PostgresSslConfig;
     pool?: PostgresPoolConfig;
 }

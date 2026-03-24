@@ -82,6 +82,7 @@ interface DuplicateResponse {
 }
 
 type DatabaseEngine = 'firebird' | 'postgres';
+// NOTE: Keep the database config types below in sync with electron/types.ts.
 
 interface PostgresSslConfig {
     enabled?: boolean;
@@ -103,7 +104,7 @@ interface PostgresConfig {
     port: number;
     database: string;
     user: string;
-    password: string;
+    password?: string;
     ssl?: boolean | PostgresSslConfig;
     pool?: PostgresPoolConfig;
 }

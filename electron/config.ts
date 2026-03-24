@@ -71,17 +71,18 @@ export function validatePostgresConfig(databaseConfig: JsonRecord): PostgresConf
     if (!port || port <= 0) throw new Error('database.postgres.port must be a positive number.');
     if (!database) throw new Error('database.postgres.database is required.');
     if (!user) throw new Error('database.postgres.user is required.');
-    if (!password) throw new Error('database.postgres.password is required.');
-
-    return {
+    const normalized: PostgresConfig = {
         host,
         port,
         database,
         user,
-        password,
         ssl: normalizePostgresSsl(postgres.ssl),
         pool: normalizePostgresPool(postgres.pool),
     };
+    if (password) {
+        normalized.password = password;
+    }
+    return normalized;
 }
 
 export function normalizeAppConfig(rawConfig: unknown): AppConfig {
@@ -91,7 +92,6 @@ export function normalizeAppConfig(rawConfig: unknown): AppConfig {
 
     if (engine === 'firebird') {
         const normalizedDatabase: FirebirdDatabaseConfig = {
-            ...rawDatabase,
             engine: 'firebird',
             host: asString(rawDatabase.host) || '127.0.0.1',
             port: asNumber(rawDatabase.port) || 3050,
@@ -137,6 +137,7 @@ export function getConfigPath(fromDirname: string): string {
 }
 
 export function deepMergeConfig<T extends JsonRecord>(target: T, source: JsonRecord): T {
+    // Arrays are intentionally replaced as atomic values rather than merged index-by-index.
     const out = { ...target } as JsonRecord;
     for (const [key, value] of Object.entries(source)) {
         if (isRecord(value) && isRecord(out[key])) {

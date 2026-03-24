@@ -164,36 +164,43 @@ function resolveSiblingDbPath(filename: string): string {
 // Add test detection — tests must NEVER use production DB
 const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST;
 
-// Database options
-// If path is relative in config, it's relative to the project root (one level up from dist-electron)
-let rawDbPath: string;
+let cachedFirebirdOptions: Firebird.Options | null = null;
 
-if (isTestEnv) {
-    // Force test DB only — matches image-scoring/scripts/setup_test_db.py (scoring_history_test.fdb)
-    rawDbPath = resolveSiblingDbPath('scoring_history_test.fdb');
-    console.warn('[DB] Test environment detected! Using test DB only: scoring_history_test.fdb');
-} else {
-    rawDbPath = firebirdDbConfig.path
-        ? firebirdDbConfig.path
-        : resolveSiblingDbPath('SCORING_HISTORY.FDB');
+function getFirebirdOptions(): Firebird.Options {
+    assertFirebirdEngine();
+    if (cachedFirebirdOptions) {
+        return cachedFirebirdOptions;
+    }
+
+    let rawDbPath: string;
+    if (isTestEnv) {
+        // Force test DB only — matches image-scoring/scripts/setup_test_db.py (scoring_history_test.fdb)
+        rawDbPath = resolveSiblingDbPath('scoring_history_test.fdb');
+        console.warn('[DB] Test environment detected! Using test DB only: scoring_history_test.fdb');
+    } else {
+        rawDbPath = firebirdDbConfig.path
+            ? firebirdDbConfig.path
+            : resolveSiblingDbPath('SCORING_HISTORY.FDB');
+    }
+
+    const dbPath = path.isAbsolute(rawDbPath)
+        ? rawDbPath
+        : path.resolve(projectRoot, rawDbPath);
+
+    console.log('Connecting to DB at:', dbPath);
+
+    cachedFirebirdOptions = {
+        host: firebirdDbConfig.host || '127.0.0.1',
+        port: firebirdDbConfig.port || 3050,
+        database: dbPath,
+        user: firebirdDbConfig.user || 'sysdba',
+        password: firebirdDbConfig.password || 'masterkey',
+        lowercase_keys: true,
+        role: '',
+        pageSize: 4096
+    };
+    return cachedFirebirdOptions;
 }
-
-const dbPath = path.isAbsolute(rawDbPath)
-    ? rawDbPath
-    : path.resolve(projectRoot, rawDbPath);
-
-console.log('Connecting to DB at:', dbPath);
-
-const options: Firebird.Options = {
-    host: firebirdDbConfig.host || '127.0.0.1',
-    port: firebirdDbConfig.port || 3050,
-    database: dbPath,
-    user: firebirdDbConfig.user || 'sysdba',
-    password: firebirdDbConfig.password || 'masterkey',
-    lowercase_keys: true,
-    role: '',
-    pageSize: 4096
-};
 
 // Also support connecting to the file directly if we used Embedded, 
 // but node-firebird is a pure JS client (requires server) or uses native bindings?
@@ -208,7 +215,7 @@ let persistentConnection: Firebird.Database | null = null;
 let connectionPromise: Promise<Firebird.Database> | null = null;
 
 export async function connectDB(): Promise<Firebird.Database> {
-    assertFirebirdEngine();
+    const options = getFirebirdOptions();
     console.log('[DB] Attempting to attach to Firebird...');
     return new Promise((resolve, reject) => {
         Firebird.attach(options, (err, db) => {
@@ -228,7 +235,7 @@ export async function connectDB(): Promise<Firebird.Database> {
  * Includes a timeout to prevent indefinite hangs when Firebird is unreachable.
  */
 async function getConnection(): Promise<Firebird.Database> {
-    assertFirebirdEngine();
+    const options = getFirebirdOptions();
     // If we have a working connection, return it
     if (persistentConnection) {
         return persistentConnection;
@@ -317,8 +324,9 @@ export async function ensureFirebirdRunning(): Promise<boolean> {
     if (dbEngine === 'postgres') {
         return true;
     }
-    const port = firebirdDbConfig.port || 3050; // Use configured port or default
-    const host = firebirdDbConfig.host || '127.0.0.1';
+    const options = getFirebirdOptions();
+    const port = options.port || 3050; // Use configured port or default
+    const host = options.host || '127.0.0.1';
 
     console.log(`[DB] Checking if Firebird is running on ${host}:${port}...`);
     const isOpen = await isPortOpen(port, host);
