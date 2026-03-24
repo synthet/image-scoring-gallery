@@ -2,7 +2,7 @@ import Firebird from 'node-firebird';
 import path from 'path';
 import fs from 'fs';
 
-import { createDbProvider, DbProvider, FirebirdProvider, QueryParam } from './db/provider';
+import { createDbProvider, DbProvider, QueryParam } from './db/provider';
 
 // Load configuration
 function loadConfig() {
@@ -205,11 +205,7 @@ export async function runTransaction<T>(
     callback: (tx: Firebird.Transaction, txQuery: <R = unknown>(sql: string, params?: QueryParam[]) => Promise<R[]>) => Promise<T>,
     isolation: Firebird.Isolation = Firebird.ISOLATION_READ_COMMITTED
 ): Promise<T> {
-    if (provider instanceof FirebirdProvider) {
-        return provider.runTransaction(callback, isolation);
-    }
-
-    throw new Error('runTransaction is currently only supported by the Firebird provider.');
+    return provider.runTransaction(callback, isolation);
 }
 
 function pushFolderFilter(

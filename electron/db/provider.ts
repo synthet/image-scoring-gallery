@@ -11,6 +11,10 @@ export interface DbProvider {
     connect(): Promise<unknown>;
     close(): Promise<void>;
     query<T = unknown>(sql: string, params?: QueryParam[]): Promise<T[]>;
+    runTransaction<T>(
+        callback: (tx: Firebird.Transaction, txQuery: <R = unknown>(sql: string, params?: QueryParam[]) => Promise<R[]>) => Promise<T>,
+        isolation?: Firebird.Isolation,
+    ): Promise<T>;
     checkConnection(): Promise<boolean>;
     verifyStartup(): Promise<boolean>;
 }
@@ -311,6 +315,13 @@ export class PostgresProvider implements DbProvider {
         const pool = await this.getPool();
         const result = await pool.query<T & PgRow>(sql, params);
         return result.rows as T[];
+    }
+
+    async runTransaction<T>(
+        _callback: (tx: Firebird.Transaction, txQuery: <R = unknown>(sql: string, params?: QueryParam[]) => Promise<R[]>) => Promise<T>,
+        _isolation: Firebird.Isolation = Firebird.ISOLATION_READ_COMMITTED,
+    ): Promise<T> {
+        throw new Error('runTransaction is currently only supported by the Firebird provider.');
     }
 
     async checkConnection(): Promise<boolean> {
