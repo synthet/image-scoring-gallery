@@ -81,13 +81,42 @@ interface DuplicateResponse {
     message?: string;
 }
 
+type DatabaseEngine = 'firebird' | 'postgres';
+
+interface PostgresSslConfig {
+    enabled?: boolean;
+    rejectUnauthorized?: boolean;
+    ca?: string;
+    cert?: string;
+    key?: string;
+}
+
+interface PostgresPoolConfig {
+    min?: number;
+    max?: number;
+    idleTimeoutMillis?: number;
+    connectionTimeoutMillis?: number;
+}
+
+interface PostgresConfig {
+    host: string;
+    port: number;
+    database: string;
+    user: string;
+    password: string;
+    ssl?: boolean | PostgresSslConfig;
+    pool?: PostgresPoolConfig;
+}
+
 interface AppConfig {
     database?: {
+        engine?: DatabaseEngine;
         host?: string;
         port?: number;
         path?: string;
         user?: string;
         password?: string;
+        postgres?: Partial<PostgresConfig>;
     };
     dev?: {
         url?: string;
@@ -101,6 +130,11 @@ interface AppConfig {
         path?: string;
     };
     selection?: Record<string, unknown>;
+    paths?: {
+        thumbnail_path_remap?: Array<{ from: string; to: string }>;
+        remap_legacy_image_scoring_thumbnails?: boolean;
+        thumbnail_base_dir?: string;
+    };
     [key: string]: unknown;
 }
 

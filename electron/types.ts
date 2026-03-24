@@ -97,13 +97,42 @@ export interface DuplicateResponse {
     message?: string;
 }
 
+export type DatabaseEngine = 'firebird' | 'postgres';
+
+export interface PostgresSslConfig {
+    enabled?: boolean;
+    rejectUnauthorized?: boolean;
+    ca?: string;
+    cert?: string;
+    key?: string;
+}
+
+export interface PostgresPoolConfig {
+    min?: number;
+    max?: number;
+    idleTimeoutMillis?: number;
+    connectionTimeoutMillis?: number;
+}
+
+export interface PostgresConfig {
+    host: string;
+    port: number;
+    database: string;
+    user: string;
+    password: string;
+    ssl?: boolean | PostgresSslConfig;
+    pool?: PostgresPoolConfig;
+}
+
 export interface AppConfig {
     database?: {
+        engine?: DatabaseEngine;
         host?: string;
         port?: number;
         path?: string;
         user?: string;
         password?: string;
+        postgres?: Partial<PostgresConfig>;
     };
     dev?: {
         url?: string;

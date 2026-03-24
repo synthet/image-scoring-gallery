@@ -4,23 +4,24 @@ import fs from 'fs';
 
 import { spawn } from 'child_process';
 import net from 'net';
+import { getConfigPath, loadAppConfig } from './config';
+import type { AppConfig } from './types';
 
 // Load configuration
-function loadConfig() {
-    const configPath = path.resolve(path.join(__dirname, '../config.json'));
-    try {
-        if (fs.existsSync(configPath)) {
-            return JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        }
-    } catch (e) {
-        console.error('Failed to load config.json:', e);
-    }
-    return {};
+function loadConfig(): AppConfig {
+    return loadAppConfig(getConfigPath(__dirname));
 }
 
 const config = loadConfig();
 const dbConfig = config.database || {};
 const projectRoot = path.resolve(__dirname, '..');
+const dbEngine = dbConfig.engine || 'firebird';
+
+function assertFirebirdEngine(): void {
+    if (dbEngine === 'postgres') {
+        throw new Error('database.engine is set to "postgres", but electron/db.ts currently supports Firebird only.');
+    }
+}
 
 /** Optional config: see config.example.json → paths */
 interface PathsConfig {
@@ -168,7 +169,9 @@ if (isTestEnv) {
     rawDbPath = resolveSiblingDbPath('scoring_history_test.fdb');
     console.warn('[DB] Test environment detected! Using test DB only: scoring_history_test.fdb');
 } else {
-    rawDbPath = dbConfig.path || resolveSiblingDbPath('SCORING_HISTORY.FDB');
+    rawDbPath = (dbConfig.path && dbEngine === 'firebird')
+        ? dbConfig.path
+        : resolveSiblingDbPath('SCORING_HISTORY.FDB');
 }
 
 const dbPath = path.isAbsolute(rawDbPath)
@@ -201,6 +204,7 @@ let persistentConnection: Firebird.Database | null = null;
 let connectionPromise: Promise<Firebird.Database> | null = null;
 
 export async function connectDB(): Promise<Firebird.Database> {
+    assertFirebirdEngine();
     console.log('[DB] Attempting to attach to Firebird...');
     return new Promise((resolve, reject) => {
         Firebird.attach(options, (err, db) => {
@@ -220,6 +224,7 @@ export async function connectDB(): Promise<Firebird.Database> {
  * Includes a timeout to prevent indefinite hangs when Firebird is unreachable.
  */
 async function getConnection(): Promise<Firebird.Database> {
+    assertFirebirdEngine();
     // If we have a working connection, return it
     if (persistentConnection) {
         return persistentConnection;
@@ -305,6 +310,7 @@ function isPortOpen(port: number, host: string = '127.0.0.1'): Promise<boolean> 
 
 // Ensure Firebird is running
 export async function ensureFirebirdRunning(): Promise<boolean> {
+    assertFirebirdEngine();
     const port = dbConfig.port || 3050; // Use configured port or default
     const host = dbConfig.host || '127.0.0.1';
 
