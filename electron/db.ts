@@ -21,6 +21,12 @@ function loadConfig() {
 const config = loadConfig();
 const dbConfig = config.database || {};
 const projectRoot = path.resolve(__dirname, '..');
+type DatabaseEngine = 'firebird' | 'postgres';
+
+function getDatabaseEngine(): DatabaseEngine {
+    const raw = typeof dbConfig.engine === 'string' ? dbConfig.engine.toLowerCase() : 'firebird';
+    return raw === 'postgres' ? 'postgres' : 'firebird';
+}
 
 /** Optional config: see config.example.json → paths */
 interface PathsConfig {
@@ -364,7 +370,26 @@ export async function ensureFirebirdRunning(): Promise<boolean> {
     });
 }
 
+async function checkPostgresConnection(): Promise<boolean> {
+    const port = dbConfig.port || 5432;
+    const host = dbConfig.host || '127.0.0.1';
+    console.log(`[DB] Checking PostgreSQL connectivity at ${host}:${port}...`);
+    return await isPortOpen(port, host);
+}
+
+export async function initializeDatabaseProvider(): Promise<boolean> {
+    const engine = getDatabaseEngine();
+    if (engine === 'postgres') {
+        return await checkPostgresConnection();
+    }
+    return await ensureFirebirdRunning();
+}
+
 export async function checkConnection(): Promise<boolean> {
+    if (getDatabaseEngine() === 'postgres') {
+        return await checkPostgresConnection();
+    }
+
     try {
         await query('SELECT 1 FROM RDB$DATABASE');
         return true;

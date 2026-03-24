@@ -367,8 +367,10 @@ function createWindow() {
 app.whenReady().then(async () => {
     console.log('[Main] App ready, setting up protocol...');
 
-    // Ensure DB is running
-    await db.ensureFirebirdRunning();
+    // Provider-aware DB init:
+    // - Firebird: ensure server is up (and auto-start when configured)
+    // - Postgres: lightweight connectivity check only
+    await db.initializeDatabaseProvider();
 
     // Handle media:// requests with path sanitization
     protocol.handle('media', (request) => {

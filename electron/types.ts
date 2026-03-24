@@ -99,6 +99,7 @@ export interface DuplicateResponse {
 
 export interface AppConfig {
     database?: {
+        engine?: 'firebird' | 'postgres';
         host?: string;
         port?: number;
         path?: string;

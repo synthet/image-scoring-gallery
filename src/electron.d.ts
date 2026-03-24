@@ -83,6 +83,7 @@ interface DuplicateResponse {
 
 interface AppConfig {
     database?: {
+        engine?: 'firebird' | 'postgres';
         host?: string;
         port?: number;
         path?: string;
