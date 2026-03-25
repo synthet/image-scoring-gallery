@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.2.0] - 2026-03-24
+
+### Added
+- **DiagnosticsModal**: New system diagnostics panel showing DB/API connectivity status, software versions (Electron, Node.js, Chrome, V8), host OS info, and main/renderer process memory usage.
+
 ## [4.1.0] - 2026-03-24
 
 ### Added
