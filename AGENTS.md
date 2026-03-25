@@ -23,3 +23,29 @@ Agents have access to specialized tools via **`imgscore-el-stdio`** (stdio) and 
 - **[.cursorrules](.cursorrules)**: Core project rules and architecture patterns.
 - **[Project Guide](.agent/PROJECT_GUIDE.md)**: Navigation and maintenance guide.
 - **[AI Edit Spec](.agent/ai_edit_spec.md)**: Coding guidelines for agents.
+
+## Cursor Cloud specific instructions
+
+### Services overview
+
+| Service | How to run | Notes |
+|---------|-----------|-------|
+| Vite dev server | `npm run dev:web` | Serves React UI on `http://localhost:5173` |
+| Electron app | `ELECTRON_IS_DEV=1 npx electron .` | Requires Vite running first; compile TS with `npx tsc -p electron/tsconfig.json` before launching |
+| Lint | `npm run lint` | Pre-existing errors in codebase (30 errors, 7 warnings); these are not regressions |
+| Tests | `npm run test:run` | Vitest, 84 tests across 12 files |
+| Type-check | `npx tsc --noEmit` | Checks renderer TS; electron TS uses `npx tsc -p electron/tsconfig.json` |
+
+### Running the Electron app on Linux (Cloud VM)
+
+- The `npm run dev` script includes `db:start` which calls a **PowerShell script** (`scripts/start_db.ps1`) — this is Windows-only and will fail on Linux. Instead, run the components separately:
+  1. `npm run dev:web` — starts the Vite dev server
+  2. `npx tsc -p electron/tsconfig.json` — compiles Electron main process TypeScript
+  3. `ELECTRON_IS_DEV=1 npx electron .` — launches Electron (set env var directly; `cross-env` may not be on PATH as a global binary)
+- The app will show a "Connection Error" at startup because Firebird SQL (port 3050) is not available in the cloud VM. This is expected — the UI still loads and is fully interactive.
+- `cross-env` is installed as a devDependency but not globally, so use `ELECTRON_IS_DEV=1` env prefix directly instead of `cross-env ELECTRON_IS_DEV=1`.
+- dbus errors in Electron logs (e.g. `Failed to connect to the bus`) are harmless in a headless/container Linux environment.
+
+### Lockfile
+
+- Uses `package-lock.json` (npm). The `mcp-server/` subdirectory has its own `package-lock.json` and requires a separate `npm install` if you need to work on MCP tooling.
