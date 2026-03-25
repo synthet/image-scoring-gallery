@@ -20,6 +20,54 @@ const firebirdDbConfig: FirebirdDatabaseConfig = isFirebirdDb
     ? (dbConfig as FirebirdDatabaseConfig)
     : {};
 
+// ---------------------------------------------------------------------------
+// Dialect-aware SQL helpers
+// SQL_DIALECT is derived from the same source as the DB provider so they
+// always agree. Both 'postgres' and 'firebird' values are valid; anything
+// else falls back to 'firebird'.
+// ---------------------------------------------------------------------------
+type SqlDialect = 'firebird' | 'postgres';
+const SQL_DIALECT: SqlDialect = dbKind === 'postgres' ? 'postgres' : 'firebird';
+
+/** Both variants are required — forces you to implement Postgres SQL, not just silence the error. */
+interface DialectSqlTemplate { firebird: string; postgres: string; }
+
+function getDialectSql(_feature: string, t: DialectSqlTemplate): string {
+    return SQL_DIALECT === 'postgres' ? t.postgres : t.firebird;
+}
+
+/** Returns the pagination clause for the current dialect. */
+function paginationSql(): string {
+    return SQL_DIALECT === 'postgres'
+        ? 'LIMIT ? OFFSET ?'
+        : 'OFFSET ? ROWS FETCH NEXT ? ROWS ONLY';
+}
+
+/**
+ * Returns paging params in the order the current dialect expects.
+ * Firebird: OFFSET first, then FETCH NEXT (row limit).
+ * Postgres: LIMIT first, then OFFSET.
+ */
+function pagingParams(offset: number, limit: number): number[] {
+    return SQL_DIALECT === 'postgres' ? [limit, offset] : [offset, limit];
+}
+
+/**
+ * Returns a column expression that coerces a BLOB/TEXT column to a plain string.
+ * Firebird stores text fields like `keywords` as BLOBs; Postgres uses TEXT natively.
+ */
+function castTextExpr(col: string): string {
+    return SQL_DIALECT === 'postgres' ? `${col}::text` : `CAST(${col} AS VARCHAR(8191))`;
+}
+
+/**
+ * Returns a COUNT expression that guarantees a JS number (not a driver-specific bigint).
+ * Postgres drivers may return COUNT as a string or BigInt without the explicit cast.
+ */
+function countBigint(expr = '*'): string {
+    return SQL_DIALECT === 'postgres' ? `COUNT(${expr})::bigint` : `COUNT(${expr})`;
+}
+
 /** Optional config: see config.example.json → paths */
 interface PathsConfig {
     /** Explicit from→to replacements for thumbnail_path (applied after win/WSL resolution) */
@@ -131,10 +179,16 @@ function normalizeImageRowThumbnails(row: Record<string, unknown>): void {
     delete row.THUMBNAIL_PATH_WIN;
 }
 
+/** Normalizes thumbnail paths on a typed row and returns it — convenience wrapper over normalizeImageRowThumbnails. */
+function normalizeImageRowOutput<T extends object>(row: T): T {
+    normalizeImageRowThumbnails(row as Record<string, unknown>);
+    return row;
+}
+
 function mapRowsThumbnails(rows: unknown[]): unknown[] {
     for (const r of rows) {
         if (r && typeof r === 'object') {
-            normalizeImageRowThumbnails(r as Record<string, unknown>);
+            normalizeImageRowOutput(r as Record<string, unknown>);
         }
     }
     return rows;
@@ -215,6 +269,63 @@ export async function runTransaction<T>(
     return provider.runTransaction(callback);
 }
 
+// ---------------------------------------------------------------------------
+// SQL templates for statements that are structurally different per dialect.
+// Pagination and BLOB-cast differences are handled by the helpers above.
+// ---------------------------------------------------------------------------
+const SQL_TEMPLATES = {
+    /**
+     * Update rep_image_id in stack_cache to the highest-scoring image per stack.
+     * Firebird: MERGE ... WHEN MATCHED. Postgres: INSERT ... ON CONFLICT DO UPDATE.
+     */
+    mergeStackRepId: {
+        firebird: `
+            MERGE INTO stack_cache sc
+            USING (
+                SELECT i.stack_id, MIN(i.id) as best_id
+                FROM images i
+                WHERE i.stack_id IS NOT NULL
+                  AND i.score_general = (
+                      SELECT MAX(i2.score_general) FROM images i2 WHERE i2.stack_id = i.stack_id
+                  )
+                GROUP BY i.stack_id
+            ) src
+            ON sc.stack_id = src.stack_id
+            WHEN MATCHED THEN UPDATE SET sc.rep_image_id = src.best_id
+        `,
+        postgres: `
+            INSERT INTO stack_cache (stack_id, rep_image_id)
+            SELECT src.stack_id, src.best_id FROM (
+                SELECT i.stack_id, MIN(i.id) as best_id
+                FROM images i
+                WHERE i.stack_id IS NOT NULL
+                  AND i.score_general = (
+                      SELECT MAX(i2.score_general) FROM images i2 WHERE i2.stack_id = i.stack_id
+                  )
+                GROUP BY i.stack_id
+            ) src
+            ON CONFLICT (stack_id) DO UPDATE SET rep_image_id = EXCLUDED.rep_image_id
+        `,
+    } satisfies DialectSqlTemplate,
+
+    /**
+     * Upsert a keyword association for an image.
+     * Firebird: UPDATE OR INSERT ... MATCHING. Postgres: INSERT ... ON CONFLICT DO UPDATE.
+     */
+    upsertImageKeyword: {
+        firebird: `
+            UPDATE OR INSERT INTO image_keywords (image_id, keyword_id, source, confidence)
+            VALUES (?, ?, ?, ?) MATCHING (image_id, keyword_id)
+        `,
+        postgres: `
+            INSERT INTO image_keywords (image_id, keyword_id, source, confidence)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT (image_id, keyword_id) DO UPDATE
+                SET source = EXCLUDED.source, confidence = EXCLUDED.confidence
+        `,
+    } satisfies DialectSqlTemplate,
+} as const;
+
 function pushFolderFilter(
     whereParts: string[], params: (string | number | null)[],
     folderId: number | undefined, folderIds: number[] | undefined,
@@ -253,7 +364,7 @@ export async function getImageCount(options: ImageQueryOptions = {}): Promise<nu
 
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
 
-    const rows = await query<{ count: number }>(`SELECT COUNT(*) as "count" FROM images ${whereClause}`, params);
+    const rows = await query<{ count: number }>(`SELECT ${countBigint()} as "count" FROM images ${whereClause}`, params);
     return rows[0]?.count || 0;
 }
 
@@ -304,25 +415,20 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
     const sortColumn = allowedSortColumns.includes(sortBy) ? `i.${sortBy}` : 'i.score_general';
     const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
 
-    // Note: Offset/Limit in Firebird 3+ is OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-    // But we need to put params in order. WHERE params come first.
-
-    params.push(offset, limit);
-
     const sql = `
-        SELECT 
-            i.id, 
-            COALESCE(fp.path, i.file_path) as file_path, 
-            i.file_name, 
-            i.score_general, 
+        SELECT
+            i.id,
+            COALESCE(fp.path, i.file_path) as file_path,
+            i.file_name,
+            i.score_general,
             i.score_technical,
             i.score_aesthetic,
             i.score_spaq,
             i.score_ava,
             i.score_liqe,
-            i.rating, 
-            i.label, 
-            i.created_at, 
+            i.rating,
+            i.label,
+            i.created_at,
             i.thumbnail_path,
             i.thumbnail_path_win
         FROM images i
@@ -330,9 +436,9 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             AND POSITION('/thumbnails/' IN fp.path) = 0
         ${whereClause}
         ORDER BY ${sortColumn} ${sortOrder}
-        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        ${paginationSql()}
     `;
-    const rows = await query(sql, params);
+    const rows = await query(sql, [...params, ...pagingParams(offset, limit)]);
     return mapRowsThumbnails(rows);
 }
 
@@ -352,7 +458,8 @@ export async function getKeywords(): Promise<string[]> {
     }
 
     // DISTINCT reduces rows sent over the wire when many images share keyword combos
-    let sql = `SELECT DISTINCT CAST(keywords AS VARCHAR(8191)) as keywords FROM images WHERE keywords IS NOT NULL AND keywords <> ''`;
+    // castTextExpr handles Firebird BLOB→VARCHAR and Postgres TEXT coercion.
+    let sql = `SELECT DISTINCT ${castTextExpr('keywords')} as keywords FROM images WHERE keywords IS NOT NULL AND keywords <> ''`;
 
     console.log('[DB] Executing getKeywords SQL:', sql);
 
@@ -458,9 +565,9 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
             i.score_koniq,
             i.score_paq2piq,
             i.score_liqe,
-            CAST(i.keywords AS VARCHAR(8191)) as keywords,
-            CAST(i.title AS VARCHAR(8191)) as title,
-            CAST(i.description AS VARCHAR(8191)) as description,
+            ${castTextExpr('i.keywords')} as keywords,
+            ${castTextExpr('i.title')} as title,
+            ${castTextExpr('i.description')} as description,
             i.metadata,
             i.thumbnail_path,
             i.thumbnail_path_win,
@@ -493,14 +600,7 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
         return null;
     }
 
-    const image: ImageDetailRow = rows[0] as ImageDetailRow;
-
-    const thumbWin = (image as { thumbnail_path_win?: string }).thumbnail_path_win;
-    const resolvedThumb = resolveThumbnailPathForDisplay(thumbWin, image.thumbnail_path);
-    if (resolvedThumb !== undefined) {
-        image.thumbnail_path = resolvedThumb;
-    }
-    delete (image as { thumbnail_path_win?: string }).thumbnail_path_win;
+    const image: ImageDetailRow = normalizeImageRowOutput(rows[0] as ImageDetailRow);
 
     // Discard win_path if it's actually a thumbnail path (bad data in file_paths table)
     if (image.win_path && image.file_name) {
@@ -561,7 +661,7 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
 export async function getFolders(): Promise<unknown[]> {
     const rows = await query(`
         SELECT f.id, f.path, f.parent_id, f.is_fully_scored,
-               (SELECT COUNT(1) FROM images i WHERE i.folder_id = f.id) as image_count
+               (SELECT ${countBigint('1')} FROM images i WHERE i.folder_id = f.id) as image_count
         FROM folders f
         ORDER BY f.path ASC
     `);
@@ -817,8 +917,9 @@ export async function syncImageKeywords(imageId: number, keywordsStr: string | n
             }
             
             if (kwId !== null) {
+                // Dialect: Firebird uses UPDATE OR INSERT ... MATCHING; Postgres uses INSERT ... ON CONFLICT DO UPDATE.
                 await query(
-                    'UPDATE OR INSERT INTO image_keywords (image_id, keyword_id, source, confidence) VALUES (?, ?, ?, ?) MATCHING (image_id, keyword_id)',
+                    getDialectSql('upsertImageKeyword', SQL_TEMPLATES.upsertImageKeyword),
                     [imageId, kwId, 'electron_ui', 1.0]
                 );
             }
@@ -944,21 +1045,9 @@ export async function rebuildStackCache(): Promise<number> {
 
                 await txQuery(sql);
 
-                // Update rep_image_id to be the image with the highest general score in each stack
-                await txQuery(`
-                    MERGE INTO stack_cache sc
-                    USING (
-                        SELECT i.stack_id, MIN(i.id) as best_id
-                        FROM images i
-                        WHERE i.stack_id IS NOT NULL
-                          AND i.score_general = (
-                              SELECT MAX(i2.score_general) FROM images i2 WHERE i2.stack_id = i.stack_id
-                          )
-                        GROUP BY i.stack_id
-                    ) src
-                    ON sc.stack_id = src.stack_id
-                    WHEN MATCHED THEN UPDATE SET sc.rep_image_id = src.best_id
-                `);
+                // Update rep_image_id to be the image with the highest general score in each stack.
+                // Dialect: Firebird uses MERGE ... WHEN MATCHED; Postgres uses INSERT ... ON CONFLICT DO UPDATE.
+                await txQuery(getDialectSql('mergeStackRepId', SQL_TEMPLATES.mergeStackRepId));
 
                 const countRows = await txQuery<{ cnt: number }>('SELECT COUNT(*) as "cnt" FROM stack_cache');
                 const count = countRows[0]?.cnt || 0;
@@ -1067,10 +1156,10 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.score_ava,
                 i.score_liqe,
                 i.rating,
-            i.label,
-            i.created_at,
-            i.thumbnail_path,
-            i.thumbnail_path_win
+                i.label,
+                i.created_at,
+                i.thumbnail_path,
+                i.thumbnail_path_win
             FROM stack_cache sc
             JOIN images i ON i.id = sc.rep_image_id
             LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
@@ -1105,10 +1194,10 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
             ${whereClauseNonStack}
         ) a
         ORDER BY a.sort_value ${sortOrder}, a.stack_key DESC
-        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        ${paginationSql()}
     `;
 
-    const rows = await query(sql, [...topParams, ...botParams, offset, limit]);
+    const rows = await query(sql, [...topParams, ...botParams, ...pagingParams(offset, limit)]);
     return mapRowsThumbnails(rows);
 }
 
@@ -1152,22 +1241,20 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
     const sortColumn = allowedSortColumns.includes(sortBy) ? `i.${sortBy}` : 'i.score_general';
     const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
 
-    params.push(offset, limit);
-
     const sql = `
-        SELECT 
-            i.id, 
-            COALESCE(fp.path, i.file_path) as file_path, 
-            i.file_name, 
-            i.score_general, 
+        SELECT
+            i.id,
+            COALESCE(fp.path, i.file_path) as file_path,
+            i.file_name,
+            i.score_general,
             i.score_technical,
             i.score_aesthetic,
             i.score_spaq,
             i.score_ava,
             i.score_liqe,
-            i.rating, 
-            i.label, 
-            i.created_at, 
+            i.rating,
+            i.label,
+            i.created_at,
             i.thumbnail_path,
             i.thumbnail_path_win,
             i.stack_id
@@ -1176,9 +1263,9 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             AND POSITION('/thumbnails/' IN fp.path) = 0
         ${whereClause}
         ORDER BY ${sortColumn} ${sortOrder}
-        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        ${paginationSql()}
     `;
-    const rows = await query(sql, params);
+    const rows = await query(sql, [...params, ...pagingParams(offset, limit)]);
     return mapRowsThumbnails(rows);
 }
 
@@ -1207,12 +1294,12 @@ export async function getStackCount(options: StackQueryOptions = {}): Promise<nu
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
 
     const sql = `
-        SELECT COUNT(*) as "count" FROM (
+        SELECT ${countBigint()} as "count" FROM (
             SELECT COALESCE(i.stack_id, -i.id) as stack_key
             FROM images i
             ${whereClause}
             GROUP BY COALESCE(i.stack_id, -i.id)
-        )
+        ) sub
     `;
 
     const rows = await query<{ count: number }>(sql, params);
