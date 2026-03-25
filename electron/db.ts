@@ -1,24 +1,24 @@
 import path from 'path';
 import fs from 'fs';
 
+import { getConfigPath, loadAppConfig } from './config';
+import type { AppConfig, DatabaseConfig, FirebirdDatabaseConfig } from './types';
 import { createDbProvider, DbProvider, QueryParam, TxQuery } from './db/provider';
 
 // Load configuration
-function loadConfig() {
-    const configPath = path.resolve(path.join(__dirname, '../config.json'));
-    try {
-        if (fs.existsSync(configPath)) {
-            return JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        }
-    } catch (e) {
-        console.error('Failed to load config.json:', e);
-    }
-    return {};
+function loadConfig(): AppConfig {
+    return loadAppConfig(getConfigPath(__dirname));
 }
 
 const config = loadConfig();
 const dbConfig = config.database || {};
 const projectRoot = path.resolve(__dirname, '..');
+// Support both `database.engine` and legacy `database.provider` during branch convergence.
+const dbKind = (dbConfig.engine || dbConfig.provider || 'firebird').toLowerCase();
+const isFirebirdDb = dbKind === 'firebird';
+const firebirdDbConfig: FirebirdDatabaseConfig = isFirebirdDb
+    ? (dbConfig as FirebirdDatabaseConfig)
+    : {};
 
 /** Optional config: see config.example.json → paths */
 interface PathsConfig {
@@ -157,25 +157,27 @@ function resolveSiblingDbPath(filename: string): string {
 // Add test detection — tests must NEVER use production DB
 const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST;
 
-// If path is relative in config, it's relative to the project root (one level up from dist-electron)
-let rawDbPath: string;
-
-if (isTestEnv) {
-    // Force test DB only — matches image-scoring/scripts/setup_test_db.py (scoring_history_test.fdb)
-    rawDbPath = resolveSiblingDbPath('scoring_history_test.fdb');
-    console.warn('[DB] Test environment detected! Using test DB only: scoring_history_test.fdb');
+let dbPath: string;
+if (isFirebirdDb) {
+    let rawDbPath: string;
+    if (isTestEnv) {
+        rawDbPath = resolveSiblingDbPath('scoring_history_test.fdb');
+        console.warn('[DB] Test environment detected! Using test DB only: scoring_history_test.fdb');
+    } else {
+        rawDbPath = firebirdDbConfig.path
+            ? firebirdDbConfig.path
+            : resolveSiblingDbPath('SCORING_HISTORY.FDB');
+    }
+    dbPath = path.isAbsolute(rawDbPath)
+        ? rawDbPath
+        : path.resolve(projectRoot, rawDbPath);
+    console.log('Connecting to DB at:', dbPath);
 } else {
-    rawDbPath = dbConfig.path || resolveSiblingDbPath('SCORING_HISTORY.FDB');
+    dbPath = '';
 }
 
-const dbPath = path.isAbsolute(rawDbPath)
-    ? rawDbPath
-    : path.resolve(projectRoot, rawDbPath);
-
-console.log('Connecting to DB at:', dbPath);
-
 const provider: DbProvider = createDbProvider({
-    dbConfig,
+    dbConfig: dbConfig as DatabaseConfig,
     firebirdConfig: config.firebird,
     firebirdDatabasePath: dbPath,
 });
@@ -183,7 +185,6 @@ const provider: DbProvider = createDbProvider({
 export async function connectDB(): Promise<void> {
     await provider.connect();
 }
-
 export function closeConnection(): void {
     void provider.close().catch((e) => {
         console.error('[DB] Error while closing database connection:', e);

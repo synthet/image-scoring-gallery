@@ -81,14 +81,56 @@ interface DuplicateResponse {
     message?: string;
 }
 
+type DatabaseEngine = 'firebird' | 'postgres';
+// NOTE: Keep the database config types below in sync with electron/types.ts.
+
+interface PostgresSslConfig {
+    enabled?: boolean;
+    rejectUnauthorized?: boolean;
+    ca?: string;
+    cert?: string;
+    key?: string;
+}
+
+interface PostgresPoolConfig {
+    min?: number;
+    max?: number;
+    idleTimeoutMillis?: number;
+    connectionTimeoutMillis?: number;
+}
+
+interface PostgresConfig {
+    host: string;
+    port: number;
+    database: string;
+    user: string;
+    password?: string;
+    ssl?: boolean | PostgresSslConfig;
+    pool?: PostgresPoolConfig;
+}
+
+interface FirebirdDatabaseConfig {
+    engine?: Extract<DatabaseEngine, 'firebird'>;
+    /** @deprecated Prefer `engine`. Kept for backward compatibility with older configs/branches. */
+    provider?: 'firebird';
+    host?: string;
+    port?: number;
+    path?: string;
+    user?: string;
+    password?: string;
+}
+
+interface PostgresDatabaseConfig {
+    engine: Extract<DatabaseEngine, 'postgres'>;
+    /** @deprecated Prefer `engine`. Kept for backward compatibility with older configs/branches. */
+    provider?: 'postgres';
+    postgres: PostgresConfig;
+}
+
+type DatabaseConfig = FirebirdDatabaseConfig | PostgresDatabaseConfig;
+
 interface AppConfig {
-    database?: {
-        host?: string;
-        port?: number;
-        path?: string;
-        user?: string;
-        password?: string;
-    };
+    database?: DatabaseConfig;
     dev?: {
         url?: string;
     };
@@ -101,6 +143,11 @@ interface AppConfig {
         path?: string;
     };
     selection?: Record<string, unknown>;
+    paths?: {
+        thumbnail_path_remap?: Array<{ from: string; to: string }>;
+        remap_legacy_image_scoring_thumbnails?: boolean;
+        thumbnail_base_dir?: string;
+    };
     [key: string]: unknown;
 }
 

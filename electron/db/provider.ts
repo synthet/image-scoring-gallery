@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import net from 'net';
 import path from 'path';
+import type { PostgresConfig as AppPostgresConfig } from '../types';
 
 export type QueryParam = string | number | null;
 export type TxQuery = <R = unknown>(sql: string, params?: QueryParam[]) => Promise<R[]>;
@@ -268,16 +269,48 @@ export class FirebirdProvider implements DbProvider {
     }
 }
 
-interface PostgresConfig {
+interface PgPoolDriverConfig {
     host?: string;
     port?: number;
     user?: string;
     password?: string;
     database?: string;
+    min?: number;
     max?: number;
     idleTimeoutMillis?: number;
     connectionTimeoutMillis?: number;
     ssl?: boolean | Record<string, unknown>;
+}
+
+function normalizeSslForPg(ssl: AppPostgresConfig['ssl']): boolean | Record<string, unknown> | undefined {
+    if (ssl === undefined) return undefined;
+    if (typeof ssl === 'boolean') return ssl;
+    if (typeof ssl === 'object' && ssl !== null) {
+        if (ssl.enabled === false) return false;
+        const out: Record<string, unknown> = {};
+        if (ssl.rejectUnauthorized !== undefined) out.rejectUnauthorized = ssl.rejectUnauthorized;
+        if (ssl.ca) out.ca = ssl.ca;
+        if (ssl.cert) out.cert = ssl.cert;
+        if (ssl.key) out.key = ssl.key;
+        return Object.keys(out).length > 0 ? out : true;
+    }
+    return undefined;
+}
+
+function appPostgresConfigToPoolOptions(pg: AppPostgresConfig): PgPoolDriverConfig {
+    const pool = pg.pool || {};
+    return {
+        host: pg.host,
+        port: pg.port,
+        user: pg.user,
+        password: pg.password,
+        database: pg.database,
+        min: pool.min,
+        max: pool.max,
+        idleTimeoutMillis: pool.idleTimeoutMillis,
+        connectionTimeoutMillis: pool.connectionTimeoutMillis,
+        ssl: normalizeSslForPg(pg.ssl),
+    };
 }
 
 type PgRow = Record<string, unknown>;
@@ -294,7 +327,7 @@ interface PgPoolClientLike {
 }
 
 interface PgModuleLike {
-    Pool: new (config: PostgresConfig) => PgPoolLike;
+    Pool: new (config: PgPoolDriverConfig) => PgPoolLike;
 }
 
 const runtimeImport = new Function('moduleName', 'return import(moduleName)') as (moduleName: string) => Promise<unknown>;
@@ -302,11 +335,11 @@ const runtimeImport = new Function('moduleName', 'return import(moduleName)') as
 export class PostgresProvider implements DbProvider {
     readonly type = 'postgres' as const;
 
-    private readonly poolConfig: PostgresConfig;
+    private readonly poolConfig: PgPoolDriverConfig;
     private pool: PgPoolLike | null = null;
     private poolPromise: Promise<PgPoolLike> | null = null;
 
-    constructor(poolConfig: PostgresConfig = {}) {
+    constructor(poolConfig: PgPoolDriverConfig = {}) {
         this.poolConfig = poolConfig;
     }
 
@@ -380,6 +413,7 @@ export class PostgresProvider implements DbProvider {
                     user: this.poolConfig.user,
                     password: this.poolConfig.password,
                     database: this.poolConfig.database,
+                    min: this.poolConfig.min,
                     max: this.poolConfig.max,
                     idleTimeoutMillis: this.poolConfig.idleTimeoutMillis,
                     connectionTimeoutMillis: this.poolConfig.connectionTimeoutMillis,
@@ -399,12 +433,15 @@ export class PostgresProvider implements DbProvider {
 }
 
 interface ProviderFactoryConfig {
+    /** Prefer over legacy `provider` when both are set (normalized configs set both). */
+    engine?: string;
     provider?: string;
-    postgres?: PostgresConfig;
+    postgres?: AppPostgresConfig;
     host?: string;
     port?: number;
     user?: string;
     password?: string;
+    path?: string;
 }
 
 export function createDbProvider(config: {
@@ -412,14 +449,14 @@ export function createDbProvider(config: {
     firebirdConfig?: FirebirdBootConfig;
     firebirdDatabasePath: string;
 }): DbProvider {
-    const provider = config.dbConfig.provider?.toLowerCase();
+    const kind = (config.dbConfig.engine || config.dbConfig.provider || 'firebird').toLowerCase();
 
-    if (provider === 'postgres' || provider === 'postgresql') {
+    if (kind === 'postgres' || kind === 'postgresql') {
         if (!config.dbConfig.postgres) {
-            throw new Error('[DB] database.postgres config is required when provider is "postgres".');
+            throw new Error('[DB] database.postgres config is required when engine/provider is "postgres".');
         }
         console.log('[DB] Using Postgres provider');
-        return new PostgresProvider(config.dbConfig.postgres);
+        return new PostgresProvider(appPostgresConfigToPoolOptions(config.dbConfig.postgres));
     }
 
     console.log('[DB] Using Firebird provider');
