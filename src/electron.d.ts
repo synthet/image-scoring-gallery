@@ -110,7 +110,7 @@ interface PostgresConfig {
 }
 
 interface FirebirdDatabaseConfig {
-    engine?: 'firebird';
+    engine?: Extract<DatabaseEngine, 'firebird'>;
     /** @deprecated Prefer `engine`. Kept for backward compatibility with older configs/branches. */
     provider?: 'firebird';
     host?: string;
@@ -121,7 +121,7 @@ interface FirebirdDatabaseConfig {
 }
 
 interface PostgresDatabaseConfig {
-    engine: 'postgres';
+    engine: Extract<DatabaseEngine, 'postgres'>;
     /** @deprecated Prefer `engine`. Kept for backward compatibility with older configs/branches. */
     provider?: 'postgres';
     postgres: PostgresConfig;
