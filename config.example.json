@@ -1,11 +1,29 @@
 {
     "database": {
         "engine": "firebird",
+        "provider": "firebird",
         "host": "127.0.0.1",
         "port": 3050,
         "user": "sysdba",
         "password": "masterkey",
-        "path": "../image-scoring-backend/SCORING_HISTORY.FDB"
+        "path": "../image-scoring-backend/SCORING_HISTORY.FDB",
+        "postgres": {
+            "host": "127.0.0.1",
+            "port": 5432,
+            "database": "image_scoring",
+            "user": "postgres",
+            "password": "postgres",
+            "ssl": {
+                "enabled": false,
+                "rejectUnauthorized": true
+            },
+            "pool": {
+                "min": 0,
+                "max": 10,
+                "idleTimeoutMillis": 30000,
+                "connectionTimeoutMillis": 10000
+            }
+        }
     },
     "dev": {
         "url": "http://localhost:5173"

@@ -10,6 +10,7 @@ import { ExifTool } from 'exiftool-vendored';
 import { ApiService } from './apiService';
 import { ExportImageContext } from './types';
 import { SessionLogManager } from './sessionLogManager';
+import { deepMergeConfig, getConfigPath, loadAppConfig, normalizeAppConfig } from './config';
 
 const exiftool = new ExifTool({ maxProcs: 2 });
 
@@ -308,15 +309,8 @@ protocol.registerSchemesAsPrivileged([
 
 // Load configuration
 function loadConfig() {
-    const configPath = path.resolve(path.join(__dirname, '../config.json'));
-    try {
-        if (fs.existsSync(configPath)) {
-            return JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        }
-    } catch (e) {
-        console.error('Failed to load config.json:', e);
-    }
-    return {};
+    const configPath = getConfigPath(__dirname);
+    return loadAppConfig(configPath);
 }
 
 const config = loadConfig();
@@ -834,7 +828,7 @@ app.whenReady().then(async () => {
     }));
 
     ipcMain.handle('system:save-config', wrapIpcHandler(async (_, updates) => {
-        const configPath = path.resolve(path.join(__dirname, '../config.json'));
+        const configPath = getConfigPath(__dirname);
         let currentConfig: Record<string, unknown> = {};
         try {
             if (fs.existsSync(configPath)) {
@@ -844,14 +838,11 @@ app.whenReady().then(async () => {
             console.error('[Main] Error reading config for save:', e);
         }
 
-        // Deep merge updates
-        const newConfig = { ...currentConfig };
-        if (updates.selection) {
-            newConfig.selection = {
-                ...(newConfig.selection || {}),
-                ...updates.selection
-            };
-        }
+        const updatesObj = typeof updates === 'object' && updates !== null
+            ? updates as Record<string, unknown>
+            : {};
+        const mergedConfig = deepMergeConfig(currentConfig, updatesObj);
+        const newConfig = normalizeAppConfig(mergedConfig);
 
         try {
             await fs.promises.writeFile(configPath, JSON.stringify(newConfig, null, 2));

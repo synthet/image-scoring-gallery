@@ -1,32 +1,24 @@
-import Firebird from 'node-firebird';
 import path from 'path';
 import fs from 'fs';
 
-import { spawn } from 'child_process';
-import net from 'net';
+import { getConfigPath, loadAppConfig } from './config';
+import type { AppConfig, DatabaseConfig, FirebirdDatabaseConfig } from './types';
+import { createDbProvider, DbProvider, QueryParam, TxQuery } from './db/provider';
 
 // Load configuration
-function loadConfig() {
-    const configPath = path.resolve(path.join(__dirname, '../config.json'));
-    try {
-        if (fs.existsSync(configPath)) {
-            return JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        }
-    } catch (e) {
-        console.error('Failed to load config.json:', e);
-    }
-    return {};
+function loadConfig(): AppConfig {
+    return loadAppConfig(getConfigPath(__dirname));
 }
 
 const config = loadConfig();
 const dbConfig = config.database || {};
 const projectRoot = path.resolve(__dirname, '..');
-type DatabaseEngine = 'firebird' | 'postgres';
-
-function getDatabaseEngine(): DatabaseEngine {
-    const raw = typeof dbConfig.engine === 'string' ? dbConfig.engine.toLowerCase() : 'firebird';
-    return raw === 'postgres' ? 'postgres' : 'firebird';
-}
+// Support both `database.engine` and legacy `database.provider` during branch convergence.
+const dbKind = (dbConfig.engine || dbConfig.provider || 'firebird').toLowerCase();
+const isFirebirdDb = dbKind === 'firebird';
+const firebirdDbConfig: FirebirdDatabaseConfig = isFirebirdDb
+    ? (dbConfig as FirebirdDatabaseConfig)
+    : {};
 
 /** Optional config: see config.example.json → paths */
 interface PathsConfig {
@@ -165,327 +157,62 @@ function resolveSiblingDbPath(filename: string): string {
 // Add test detection — tests must NEVER use production DB
 const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST;
 
-// Database options
-// If path is relative in config, it's relative to the project root (one level up from dist-electron)
-let rawDbPath: string;
-
-if (isTestEnv) {
-    // Force test DB only — matches image-scoring/scripts/setup_test_db.py (scoring_history_test.fdb)
-    rawDbPath = resolveSiblingDbPath('scoring_history_test.fdb');
-    console.warn('[DB] Test environment detected! Using test DB only: scoring_history_test.fdb');
+let dbPath: string;
+if (isFirebirdDb) {
+    let rawDbPath: string;
+    if (isTestEnv) {
+        rawDbPath = resolveSiblingDbPath('scoring_history_test.fdb');
+        console.warn('[DB] Test environment detected! Using test DB only: scoring_history_test.fdb');
+    } else {
+        rawDbPath = firebirdDbConfig.path
+            ? firebirdDbConfig.path
+            : resolveSiblingDbPath('SCORING_HISTORY.FDB');
+    }
+    dbPath = path.isAbsolute(rawDbPath)
+        ? rawDbPath
+        : path.resolve(projectRoot, rawDbPath);
+    console.log('Connecting to DB at:', dbPath);
 } else {
-    rawDbPath = dbConfig.path || resolveSiblingDbPath('SCORING_HISTORY.FDB');
+    dbPath = '';
 }
 
-const dbPath = path.isAbsolute(rawDbPath)
-    ? rawDbPath
-    : path.resolve(projectRoot, rawDbPath);
+const provider: DbProvider = createDbProvider({
+    dbConfig: dbConfig as DatabaseConfig,
+    firebirdConfig: config.firebird,
+    firebirdDatabasePath: dbPath,
+});
 
-console.log('Connecting to DB at:', dbPath);
-
-const options: Firebird.Options = {
-    host: dbConfig.host || '127.0.0.1',
-    port: dbConfig.port || 3050,
-    database: dbPath,
-    user: dbConfig.user || 'sysdba',
-    password: dbConfig.password || 'masterkey',
-    lowercase_keys: true,
-    role: '',
-    pageSize: 4096
-};
-
-// Also support connecting to the file directly if we used Embedded, 
-// but node-firebird is a pure JS client (requires server) or uses native bindings?
-// 'node-firebird' is a pure JS implementation of the wire protocol. It NEEDS a running Firebird server.
-// It cannot open FDB files directly without a server process listening on a port.
-
-// This means the Python script or a service MUST be running.
-// We will assume server is running on localhost:3050.
-
-// Connection pooling: maintain a single persistent connection
-let persistentConnection: Firebird.Database | null = null;
-let connectionPromise: Promise<Firebird.Database> | null = null;
-
-export async function connectDB(): Promise<Firebird.Database> {
-    console.log('[DB] Attempting to attach to Firebird...');
-    return new Promise((resolve, reject) => {
-        Firebird.attach(options, (err, db) => {
-            if (err) {
-                console.error('[DB] Firebird attach failed:', err);
-                return reject(err);
-            }
-            console.log('[DB] Firebird attach successful');
-            resolve(db);
-        });
-    });
+export async function connectDB(): Promise<void> {
+    await provider.connect();
 }
-
-/**
- * Get or create a persistent database connection.
- * Implements connection pooling by reusing a single connection.
- * Includes a timeout to prevent indefinite hangs when Firebird is unreachable.
- */
-async function getConnection(): Promise<Firebird.Database> {
-    // If we have a working connection, return it
-    if (persistentConnection) {
-        return persistentConnection;
-    }
-
-    // If a connection is already being established, wait for it
-    if (connectionPromise) {
-        return connectionPromise;
-    }
-
-    const CONNECTION_TIMEOUT_MS = 10000; // 10 seconds
-
-    // Create a new connection with timeout
-    connectionPromise = new Promise<Firebird.Database>((resolve, reject) => {
-        // Pre-check: verify port is open before attempting attach
-        const port = options.port || 3050;
-        const host = options.host || '127.0.0.1';
-
-        console.log(`[DB] Attempting persistent connection to ${host}:${port}...`);
-
-        // Timeout guard — node-firebird has no built-in timeout
-        const timeout = setTimeout(() => {
-            connectionPromise = null;
-            persistentConnection = null;
-            reject(new Error(`Connection timeout after ${CONNECTION_TIMEOUT_MS / 1000}s — is Firebird running on ${host}:${port}?`));
-        }, CONNECTION_TIMEOUT_MS);
-
-        Firebird.attach(options, (err, db) => {
-            clearTimeout(timeout);
-            connectionPromise = null;
-
-            if (err) {
-                console.error('[DB] Failed to establish persistent connection:', err);
-                persistentConnection = null;
-                return reject(err);
-            }
-
-            console.log('[DB] Persistent connection established');
-            persistentConnection = db;
-            resolve(db);
-        });
-    });
-
-    return connectionPromise;
-}
-
-/**
- * Close the persistent database connection.
- */
 export function closeConnection(): void {
-    if (persistentConnection) {
-        persistentConnection.detach((err) => {
-            if (err) {
-                console.error('[DB] Error closing connection:', err);
-            } else {
-                console.log('[DB] Connection closed');
-            }
-            persistentConnection = null;
-        });
-    }
-}
-
-// Check if Firebird port is open
-function isPortOpen(port: number, host: string = '127.0.0.1'): Promise<boolean> {
-    return new Promise((resolve) => {
-        const socket = new net.Socket();
-        socket.setTimeout(2000); // 2s timeout
-        socket.on('connect', () => {
-            socket.destroy();
-            resolve(true);
-        });
-        socket.on('timeout', () => {
-            socket.destroy();
-            resolve(false);
-        });
-        socket.on('error', () => {
-            socket.destroy();
-            resolve(false);
-        });
-        socket.connect(port, host);
+    void provider.close().catch((e) => {
+        console.error('[DB] Error while closing database connection:', e);
     });
 }
 
-// Ensure Firebird is running
+/** Historical name preserved for IPC compatibility; now validates whichever DB provider is configured. */
 export async function ensureFirebirdRunning(): Promise<boolean> {
-    const port = dbConfig.port || 3050; // Use configured port or default
-    const host = dbConfig.host || '127.0.0.1';
-
-    console.log(`[DB] Checking if Firebird is running on ${host}:${port}...`);
-    const isOpen = await isPortOpen(port, host);
-
-    if (isOpen) {
-        console.log('[DB] Firebird is already running.');
-        return true;
-    }
-
-    console.log('[DB] Firebird port is closed. Attempting to start server...');
-    const firebirdPath = config.firebird?.path;
-
-    if (!firebirdPath) {
-        console.error('[DB] Firebird path not configured in config.json (firebird.path). Cannot auto-start.');
-        return false;
-    }
-
-    const binPath = path.join(firebirdPath, 'firebird.exe');
-
-    if (!fs.existsSync(binPath)) {
-        console.error(`[DB] Firebird executable not found at: ${binPath}`);
-        return false;
-    }
-
-    return new Promise((resolve) => {
-        console.log(`[DB] Spawning Firebird process: ${binPath} -a -p ${port}`);
-        // We use spawn to start it detached so it keeps running
-        const child = spawn(binPath, ['-a', '-p', String(port)], {
-            detached: true,
-            stdio: 'ignore', // Ignore stdio to allow it to run independently
-            windowsHide: true // Hide the window
-        });
-
-        child.unref(); // Allow the parent to exit without waiting for the child
-
-        // Now we need to wait for the port to open
-        console.log('[DB] Waiting for Firebird to be ready...');
-
-        let attempts = 0;
-        const maxAttempts = 20; // 20 * 500ms = 10s timeout
-
-        const checkInterval = setInterval(async () => {
-            attempts++;
-            const ready = await isPortOpen(port, host);
-            if (ready) {
-                clearInterval(checkInterval);
-                console.log('[DB] Firebird started successfully!');
-                resolve(true);
-            } else if (attempts >= maxAttempts) {
-                clearInterval(checkInterval);
-                console.error('[DB] Timeout waiting for Firebird to start.');
-                resolve(false);
-            }
-        }, 500);
-    });
+    return provider.verifyStartup();
 }
 
-async function checkPostgresConnection(): Promise<boolean> {
-    const port = dbConfig.port || 5432;
-    const host = dbConfig.host || '127.0.0.1';
-    console.log(`[DB] Checking PostgreSQL connectivity at ${host}:${port}...`);
-    return await isPortOpen(port, host);
-}
-
+/** Provider-aware startup: Firebird verifies server is up; Postgres verifies connectivity. */
 export async function initializeDatabaseProvider(): Promise<boolean> {
-    const engine = getDatabaseEngine();
-    if (engine === 'postgres') {
-        return await checkPostgresConnection();
-    }
-    return await ensureFirebirdRunning();
+    return provider.verifyStartup();
 }
 
 export async function checkConnection(): Promise<boolean> {
-    if (getDatabaseEngine() === 'postgres') {
-        return await checkPostgresConnection();
-    }
-
-    try {
-        await query('SELECT 1 FROM RDB$DATABASE');
-        return true;
-    } catch (e) {
-        console.error('[DB] Check connection failed:', e);
-        return false;
-    }
+    return provider.checkConnection();
 }
 
-// Simple query queue to avoid concurrent operations on a single Firebird connection,
-// which has been observed to trigger internal driver errors in node-firebird.
-let queryChain: Promise<unknown> = Promise.resolve();
-
-async function executeQuery<T = unknown>(sql: string, params: (string | number | null)[] = []): Promise<T[]> {
-    try {
-        const db = await getConnection();
-
-        return await new Promise<T[]>((resolve, reject) => {
-            db.query(sql, params, (err, result) => {
-                if (err) {
-                    // Connection may be stale, reset it
-                    persistentConnection = null;
-                    return reject(err);
-                }
-
-                resolve(result as T[]);
-            });
-        });
-    } catch (err) {
-        console.error('[DB] Query failed:', err);
-        throw err;
-    }
-}
-
-export async function query<T = unknown>(sql: string, params: (string | number | null)[] = []): Promise<T[]> {
-    const run = () => executeQuery<T>(sql, params);
-
-    // Schedule this query to run after all previous queries complete,
-    // regardless of whether they succeeded or failed.
-    const p = queryChain.then(run, run);
-
-    // Advance the chain, but swallow individual query results/errors
-    // so that one failing query doesn't block the entire queue.
-    queryChain = p.then(
-        () => undefined,
-        () => undefined
-    );
-
-    return p;
+export async function query<T = unknown>(sql: string, params: QueryParam[] = []): Promise<T[]> {
+    return provider.query<T>(sql, params);
 }
 
 export async function runTransaction<T>(
-    callback: (tx: Firebird.Transaction, txQuery: <R = unknown>(sql: string, params?: (string | number | null)[]) => Promise<R[]>) => Promise<T>,
-    isolation: Firebird.Isolation = Firebird.ISOLATION_READ_COMMITTED
+    callback: (txQuery: TxQuery) => Promise<T>
 ): Promise<T> {
-    try {
-        const db = await getConnection();
-
-        return new Promise((resolve, reject) => {
-            db.transaction(isolation, async (err, transaction) => {
-                if (err) {
-                    // Connection may be stale, reset it
-                    persistentConnection = null;
-                    return reject(err);
-                }
-
-                const txQuery = <R = unknown>(sql: string, params: (string | number | null)[] = []): Promise<R[]> => {
-                    return new Promise((qResolve, qReject) => {
-                        transaction.query(sql, params, (qErr, result) => {
-                            if (qErr) return qReject(qErr);
-                            qResolve(result as R[]);
-                        });
-                    });
-                };
-
-                try {
-                    const result = await callback(transaction, txQuery);
-                    transaction.commit((commitErr) => {
-                        if (commitErr) {
-                            persistentConnection = null;
-                            return reject(commitErr);
-                        }
-                        resolve(result);
-                    });
-                } catch (cbErr) {
-                    transaction.rollback((rollbackErr) => {
-                        if (rollbackErr) console.error('[DB] Rollback error:', rollbackErr);
-                        reject(cbErr);
-                    });
-                }
-            });
-        });
-    } catch (err) {
-        console.error('[DB] Transaction failed:', err);
-        throw err;
-    }
+    return provider.runTransaction(callback);
 }
 
 function pushFolderFilter(
@@ -1180,7 +907,7 @@ export async function rebuildStackCache(): Promise<number> {
         try {
             await ensureStackCacheTable();
 
-            return await runTransaction(async (tx, txQuery) => {
+            return await runTransaction(async (txQuery) => {
                 // Clear existing cache
                 await txQuery('DELETE FROM stack_cache');
 
