@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useJobProgressStore } from '../store/useJobProgressStore';
+import { bridge } from '../bridge';
 
 interface UseGalleryWebSocketParams {
   refreshImages: (opts?: { preserveItems?: boolean }) => void;
@@ -93,12 +94,10 @@ export function useGalleryWebSocket({
         const d = data as { summary?: string };
         console.log('[App] Received stack_created event:', d);
         addNotification(`New stack created: ${d.summary || 'Summary not available'}`, 'success');
-        if (window.electron) {
-          window.electron.rebuildStackCache().then(() => {
-            console.log('[App] Stack cache rebuilt due to external event.');
-            scheduleVisibleRefresh();
-          });
-        }
+        bridge.rebuildStackCache().then(() => {
+          console.log('[App] Stack cache rebuilt due to external event.');
+          scheduleVisibleRefresh();
+        });
       });
 
       subscribe('folder_discovered', (data: unknown) => {
@@ -148,8 +147,8 @@ export function useGalleryWebSocket({
         addNotification(`Job ${d.job_id} ${status}`, type);
         useJobProgressStore.getState().completeJob(String(d.job_id));
 
-        if (d.status === 'completed' && window.electron) {
-          window.electron.rebuildStackCache().then(() => {
+        if (d.status === 'completed') {
+          bridge.rebuildStackCache().then(() => {
             console.log('[App] Stack cache rebuilt after job completion.');
             scheduleVisibleRefresh();
             scheduleFolderRefresh();

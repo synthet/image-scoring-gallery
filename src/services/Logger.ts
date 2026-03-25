@@ -1,3 +1,5 @@
+import { bridge } from '../bridge';
+
 export class Logger {
     static info(message: string, data?: unknown) {
         this.log('INFO', message, data);
@@ -22,11 +24,8 @@ export class Logger {
         // Suppress INFO and DEBUG from console to reduce noise
         // else console.log(`[${level}] ${message}`, data);
 
-        // Send to Electron backend
-        if (window.electron && window.electron.log) {
-            window.electron.log(level, message, data).catch(err => {
-                console.error('Failed to send log to backend', err);
-            });
-        }
+        bridge.log(level, message, data).catch((err: unknown) => {
+            console.error('Failed to send log to backend', err);
+        });
     }
 }

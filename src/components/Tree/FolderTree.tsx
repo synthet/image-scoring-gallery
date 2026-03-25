@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Trash2 } from 'lucide-react';
 import type { Folder as FolderType } from './treeUtils';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
+import { bridge } from '../../bridge';
 
 const STATUS_COLOR: Record<string, string> = {
     not_started: '#555',
@@ -60,8 +61,7 @@ const TreeNode: React.FC<{ node: FolderType; onSelect: (f: FolderType) => void; 
 
     const handleDeleteConfirm = async () => {
         setIsDeleteDialogOpen(false);
-        if (!window.electron) return;
-        const success = await window.electron.deleteFolder(node.id);
+        const success = await bridge.deleteFolder(node.id);
         if (success && onRefresh) {
             onRefresh();
         }

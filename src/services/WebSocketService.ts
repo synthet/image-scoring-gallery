@@ -1,3 +1,5 @@
+import { bridge } from '../bridge';
+
 interface WebSocketMessage {
     type: string;
     data: unknown;
@@ -74,7 +76,7 @@ class WebSocketService {
         }
 
         try {
-            const config = await window.electron.getApiConfig();
+            const config = await bridge.getApiConfig();
             this.url = config.url.replace('http', 'ws') + '/ws/updates'; // Assuming WS endpoint is at /ws/updates
 
             console.log(`[WebSocket] Connecting to: ${this.url} (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);

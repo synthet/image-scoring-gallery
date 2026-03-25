@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { bridge } from '../../bridge';
 
 interface Props {
     isOpen: boolean;
@@ -20,7 +21,7 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
     const runRef = useRef(false);
 
     useEffect(() => {
-        if (!isOpen || !folderPath || !window.electron) return;
+        if (!isOpen || !folderPath) return;
 
         runRef.current = true;
         setIsRunning(true);
@@ -33,7 +34,7 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
         setSkipped(0);
         setErrors([]);
 
-        const cleanupProgress = window.electron.onImportProgress((data) => {
+        const cleanupProgress = bridge.onImportProgress((data) => {
             if (runRef.current) {
                 setCurrent(data.current);
                 setTotal(data.total);
@@ -41,7 +42,7 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
             }
         });
 
-        window.electron.importRun(folderPath)
+        bridge.importRun(folderPath)
             .then((result) => {
                 if (runRef.current) {
                     setAdded(result.added);

@@ -5,6 +5,7 @@ import { useNotificationStore } from '../../store/useNotificationStore';
 import { FolderTree } from '../Tree/FolderTree';
 import type { Folder } from '../Tree/treeUtils';
 import type { BackendJobInfo } from '../../electron';
+import { bridge } from '../../bridge';
 
 interface RunsPageProps {
     folders: Folder[];
@@ -34,11 +35,11 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders, onBackToGa
     // ── Polling backend for recent jobs ─────────────────────────
     const fetchJobs = useCallback(async () => {
         try {
-            const jobs = await window.electron.api.getRecentJobs();
+            const jobs = await bridge.api.getRecentJobs();
             setRecentJobs(jobs);
 
             try {
-                const queue = await window.electron.api.getJobsQueue();
+                const queue = await bridge.api.getJobsQueue();
                 setQueueDepth(queue.queue_depth ?? 0);
             } catch { /* ignore */ }
         } catch (e) {
@@ -153,7 +154,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders, onBackToGa
                 return;
             }
 
-            const res = await window.electron.api.submitPipeline({
+            const res = await bridge.api.submitPipeline({
                 input_path: createTarget,
                 operations,
                 skip_existing: true,
@@ -176,9 +177,9 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders, onBackToGa
         if (!confirm('Are you sure you want to stop all running jobs?')) return;
         try {
             await Promise.allSettled([
-                window.electron.api.stopScoring(),
-                window.electron.api.stopTagging(),
-                window.electron.api.stopClustering(),
+                bridge.api.stopScoring(),
+                bridge.api.stopTagging(),
+                bridge.api.stopClustering(),
             ]);
             addNotification('Stop signal sent to all runners.', 'info');
         } catch (e) {

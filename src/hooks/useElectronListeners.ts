@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNotificationStore } from '../store/useNotificationStore';
+import { bridge } from '../bridge';
 
 /**
  * Registers Electron IPC menu listeners and exposes the modal/view state they control.
@@ -15,48 +16,33 @@ export function useElectronListeners() {
   const [currentView, setCurrentView] = useState<'gallery' | 'duplicates' | 'runs'>('gallery');
 
   useEffect(() => {
-    let cleanupSettings: (() => void) | undefined;
-    if (window.electron?.onOpenSettings) {
-      cleanupSettings = window.electron.onOpenSettings(() => {
-        setIsSettingsOpen(true);
-      });
-    }
+    const cleanupSettings = bridge.onOpenSettings(() => {
+      setIsSettingsOpen(true);
+    });
 
-    let cleanupDuplicates: (() => void) | undefined;
-    if (window.electron?.onOpenDuplicates) {
-      cleanupDuplicates = window.electron.onOpenDuplicates(() => {
-        setCurrentView('duplicates');
-      });
-    }
+    const cleanupDuplicates = bridge.onOpenDuplicates(() => {
+      setCurrentView('duplicates');
+    });
 
-    let cleanupRuns: (() => void) | undefined;
-    if (window.electron?.onOpenRuns) {
-      cleanupRuns = window.electron.onOpenRuns(() => {
-        setCurrentView('runs');
-      });
-    }
+    const cleanupRuns = bridge.onOpenRuns(() => {
+      setCurrentView('runs');
+    });
 
-    let cleanupImport: (() => void) | undefined;
-    if (window.electron?.onImportFolderSelected) {
-      cleanupImport = window.electron.onImportFolderSelected((path) => {
-        setImportFolderPath(path);
-        setIsImportModalOpen(true);
-      });
-    }
+    const cleanupImport = bridge.onImportFolderSelected((path) => {
+      setImportFolderPath(path);
+      setIsImportModalOpen(true);
+    });
 
-    let cleanupNotification: (() => void) | undefined;
-    if (window.electron?.onShowNotification) {
-      cleanupNotification = window.electron.onShowNotification((data) => {
-        addNotification(data.message, data.type);
-      });
-    }
+    const cleanupNotification = bridge.onShowNotification((data) => {
+      addNotification(data.message, data.type);
+    });
 
     return () => {
-      if (cleanupSettings) cleanupSettings();
-      if (cleanupDuplicates) cleanupDuplicates();
-      if (cleanupRuns) cleanupRuns();
-      if (cleanupImport) cleanupImport();
-      if (cleanupNotification) cleanupNotification();
+      cleanupSettings();
+      cleanupDuplicates();
+      cleanupRuns();
+      cleanupImport();
+      cleanupNotification();
     };
   }, [addNotification]);
 

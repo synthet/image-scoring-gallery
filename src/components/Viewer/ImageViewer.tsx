@@ -6,6 +6,7 @@ import { useNotificationStore } from '../../store/useNotificationStore';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
 import { usePropagateTags } from '../../hooks/useDatabase';
 import { toMediaUrl } from '../../utils/mediaUrl';
+import { bridge } from '../../bridge';
 
 interface Image {
     id: number;
@@ -154,10 +155,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     useEffect(() => {
         let active = true;
         const fetchDetails = async () => {
-            if (!window.electron) return;
             try {
                 console.log('[ImageViewer] Fetching details for image ID:', image.id);
-                const details = await window.electron.getImageDetails(image.id);
+                const details = await bridge.getImageDetails(image.id);
                 console.log('[ImageViewer] Received details:', details);
                 if (active && details) {
                     setImage(details);
@@ -203,7 +203,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         }
 
         const fetchExif = async () => {
-            if (!window.electron) return;
             const pathSchema = image.win_path || image.file_path;
             if (!pathSchema) {
                 console.warn('[ImageViewer] No path for EXIF fetch', image.id);
@@ -213,7 +212,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             console.log('[ImageViewer] Fetching lazy EXIF for', pathSchema);
             setExifLoading(true);
             try {
-                const exif = await (window.electron as any).readExif(pathSchema);
+                const exif = await bridge.readExif(pathSchema);
                 console.log('[ImageViewer] Lazy EXIF result:', { 
                     id: image.id, 
                     success: !!exif,
@@ -281,7 +280,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
 
     const handleSave = async () => {
-        if (!window.electron) return;
         try {
             const normalizedKeywords = normalizeKeywords(editForm.keywords);
             const updates = {
@@ -291,7 +289,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 label: editForm.label,
                 keywords: normalizedKeywords
             };
-            const success = await window.electron.updateImageDetails(image.id, updates);
+            const success = await bridge.updateImageDetails(image.id, updates);
             if (success) {
                 setImage({ ...image, ...updates });
                 setEditForm(prev => ({ ...prev, keywords: normalizedKeywords }));
@@ -311,10 +309,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
     const handleDeleteConfirm = async () => {
         setIsDeleteDialogOpen(false);
-        if (!window.electron) return;
 
         try {
-            const success = await window.electron.deleteImage(image.id);
+            const success = await bridge.deleteImage(image.id);
             if (success) {
                 if (onDelete) {
                     onDelete(image.id);
@@ -331,8 +328,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     };
 
     const handlePropagateTags = useCallback(async () => {
-        if (!window.electron) return;
-
         const normalizedKeywords = normalizeKeywords(editForm.keywords);
         const currentKeywords = normalizeKeywords(image.keywords || '');
         const folderPath = getFolderPathFromFilePath(image.win_path || image.file_path);
@@ -348,7 +343,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         }
 
         if (normalizedKeywords !== currentKeywords) {
-            const saveSucceeded = await window.electron.updateImageDetails(image.id, { keywords: normalizedKeywords });
+            const saveSucceeded = await bridge.updateImageDetails(image.id, { keywords: normalizedKeywords });
             if (!saveSucceeded) {
                 addNotification('Failed to save keywords before propagation', 'error');
                 return;
@@ -482,10 +477,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         };
 
         const syncExportContext = async () => {
-            if (!window.electron) return;
-
             if (!src) {
-                await window.electron.setCurrentExportImageContext(null);
+                await bridge.setCurrentExportImageContext(null);
                 return;
             }
 
@@ -493,11 +486,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             if (!active) return;
 
             if ('error' in payload) {
-                await window.electron.setCurrentExportImageContext(null);
+                await bridge.setCurrentExportImageContext(null);
                 return;
             }
 
-            await window.electron.setCurrentExportImageContext({
+            await bridge.setCurrentExportImageContext({
                 imageBytes: payload.bytes,
                 mimeType: payload.mimeType,
                 fileName: payload.suggestedFileName,
@@ -511,9 +504,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
         return () => {
             active = false;
-            if (window.electron) {
-                void window.electron.setCurrentExportImageContext(null);
-            }
+            void bridge.setCurrentExportImageContext(null);
         };
     }, [src, image.file_name, image.file_path, image.id, image.image_uuid, image.win_path]);
 
@@ -1070,8 +1061,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                         }
                     }
 
-                    if (!window.electron) return;
-                    const details = await window.electron.getImageDetails(id);
+                    const details = await bridge.getImageDetails(id);
                     if (details) {
                         setImage(details);
                         setDetailsLoaded(true);

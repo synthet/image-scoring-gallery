@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNotificationStore } from '../store/useNotificationStore';
+import { bridge } from '../bridge';
 
 interface ImageRow {
   id: number;
@@ -79,10 +80,8 @@ export function useImageOpener({
   };
 
   const openImageById = useCallback(async (id: number): Promise<boolean> => {
-    if (!window.electron) return false;
-
     try {
-      const details = await window.electron.getImageDetails(id);
+      const details = await bridge.getImageDetails(id);
       if (!details) {
         addNotification('Unable to locate image details', 'warning');
         return false;

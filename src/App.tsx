@@ -11,7 +11,7 @@ function App() {
   if (!isConnected && !error) return (
     <div style={{ padding: 40, textAlign: 'center', color: '#aaa' }}>
       <div style={{ fontSize: '1.2em', marginBottom: 10 }}>Connecting to services...</div>
-      <div style={{ fontSize: '0.85em', color: '#666' }}>Waiting for Firebird database</div>
+      <div style={{ fontSize: '0.85em', color: '#666' }}>Connecting to database...</div>
     </div>
   );
 

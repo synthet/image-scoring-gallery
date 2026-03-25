@@ -1,7 +1,7 @@
 {
   "name": "electron-gallery",
   "private": true,
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "A high-performance image gallery with scoring capabilities",
   "author": "Electron Image Scoring Team",
   "main": "dist-electron/main.js",
@@ -22,7 +22,10 @@
     "contract:check": "node scripts/sync-api-contract.mjs --check",
     "contract:diff": "node scripts/sync-api-contract.mjs --diff",
     "contract:validate": "node scripts/validate-api-types.mjs",
-    "postinstall": "node scripts/patch-node-firebird.js"
+    "postinstall": "node scripts/patch-node-firebird.js",
+    "dev:browser": "concurrently --kill-others-on-fail \"npm run server\" \"npm run dev:web\"",
+    "server": "npx tsx server/index.ts",
+    "start:browser": "npm run build && node dist-server/index.js"
   },
   "build": {
     "forceCodeSigning": false,
@@ -43,8 +46,10 @@
     ]
   },
   "dependencies": {
+    "@types/express": "^5.0.6",
     "electron-is-dev": "^3.0.1",
     "exiftool-vendored": "^35.11.0",
+    "express": "^5.2.1",
     "libraw-wasm": "^1.1.2",
     "lucide-react": "^0.563.0",
     "node-firebird": "^1.1.9",

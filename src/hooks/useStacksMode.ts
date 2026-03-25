@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { FilterState } from '../components/Sidebar/FilterPanel';
+import { bridge } from '../bridge';
 
 interface ImageRow {
   id: number;
@@ -38,11 +39,10 @@ export function useStacksMode(
   const [stackImagesLoading, setStackImagesLoading] = useState(false);
 
   const loadStackImages = useCallback(async (stackId: number) => {
-    if (!window.electron) return;
     setStackImagesLoading(true);
     try {
       const options = { folderId: selectedFolderId, ...filters };
-      const imgs = await window.electron.getImagesByStack(stackId, options);
+      const imgs = await bridge.getImagesByStack(stackId, options);
       setStackImages(imgs);
     } catch (err) {
       console.error('Failed to load stack images', err);
@@ -63,8 +63,8 @@ export function useStacksMode(
 
   // Rebuild stack cache when stacks mode is first enabled
   useEffect(() => {
-    if (stacksMode && !cacheBuilt && window.electron) {
-      window.electron.rebuildStackCache().then((result) => {
+    if (stacksMode && !cacheBuilt) {
+      bridge.rebuildStackCache().then((result) => {
         console.log('[App] Stack cache rebuild result:', result);
         setCacheBuilt(true);
         refreshStacks();

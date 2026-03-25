@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { bridge } from '../bridge';
 
 const MAX_LOADED_ITEMS = 2000;
 
@@ -43,10 +44,6 @@ export function useDatabase() {
     const BASE_DELAY_MS = 2000;
 
     const connect = useCallback(async () => {
-        if (!window.electron) {
-            setError("Not running in Electron");
-            return;
-        }
         setError(null);
 
         const CONNECT_TIMEOUT_MS = 20000;
@@ -54,12 +51,12 @@ export function useDatabase() {
         try {
             await Promise.race([
                 (async () => {
-                    const res = await window.electron.ping();
+                    const res = await bridge.ping();
                     if (res !== 'pong') {
                         throw new Error('Main process not responding');
                     }
 
-                    const dbConnected = await window.electron.checkDbConnection();
+                    const dbConnected = await bridge.checkDbConnection();
                     if (!dbConnected) {
                         throw new Error("Database connection returned false");
                     }
@@ -108,8 +105,7 @@ export function useDatabase() {
     }, [connect]);
 
     const checkConnection = async () => {
-        if (!window.electron) return false;
-        return await window.electron.checkDbConnection();
+        return await bridge.checkDbConnection();
     };
 
     return { isConnected, error, checkConnection, retry };
@@ -120,8 +116,7 @@ export function useImageCount() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!window.electron) return;
-        window.electron.getImageCount().then(res => {
+        bridge.getImageCount().then(res => {
             if (typeof res === 'number') setCount(res);
             setLoading(false);
         });
@@ -136,10 +131,10 @@ export function useKeywords() {
     const fetched = useRef(false);
 
     const fetch = useCallback(() => {
-        if (fetched.current || !window.electron) return;
+        if (fetched.current) return;
         fetched.current = true;
         setLoading(true);
-        window.electron.getKeywords().then(res => {
+        bridge.getKeywords().then(res => {
             if (Array.isArray(res)) setKeywords(res);
             setLoading(false);
         });
@@ -246,15 +241,13 @@ function usePaginatedData<T extends { id: number }>(
         setHasMore(true);
         setLoading(false);
 
-        if (window.electron) {
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-            const options: ImageQueryOptions = { folderId, ...filtersRef.current };
-            countFuncRef.current(options).then((c: number) => {
-                setTotalCount(c);
-            }).catch(err => {
-                console.error('Failed to fetch count:', err);
-            });
-        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        const options: ImageQueryOptions = { folderId, ...filtersRef.current };
+        countFuncRef.current(options).then((c: number) => {
+            setTotalCount(c);
+        }).catch(err => {
+            console.error('Failed to fetch count:', err);
+        });
     // filterKey is a stable string derived from filters; folderId is primitive.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [folderId, filterKey]);
@@ -263,7 +256,7 @@ function usePaginatedData<T extends { id: number }>(
     // loadMore is stable (only depends on pageSize and trimItems) because all
     // other dependencies are read via refs at call time.
     const loadMore = useCallback(async () => {
-        if (!window.electron || loadingRef.current || !hasMoreRef.current) return;
+        if (loadingRef.current || !hasMoreRef.current) return;
 
         const requestId = ++requestIdRef.current;
         const queryVersionAtStart = queryVersionRef.current;
@@ -326,7 +319,7 @@ function usePaginatedData<T extends { id: number }>(
         queryVersionRef.current += 1;
         requestIdRef.current += 1;
 
-        if (preserveItems && window.electron && itemsRef.current.length > 0) {
+        if (preserveItems && itemsRef.current.length > 0) {
             const requestId = requestIdRef.current;
             const queryVersionAtStart = queryVersionRef.current;
 
@@ -423,8 +416,8 @@ export function useImages(pageSize: number = 50, folderId?: number, filters?: Im
         pageSize,
         folderId,
         filters,
-        (opts) => window.electron!.getImages(opts),
-        (opts) => window.electron!.getImageCount(opts),
+        (opts) => bridge.getImages(opts),
+        (opts) => bridge.getImageCount(opts),
         getUniqueKey
     );
 
@@ -445,8 +438,8 @@ export function useStacks(pageSize: number = 50, folderId?: number, filters?: Im
         pageSize,
         folderId,
         filters,
-        (opts) => window.electron!.getStacks(opts),
-        (opts) => window.electron!.getStackCount(opts),
+        (opts) => bridge.getStacks(opts),
+        (opts) => bridge.getStackCount(opts),
         getUniqueKey
     );
 
@@ -491,7 +484,7 @@ export function useSimilarImages(
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!imageId || !window.electron) {
+        if (!imageId) {
             return;
         }
 
@@ -505,7 +498,7 @@ export function useSimilarImages(
             ? Math.min(1, Math.max(0, minSimilarity))
             : 0.8;
 
-        window.electron.searchSimilarImages({
+        bridge.searchSimilarImages({
             imageId,
             limit,
             folderId,
@@ -544,11 +537,10 @@ export function usePropagateTags() {
     const [error, setError] = useState<string | null>(null);
 
     const propagate = async (options: BackendTagPropagationRequest) => {
-        if (!window.electron) return null;
         setLoading(true);
         setError(null);
         try {
-            const res = await window.electron.api.propagateTags(options);
+            const res = await bridge.api.propagateTags(options);
             return res;
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Tag propagation failed';

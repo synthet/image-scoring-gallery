@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import type { Folder } from '../Tree/treeUtils';
+import { bridge } from '../../bridge';
 
 interface DuplicateFinderProps {
     currentFolder: Folder | null | undefined;
@@ -37,15 +38,11 @@ export function DuplicateFinder({ currentFolder }: DuplicateFinderProps) {
 
 
     const handleScan = async () => {
-        if (!window.electron?.findNearDuplicates) {
-            addNotification('findNearDuplicates IPC not available', 'error');
-            return;
-        }
         setIsScanning(true);
         setDuplicatePairs([]);
         setDetailedPairs([]);
         try {
-            const response = await window.electron.findNearDuplicates({
+            const response = await bridge.findNearDuplicates({
                 threshold,
                 folder_path: currentFolder?.path || undefined,
                 limit: 1000
@@ -70,8 +67,8 @@ export function DuplicateFinder({ currentFolder }: DuplicateFinderProps) {
 
     const fetchDetailsForPairs = async (pairs: DuplicatePair[]) => {
         const detailed = await Promise.all(pairs.map(async (pair) => {
-            const imgA = await window.electron.getImageDetails(pair.image_id_a);
-            const imgB = await window.electron.getImageDetails(pair.image_id_b);
+            const imgA = await bridge.getImageDetails(pair.image_id_a);
+            const imgB = await bridge.getImageDetails(pair.image_id_b);
             return { ...pair, imgA, imgB };
         }));
         setDetailedPairs(prev => [...prev, ...detailed]);
@@ -93,7 +90,7 @@ export function DuplicateFinder({ currentFolder }: DuplicateFinderProps) {
         }
 
         try {
-            await window.electron.updateImageDetails(worstId, { rating: -1 });
+            await bridge.updateImageDetails(worstId, { rating: -1 });
             addNotification('Rejected the lower-rated image.', 'success');
             // Remove from detailedPairs
             setDetailedPairs(prev => prev.filter((_, i) => i !== index));

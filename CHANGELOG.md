@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.1.0] - 2026-03-24
+
+### Added
+- **Browser mode**: Run the gallery without Electron — Express server **`server/index.ts`** exposes **`/gallery-api/*`** (DB, config, Python API proxy) and **`/media/*`** for thumbnails; **`npm run dev:browser`** starts server + Vite; **`npm run server`** / **`start:browser`** for standalone or production static.
+- **`src/bridge`**: Lazy proxy over **`window.electron`** (Electron) or HTTP **`fetch`** (browser); renderer code uses **`bridge`** instead of **`window.electron`**.
+- **Dependencies**: `express`, `@types/express`; **`electron/apiService`** uses **`globalThis.fetch`** when Electron **`net`** is unavailable.
+
+### Changed
+- **Vite**: Dev proxy for **`/gallery-api`** and **`/media`** to the browser-mode server (default port 3001).
+- **`mediaUrl`**: **`toMediaUrl`** returns **`/media/...`** in browser mode, **`media://`** in Electron.
+- **`config.json`**: Explicit **`database.engine`** / **`provider`** for Firebird; **`selection`** block removed (see Removed).
+
+### Removed
+- **`SelectionSettings`** component and its use from **Settings** modal.
+
+### Fixed
+- **Express 5** / **`path-to-regexp` v8**: Wildcard routes use named params (**`/backend/*path`**, **`/media/*filePath`**, SPA **`/*path`**) so the server starts and **`/gallery-api/ping`** works.
+
 ## [4.0.0] - 2026-03-21
 
 ### Added

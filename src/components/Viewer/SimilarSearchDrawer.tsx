@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSimilarImages } from '../../hooks/useDatabase';
 import { GalleryThumbnail } from '../Gallery/GalleryThumbnail';
+import { bridge } from '../../bridge';
 
 interface SimilarSearchDrawerProps {
     open: boolean;
@@ -29,11 +30,11 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
     useEffect(() => {
         let isMounted = true;
 
-        if (!open || !window.electron || !currentFolderId) {
+        if (!open || !currentFolderId) {
             return;
         }
 
-        window.electron.getFolders()
+        bridge.getFolders()
             .then((folders: FolderRow[]) => {
                 if (!isMounted) return;
                 const matchedFolder = folders.find((folder) => folder.id === currentFolderId);

@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import type { SelectionConfig } from './SelectionSettings';
-import { SelectionSettings } from './SelectionSettings';
+import { bridge } from '../../bridge';
 
 interface AppConfig {
-    selection?: Record<string, unknown>;
     [key: string]: unknown;
 }
 
@@ -28,10 +26,8 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         setIsLoading(true);
         setError(null);
         try {
-            if (window.electron) {
-                const currentConfig = await window.electron.getConfig();
-                setConfig(currentConfig);
-            }
+            const currentConfig = await bridge.getConfig();
+            setConfig(currentConfig);
         } catch (err: unknown) {
             console.error('Failed to load config:', err);
             setError('Failed to load configuration.');
@@ -41,31 +37,20 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
     };
 
     const handleSave = async () => {
-        if (!config || !window.electron) return;
+        if (!config) return;
         setIsSaving(true);
         setError(null);
         try {
-            const updates = { selection: config.selection || {} };
-            await window.electron.saveConfig(updates);
+            await bridge.saveConfig(config);
             onClose();
             // Dispatch a custom event so other components could know config changed
-            window.dispatchEvent(new CustomEvent('config-updated', { detail: updates }));
+            window.dispatchEvent(new CustomEvent('config-updated', { detail: config }));
         } catch (err: unknown) {
             console.error('Failed to save config:', err);
             setError('Failed to save configuration.');
         } finally {
             setIsSaving(false);
         }
-    };
-
-    const handleSelectionChange = (selectionConfig: SelectionConfig) => {
-        setConfig((prev: AppConfig | null) => ({
-            ...prev,
-            selection: {
-                ...(prev?.selection || {}),
-                ...selectionConfig
-            }
-        }));
     };
 
     if (!isOpen) return null;
@@ -104,10 +89,10 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     ) : error ? (
                         <div style={{ color: '#ff6b6b', padding: '12px', background: 'rgba(255,107,107,0.1)', borderRadius: 4, border: '1px solid rgba(255,107,107,0.3)' }}>{error}</div>
                     ) : (
-                        <SelectionSettings
-                            config={config?.selection || {}}
-                            onChange={handleSelectionChange}
-                        />
+                        <div style={{ color: '#aaa', textAlign: 'center', padding: '40px 20px' }}>
+                            <div style={{ fontSize: '1.2em', marginBottom: '10px' }}>No configurable preferences.</div>
+                            <div style={{ fontSize: '0.9em' }}>General settings are currently managed automatically.</div>
+                        </div>
                     )}
                 </div>
 

@@ -2,10 +2,11 @@
  * Centralized REST API client for the Python backend (FastAPI at :7860).
  * All HTTP calls to the backend go through this service.
  *
- * Runs in the Electron main process using `net.fetch()`.
+ * Runs in the Electron main process using `net.fetch()`, or in a plain Node.js
+ * server using `globalThis.fetch` (Node 18+). The fetch implementation is
+ * resolved lazily so this module can be imported in both contexts.
  */
 
-import { net } from 'electron';
 import { resolveBaseUrl } from './apiUrlResolver';
 import type {
     ApiResponse,
@@ -37,6 +38,21 @@ import type { AppConfig } from './types';
 
 const DEFAULT_TIMEOUT = 10_000;   // 10s for quick operations
 const LONG_TIMEOUT = 120_000;     // 2min for batch job starts
+
+/**
+ * Resolves the fetch implementation at runtime.
+ * In Electron main process: uses `net.fetch` for proper session/proxy support.
+ * In Node.js (Express server): falls back to `globalThis.fetch` (Node 18+).
+ */
+function resolveFetch(): (url: string, options?: RequestInit) => Promise<Response> {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { net } = require('electron') as { net: { fetch: (url: string, options?: RequestInit) => Promise<Response> } };
+        return net.fetch.bind(net);
+    } catch {
+        return globalThis.fetch.bind(globalThis) as (url: string, options?: RequestInit) => Promise<Response>;
+    }
+}
 
 export class ApiService {
     private baseUrl: string | null = null;
@@ -97,7 +113,7 @@ export class ApiService {
                 fetchOptions.body = JSON.stringify(options.body);
             }
 
-            const response = await net.fetch(url.toString(), fetchOptions);
+            const response = await resolveFetch()(url.toString(), fetchOptions);
 
             if (!response.ok) {
                 const errorText = await response.text().catch(() => '');

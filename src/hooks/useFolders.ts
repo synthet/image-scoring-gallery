@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { buildFolderTree } from '../components/Tree/treeUtils';
 import type { Folder } from '../components/Tree/treeUtils';
+import { bridge } from '../bridge';
 
 interface FolderRow {
     id: number;
@@ -19,13 +20,11 @@ export function useFolders(): { folders: Folder[]; loading: boolean; refresh: ()
     const initialLoadDone = useRef(false);
 
     const fetchFolders = () => {
-        if (!window.electron) return;
-        
         if (!initialLoadDone.current) {
             setLoading(true);
         }
 
-        const foldersPromise = window.electron.getFolders();
+        const foldersPromise = bridge.getFolders();
         
         foldersPromise.then(folderRows => {
             setFlatFolders(folderRows);

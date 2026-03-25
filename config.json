@@ -1,5 +1,7 @@
 {
   "database": {
+    "engine": "firebird",
+    "provider": "firebird",
     "host": "127.0.0.1",
     "port": 3050,
     "user": "sysdba",
@@ -14,10 +16,6 @@
   },
   "firebird": {
     "path": "../image-scoring-backend/Firebird"
-  },
-  "selection": {
-    "diversity_enabled": true,
-    "diversity_lambda": 0.7
   },
   "paths": {
     "remap_legacy_image_scoring_thumbnails": true,

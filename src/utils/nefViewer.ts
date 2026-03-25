@@ -1,4 +1,5 @@
 import LibRaw from 'libraw-wasm';
+import { bridge } from '../bridge';
 
 /**
  * LibRaw Viewer - NEF/RAW file preview utility
@@ -31,11 +32,11 @@ export class NefViewer {
     public async extractWithFallback(filePath: string): Promise<Blob | null> {
         console.log('[NefViewer] 🔍 Starting extraction for:', filePath);
 
-        // Try server-side extraction first (Tier 1: exiftool-vendored)
+        // Try server-side extraction first (Tier 1: exiftool-vendored / IPC only)
         if (window.electron) {
             console.log('[NefViewer] Electron API available, calling IPC...');
             try {
-                const result = await window.electron.extractNefPreview(filePath);
+                const result = await bridge.extractNefPreview(filePath);
 
                 if (result.success && result.buffer) {
                     // Tier 1 succeeded - exiftool found a preview
