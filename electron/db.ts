@@ -16,6 +16,7 @@ function loadConfig(): AppConfig {
 const config = loadConfig();
 const dbConfig = config.database || {};
 const projectRoot = path.resolve(__dirname, '..');
+// Support both `database.engine` and legacy/alternate `database.provider` during branch convergence.
 const dbEngine = dbConfig.engine || dbConfig.provider || 'firebird';
 const firebirdDbConfig: FirebirdDatabaseConfig = dbEngine === 'firebird'
     ? dbConfig as FirebirdDatabaseConfig
@@ -23,7 +24,7 @@ const firebirdDbConfig: FirebirdDatabaseConfig = dbEngine === 'firebird'
 
 function assertFirebirdEngine(): void {
     if (dbEngine === 'postgres') {
-        throw new Error('database.engine is set to "postgres", but electron/db.ts currently supports Firebird only.');
+        throw new Error('database.engine/provider is set to "postgres", but electron/db.ts currently supports Firebird only.');
     }
 }
 
