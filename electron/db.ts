@@ -196,6 +196,11 @@ export async function ensureFirebirdRunning(): Promise<boolean> {
     return provider.verifyStartup();
 }
 
+/** Provider-aware startup: Firebird verifies server is up; Postgres verifies connectivity. */
+export async function initializeDatabaseProvider(): Promise<boolean> {
+    return provider.verifyStartup();
+}
+
 export async function checkConnection(): Promise<boolean> {
     return provider.checkConnection();
 }

@@ -35,6 +35,7 @@ function unwrapEnvelope<T>(response: { ok: boolean; data?: T; error?: string }):
 contextBridge.exposeInMainWorld('electron', {
     ping: () => ipcRenderer.invoke('ping'),
     checkDbConnection: async () => {
+        // Main process delegates to provider-neutral DB health logic in electron/db.ts.
         const response = await ipcRenderer.invoke('db:check-connection');
         return unwrapEnvelope<boolean>(response);
     },
