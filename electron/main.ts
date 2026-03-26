@@ -290,6 +290,14 @@ const rebuildApplicationMenu = () => {
                             mainWindow.webContents.send('open-runs');
                         }
                     }
+                },
+                {
+                    label: 'Diagnostics',
+                    click: () => {
+                        if (mainWindow) {
+                            mainWindow.webContents.send('open-diagnostics');
+                        }
+                    }
                 }
             ]
         },
@@ -825,6 +833,40 @@ app.whenReady().then(async () => {
 
     ipcMain.handle('system:get-config', wrapIpcHandler(async () => {
         return loadConfig();
+    }));
+
+    ipcMain.handle('system:get-diagnostics', wrapIpcHandler(async () => {
+        const os = await import('os');
+        const cfg = loadConfig();
+        const dbCfg = (cfg as Record<string, unknown>).database as Record<string, unknown> | undefined;
+        const apiUrl = apiService.getBaseUrl();
+        let apiConnected = false;
+        try {
+            const r = await fetch(apiUrl + '/health');
+            apiConnected = r.ok;
+        } catch { /* backend unreachable */ }
+        return {
+            os: {
+                platform: os.platform(),
+                release: os.release(),
+                arch: os.arch(),
+                uptime: os.uptime(),
+            },
+            versions: {
+                electron: process.versions.electron ?? '',
+                node: process.versions.node ?? '',
+                chrome: process.versions.chrome ?? '',
+                v8: process.versions.v8 ?? '',
+            },
+            database: {
+                engine: (dbCfg?.engine as string) ?? 'firebird',
+                connected: await db.checkConnection().catch(() => false),
+                host: (dbCfg?.host as string) ?? 'localhost',
+                database: (dbCfg?.path as string) ?? '',
+            },
+            api: { url: apiUrl, connected: apiConnected },
+            memory: null,
+        };
     }));
 
     ipcMain.handle('system:save-config', wrapIpcHandler(async (_, updates) => {

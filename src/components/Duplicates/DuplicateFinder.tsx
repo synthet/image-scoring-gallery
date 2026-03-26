@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import type { Folder } from '../Tree/treeUtils';
 import { bridge } from '../../bridge';
+import { toMediaUrl } from '../../utils/mediaUrl';
 
 interface DuplicateFinderProps {
     currentFolder: Folder | null | undefined;
@@ -176,7 +177,7 @@ export function DuplicateFinder({ currentFolder }: DuplicateFinderProps) {
                                 <div style={{ flex: 1, borderRight: '1px solid #444', display: 'flex', flexDirection: 'column' }}>
                                     <div style={{ height: '200px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         {pair.imgA ? (
-                                            <img src={`file://${pair.file_path_a}`} alt="Image A" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                            <img src={toMediaUrl(pair.file_path_a)} alt="Image A" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                                         ) : 'Loading...'}
                                     </div>
                                     <div style={{ padding: '10px', fontSize: '12px', color: '#aaa', flex: 1 }}>
@@ -198,7 +199,7 @@ export function DuplicateFinder({ currentFolder }: DuplicateFinderProps) {
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                     <div style={{ height: '200px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         {pair.imgB ? (
-                                            <img src={`file://${pair.file_path_b}`} alt="Image B" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                            <img src={toMediaUrl(pair.file_path_b)} alt="Image B" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                                         ) : 'Loading...'}
                                     </div>
                                     <div style={{ padding: '10px', fontSize: '12px', color: '#aaa', flex: 1 }}>

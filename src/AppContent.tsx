@@ -10,6 +10,7 @@ import type { FilterState } from './components/Sidebar/FilterPanel';
 import { ImageViewer } from './components/Viewer/ImageViewer';
 import { NotificationTray } from './components/Layout/NotificationTray';
 import { SettingsModal } from './components/Settings/SettingsModal';
+import { DiagnosticsModal } from './components/Diagnostics/DiagnosticsModal';
 import { DuplicateFinder } from './components/Duplicates/DuplicateFinder';
 import { RunsPage } from './components/Runs/RunsPage';
 import { ImportModal } from './components/Import/ImportModal';
@@ -35,6 +36,7 @@ function AppContent({ isConnected }: AppContentProps) {
 
   const {
     isSettingsOpen, setIsSettingsOpen,
+    isDiagnosticsOpen, setIsDiagnosticsOpen,
     isImportModalOpen, setIsImportModalOpen,
     importFolderPath, setImportFolderPath,
     currentView, setCurrentView,
@@ -430,6 +432,7 @@ function AppContent({ isConnected }: AppContentProps) {
       />
       <NotificationTray />
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <DiagnosticsModal isOpen={isDiagnosticsOpen} onClose={() => setIsDiagnosticsOpen(false)} />
       <ImportModal
         isOpen={isImportModalOpen}
         folderPath={importFolderPath}

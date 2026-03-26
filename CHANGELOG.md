@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.2.1] - 2026-03-25
+
+### Fixed
+- **Diagnostics**: Help → **Diagnostics** menu, **`system:get-diagnostics`** IPC, preload **`getDiagnostics`** / **`getProcessMemoryInfo`** / **`onOpenDiagnostics`**, **`ApiService.getBaseUrl`**, and browser **bridge** stubs so the modal reflects live DB/API status (wires up 4.2.0 **DiagnosticsModal**).
+- **DuplicateFinder**: Pair previews use **`toMediaUrl`** instead of **`file://`** URLs.
+
 ## [4.2.0] - 2026-03-24
 
 ### Added

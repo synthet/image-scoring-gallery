@@ -261,6 +261,39 @@ export interface ScopeTreeResponse {
     folders: FolderPhaseStatus[];
 }
 
+// ── Diagnostics ──────────────────────────────────────────────────────────────
+
+export interface DiagnosticsInfo {
+    os: {
+        platform: string;
+        release: string;
+        arch: string;
+        uptime: number;
+    };
+    versions: {
+        electron: string;
+        node: string;
+        chrome: string;
+        v8: string;
+    };
+    database: {
+        engine: string;
+        connected: boolean;
+        host: string;
+        database: string;
+    };
+    api: {
+        url: string;
+        connected: boolean;
+    };
+    memory: {
+        workingSetSize: number;
+        peakWorkingSetSize: number;
+        privateBytes?: number;
+        sharedBytes?: number;
+    } | null;
+}
+
 // ── Stats ───────────────────────────────────────────────────────────────────
 
 /** Matches get_database_stats() from modules/mcp_server.py. Does not include scored_images or tagged_images. */

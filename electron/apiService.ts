@@ -70,6 +70,11 @@ export class ApiService {
         return this.baseUrl;
     }
 
+    /** Returns the resolved base URL for the Python backend. */
+    public getBaseUrl(): string {
+        return this.resolveBaseUrl();
+    }
+
     /** Force re-resolution on next call (e.g. after config change). */
     public resetBaseUrl(): void {
         this.baseUrl = null;

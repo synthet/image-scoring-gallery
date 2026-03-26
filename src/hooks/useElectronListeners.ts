@@ -11,6 +11,7 @@ export function useElectronListeners() {
   const addNotification = useNotificationStore(state => state.addNotification);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importFolderPath, setImportFolderPath] = useState('');
   const [currentView, setCurrentView] = useState<'gallery' | 'duplicates' | 'runs'>('gallery');
@@ -18,6 +19,10 @@ export function useElectronListeners() {
   useEffect(() => {
     const cleanupSettings = bridge.onOpenSettings(() => {
       setIsSettingsOpen(true);
+    });
+
+    const cleanupDiagnostics = bridge.onOpenDiagnostics(() => {
+      setIsDiagnosticsOpen(true);
     });
 
     const cleanupDuplicates = bridge.onOpenDuplicates(() => {
@@ -39,6 +44,7 @@ export function useElectronListeners() {
 
     return () => {
       cleanupSettings();
+      cleanupDiagnostics();
       cleanupDuplicates();
       cleanupRuns();
       cleanupImport();
@@ -49,6 +55,8 @@ export function useElectronListeners() {
   return {
     isSettingsOpen,
     setIsSettingsOpen,
+    isDiagnosticsOpen,
+    setIsDiagnosticsOpen,
     isImportModalOpen,
     setIsImportModalOpen,
     importFolderPath,

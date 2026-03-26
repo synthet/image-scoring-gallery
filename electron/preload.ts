@@ -18,6 +18,7 @@ import type {
     SimilarSearchResult,
     OutlierSearchResult,
     ScopeTreeResponse,
+    DiagnosticsInfo,
 } from './apiTypes';
 
 /**
@@ -117,6 +118,13 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('system:get-config');
         return unwrapEnvelope<AppConfig>(response);
     },
+    getDiagnostics: async () => {
+        const response = await ipcRenderer.invoke('system:get-diagnostics');
+        return unwrapEnvelope<DiagnosticsInfo>(response);
+    },
+    getProcessMemoryInfo: async () => {
+        return process.getProcessMemoryInfo();
+    },
     saveConfig: async (updates: Partial<AppConfig>) => {
         const response = await ipcRenderer.invoke('system:save-config', updates);
         return unwrapEnvelope<AppConfig>(response);
@@ -147,6 +155,13 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.on('open-runs', handler);
         return () => {
             ipcRenderer.removeListener('open-runs', handler);
+        };
+    },
+    onOpenDiagnostics: (callback: () => void) => {
+        const handler = () => callback();
+        ipcRenderer.on('open-diagnostics', handler);
+        return () => {
+            ipcRenderer.removeListener('open-diagnostics', handler);
         };
     },
     onImportFolderSelected: (callback: (folderPath: string) => void) => {

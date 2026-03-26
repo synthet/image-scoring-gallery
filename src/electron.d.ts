@@ -188,9 +188,18 @@ declare global {
             saveConfig: (updates: Partial<AppConfig>) => Promise<AppConfig>;
             setCurrentExportImageContext: (context: { imageBytes: number[]; mimeType: string; fileName: string; id: number; sourcePath: string; imageUuid: string | null } | null) => Promise<boolean>;
             readExif: (filePath: string) => Promise<Record<string, unknown>>;
+            getDiagnostics: () => Promise<{
+                os: { platform: string; release: string; arch: string; uptime: number };
+                versions: { electron: string; node: string; chrome: string; v8: string };
+                database: { engine: string; connected: boolean; host: string; database: string };
+                api: { url: string; connected: boolean };
+                memory: { workingSetSize: number; peakWorkingSetSize: number; privateBytes?: number; sharedBytes?: number } | null;
+            }>;
+            getProcessMemoryInfo: () => Promise<{ workingSetSize: number; peakWorkingSetSize: number; privateBytes?: number; sharedBytes?: number } | null>;
             onOpenSettings: (callback: () => void) => () => void;
             onOpenDuplicates: (callback: () => void) => () => void;
             onOpenRuns: (callback: () => void) => () => void;
+            onOpenDiagnostics: (callback: () => void) => () => void;
             onImportFolderSelected: (callback: (folderPath: string) => void) => () => void;
             importRun: (folderPath: string) => Promise<{ added: number; skipped: number; errors: string[] }>;
             onImportProgress: (callback: (data: { current: number; total: number; path?: string }) => void) => () => void;

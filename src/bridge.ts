@@ -147,10 +147,29 @@ function createHttpBridge(): Window['electron'] {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         readExif: (_filePath: string) => Promise.resolve({}),
 
+        getDiagnostics: async () => {
+            const apiCfg = await get<{ url: string }>('/api-config');
+            let apiConnected = false;
+            try {
+                const res = await fetch(apiCfg.url + '/health', { signal: AbortSignal.timeout(3000) });
+                apiConnected = res.ok;
+            } catch { /* unreachable backend */ }
+            return {
+                os: { platform: 'browser', release: '', arch: '', uptime: 0 },
+                versions: { electron: 'N/A (browser)', node: 'N/A', chrome: navigator.userAgent, v8: 'N/A' },
+                database: { engine: 'firebird', connected: true, host: window.location.hostname, database: 'via server' },
+                api: { url: apiCfg.url, connected: apiConnected },
+                memory: null,
+            };
+        },
+
+        getProcessMemoryInfo: () => Promise.resolve(null),
+
         // Event listeners are Electron menu/dialog-driven; no-ops in browser mode.
         onOpenSettings: noop,
         onOpenDuplicates: noop,
         onOpenRuns: noop,
+        onOpenDiagnostics: noop,
         onImportFolderSelected: noop,
         onImportProgress: noop,
         onShowNotification: noop,
