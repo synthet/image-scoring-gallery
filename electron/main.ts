@@ -11,6 +11,7 @@ import { ApiService } from './apiService';
 import { ExportImageContext } from './types';
 import { SessionLogManager } from './sessionLogManager';
 import { deepMergeConfig, getConfigPath, loadAppConfig, normalizeAppConfig } from './config';
+import { resolveBackendUiStaticDir, startScoringUiServer, type ScoringUiServer } from './scoringUiServer';
 
 const exiftool = new ExifTool({ maxProcs: 2 });
 
@@ -20,6 +21,8 @@ const exiftool = new ExifTool({ maxProcs: 2 });
 // }
 
 let mainWindow: BrowserWindow | null = null;
+/** Set when launched with --webui-shell=URL (backend WebUI in a dedicated window). */
+let webuiShellWindow: BrowserWindow | null = null;
 let currentExportImageContext: ExportImageContext | null = null;
 let sessionLogManager: SessionLogManager | null = null;
 
@@ -64,6 +67,26 @@ function resolveMediaFilePathWithFallbacks(normalizedPath: string): string {
     }
 
     return normalizedPath;
+}
+
+/**
+ * Windows .ico from Python backend `static/favicon.ico` (sibling repo) for embedded WebUI windows.
+ */
+function resolveBackendWebuiWindowIcon(): string | undefined {
+    const candidates = [
+        path.join(__dirname, '..', 'image-scoring-backend', 'static', 'favicon.ico'),
+        path.join(__dirname, '..', 'image-scoring', 'static', 'favicon.ico'),
+    ];
+    for (const p of candidates) {
+        try {
+            if (fs.existsSync(p)) {
+                return p;
+            }
+        } catch {
+            /* ignore */
+        }
+    }
+    return undefined;
 }
 
 /**
@@ -276,27 +299,18 @@ const rebuildApplicationMenu = () => {
             label: 'Tools',
             submenu: [
                 {
-                    label: 'Find Duplicates',
-                    click: () => {
-                        if (mainWindow) {
-                            mainWindow.webContents.send('open-duplicates');
-                        }
-                    }
-                },
-                {
-                    label: 'Runs',
-                    click: () => {
-                        if (mainWindow) {
-                            mainWindow.webContents.send('open-runs');
-                        }
-                    }
-                },
-                {
                     label: 'Diagnostics',
                     click: () => {
                         if (mainWindow) {
                             mainWindow.webContents.send('open-diagnostics');
                         }
+                    }
+                },
+                { type: 'separator' },
+                {
+                    label: 'Scoring...',
+                    click: () => {
+                        openScoringWindow();
                     }
                 }
             ]
@@ -323,6 +337,81 @@ function loadConfig() {
 
 const config = loadConfig();
 const apiService = new ApiService(loadConfig);
+
+function parseWebuiShellUrl(): string | null {
+    const prefix = '--webui-shell=';
+    for (const a of process.argv) {
+        if (a.startsWith(prefix)) {
+            const u = a.slice(prefix.length).trim();
+            return u.length > 0 ? u : null;
+        }
+    }
+    return null;
+}
+
+const webuiShellOnlyUrl = parseWebuiShellUrl();
+
+/** Serves backend SPA from disk; proxies API/WS to FastAPI (see scoringUiServer.ts). */
+let scoringUiServer: ScoringUiServer | null = null;
+let scoringUiReady: Promise<ScoringUiServer | null> | null = null;
+
+async function ensureScoringUiServer(): Promise<ScoringUiServer | null> {
+    if (scoringUiServer) {
+        return scoringUiServer;
+    }
+    const staticRoot = resolveBackendUiStaticDir(__dirname);
+    if (!staticRoot) {
+        return null;
+    }
+    if (!scoringUiReady) {
+        scoringUiReady = startScoringUiServer(() => apiService.getBaseUrl(), staticRoot)
+            .then((s) => {
+                scoringUiServer = s;
+                return s;
+            })
+            .catch((err) => {
+                console.error('[Main] Scoring UI server failed:', err);
+                return null;
+            })
+            .finally(() => {
+                scoringUiReady = null;
+            });
+    }
+    return scoringUiReady;
+}
+
+function openScoringWindow(): void {
+    void (async () => {
+        const backendIcon = resolveBackendWebuiWindowIcon();
+        const win = new BrowserWindow({
+            width: 1280,
+            height: 900,
+            title: 'Scoring...',
+            ...(backendIcon ? { icon: backendIcon } : {}),
+            webPreferences: { contextIsolation: true },
+        });
+        try {
+            const local = await ensureScoringUiServer();
+            const url = local ? `${local.baseUrl}/ui/runs` : `${apiService.getBaseUrl()}/ui/runs`;
+            await win.loadURL(url);
+        } catch (e) {
+            console.error('[Main] Failed to load Scoring UI:', e);
+            try {
+                await win.loadURL(`${apiService.getBaseUrl()}/ui/runs`);
+            } catch {
+                /* ignore */
+            }
+        }
+    })();
+}
+
+app.on('before-quit', () => {
+    if (scoringUiServer) {
+        void scoringUiServer.close();
+        scoringUiServer = null;
+    }
+});
+
 const devRemoteDebuggingPort = process.env.ELECTRON_REMOTE_DEBUGGING_PORT || '9222';
 
 if (isDev) {
@@ -366,7 +455,27 @@ function createWindow() {
     });
 }
 
-app.whenReady().then(async () => {
+function createWebuiShellWindow(targetUrl: string): void {
+    console.log('[Main] Standalone WebUI shell, loading:', targetUrl);
+    const backendIcon = resolveBackendWebuiWindowIcon();
+    webuiShellWindow = new BrowserWindow({
+        width: 1400,
+        height: 900,
+        title: 'Image Scoring WebUI',
+        ...(backendIcon ? { icon: backendIcon } : {}),
+        webPreferences: {
+            contextIsolation: true,
+            nodeIntegration: false,
+        },
+    });
+    webuiShellWindow.loadURL(targetUrl);
+    webuiShellWindow.on('closed', () => {
+        webuiShellWindow = null;
+        app.quit();
+    });
+}
+
+async function startFullApplication(): Promise<void> {
     console.log('[Main] App ready, setting up protocol...');
 
     // Provider-aware DB init:
@@ -1005,8 +1114,16 @@ app.whenReady().then(async () => {
     console.log('[Main] All IPC handlers registered. Creating window...');
     createWindow();
     rebuildApplicationMenu();
-});
+}
 
+if (webuiShellOnlyUrl) {
+    app.whenReady().then(() => {
+        Menu.setApplicationMenu(null);
+        createWebuiShellWindow(webuiShellOnlyUrl);
+    });
+} else {
+    app.whenReady().then(() => void startFullApplication());
+}
 
 
 
@@ -1025,6 +1142,12 @@ app.on('window-all-closed', async () => {
 });
 
 app.on('activate', () => {
+    if (webuiShellOnlyUrl) {
+        if (webuiShellWindow === null || webuiShellWindow.isDestroyed()) {
+            createWebuiShellWindow(webuiShellOnlyUrl);
+        }
+        return;
+    }
     if (mainWindow === null) {
         createWindow();
     }

@@ -1,7 +1,7 @@
 {
   "name": "electron-gallery",
   "private": true,
-  "version": "4.2.1",
+  "version": "4.3.0",
   "description": "A high-performance image gallery with scoring capabilities",
   "author": "Electron Image Scoring Team",
   "main": "dist-electron/main.js",
@@ -50,6 +50,7 @@
     "electron-is-dev": "^3.0.1",
     "exiftool-vendored": "^35.11.0",
     "express": "^5.2.1",
+    "http-proxy-middleware": "^3.0.5",
     "libraw-wasm": "^1.1.2",
     "lucide-react": "^0.563.0",
     "node-firebird": "^1.1.9",

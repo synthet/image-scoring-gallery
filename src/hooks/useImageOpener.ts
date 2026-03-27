@@ -54,7 +54,6 @@ export function useImageOpener({
 
   const [openingImage, setOpeningImage] = useState<ImageRow | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
-  const [initialSimilarSearchImageId, setInitialSimilarSearchImageId] = useState<number | null>(null);
   const [pendingOpenImageId, setPendingOpenImageId] = useState<number | null>(null);
 
   const getCurrentList = useCallback(() => {
@@ -62,7 +61,6 @@ export function useImageOpener({
   }, [stacksMode, activeStackId, stacks, stackImages, images]);
 
   const handleImageClick = (image: ImageRow) => {
-    setInitialSimilarSearchImageId(null);
     const imgList = getCurrentList();
     const index = imgList.findIndex(img => img.id === image.id);
     setCurrentImageIndex(index >= 0 ? index : 0);
@@ -137,13 +135,7 @@ export function useImageOpener({
     setOpeningImage(null);
   };
 
-  const handleFindSimilarFromGrid = (image: ImageRow) => {
-    handleImageClick(image);
-    setInitialSimilarSearchImageId(image.id);
-  };
-
   const closeViewer = () => {
-    setInitialSimilarSearchImageId(null);
     setPendingOpenImageId(null);
     setOpeningImage(null);
   };
@@ -151,13 +143,11 @@ export function useImageOpener({
   return {
     openingImage,
     currentImageIndex,
-    initialSimilarSearchImageId,
     pendingOpenImageId,
     handleImageClick,
     handleNavigateImage,
     openImageById,
     handleImageDelete,
-    handleFindSimilarFromGrid,
     closeViewer,
   };
 }

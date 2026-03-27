@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Search, FolderOpen, Tag, Loader2 } from 'lucide-react';
-import { SimilarSearchDrawer } from './SimilarSearchDrawer';
+import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, FolderOpen, Tag, Loader2 } from 'lucide-react';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
@@ -50,7 +49,6 @@ interface ImageViewerProps {
     onDelete?: (id: number) => void;
     onOpenFolder?: (folderId: number) => void;
     onOpenImageById?: (id: number) => Promise<boolean>;
-    initialSimilarSearchImageId?: number | null;
 }
 
 const isWebSafe = (filename: string) => {
@@ -114,8 +112,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     onNavigate,
     onDelete,
     onOpenFolder,
-    onOpenImageById,
-    initialSimilarSearchImageId
+    onOpenImageById
 }) => {
     const [image, setImage] = React.useState<Image>(initialImage);
     const [detailsLoaded, setDetailsLoaded] = React.useState(false);
@@ -248,8 +245,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     // Editing & Drawer State
     const [isEditing, setIsEditing] = useState(false);
     const { propagate, loading: propagateLoading } = usePropagateTags();
-    const [isSimilarDrawerOpen, setIsSimilarDrawerOpen] = useState(!!initialSimilarSearchImageId);
-    const [similarSearchImageId, setSimilarSearchImageId] = useState<number | null>(initialSimilarSearchImageId ?? null);
     const [editForm, setEditForm] = useState({
         title: '',
         description: '',
@@ -258,13 +253,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         keywords: ''
     });
 
-
-    useEffect(() => {
-        if (initialSimilarSearchImageId) {
-            setSimilarSearchImageId(initialSimilarSearchImageId);
-            setIsSimilarDrawerOpen(true);
-        }
-    }, [initialSimilarSearchImageId]);
 
     useEffect(() => {
         if (isEditing) {
@@ -1010,66 +998,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 </button>
                             )}
 
-                            <button
-                                onClick={() => {
-                                    setSimilarSearchImageId(image.id);
-                                    setIsSimilarDrawerOpen(true);
-                                }}
-                                style={{
-                                    width: '100%',
-                                    padding: '8px',
-                                    background: '#333',
-                                    color: 'white',
-                                    border: '1px solid #555',
-                                    borderRadius: 4,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 8,
-                                    transition: 'background-color 0.2s',
-                                    fontWeight: 500
-                                }}
-                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#444' }}
-                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#333' }}
-                            >
-                                <Search size={16} /> Find Similar Images
-                            </button>
                         </>
                     )}
                 </div>
             </div>
-
-            <SimilarSearchDrawer
-                open={isSimilarDrawerOpen}
-                onClose={() => setIsSimilarDrawerOpen(false)}
-                queryImageId={similarSearchImageId ?? image.id}
-                currentFolderId={image.folder_id}
-                onSelectImage={async (id) => {
-                    const idx = allImages.findIndex(img => img.id === id);
-                    if (idx >= 0 && onNavigate) {
-                        onNavigate(idx);
-                        setIsSimilarDrawerOpen(false);
-                        return;
-                    }
-
-                    if (onOpenImageById) {
-                        const opened = await onOpenImageById(id);
-                        if (opened) {
-                            setIsSimilarDrawerOpen(false);
-                            return;
-                        }
-                    }
-
-                    const details = await bridge.getImageDetails(id);
-                    if (details) {
-                        setImage(details);
-                        setDetailsLoaded(true);
-                        setIsSimilarDrawerOpen(false);
-                    }
-                }}
-                onJumpToImageFolder={(id) => onOpenImageById?.(id)}
-            />
 
             <ConfirmDialog
                 isOpen={isDeleteDialogOpen}

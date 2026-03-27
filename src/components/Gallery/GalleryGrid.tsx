@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useRef, useEffect, useState } from 'react';
+import React, { useMemo, useCallback, useRef, useEffect } from 'react';
 import { VirtuosoGrid } from 'react-virtuoso';
 import { Logger } from '../../services/Logger';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
@@ -47,7 +47,6 @@ interface GalleryGridProps {
     onSelectStack?: (stack: Image) => void;
     onStackEndReached?: () => void;
     activeStackId?: number | null;
-    onFindSimilarImages?: (image: Image) => void;
 }
 
 const ItemContainer = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ style, children, className, ...props }, ref) => (
@@ -66,10 +65,9 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     images, onSelect, onEndReached, subfolders, onSelectFolder,
     onNavigateToParent, viewerOpen = false, sortBy = 'score_general',
     stacksMode = false, stacks = [], onSelectStack, onStackEndReached,
-    activeStackId, onFindSimilarImages
+    activeStackId
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; image: Image } | null>(null);
 
     // Escape key handler for parent navigation (only when viewer is closed)
     useKeyboardLayer('page', useCallback((e: KeyboardEvent) => {
@@ -78,7 +76,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
             return true;
         }
         return false;
-    }, [onNavigateToParent]), !viewerOpen && !contextMenu);
+    }, [onNavigateToParent]), !viewerOpen);
 
     useEffect(() => {
         const el = containerRef.current;
@@ -91,26 +89,6 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
             containerHeight: el.clientHeight
         });
     }, [images.length, images]);
-
-    // Close context menu on click/scroll
-    useEffect(() => {
-        const closeMenu = () => setContextMenu(null);
-        window.addEventListener('click', closeMenu);
-        window.addEventListener('scroll', closeMenu, true);
-        return () => {
-            window.removeEventListener('click', closeMenu);
-            window.removeEventListener('scroll', closeMenu, true);
-        };
-    }, []);
-
-    // Close context menu on Escape (menu layer takes priority over page layer)
-    useKeyboardLayer('menu', useCallback((e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-            setContextMenu(null);
-            return true;
-        }
-        return false;
-    }, []), !!contextMenu);
 
     const gridComponents = useMemo(() => ({
         List: ItemContainer,
@@ -152,12 +130,6 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         return (
             <div
                 onClick={onClick}
-                onContextMenu={(e) => {
-                    e.preventDefault();
-                    if (onFindSimilarImages) {
-                        setContextMenu({ x: e.clientX, y: e.clientY, image: img });
-                    }
-                }}
                 className={styles.cardInner}
             >
                 <div className={styles.imageArea}>
@@ -181,7 +153,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 </div>
             </div>
         );
-    }, [getScoreDisplay, getLabelColor, onFindSimilarImages]);
+    }, [getScoreDisplay, getLabelColor]);
 
     const renderStackCard = useCallback((stack: Image, onClick: () => void) => {
         const labelColor = getLabelColor(stack.label);
@@ -305,40 +277,6 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 components={gridComponents}
                 itemContent={itemContent}
             />
-
-            {contextMenu && onFindSimilarImages && (() => {
-                const MENU_WIDTH = 220;
-                const MENU_HEIGHT = 45; // Approx height for one item + padding
-                const margin = 10;
-
-                let x = contextMenu.x;
-                let y = contextMenu.y;
-
-                if (x + MENU_WIDTH + margin > window.innerWidth) {
-                    x = window.innerWidth - MENU_WIDTH - margin;
-                }
-                if (y + MENU_HEIGHT + margin > window.innerHeight) {
-                    y = window.innerHeight - MENU_HEIGHT - margin;
-                }
-
-                return (
-                    <div
-                        className={styles.contextMenu}
-                        style={{ top: y, left: x, minWidth: MENU_WIDTH }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            className={styles.contextMenuItem}
-                            onClick={() => {
-                                onFindSimilarImages(contextMenu.image);
-                                setContextMenu(null);
-                            }}
-                        >
-                            Find Similar Images…
-                        </button>
-                    </div>
-                );
-            })()}
         </div>
     );
 };

@@ -124,12 +124,10 @@ function AppContent({ isConnected }: AppContentProps) {
   const {
     openingImage,
     currentImageIndex,
-    initialSimilarSearchImageId,
     handleImageClick,
     handleNavigateImage,
     openImageById,
     handleImageDelete,
-    handleFindSimilarFromGrid,
     closeViewer,
   } = useImageOpener({
     images,
@@ -407,7 +405,6 @@ function AppContent({ isConnected }: AppContentProps) {
                   onSelectStack={handleSelectStack}
                   onStackEndReached={loadMoreStacks}
                   activeStackId={activeStackId}
-                  onFindSimilarImages={handleFindSimilarFromGrid}
                 />
                 {openingImage && (
                   <ImageViewer
@@ -417,7 +414,6 @@ function AppContent({ isConnected }: AppContentProps) {
                     currentIndex={currentImageIndex}
                     onNavigate={handleNavigateImage}
                     onDelete={handleImageDelete}
-                    initialSimilarSearchImageId={initialSimilarSearchImageId}
                     onOpenImageById={openImageById}
                     onOpenFolder={(folderId) => {
                       handleNavigateToFolder(folderId);

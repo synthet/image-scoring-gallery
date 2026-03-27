@@ -200,7 +200,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders, onBackToGa
                 <button onClick={onBackToGallery} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '0.85em', marginRight: 15 }}>
                     ← Gallery
                 </button>
-                <div style={{ fontSize: '1.1em', fontWeight: 600 }}>Backend Runs</div>
+                <div style={{ fontSize: '1.1em', fontWeight: 600 }}>Scoring...</div>
                 <div style={{ flex: 1 }} />
                 <div style={{ fontSize: '0.85em', color: '#888', marginRight: 15 }}>
                     Queue depth: {queueDepth}

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.3.0] - 2026-03-26
+
+### Added
+- **Scoring window** (**Tools** → **Scoring...**): Loads the backend React UI at **`/ui/runs`**. When sibling **`image-scoring-backend/static/app`** (or legacy **`image-scoring/static/app`**) exists, a local **Express** server serves the SPA and **proxies** `/api`, `/public`, `/source-image`, and **`/ws`** to the configured FastAPI base URL so the window still works if `:7860` only exposes API/WebSocket; otherwise falls back to opening the backend URL directly. Window icon uses backend **`static/favicon.ico`** when present.
+- **`electron/scoringUiServer.ts`**: **`startScoringUiServer`**, **`resolveBackendUiStaticDir`**, dynamic proxy target via **`http-proxy-middleware`** (new dependency).
+- **`--webui-shell=URL`**: Minimal Electron mode that opens a single **WebUI** window and **quits** when it closes (e.g. external launcher).
+
+### Changed
+- **Tools** menu: **Diagnostics** first, separator, then **Scoring...**; removed separate **Find Duplicates** and **Runs** entries (use gallery/viewer flows and the Scoring UI for runs).
+- **Gallery grid**: Removed thumbnail context menu **Find similar images** and **`onFindSimilarImages`** prop.
+- **Image viewer**: Removed **`SimilarSearchDrawer`** integration and **`initialSimilarSearchImageId`** prop; related opener wiring trimmed (**`AppContent`**, **`useImageOpener`**).
+
 ## [4.2.1] - 2026-03-25
 
 ### Fixed
