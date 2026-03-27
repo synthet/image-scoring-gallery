@@ -81,7 +81,7 @@ interface DuplicateResponse {
     message?: string;
 }
 
-type DatabaseEngine = 'firebird' | 'postgres';
+type DatabaseEngine = 'firebird' | 'postgres' | 'api';
 // NOTE: Keep the database config types below in sync with electron/types.ts.
 
 interface PostgresSslConfig {
@@ -127,7 +127,19 @@ interface PostgresDatabaseConfig {
     postgres: PostgresConfig;
 }
 
-type DatabaseConfig = FirebirdDatabaseConfig | PostgresDatabaseConfig;
+interface ApiDatabaseConfig {
+    engine: Extract<DatabaseEngine, 'api'>;
+    /** @deprecated Prefer `engine`. Kept for backward compatibility with older configs/branches. */
+    provider?: 'api';
+    api: {
+        url?: string;
+        timeout?: number;
+        dialect?: 'firebird' | 'postgres';
+        sqlDialect?: 'firebird' | 'postgres';
+    };
+}
+
+type DatabaseConfig = FirebirdDatabaseConfig | PostgresDatabaseConfig | ApiDatabaseConfig;
 
 interface AppConfig {
     database?: DatabaseConfig;

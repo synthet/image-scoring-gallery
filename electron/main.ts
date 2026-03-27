@@ -351,6 +351,37 @@ function parseWebuiShellUrl(): string | null {
 
 const webuiShellOnlyUrl = parseWebuiShellUrl();
 
+/**
+ * Searches for active backend WebUI instances by reading .lock files 
+ * in sibling repo directories.
+ */
+async function findActiveWebuiPort(): Promise<number | null> {
+    try {
+        const projectRoot = path.resolve(__dirname, '..');
+        const projectsDir = path.resolve(projectRoot, '..');
+        const lockFiles = [
+            path.join(projectsDir, 'image-scoring-backend', 'webui.lock'),
+            path.join(projectsDir, 'image-scoring-backend', 'webui-debug.lock'),
+            path.join(projectsDir, 'image-scoring', 'webui.lock'),
+            path.join(projectsDir, 'image-scoring', 'webui-debug.lock'),
+        ];
+
+        for (const lockFile of lockFiles) {
+            if (fs.existsSync(lockFile)) {
+                const content = await fs.promises.readFile(lockFile, 'utf8');
+                const data = JSON.parse(content);
+                if (data && data.port) {
+                    console.log(`[Main] Found active WebUI at port ${data.port} from ${path.basename(lockFile)}`);
+                    return data.port;
+                }
+            }
+        }
+    } catch (e) {
+        console.error('[Main] Failed to read API lock files:', e);
+    }
+    return null;
+}
+
 /** Serves backend SPA from disk; proxies API/WS to FastAPI (see scoringUiServer.ts). */
 let scoringUiServer: ScoringUiServer | null = null;
 let scoringUiReady: Promise<ScoringUiServer | null> | null = null;
@@ -386,10 +417,11 @@ function openScoringWindow(): void {
         const win = new BrowserWindow({
             width: 1280,
             height: 900,
-            title: 'Scoring...',
+            title: 'Image Scoring',
             ...(backendIcon ? { icon: backendIcon } : {}),
             webPreferences: { contextIsolation: true },
         });
+        win.setMenu(null);
         try {
             const local = await ensureScoringUiServer();
             const url = local ? `${local.baseUrl}/ui/runs` : `${apiService.getBaseUrl()}/ui/runs`;
@@ -774,51 +806,43 @@ async function startFullApplication(): Promise<void> {
         return { added, skipped, errors };
     }));
 
-    ipcMain.handle('nef:extract-preview', async (_, filePath: string) => {
-        try {
-            console.log(`[Main] NEF preview requested for: ${filePath}`);
+    ipcMain.handle('nef:extract-preview', wrapIpcHandler(async (_, filePath: string) => {
+        console.log(`[Main] NEF preview requested for: ${filePath}`);
 
-            let convertedPath = filePath;
-            if (process.platform === 'win32' && filePath.match(/^\/mnt\/[a-zA-Z]\//)) {
-                convertedPath = filePath.replace(/^\/mnt\/([a-zA-Z])\//, '$1:/');
-                console.log(`[Main] Converted WSL path: ${filePath} -> ${convertedPath}`);
-            }
+        let convertedPath = filePath;
+        if (process.platform === 'win32' && filePath.match(/^\/mnt\/[a-zA-Z]\//)) {
+            convertedPath = filePath.replace(/^\/mnt\/([a-zA-Z])\//, '$1:/');
+            console.log(`[Main] Converted WSL path: ${filePath} -> ${convertedPath}`);
+        }
 
-            const ext = path.extname(convertedPath).toLowerCase();
-            if (ext !== '.nef') {
-                console.log(`[Main] Skipping non-NEF file (${ext}), returning fallback`);
-                const fileBuffer = await fs.promises.readFile(convertedPath);
-                return {
-                    success: false,
-                    fallback: true,
-                    buffer: fileBuffer
-                };
-            }
-
-            const buffer = await nefExtractor.extractPreview(convertedPath);
-
-            if (buffer) {
-                return {
-                    success: true,
-                    buffer: buffer
-                };
-            }
-
-            console.log('[Main] Tier 1 failed, falling back to client-side extraction');
+        const ext = path.extname(convertedPath).toLowerCase();
+        if (ext !== '.nef') {
+            console.log(`[Main] Skipping non-NEF file (${ext}), returning fallback`);
             const fileBuffer = await fs.promises.readFile(convertedPath);
             return {
                 success: false,
                 fallback: true,
                 buffer: fileBuffer
             };
-        } catch (e: unknown) {
-            console.error('[Main] NEF extraction error:', e);
+        }
+
+        const buffer = await nefExtractor.extractPreview(convertedPath);
+
+        if (buffer) {
             return {
-                success: false,
-                error: e instanceof Error ? e.message : String(e)
+                success: true,
+                buffer: buffer
             };
         }
-    });
+
+        console.log('[Main] Tier 1 failed, falling back to client-side extraction');
+        const fileBuffer = await fs.promises.readFile(convertedPath);
+        return {
+            success: false,
+            fallback: true,
+            buffer: fileBuffer
+        };
+    }));
 
     ipcMain.handle('nef:read-exif', wrapIpcHandler(async (_, filePath: string) => {
         try {
@@ -868,38 +892,15 @@ async function startFullApplication(): Promise<void> {
 
     ipcMain.handle('system:get-api-config', async () => {
         const config = loadConfig();
-        let port = 7860;
+        const apiPort = await findActiveWebuiPort();
+        
+        let port = apiPort || 7860;
         let host = '127.0.0.1';
 
         if (config.api) {
             if (config.api.url) return { url: config.api.url };
             if (config.api.port) port = config.api.port;
             if (config.api.host) host = config.api.host;
-        }
-
-        try {
-            const projectRoot = path.resolve(__dirname, '..');
-            const projectsDir = path.resolve(projectRoot, '..');
-            const locks = [
-                path.join(projectsDir, 'image-scoring-backend', 'webui.lock'),
-                path.join(projectsDir, 'image-scoring-backend', 'webui-debug.lock'),
-                path.join(projectsDir, 'image-scoring', 'webui.lock'),
-                path.join(projectsDir, 'image-scoring', 'webui-debug.lock'),
-            ];
-
-            for (const lockFile of locks) {
-                if (fs.existsSync(lockFile)) {
-                    const content = await fs.promises.readFile(lockFile, 'utf8');
-                    const data = JSON.parse(content);
-                    if (data && data.port) {
-                        port = data.port;
-                        console.log(`[Main] Found active WebUI at port ${port} from ${path.basename(lockFile)}`);
-                        break;
-                    }
-                }
-            }
-        } catch (e) {
-            console.error('[Main] Failed to read API lock file:', e);
         }
 
         return { url: `http://${host}:${port}` };
@@ -912,32 +913,7 @@ async function startFullApplication(): Promise<void> {
             const match = config.api.url.match(/:(\d+)(?:\/|$)/);
             if (match) return parseInt(match[1], 10);
         }
-        try {
-            const projectRoot = path.resolve(__dirname, '..');
-            const projectsDir = path.resolve(projectRoot, '..');
-            const lockFiles = [
-                path.join(projectsDir, 'image-scoring-backend', 'webui.lock'),
-                path.join(projectsDir, 'image-scoring-backend', 'webui-debug.lock'),
-                path.join(projectsDir, 'image-scoring', 'webui.lock'),
-                path.join(projectsDir, 'image-scoring', 'webui-debug.lock'),
-            ];
-
-            for (const lockFile of lockFiles) {
-                console.log('[Main] Looking for API lock file at:', lockFile);
-
-                if (fs.existsSync(lockFile)) {
-                    const content = await fs.promises.readFile(lockFile, 'utf8');
-                    const data = JSON.parse(content);
-                    console.log('[Main] Found API lock file:', data);
-                    if (data && data.port) {
-                        return data.port;
-                    }
-                }
-            }
-        } catch (e) {
-            console.error('[Main] Failed to read API port:', e);
-        }
-        return 7860;
+        return (await findActiveWebuiPort()) || 7860;
     });
 
     ipcMain.handle('system:get-config', wrapIpcHandler(async () => {

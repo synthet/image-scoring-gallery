@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.4.0] - 2026-03-26
+
+### Added
+- **Database `api` engine**: **`ApiConnector`** runs gallery SQL against the Python backend over HTTP (see backend **`/api/db/query`**); configure **`database.engine`: `api`** and **`database.api`** (`url`, optional **`dialect`** / **`sqlDialect`** for Firebird vs Postgres-shaped queries).
+- **`IDatabaseConnector`** / **`createDatabaseConnector`**: Unified Firebird, Postgres, and API paths in **`electron/db/provider.ts`**; **`electron/db.ts`** resolves SQL dialect for API mode from config.
+- **Dependencies**: **`pg`** and **`@types/pg`** for the Postgres connector.
+- **`electron/db/provider.test.ts`**: Vitest coverage for connector selection and **`?` → `$n`** translation for Postgres.
+- **`docs/planning/db_abstraction_layer.md`**: Notes on the connector abstraction.
+
+### Changed
+- **Main process**: Shared **`findActiveWebuiPort`** for lock-file discovery; **Scoring** window title **Image Scoring**, no menu bar; **`nef:extract-preview`** uses **`wrapIpcHandler`** like other IPC handlers.
+- **`electron/types.ts`** / **`src/electron.d.ts`**: **`DatabaseEngine`** includes **`api`**; **`ApiDatabaseConfig`** added.
+
 ## [4.3.0] - 2026-03-26
 
 ### Added

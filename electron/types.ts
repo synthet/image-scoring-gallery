@@ -97,7 +97,7 @@ export interface DuplicateResponse {
     message?: string;
 }
 
-export type DatabaseEngine = 'firebird' | 'postgres';
+export type DatabaseEngine = 'firebird' | 'postgres' | 'api';
 
 export interface PostgresSslConfig {
     enabled?: boolean;
@@ -142,7 +142,20 @@ export interface PostgresDatabaseConfig {
     postgres: PostgresConfig;
 }
 
-export type DatabaseConfig = FirebirdDatabaseConfig | PostgresDatabaseConfig;
+export interface ApiDatabaseConfig {
+    engine: 'api';
+    /** @deprecated Prefer `engine`. Kept for backward compatibility with older configs/branches. */
+    provider?: 'api';
+    api: {
+        url?: string;
+        timeout?: number;
+        dialect?: 'firebird' | 'postgres';
+        /** SQL shape the gallery builds; align with backend database.engine (default firebird). */
+        sqlDialect?: 'firebird' | 'postgres';
+    };
+}
+
+export type DatabaseConfig = FirebirdDatabaseConfig | PostgresDatabaseConfig | ApiDatabaseConfig;
 
 export interface AppConfig {
     database?: DatabaseConfig;

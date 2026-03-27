@@ -3,13 +3,13 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import net from 'net';
 import path from 'path';
-import type { PostgresConfig as AppPostgresConfig } from '../types';
+import type { ApiDatabaseConfig, DatabaseConfig, PostgresConfig as AppPostgresConfig } from '../types';
 
 export type QueryParam = string | number | null;
 export type TxQuery = <R = unknown>(sql: string, params?: QueryParam[]) => Promise<R[]>;
 
-export interface DbProvider {
-    readonly type: 'firebird' | 'postgres';
+export interface IDatabaseConnector {
+    readonly type: 'firebird' | 'postgres' | 'api';
     connect(): Promise<unknown>;
     close(): Promise<void>;
     query<T = unknown>(sql: string, params?: QueryParam[]): Promise<T[]>;
@@ -30,7 +30,7 @@ interface FirebirdBootConfig {
     path?: string;
 }
 
-export class FirebirdProvider implements DbProvider {
+export class FirebirdConnector implements IDatabaseConnector {
     readonly type = 'firebird' as const;
 
     private readonly options: Firebird.Options;
@@ -297,6 +297,38 @@ function normalizeSslForPg(ssl: AppPostgresConfig['ssl']): boolean | Record<stri
     return undefined;
 }
 
+/**
+ * Firebird-style `?` placeholders → `$1`..`$n` for node-pg (outside string literals; `''` = escaped quote).
+ */
+export function sqlQuestionMarksToPgNumbered(sql: string): { text: string; count: number } {
+    let out = '';
+    let i = 0;
+    let n = 0;
+    let inString = false;
+    while (i < sql.length) {
+        const c = sql[i];
+        if (c === "'") {
+            if (inString && sql[i + 1] === "'") {
+                out += "''";
+                i += 2;
+                continue;
+            }
+            inString = !inString;
+            out += c;
+            i++;
+            continue;
+        }
+        if (!inString && c === '?') {
+            n += 1;
+            out += `$${n}`;
+        } else {
+            out += c;
+        }
+        i++;
+    }
+    return { text: out, count: n };
+}
+
 function appPostgresConfigToPoolOptions(pg: AppPostgresConfig): PgPoolDriverConfig {
     const pool = pg.pool || {};
     return {
@@ -332,7 +364,7 @@ interface PgModuleLike {
 
 const runtimeImport = new Function('moduleName', 'return import(moduleName)') as (moduleName: string) => Promise<unknown>;
 
-export class PostgresProvider implements DbProvider {
+export class PostgresConnector implements IDatabaseConnector {
     readonly type = 'postgres' as const;
 
     private readonly poolConfig: PgPoolDriverConfig;
@@ -355,7 +387,13 @@ export class PostgresProvider implements DbProvider {
 
     async query<T = unknown>(sql: string, params: QueryParam[] = []): Promise<T[]> {
         const pool = await this.getPool();
-        const result = await pool.query<T & PgRow>(sql, params);
+        const { text, count } = sqlQuestionMarksToPgNumbered(sql);
+        if (count !== params.length) {
+            throw new Error(
+                `[DB] Postgres: ${count} placeholders vs ${params.length} params`
+            );
+        }
+        const result = await pool.query<T & PgRow>(text, params);
         return result.rows as T[];
     }
 
@@ -364,7 +402,13 @@ export class PostgresProvider implements DbProvider {
         const client = await pool.connect();
 
         const txQuery: TxQuery = async <R = unknown>(sql: string, params: QueryParam[] = []): Promise<R[]> => {
-            const result = await client.query<R & PgRow>(sql, params);
+            const { text, count } = sqlQuestionMarksToPgNumbered(sql);
+            if (count !== params.length) {
+                throw new Error(
+                    `[DB] Postgres tx: ${count} placeholders vs ${params.length} params`
+                );
+            }
+            const result = await client.query<R & PgRow>(text, params);
             return result.rows as R[];
         };
 
@@ -432,33 +476,116 @@ export class PostgresProvider implements DbProvider {
     }
 }
 
-interface ProviderFactoryConfig {
-    /** Prefer over legacy `provider` when both are set (normalized configs set both). */
-    engine?: string;
-    provider?: string;
-    postgres?: AppPostgresConfig;
-    host?: string;
-    port?: number;
-    user?: string;
-    password?: string;
-    path?: string;
-}
+export class ApiConnector implements IDatabaseConnector {
+    readonly type = 'api' as const;
 
-export function createDbProvider(config: {
-    dbConfig: ProviderFactoryConfig;
-    firebirdConfig?: FirebirdBootConfig;
-    firebirdDatabasePath: string;
-}): DbProvider {
-    const kind = (config.dbConfig.engine || config.dbConfig.provider || 'firebird').toLowerCase();
+    private readonly apiUrl: string;
+    private readonly timeout: number;
 
-    if (kind === 'postgres' || kind === 'postgresql') {
-        if (!config.dbConfig.postgres) {
-            throw new Error('[DB] database.postgres config is required when engine/provider is "postgres".');
-        }
-        console.log('[DB] Using Postgres provider');
-        return new PostgresProvider(appPostgresConfigToPoolOptions(config.dbConfig.postgres));
+    constructor(apiUrl: string, timeout: number = 10000) {
+        this.apiUrl = apiUrl.replace(/\/$/, '');
+        this.timeout = timeout;
     }
 
-    console.log('[DB] Using Firebird provider');
-    return new FirebirdProvider(config.dbConfig, config.firebirdDatabasePath, config.firebirdConfig);
+    async connect(): Promise<void> {
+        // No persistent connection needed for stateless API
+        return Promise.resolve();
+    }
+
+    async close(): Promise<void> {
+        return Promise.resolve();
+    }
+
+    async query<T = unknown>(sql: string, params: QueryParam[] = []): Promise<T[]> {
+        const response = await fetch(`${this.apiUrl}/api/db/query`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sql, params }),
+            signal: AbortSignal.timeout(this.timeout)
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`API Query failed (${response.status}): ${text}`);
+        }
+
+        const raw = (await response.json()) as unknown;
+        if (Array.isArray(raw)) {
+            return raw as T[];
+        }
+        if (raw && typeof raw === 'object') {
+            const o = raw as Record<string, unknown>;
+            if (Array.isArray(o.data)) {
+                return o.data as T[];
+            }
+            if (Array.isArray(o.rows)) {
+                return o.rows as T[];
+            }
+        }
+        throw new Error('[DB] ApiConnector: expected JSON { data: rows[] }, { rows: [] }, or a row array');
+    }
+
+    /**
+     * Runs sequential HTTP queries — **not** a single ACID transaction (no shared backend session).
+     */
+    async runTransaction<T>(callback: (txQuery: TxQuery) => Promise<T>): Promise<T> {
+        const txQuery: TxQuery = <R = unknown>(sql: string, params: QueryParam[] = []): Promise<R[]> => {
+            return this.query<R>(sql, params);
+        };
+
+        try {
+            return await callback(txQuery);
+        } catch (e) {
+            console.error('[DB] ApiConnector transaction sequence failed:', e);
+            throw e;
+        }
+    }
+
+    async checkConnection(): Promise<boolean> {
+        try {
+            const response = await fetch(`${this.apiUrl}/api/health`, {
+                signal: AbortSignal.timeout(2000)
+            });
+            return response.ok;
+        } catch (e) {
+            console.error('[DB] ApiConnector health check failed:', e);
+            return false;
+        }
+    }
+
+    async verifyStartup(): Promise<boolean> {
+        return this.checkConnection();
+    }
+}
+
+export function createDatabaseConnector(config: {
+    dbConfig: DatabaseConfig;
+    firebirdConfig?: FirebirdBootConfig;
+    firebirdDatabasePath: string;
+}): IDatabaseConnector {
+    const kind = (config.dbConfig.engine || config.dbConfig.provider || 'firebird').toLowerCase();
+
+    if (kind === 'api') {
+        const apiCfg = (config.dbConfig as ApiDatabaseConfig).api || {};
+        const url = apiCfg.url || 'http://localhost:7860';
+        const timeout = apiCfg.timeout ?? 10000;
+        console.log(`[DB] Using API connector at ${url}`);
+        return new ApiConnector(url, timeout);
+    }
+
+    if (kind === 'postgres' || kind === 'postgresql') {
+        const pgCfg = 'postgres' in config.dbConfig ? config.dbConfig.postgres : undefined;
+        if (!pgCfg) {
+            throw new Error('[DB] database.postgres config is required when engine/provider is "postgres".');
+        }
+        console.log('[DB] Using Postgres connector');
+        return new PostgresConnector(appPostgresConfigToPoolOptions(pgCfg));
+    }
+
+    console.log('[DB] Using Firebird connector');
+    return new FirebirdConnector(
+        config.dbConfig as FirebirdRuntimeConfig,
+        config.firebirdDatabasePath,
+        config.firebirdConfig,
+    );
 }

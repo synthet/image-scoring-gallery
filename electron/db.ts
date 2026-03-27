@@ -2,8 +2,8 @@ import path from 'path';
 import fs from 'fs';
 
 import { getConfigPath, loadAppConfig } from './config';
-import type { AppConfig, DatabaseConfig, FirebirdDatabaseConfig } from './types';
-import { createDbProvider, DbProvider, QueryParam, TxQuery } from './db/provider';
+import type { ApiDatabaseConfig, AppConfig, DatabaseConfig, FirebirdDatabaseConfig } from './types';
+import { createDatabaseConnector, IDatabaseConnector, QueryParam, TxQuery } from './db/provider';
 
 // Load configuration
 function loadConfig(): AppConfig {
@@ -27,7 +27,19 @@ const firebirdDbConfig: FirebirdDatabaseConfig = isFirebirdDb
 // else falls back to 'firebird'.
 // ---------------------------------------------------------------------------
 type SqlDialect = 'firebird' | 'postgres';
-const SQL_DIALECT: SqlDialect = dbKind === 'postgres' ? 'postgres' : 'firebird';
+
+function resolveSqlDialect(): SqlDialect {
+    if (dbKind === 'postgres') return 'postgres';
+    if (dbKind === 'api') {
+        const apiCfg = (dbConfig as ApiDatabaseConfig).api;
+        const d = (apiCfg?.dialect || apiCfg?.sqlDialect)?.toLowerCase();
+        if (d === 'postgres') return 'postgres';
+        return 'firebird';
+    }
+    return 'firebird';
+}
+
+const SQL_DIALECT: SqlDialect = resolveSqlDialect();
 
 /** Both variants are required — forces you to implement Postgres SQL, not just silence the error. */
 interface DialectSqlTemplate { firebird: string; postgres: string; }
@@ -230,43 +242,43 @@ if (isFirebirdDb) {
     dbPath = '';
 }
 
-const provider: DbProvider = createDbProvider({
+const connector: IDatabaseConnector = createDatabaseConnector({
     dbConfig: dbConfig as DatabaseConfig,
     firebirdConfig: config.firebird,
     firebirdDatabasePath: dbPath,
 });
 
 export async function connectDB(): Promise<void> {
-    await provider.connect();
+    await connector.connect();
 }
 export function closeConnection(): void {
-    void provider.close().catch((e) => {
+    void connector.close().catch((e) => {
         console.error('[DB] Error while closing database connection:', e);
     });
 }
 
-/** Historical name preserved for IPC compatibility; now validates whichever DB provider is configured. */
+/** Historical name preserved for IPC compatibility; now validates whichever DB connector is configured. */
 export async function ensureFirebirdRunning(): Promise<boolean> {
-    return provider.verifyStartup();
+    return connector.verifyStartup();
 }
 
-/** Provider-aware startup: Firebird verifies server is up; Postgres verifies connectivity. */
+/** Connector-aware startup: Firebird verifies server is up; Postgres verifies connectivity. */
 export async function initializeDatabaseProvider(): Promise<boolean> {
-    return provider.verifyStartup();
+    return connector.verifyStartup();
 }
 
 export async function checkConnection(): Promise<boolean> {
-    return provider.checkConnection();
+    return connector.checkConnection();
 }
 
 export async function query<T = unknown>(sql: string, params: QueryParam[] = []): Promise<T[]> {
-    return provider.query<T>(sql, params);
+    return connector.query<T>(sql, params);
 }
 
 export async function runTransaction<T>(
     callback: (txQuery: TxQuery) => Promise<T>
 ): Promise<T> {
-    return provider.runTransaction(callback);
+    return connector.runTransaction(callback);
 }
 
 // ---------------------------------------------------------------------------
