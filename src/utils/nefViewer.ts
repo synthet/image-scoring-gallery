@@ -1,4 +1,3 @@
-import LibRaw from 'libraw-wasm';
 import { bridge } from '../bridge';
 
 /**
@@ -8,11 +7,9 @@ import { bridge } from '../bridge';
  * 1. Server-side exiftool extraction (via IPC) - Most reliable
  * 2. Client-side TIFF SubIFD parsing - Handles Z9/Z6II formats
  * 3. Client-side JPEG marker scanning - Final fallback
- * 4. Full RAW decode via LibRaw-WASM (on-demand, slow)
  */
 export class NefViewer {
     private static instance: NefViewer;
-    private libraw: LibRaw | null = null;
 
     private constructor() { }
 
@@ -304,32 +301,6 @@ export class NefViewer {
         console.log(`[NefViewer] Using largest JPEG (${(largest.size / 1024).toFixed(1)} KB) from offset ${largest.start} to ${largest.end}`);
 
         return new Blob([jpegBytes], { type: 'image/jpeg' });
-    }
-
-    /**
-     * Tier 4: Decode full RAW data using LibRaw-WASM (slow, on-demand only).
-     */
-    public async decodeRaw(buffer: ArrayBuffer): Promise<ImageData | null> {
-        try {
-            if (!this.libraw) {
-                this.libraw = new LibRaw();
-            }
-
-            const bytes = new Uint8Array(buffer);
-            await this.libraw.open(bytes);
-
-            const decoded = await this.libraw.imageData();
-
-            return new ImageData(
-                new Uint8ClampedArray(decoded.data),
-                decoded.width,
-                decoded.height
-            );
-
-        } catch (e) {
-            console.error('[NefViewer] RAW decode failed', e);
-            return null;
-        }
     }
 
     /**

@@ -75,7 +75,6 @@ function AppContent({ isConnected }: AppContentProps) {
     stackImages, setStackImages,
     stackImagesLoading,
     loadStackImages,
-    loadStackImagesRef,
     clearStack,
     handleSelectStack: handleSelectStackBase,
     handleImageDeleteFromStack,

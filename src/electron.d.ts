@@ -1,4 +1,17 @@
 export { };
+ 
+export interface BackendJobInfo {
+    job_id: string | number;
+    job_type: string;
+    status: string;
+    input_path?: string;
+    created_at?: string;
+    completed_at?: string;
+    log?: string;
+    progress?: { current: number; total: number };
+    [key: string]: unknown;
+}
+
 
 interface ImageQueryOptions {
     limit?: number;
@@ -352,16 +365,6 @@ declare global {
         custom_keywords?: string[] | null;
         generate_captions?: boolean;
         clustering_threshold?: number | null;
-    }
-
-    interface BackendJobInfo {
-        job_id: string | number;
-        job_type: string;
-        status: string;
-        created_at?: string;
-        completed_at?: string;
-        progress?: { current: number; total: number };
-        [key: string]: unknown;
     }
 
     interface BackendDatabaseStats {

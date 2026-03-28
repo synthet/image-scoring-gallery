@@ -1,8 +1,0 @@
-remote: error: Trace: c5e7d547a698713626f96537cd181d23e9571e7a2497a47f22ab731b8641ed95        
-remote: error: See https://gh.io/lfs for more information.        
-remote: error: File dist-electron/win-unpacked/Electron Image Gallery.exe is 203.48 MB; this exceeds GitHub's file size limit of 100.00 MB        
-remote: error: File dist-electron/win-unpacked/resources/app.asar is 372.21 MB; this exceeds GitHub's file size limit of 100.00 MB        
-remote: error: GH001: Large files detected. You may want to try Git Large File Storage - https://git-lfs.github.com.        
-To github.com:synthet/electron-image-scoring.git
- ! [remote rejected] main -> main (pre-receive hook declined)
-error: failed to push some refs to 'github.com:synthet/electron-image-scoring.git'

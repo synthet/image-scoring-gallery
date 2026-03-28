@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.4.1] - 2026-03-27
+
+### Removed
+- **NEF LibRaw tier**: Dropped **`libraw-wasm`**, **`sharp`**, **`decodeRaw`**, and **`src/libraw-wasm.d.ts`**; previews use IPC / existing client-side extraction paths only.
+- **Repo clutter**: Removed ad-hoc root scripts (**`compare_db*.py`**, **`check_orientation.js`**, **`fix_thumbnails.js`**, **`test_*.js`**, **`verify.js`**), **`build_exe.bat`**, and stray logs/reports/patches.
+
+### Changed
+- **`BackendJobInfo`**: Exported from **`src/electron.d.ts`** with **`input_path`** / **`log`**; **`RunsPage`** imports from **`electron.d`** and types log line splits.
+- **Main process**: Removed unused **`parseMediaUrlToFilePath`** helper.
+- **`AppContent`**: Dropped unused **`loadStackImagesRef`** destructure.
+
+### Fixed
+- **Preload `extractNefPreview`**: Unwraps the IPC **`Envelope`** like other invoke handlers.
+- **ImageViewer**: Explicit EXIF field casts for stricter TypeScript.
+
 ## [4.4.0] - 2026-03-26
 
 ### Added

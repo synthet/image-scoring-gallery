@@ -105,8 +105,7 @@ contextBridge.exposeInMainWorld('electron', {
     },
     extractNefPreview: async (filePath: string) => {
         const response = await ipcRenderer.invoke('nef:extract-preview', filePath);
-        // NEF preview doesn't use envelope pattern
-        return response;
+        return unwrapEnvelope<any>(response);
     },
     getApiPort: async () => {
         return ipcRenderer.invoke('system:get-api-port');

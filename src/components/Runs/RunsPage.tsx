@@ -4,7 +4,7 @@ import { RunsConsole } from './RunsConsole';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { FolderTree } from '../Tree/FolderTree';
 import type { Folder } from '../Tree/treeUtils';
-import type { BackendJobInfo } from '../../electron';
+import type { BackendJobInfo } from '../../electron.d';
 import { bridge } from '../../bridge';
 
 interface RunsPageProps {
@@ -120,7 +120,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders, onBackToGa
             // It's historic, load its log if buffer is empty and it has a stored log
             if (logBuffer.length === 0 && selected.log) {
                 // Split multi-line backend log string into visual entries
-                const lines = selected.log.split('\n').filter(l => l.trim().length > 0);
+                const lines = selected.log.split('\n').filter((l: string) => l.trim().length > 0);
                 for (const line of lines) {
                     appendLog({ ts: selected.completed_at || new Date().toISOString(), level: 'info', source: 'system', message: line });
                 }
@@ -252,7 +252,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders, onBackToGa
                                         </span>
                                     </div>
                                     <div style={{ fontSize: '0.75em', color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {job.input_path?.split(/[/\\]/).pop() || job.input_path || 'No target'}
+                                        {((job as any).input_path ?? '').split(/[/\\]/).pop() || (job as any).input_path || 'No target'}
                                     </div>
                                     <div style={{ fontSize: '0.7em', color: '#555', marginTop: 4 }}>
                                         {new Date(job.created_at || '').toLocaleString()}

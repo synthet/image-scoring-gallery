@@ -217,12 +217,12 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 });
                 if (active && exif) {
                     setExifData({
-                        ISO: exif.ISO,
-                        ShutterSpeed: exif.ShutterSpeed,
-                        Aperture: exif.Aperture,
-                        FocalLength: exif.FocalLength,
-                        Model: exif.Model,
-                        LensModel: exif.LensModel
+                        ISO: exif.ISO as number | undefined,
+                        ShutterSpeed: exif.ShutterSpeed as string | undefined,
+                        Aperture: exif.Aperture as number | undefined,
+                        FocalLength: exif.FocalLength as string | undefined,
+                        Model: exif.Model as string | undefined,
+                        LensModel: exif.LensModel as string | undefined
                     });
                 }
             } catch (e) {
