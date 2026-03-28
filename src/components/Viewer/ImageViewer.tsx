@@ -873,9 +873,28 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                         </span>
                                     </div>
                                 )}
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ color: '#888' }}>Image ID:</span>
-                                    <span>{image.id}</span>
+                                    {onOpenImageById ? (
+                                        <button
+                                            type="button"
+                                            title="Focus this image in the gallery list"
+                                            onClick={() => void onOpenImageById(image.id)}
+                                            style={{
+                                                fontFamily: 'monospace',
+                                                background: 'none',
+                                                border: 'none',
+                                                color: '#7eb8ff',
+                                                cursor: 'pointer',
+                                                padding: 0,
+                                                textDecoration: 'underline',
+                                            }}
+                                        >
+                                            {image.id}
+                                        </button>
+                                    ) : (
+                                        <span>{image.id}</span>
+                                    )}
                                 </div>
                                 {image.folder_id && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>

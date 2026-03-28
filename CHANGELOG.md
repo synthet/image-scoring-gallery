@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.4.2] - 2026-03-27
+
+### Added
+- **Image viewer**: **Image ID** in metadata is a clickable control (when **`onOpenImageById`** is wired) to focus that image in the gallery list.
+- **Tests**: **`src/utils/mediaUrl.test.ts`** for **`toMediaUrl`** in browser mode and Electron (Windows drive and WSL-style **`/mnt/...`** paths).
+
+### Fixed
+- **`media://` on Windows**: **`toMediaUrl`** emits **`media:///...`** so drive letters remain in the URL pathname; **`electron/main`** **`parseMediaUrlToFilePath`** maps custom-protocol requests correctly (including Chromium’s **`media://D:/...`** host/path split and WSL paths).
+
+### Changed
+- **Preload `extractNefPreview`**: Explicit TypeScript typing for the unwrapped IPC result.
+
 ## [4.4.1] - 2026-03-27
 
 ### Removed

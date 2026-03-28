@@ -89,6 +89,34 @@ function resolveBackendWebuiWindowIcon(): string | undefined {
     return undefined;
 }
 
+/**
+ * Map a media:// request URL to a filesystem path segment (before resolve/normalize).
+ * Chromium parses `media://D:/path` as host "D" + pathname "/path"; recover the drive letter on Windows.
+ * Correct `media:///D:/path` yields pathname "/D:/path".
+ */
+function parseMediaUrlToFilePath(requestUrl: string): string {
+    const u = new URL(requestUrl);
+    let pathname = u.pathname;
+    try {
+        pathname = decodeURIComponent(pathname);
+    } catch {
+        throw new Error('invalid encoding');
+    }
+
+    if (process.platform === 'win32' && /^[a-zA-Z]$/.test(u.hostname) && pathname.length > 1) {
+        return `${u.hostname.toUpperCase()}:${pathname}`;
+    }
+
+    let filePath = pathname;
+    if (filePath.match(/^\/?mnt\/[a-zA-Z]\//)) {
+        filePath = filePath.replace(/^\/?mnt\/([a-zA-Z])\//, '$1:/');
+    }
+    if (process.platform === 'win32' && /^\/[a-zA-Z]:\//.test(filePath)) {
+        filePath = filePath.slice(1);
+    }
+    return filePath;
+}
+
 function getDialogWindow(): BrowserWindow | null {
     const focused = BrowserWindow.getFocusedWindow();
     if (focused && !focused.isDestroyed()) return focused;
@@ -491,9 +519,9 @@ async function startFullApplication(): Promise<void> {
     protocol.handle('media', (request) => {
         console.log('[Main] Media request:', request.url);
         try {
-            let filePath = request.url.replace(/^media:\/\/(local\/)?/i, '');
+            let filePath: string;
             try {
-                filePath = decodeURIComponent(filePath);
+                filePath = parseMediaUrlToFilePath(request.url);
             } catch {
                 return new Response('Invalid encoding', { status: 400 });
             }
@@ -511,7 +539,7 @@ async function startFullApplication(): Promise<void> {
                 filePath = filePath.replace(/^\/?mnt\/([a-zA-Z])\//, '$1:/');
             }
 
-            // media:///D:/... → /D:/... after strip — normalize to D:/...
+            // media:///D:/... → /D:/... in pathname — normalize to D:/...
             if (process.platform === 'win32' && /^\/[a-zA-Z]:\//.test(filePath)) {
                 filePath = filePath.slice(1);
             }
