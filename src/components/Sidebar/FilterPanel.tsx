@@ -7,6 +7,8 @@ export interface FilterState {
     keyword?: string;
     sortBy?: string;
     order?: 'ASC' | 'DESC';
+    highlightOutliers?: boolean;
+    onlyOutliers?: boolean;
 }
 
 interface FilterPanelProps {
@@ -22,6 +24,19 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange }) =
 
     const handleColorChange = (c?: string) => {
         onChange({ ...filters, colorLabel: c });
+    };
+
+    const handleToggleHighlightOutliers = () => {
+        const nextHighlight = !filters.highlightOutliers;
+        onChange({
+            ...filters,
+            highlightOutliers: nextHighlight,
+            onlyOutliers: nextHighlight ? filters.onlyOutliers : false,
+        });
+    };
+
+    const handleToggleOnlyOutliers = () => {
+        onChange({ ...filters, onlyOutliers: !filters.onlyOutliers });
     };
 
     return (
@@ -67,6 +82,35 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange }) =
                             aria-label={tooltip}
                         />
                     ))}
+                </div>
+            </div>
+
+            <div className={styles.section}>
+                <div className={styles.sectionLabel}>Outliers</div>
+                <div className={styles.toggleRow}>
+                    <span>Highlight outliers</span>
+                    <button
+                        role="switch"
+                        aria-checked={!!filters.highlightOutliers}
+                        aria-label="Highlight outliers"
+                        className={styles.toggle}
+                        onClick={handleToggleHighlightOutliers}
+                    >
+                        <span className={styles.thumb} />
+                    </button>
+                </div>
+                <div className={styles.toggleRow}>
+                    <span style={{ opacity: filters.highlightOutliers ? 1 : 0.5 }}>Only outliers</span>
+                    <button
+                        role="switch"
+                        aria-checked={!!filters.onlyOutliers}
+                        aria-label="Only outliers"
+                        className={styles.toggle}
+                        onClick={handleToggleOnlyOutliers}
+                        disabled={!filters.highlightOutliers}
+                    >
+                        <span className={styles.thumb} />
+                    </button>
                 </div>
             </div>
         </div>
