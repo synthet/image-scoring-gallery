@@ -52,6 +52,9 @@ interface GalleryGridProps {
     outlierMetaById?: Map<number, { zScore: number; outlierScore: number; neighborSummary: string }>;
 }
 
+const EMPTY_OUTLIER_IDS = new Set<number>();
+const EMPTY_OUTLIER_META = new Map<number, { zScore: number; outlierScore: number; neighborSummary: string }>();
+
 const ItemContainer = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ style, children, className, ...props }, ref) => (
     <div ref={ref} style={style} className={`${styles.listContainer} ${className || ''}`} {...props}>
         {children}
@@ -68,7 +71,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     images, onSelect, onEndReached, subfolders, onSelectFolder,
     onNavigateToParent, viewerOpen = false, sortBy = 'score_general',
     stacksMode = false, stacks = [], onSelectStack, onStackEndReached,
-    activeStackId, highlightOutliers = false, outlierIds = new Set<number>(), outlierMetaById = new Map()
+    activeStackId, highlightOutliers = false, outlierIds = EMPTY_OUTLIER_IDS, outlierMetaById = EMPTY_OUTLIER_META
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
 

@@ -39,6 +39,8 @@ export function useGalleryWebSocket({
   refreshFoldersRef.current = refreshFolders;
   const loadStackImagesRef = useRef(loadStackImages);
   loadStackImagesRef.current = loadStackImages;
+  const onVisibleRefreshRef = useRef(onVisibleRefresh);
+  onVisibleRefreshRef.current = onVisibleRefresh;
 
   useEffect(() => {
     type WebSocketClient = {
@@ -61,18 +63,18 @@ export function useGalleryWebSocket({
 
         if (activeStackIdRef.current !== null) {
           void loadStackImagesRef.current(activeStackIdRef.current);
-          onVisibleRefresh?.();
+          onVisibleRefreshRef.current?.();
           return;
         }
 
         if (stacksModeRef.current) {
           refreshStacksRef.current({ preserveItems: true });
-          onVisibleRefresh?.();
+          onVisibleRefreshRef.current?.();
           return;
         }
 
         refreshImagesRef.current({ preserveItems: true });
-        onVisibleRefresh?.();
+        onVisibleRefreshRef.current?.();
       }, 500);
     };
 
@@ -174,5 +176,5 @@ export function useGalleryWebSocket({
       if (folderRefreshTimer) clearTimeout(folderRefreshTimer);
       if (ws) ws.disconnect();
     };
-  }, [addNotification, onVisibleRefresh]);
+  }, [addNotification]);
 }

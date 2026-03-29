@@ -34,6 +34,9 @@ describe('useOutlierMarkers', () => {
       expect(findOutliersMock).toHaveBeenCalledWith({ folderPath: '/photos', zThreshold: 2.5, k: 10, limit: 200 });
       expect(result.current.outlierIds.has(42)).toBe(true);
       expect(result.current.outlierMetaById.get(42)?.zScore).toBe(3.25);
+      expect(result.current.outlierMetaById.get(42)?.neighborSummary).toBe(
+        'Nearest match (id 7, 88% similar)',
+      );
     });
   });
 

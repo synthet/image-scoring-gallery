@@ -25,12 +25,14 @@ describe('GalleryGrid outlier badge', () => {
         ]}
         highlightOutliers={true}
         outlierIds={new Set([101])}
-        outlierMetaById={new Map([[101, { zScore: 2.95, outlierScore: 1.33, neighborSummary: 'Nearest: #5 (82%)' }]])}
+        outlierMetaById={
+          new Map([[101, { zScore: 2.95, outlierScore: 1.33, neighborSummary: 'Nearest match (id 5, 82% similar)' }]])
+        }
       />,
     );
 
     const badge = screen.getByText('Outlier');
     expect(badge).toBeTruthy();
-    expect(badge.getAttribute('title')).toBe('Outlier • z=2.95 • Nearest: #5 (82%)');
+    expect(badge.getAttribute('title')).toBe('Outlier • z=2.95 • Nearest match (id 5, 82% similar)');
   });
 });

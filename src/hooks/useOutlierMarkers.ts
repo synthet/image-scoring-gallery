@@ -72,8 +72,8 @@ export function useOutlierMarkers({
     outliers.forEach((item) => {
       const nearest = item.nearest_neighbors?.[0];
       const neighborSummary = nearest
-        ? `Nearest: #${nearest.image_id} (${Math.round(nearest.similarity * 100)}%)`
-        : 'Nearest: none';
+        ? `Nearest match (id ${nearest.image_id}, ${Math.round(nearest.similarity * 100)}% similar)`
+        : 'Nearest match: none';
       byId.set(item.image_id, {
         zScore: item.z_score,
         outlierScore: item.outlier_score,
