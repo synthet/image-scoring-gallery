@@ -6,6 +6,7 @@ import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
 import { usePropagateTags } from '../../hooks/useDatabase';
 import { toMediaUrl } from '../../utils/mediaUrl';
 import { bridge } from '../../bridge';
+import type { TagPropagationRequest } from '../../../electron/apiTypes';
 
 interface Image {
     id: number;
@@ -103,6 +104,27 @@ interface ExifData {
     Model?: string;
     LensModel?: string;
 }
+
+type SuggestionDecision = 'pending' | 'accepted' | 'rejected';
+
+interface SuggestedKeywordRow {
+    keyword: string;
+    confidence: number;
+    decision: SuggestionDecision;
+}
+
+const LOCAL_REJECTION_KEY = 'image-viewer-tag-rejections-v1';
+const HIGH_CONFIDENCE_THRESHOLD = 0.85;
+
+const parseKeywordText = (keywords?: string | null): string[] => (
+    (keywords || '')
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(Boolean)
+);
+
+const confidenceToPercent = (confidence: number): string =>
+    `${Math.round(confidence * 100)}%`;
 
 export const ImageViewer: React.FC<ImageViewerProps> = ({
     image: initialImage,
@@ -245,6 +267,20 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     // Editing & Drawer State
     const [isEditing, setIsEditing] = useState(false);
     const { propagate, loading: propagateLoading } = usePropagateTags();
+    const [suggestionRows, setSuggestionRows] = useState<SuggestedKeywordRow[]>([]);
+    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+    const [suppressedByImage, setSuppressedByImage] = useState<Record<number, string[]>>(() => {
+        try {
+            const saved = localStorage.getItem(LOCAL_REJECTION_KEY);
+            if (!saved) return {};
+            const parsed = JSON.parse(saved) as Record<string, string[]>;
+            return Object.fromEntries(
+                Object.entries(parsed).map(([key, value]) => [Number(key), Array.isArray(value) ? value : []])
+            );
+        } catch {
+            return {};
+        }
+    });
     const [editForm, setEditForm] = useState({
         title: '',
         description: '',
@@ -252,6 +288,156 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         label: '',
         keywords: ''
     });
+
+    useEffect(() => {
+        localStorage.setItem(LOCAL_REJECTION_KEY, JSON.stringify(suppressedByImage));
+    }, [suppressedByImage]);
+
+    const extractSuggestedKeywords = useCallback((payload: unknown): SuggestedKeywordRow[] => {
+        if (!payload || typeof payload !== 'object') {
+            return [];
+        }
+
+        const data = payload as Record<string, unknown>;
+        const candidates = (
+            data.suggestions ||
+            data.keywords ||
+            (Array.isArray(data.images)
+                ? (data.images as unknown[]).find(item => {
+                    if (!item || typeof item !== 'object') return false;
+                    const row = item as Record<string, unknown>;
+                    return Number(row.image_id) === image.id || Number(row.id) === image.id;
+                })
+                : null) ||
+            data.image ||
+            data
+        ) as unknown;
+
+        const keywordRows = Array.isArray(candidates)
+            ? candidates
+            : (candidates && typeof candidates === 'object'
+                ? ((candidates as Record<string, unknown>).suggestions ||
+                    (candidates as Record<string, unknown>).keywords)
+                : null);
+
+        if (!Array.isArray(keywordRows)) {
+            return [];
+        }
+
+        return keywordRows
+            .map((item): SuggestedKeywordRow | null => {
+                if (typeof item === 'string') {
+                    return { keyword: item.trim(), confidence: 1, decision: 'pending' };
+                }
+                if (!item || typeof item !== 'object') return null;
+
+                const row = item as Record<string, unknown>;
+                const keyword = String(row.keyword ?? row.tag ?? row.name ?? '').trim();
+                if (!keyword) return null;
+
+                const confidenceCandidate = Number(row.confidence ?? row.score ?? row.similarity ?? 0);
+                const confidence = Number.isFinite(confidenceCandidate) ? confidenceCandidate : 0;
+
+                return { keyword, confidence, decision: 'pending' };
+            })
+            .filter((row): row is SuggestedKeywordRow => Boolean(row?.keyword));
+    }, [image.id]);
+
+    const loadSuggestedKeywords = useCallback(async () => {
+        const folderPath = getFolderPathFromFilePath(image.win_path || image.file_path);
+        if (!folderPath) return;
+
+        setSuggestionsLoading(true);
+        try {
+            const payload: TagPropagationRequest = {
+                folder_path: folderPath,
+                dry_run: true,
+                k: 5,
+                min_similarity: HIGH_CONFIDENCE_THRESHOLD,
+                min_keyword_confidence: HIGH_CONFIDENCE_THRESHOLD,
+                write_mode: 'replace_missing_only',
+                max_keywords: 10,
+            };
+            const result = await bridge.api.propagateTags(payload);
+            const existingKeywords = new Set(parseKeywordText(editForm.keywords).map(tag => tag.toLowerCase()));
+            const suppressedSet = new Set((suppressedByImage[image.id] || []).map(tag => tag.toLowerCase()));
+
+            const nextRows = extractSuggestedKeywords(result?.data)
+                .filter(row =>
+                    row.confidence >= HIGH_CONFIDENCE_THRESHOLD &&
+                    !existingKeywords.has(row.keyword.toLowerCase()) &&
+                    !suppressedSet.has(row.keyword.toLowerCase())
+                )
+                .map(row => ({ ...row, decision: 'pending' }));
+
+            setSuggestionRows(nextRows);
+        } catch (e) {
+            console.error('Failed to load keyword suggestions:', e);
+            setSuggestionRows([]);
+        } finally {
+            setSuggestionsLoading(false);
+        }
+    }, [editForm.keywords, extractSuggestedKeywords, image.file_path, image.id, image.win_path, suppressedByImage]);
+
+    const persistKeywords = useCallback(async (keywords: string[]): Promise<boolean> => {
+        const normalized = normalizeKeywords(keywords.join(', '));
+        const success = await bridge.updateImageDetails(image.id, { keywords: normalized });
+        if (!success) {
+            addNotification('Failed to persist keywords', 'error');
+            return false;
+        }
+
+        setImage(prev => ({ ...prev, keywords: normalized }));
+        setEditForm(prev => ({ ...prev, keywords: normalized }));
+        return true;
+    }, [addNotification, image.id]);
+
+    const handleAcceptSuggestion = useCallback(async (keyword: string) => {
+        const existing = parseKeywordText(editForm.keywords);
+        const existingSet = new Set(existing.map(item => item.toLowerCase()));
+        if (!existingSet.has(keyword.toLowerCase())) {
+            existing.push(keyword);
+        }
+
+        const persisted = await persistKeywords(existing);
+        if (!persisted) return;
+
+        setSuggestionRows(prev => prev.map(row => row.keyword === keyword ? { ...row, decision: 'accepted' } : row));
+        setSuggestionRows(prev => prev.filter(row => row.keyword !== keyword));
+    }, [editForm.keywords, persistKeywords]);
+
+    const handleRejectSuggestion = useCallback((keyword: string) => {
+        setSuggestionRows(prev => prev.map(row => row.keyword === keyword ? { ...row, decision: 'rejected' } : row));
+        setSuggestionRows(prev => prev.filter(row => row.keyword !== keyword));
+        setSuppressedByImage(prev => {
+            const current = new Set((prev[image.id] || []).map(tag => tag.toLowerCase()));
+            current.add(keyword.toLowerCase());
+            return {
+                ...prev,
+                [image.id]: Array.from(current)
+            };
+        });
+    }, [image.id]);
+
+    const handleApplyAllSuggestions = useCallback(async () => {
+        const accepted = suggestionRows
+            .filter(row => row.decision === 'pending' && row.confidence >= HIGH_CONFIDENCE_THRESHOLD)
+            .map(row => row.keyword);
+
+        if (!accepted.length) {
+            addNotification('No high-confidence suggestions to apply', 'warning');
+            return;
+        }
+
+        const existing = parseKeywordText(editForm.keywords);
+        const mergedMap = new Map(existing.map(item => [item.toLowerCase(), item]));
+        accepted.forEach(keyword => mergedMap.set(keyword.toLowerCase(), keyword));
+        const merged = Array.from(mergedMap.values());
+        const persisted = await persistKeywords(merged);
+        if (!persisted) return;
+
+        setSuggestionRows(prev => prev.filter(row => !accepted.includes(row.keyword)));
+    }, [addNotification, editForm.keywords, persistKeywords, suggestionRows]);
 
 
     useEffect(() => {
@@ -265,6 +451,14 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             });
         }
     }, [isEditing, image]);
+
+    useEffect(() => {
+        if (!isEditing) {
+            setSuggestionRows([]);
+            return;
+        }
+        void loadSuggestedKeywords();
+    }, [isEditing, image.id, loadSuggestedKeywords]);
 
 
     const handleSave = async () => {
@@ -762,6 +956,96 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                         )
                     )}
                 </div>
+                {isEditing && (
+                    <div style={{ marginTop: 0, marginBottom: 5 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <div style={{ fontSize: '0.8em', color: '#888' }}>AI SUGGESTED KEYWORDS</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <button
+                                    type="button"
+                                    onClick={() => { void loadSuggestedKeywords(); }}
+                                    disabled={suggestionsLoading}
+                                    style={{
+                                        padding: '2px 8px',
+                                        background: '#262626',
+                                        border: '1px solid #4a4a4a',
+                                        borderRadius: 4,
+                                        color: '#ccc',
+                                        fontSize: '0.75em',
+                                        cursor: suggestionsLoading ? 'default' : 'pointer',
+                                        opacity: suggestionsLoading ? 0.7 : 1
+                                    }}
+                                >
+                                    {suggestionsLoading ? 'Loading…' : 'Refresh'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { void handleApplyAllSuggestions(); }}
+                                    disabled={!suggestionRows.some(row => row.decision === 'pending' && row.confidence >= HIGH_CONFIDENCE_THRESHOLD)}
+                                    style={{
+                                        padding: '2px 8px',
+                                        background: '#234a2e',
+                                        border: '1px solid #3f7a51',
+                                        borderRadius: 4,
+                                        color: '#d7f3df',
+                                        fontSize: '0.75em',
+                                        cursor: 'pointer',
+                                        opacity: !suggestionRows.some(row => row.decision === 'pending' && row.confidence >= HIGH_CONFIDENCE_THRESHOLD) ? 0.5 : 1
+                                    }}
+                                >
+                                    Apply All
+                                </button>
+                            </div>
+                        </div>
+                        {suggestionRows.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {suggestionRows.map(row => (
+                                    <div
+                                        key={row.keyword}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            gap: 8,
+                                            padding: '5px 8px',
+                                            borderRadius: 6,
+                                            border: '1px dashed #666',
+                                            background: 'rgba(120, 120, 120, 0.12)',
+                                            color: '#cfd8dc',
+                                            fontSize: '0.8em',
+                                            fontStyle: 'italic'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <span>{row.keyword}</span>
+                                            <span style={{ color: '#90a4ae', fontSize: '0.75em' }}>{confidenceToPercent(row.confidence)}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => { void handleAcceptSuggestion(row.keyword); }}
+                                                style={{ border: '1px solid #357a38', background: '#1f4023', color: '#c8e6c9', borderRadius: 4, cursor: 'pointer', fontSize: '0.75em' }}
+                                            >
+                                                Accept
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => { handleRejectSuggestion(row.keyword); }}
+                                                style={{ border: '1px solid #8b2d2d', background: '#4d1c1c', color: '#ffcdd2', borderRadius: 4, cursor: 'pointer', fontSize: '0.75em' }}
+                                            >
+                                                Reject
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{ fontSize: '0.8em', color: '#666' }}>
+                                {suggestionsLoading ? 'Loading suggestions…' : 'No pending suggestions'}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 0', borderTop: '1px solid #333', borderBottom: '1px solid #333' }}>
                     <div style={{ flex: 1 }}>
