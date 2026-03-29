@@ -11,7 +11,7 @@ Tasks for Electron ↔ Python backend integration. See [Agent Coordination](http
 
 ## WebSocket
 
-- [ ] Subscribe to `job_progress` for live progress bar (optional; currently job_started/job_completed only)
+- [x] Subscribe to `job_progress` for live progress bar (`src/hooks/useGalleryWebSocket.ts` `subscribe('job_progress', ...)`, `src/components/Layout/JobProgressBar.tsx`, `src/store/useJobProgressStore.ts`)
 - [x] Ensure `image_updated` and `folder_updated` handlers refresh correct views
 
 ## Configuration

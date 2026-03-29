@@ -10,7 +10,7 @@ This document tracks the remaining work for the embedding-based features in the 
 - [x] **"More Like This" Search**: Similarity search drawer and context menu.
 
 ## 🟡 In Progress
-- [ ] **Gradio Integration**: Enhance IPC/WebSocket bridge for real-time AI updates (job progress subscription still pending).
+- [ ] **Gradio Integration**: Enhance IPC/WebSocket bridge for real-time AI updates (`job_progress` subscription is complete in `src/hooks/useGalleryWebSocket.ts` via `subscribe('job_progress', ...)`, surfaced by `src/components/Layout/JobProgressBar.tsx` with state in `src/store/useJobProgressStore.ts`; focus remaining work on broader queue/log pipeline milestones).
 
 ## 🔴 Planned (Missing)
 ### Feature 3: Tag Propagation
