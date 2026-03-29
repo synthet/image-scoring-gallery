@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, FolderOpen, Tag, Loader2 } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Search, FolderOpen, Tag, Loader2 } from 'lucide-react';
+import { SimilarSearchDrawer } from './SimilarSearchDrawer';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
@@ -7,6 +8,36 @@ import { usePropagateTags } from '../../hooks/useDatabase';
 import { toMediaUrl } from '../../utils/mediaUrl';
 import { bridge } from '../../bridge';
 import type { TagPropagationRequest } from '../../../electron/apiTypes';
+
+/**
+ * Re-encode raster image so pixel data matches browser preview (EXIF Orientation applied).
+ * Raw fetch bytes often stay sensor-oriented while <img> rotates for display.
+ */
+async function bakeExifOrientationToBlob(blob: Blob, outMime: string): Promise<Blob | null> {
+    const t = blob.type || '';
+    if (!t.startsWith('image/') || t === 'image/svg+xml') {
+        return null;
+    }
+    try {
+        const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return null;
+            ctx.drawImage(bitmap, 0, 0);
+            const quality = outMime === 'image/jpeg' ? 0.92 : undefined;
+            return await new Promise<Blob | null>((resolve) => {
+                canvas.toBlob((b) => resolve(b), outMime, quality);
+            });
+        } finally {
+            bitmap.close();
+        }
+    } catch {
+        return null;
+    }
+}
 
 interface Image {
     id: number;
@@ -50,6 +81,8 @@ interface ImageViewerProps {
     onDelete?: (id: number) => void;
     onOpenFolder?: (folderId: number) => void;
     onOpenImageById?: (id: number) => Promise<boolean>;
+    /** When set (e.g. opening viewer from a “similar” entry), opens the similar-images drawer for this id */
+    initialSimilarSearchImageId?: number | null;
 }
 
 const isWebSafe = (filename: string) => {
@@ -69,6 +102,27 @@ const normalizeKeywords = (keywords: string): string => (
         .filter(tag => tag.length > 0)
         .join(', ')
 );
+
+type SuggestionDecision = 'pending' | 'accepted' | 'rejected';
+
+interface SuggestedKeywordRow {
+    keyword: string;
+    confidence: number;
+    decision: SuggestionDecision;
+}
+
+const LOCAL_REJECTION_KEY = 'image-viewer-tag-rejections-v1';
+const HIGH_CONFIDENCE_THRESHOLD = 0.85;
+
+const parseKeywordText = (keywords?: string | null): string[] => (
+    (keywords || '')
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(Boolean)
+);
+
+const confidenceToPercent = (confidence: number): string =>
+    `${Math.round(confidence * 100)}%`;
 
 const getFolderPathFromFilePath = (filePath?: string): string | null => {
     if (!filePath) return null;
@@ -105,27 +159,6 @@ interface ExifData {
     LensModel?: string;
 }
 
-type SuggestionDecision = 'pending' | 'accepted' | 'rejected';
-
-interface SuggestedKeywordRow {
-    keyword: string;
-    confidence: number;
-    decision: SuggestionDecision;
-}
-
-const LOCAL_REJECTION_KEY = 'image-viewer-tag-rejections-v1';
-const HIGH_CONFIDENCE_THRESHOLD = 0.85;
-
-const parseKeywordText = (keywords?: string | null): string[] => (
-    (keywords || '')
-        .split(',')
-        .map(tag => tag.trim())
-        .filter(Boolean)
-);
-
-const confidenceToPercent = (confidence: number): string =>
-    `${Math.round(confidence * 100)}%`;
-
 export const ImageViewer: React.FC<ImageViewerProps> = ({
     image: initialImage,
     onClose,
@@ -134,7 +167,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     onNavigate,
     onDelete,
     onOpenFolder,
-    onOpenImageById
+    onOpenImageById,
+    initialSimilarSearchImageId = null,
 }) => {
     const [image, setImage] = React.useState<Image>(initialImage);
     const [detailsLoaded, setDetailsLoaded] = React.useState(false);
@@ -269,6 +303,17 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const { propagate, loading: propagateLoading } = usePropagateTags();
     const [suggestionRows, setSuggestionRows] = useState<SuggestedKeywordRow[]>([]);
     const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+    const [suggestionsLoadError, setSuggestionsLoadError] = useState<string | null>(null);
+    const [isSimilarDrawerOpen, setIsSimilarDrawerOpen] = useState(false);
+    const [similarSearchImageId, setSimilarSearchImageId] = useState<number | null>(null);
+    const editKeywordsRef = useRef('');
+    const [editForm, setEditForm] = useState({
+        title: '',
+        description: '',
+        rating: 0,
+        label: '',
+        keywords: ''
+    });
     const [suppressedByImage, setSuppressedByImage] = useState<Record<number, string[]>>(() => {
         try {
             const saved = localStorage.getItem(LOCAL_REJECTION_KEY);
@@ -280,13 +325,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         } catch {
             return {};
         }
-    });
-    const [editForm, setEditForm] = useState({
-        title: '',
-        description: '',
-        rating: 0,
-        label: '',
-        keywords: ''
     });
 
     useEffect(() => {
@@ -348,6 +386,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         if (!folderPath) return;
 
         setSuggestionsLoading(true);
+        setSuggestionsLoadError(null);
         try {
             const payload: TagPropagationRequest = {
                 folder_path: folderPath,
@@ -359,7 +398,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 max_keywords: 10,
             };
             const result = await bridge.api.propagateTags(payload);
-            const existingKeywords = new Set(parseKeywordText(editForm.keywords).map(tag => tag.toLowerCase()));
+            const existingKeywords = new Set(parseKeywordText(editKeywordsRef.current).map(tag => tag.toLowerCase()));
             const suppressedSet = new Set((suppressedByImage[image.id] || []).map(tag => tag.toLowerCase()));
 
             const nextRows = extractSuggestedKeywords(result?.data)
@@ -368,16 +407,19 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     !existingKeywords.has(row.keyword.toLowerCase()) &&
                     !suppressedSet.has(row.keyword.toLowerCase())
                 )
-                .map(row => ({ ...row, decision: 'pending' }));
+                .map(row => ({ ...row, decision: 'pending' as const }));
 
             setSuggestionRows(nextRows);
         } catch (e) {
             console.error('Failed to load keyword suggestions:', e);
             setSuggestionRows([]);
+            const msg = e instanceof Error ? e.message : 'Failed to load suggestions';
+            setSuggestionsLoadError(msg);
+            addNotification(`AI keyword suggestions: ${msg}`, 'error');
         } finally {
             setSuggestionsLoading(false);
         }
-    }, [editForm.keywords, extractSuggestedKeywords, image.file_path, image.id, image.win_path, suppressedByImage]);
+    }, [addNotification, extractSuggestedKeywords, image.file_path, image.id, image.win_path, suppressedByImage]);
 
     const persistKeywords = useCallback(async (keywords: string[]): Promise<boolean> => {
         const normalized = normalizeKeywords(keywords.join(', '));
@@ -402,19 +444,17 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         const persisted = await persistKeywords(existing);
         if (!persisted) return;
 
-        setSuggestionRows(prev => prev.map(row => row.keyword === keyword ? { ...row, decision: 'accepted' } : row));
         setSuggestionRows(prev => prev.filter(row => row.keyword !== keyword));
     }, [editForm.keywords, persistKeywords]);
 
     const handleRejectSuggestion = useCallback((keyword: string) => {
-        setSuggestionRows(prev => prev.map(row => row.keyword === keyword ? { ...row, decision: 'rejected' } : row));
         setSuggestionRows(prev => prev.filter(row => row.keyword !== keyword));
         setSuppressedByImage(prev => {
             const current = new Set((prev[image.id] || []).map(tag => tag.toLowerCase()));
             current.add(keyword.toLowerCase());
             return {
                 ...prev,
-                [image.id]: Array.from(current)
+                [image.id]: Array.from(current),
             };
         });
     }, [image.id]);
@@ -439,6 +479,16 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         setSuggestionRows(prev => prev.filter(row => !accepted.includes(row.keyword)));
     }, [addNotification, editForm.keywords, persistKeywords, suggestionRows]);
 
+    useEffect(() => {
+        if (initialSimilarSearchImageId != null) {
+            setSimilarSearchImageId(initialSimilarSearchImageId);
+            setIsSimilarDrawerOpen(true);
+        }
+    }, [initialSimilarSearchImageId]);
+
+    useEffect(() => {
+        editKeywordsRef.current = editForm.keywords;
+    }, [editForm.keywords]);
 
     useEffect(() => {
         if (isEditing) {
@@ -455,11 +505,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     useEffect(() => {
         if (!isEditing) {
             setSuggestionRows([]);
+            setSuggestionsLoadError(null);
             return;
         }
         void loadSuggestedKeywords();
     }, [isEditing, image.id, loadSuggestedKeywords]);
-
 
     const handleSave = async () => {
         try {
@@ -635,22 +685,42 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             try {
                 const response = await fetch(src);
                 const blob = await response.blob();
-                const buffer = await blob.arrayBuffer();
-                const bytes = Array.from(new Uint8Array(buffer));
                 const mimeType = blob.type || 'image/jpeg';
+                const outMime =
+                    mimeType.includes('jpeg') || mimeType.includes('jpg')
+                        ? 'image/jpeg'
+                        : mimeType.includes('png')
+                            ? 'image/png'
+                            : mimeType.includes('webp')
+                                ? 'image/webp'
+                                : 'image/jpeg';
+
+                const baked = await bakeExifOrientationToBlob(blob, outMime);
+                const exportBlob = baked ?? blob;
+                const exifOrientationBaked = baked != null;
+                const exportMime = exifOrientationBaked ? outMime : mimeType;
+
+                const buffer = await exportBlob.arrayBuffer();
+                const bytes = Array.from(new Uint8Array(buffer));
 
                 const baseName = image.file_name.replace(/\.[^/.]+$/, '');
-                const suggestedFileName = mimeType.includes('jpeg') || mimeType.includes('jpg')
-                    ? `${baseName}.jpg`
-                    : image.file_name;
+                const suggestedFileName =
+                    exportMime.includes('jpeg') || exportMime.includes('jpg')
+                        ? `${baseName}.jpg`
+                        : exportMime.includes('png')
+                            ? `${baseName}.png`
+                            : exportMime.includes('webp')
+                                ? `${baseName}.webp`
+                                : image.file_name;
 
                 return {
                     bytes,
-                    mimeType,
+                    mimeType: exportMime,
                     suggestedFileName,
                     id: image.id,
                     sourcePath: image.win_path || image.file_path,
-                    imageUuid: image.image_uuid || null
+                    imageUuid: image.image_uuid || null,
+                    exifOrientationBaked
                 };
             } catch (e) {
                 console.error('Failed to read displayed preview bytes:', e);
@@ -678,7 +748,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 fileName: payload.suggestedFileName,
                 id: payload.id as number,
                 sourcePath: payload.sourcePath as string,
-                imageUuid: payload.imageUuid as string | null
+                imageUuid: payload.imageUuid as string | null,
+                exifOrientationBaked: payload.exifOrientationBaked
             });
         };
 
@@ -997,6 +1068,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 </button>
                             </div>
                         </div>
+                        {suggestionsLoadError && (
+                            <div style={{ fontSize: '0.75em', color: '#ef9a9a', marginBottom: 6 }}>
+                                {suggestionsLoadError}
+                            </div>
+                        )}
                         {suggestionRows.length > 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 {suggestionRows.map(row => (
@@ -1157,9 +1233,28 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                         </span>
                                     </div>
                                 )}
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ color: '#888' }}>Image ID:</span>
-                                    <span>{image.id}</span>
+                                    {onOpenImageById ? (
+                                        <button
+                                            type="button"
+                                            title="Focus this image in the gallery list"
+                                            onClick={() => void onOpenImageById(image.id)}
+                                            style={{
+                                                fontFamily: 'monospace',
+                                                background: 'none',
+                                                border: 'none',
+                                                color: '#7eb8ff',
+                                                cursor: 'pointer',
+                                                padding: 0,
+                                                textDecoration: 'underline',
+                                            }}
+                                        >
+                                            {image.id}
+                                        </button>
+                                    ) : (
+                                        <span>{image.id}</span>
+                                    )}
                                 </div>
                                 {image.folder_id && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1282,10 +1377,68 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 </button>
                             )}
 
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSimilarSearchImageId(image.id);
+                                    setIsSimilarDrawerOpen(true);
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px',
+                                    background: '#333',
+                                    color: 'white',
+                                    border: '1px solid #555',
+                                    borderRadius: 4,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 8,
+                                    transition: 'background-color 0.2s',
+                                    fontWeight: 500
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#444'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#333'; }}
+                            >
+                                <Search size={16} /> Find Similar Images
+                            </button>
+
                         </>
                     )}
                 </div>
             </div>
+
+            <SimilarSearchDrawer
+                open={isSimilarDrawerOpen}
+                onClose={() => setIsSimilarDrawerOpen(false)}
+                queryImageId={similarSearchImageId ?? image.id}
+                currentFolderId={image.folder_id}
+                onSelectImage={async (id) => {
+                    const idx = allImages.findIndex(img => img.id === id);
+                    if (idx >= 0 && onNavigate) {
+                        onNavigate(idx);
+                        setIsSimilarDrawerOpen(false);
+                        return;
+                    }
+
+                    if (onOpenImageById) {
+                        const opened = await onOpenImageById(id);
+                        if (opened) {
+                            setIsSimilarDrawerOpen(false);
+                            return;
+                        }
+                    }
+
+                    const details = await bridge.getImageDetails(id);
+                    if (details) {
+                        setImage(details);
+                        setDetailsLoaded(true);
+                        setIsSimilarDrawerOpen(false);
+                    }
+                }}
+                onJumpToImageFolder={(id) => { void onOpenImageById?.(id); }}
+            />
 
             <ConfirmDialog
                 isOpen={isDeleteDialogOpen}

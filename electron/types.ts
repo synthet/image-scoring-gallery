@@ -188,4 +188,6 @@ export interface ExportImageContext {
     id: number;
     sourcePath: string;
     imageUuid: string | null;
+    /** True when pixels were re-encoded with EXIF orientation applied (matches on-screen preview). */
+    exifOrientationBaked?: boolean;
 }
