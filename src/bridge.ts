@@ -112,7 +112,7 @@ function createHttpBridge(): Window['electron'] {
 
         getStackCount: (options?) => get('/db/stack-count', options as Record<string, unknown> | undefined),
 
-        rebuildStackCache: () => post('/db/rebuild-stack-cache'),
+        rebuildStackCache: (context) => post('/db/rebuild-stack-cache', context ?? {}),
 
         log: (level, message, data?) => {
             const args = data !== undefined ? [message, data] : [message];

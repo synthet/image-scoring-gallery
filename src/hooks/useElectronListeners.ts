@@ -14,7 +14,7 @@ export function useElectronListeners() {
   const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importFolderPath, setImportFolderPath] = useState('');
-  const [currentView, setCurrentView] = useState<'gallery' | 'duplicates' | 'runs'>('gallery');
+  const [currentView, setCurrentView] = useState<'gallery' | 'duplicates' | 'runs' | 'embeddings'>('gallery');
 
   useEffect(() => {
     const cleanupSettings = bridge.onOpenSettings(() => {

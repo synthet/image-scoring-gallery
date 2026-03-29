@@ -390,6 +390,7 @@ export interface ImageQueryOptions {
     keyword?: string;
     sortBy?: string;
     order?: 'ASC' | 'DESC';
+    smartCover?: boolean;
 }
 
 export async function getImages(options: ImageQueryOptions = {}): Promise<unknown[]> {
@@ -1008,8 +1009,10 @@ export async function ensureStackCacheTable(): Promise<void> {
 let rebuildPromise: Promise<number> | null = null;
 let pendingRebuild: boolean = false;
 
-export async function rebuildStackCache(): Promise<number> {
+export async function rebuildStackCache(context: { smartCover?: boolean } = {}): Promise<number> {
     // If a rebuild is already in progress, queue another one to run when it finishes
+    console.log(`[DB] rebuildStackCache requested (smartCover=${context.smartCover === true})`);
+
     if (rebuildPromise) {
         console.log('[DB] Stack cache rebuild already in progress, queuing another request...');
         pendingRebuild = true;

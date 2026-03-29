@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { MainLayout } from './components/Layout/MainLayout';
 import { useImages, useKeywords, useStacks } from './hooks/useDatabase';
 import { useFolders } from './hooks/useFolders';
@@ -16,6 +16,7 @@ import { RunsPage } from './components/Runs/RunsPage';
 import { ImportModal } from './components/Import/ImportModal';
 import { Loader2, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { bridge } from './bridge';
 import { useElectronListeners } from './hooks/useElectronListeners';
 import { useGalleryNavigation } from './hooks/useGalleryNavigation';
 import { useStacksMode } from './hooks/useStacksMode';
@@ -23,6 +24,7 @@ import { useImageOpener } from './hooks/useImageOpener';
 import { useGalleryWebSocket } from './hooks/useGalleryWebSocket';
 import breadcrumbStyles from './styles/breadcrumbs.module.css';
 import toggleStyles from './styles/toggle.module.css';
+import { EmbeddingMap, type ProjectedEmbeddingPoint } from './components/Embeddings/EmbeddingMap';
 
 interface AppContentProps {
   isConnected: boolean;
@@ -30,6 +32,34 @@ interface AppContentProps {
 
 function AppContent({ isConnected }: AppContentProps) {
   const [filters, setFilters] = useState<FilterState>({ minRating: 0, sortBy: 'score_general', order: 'DESC' });
+  const [smartCoverEnabled, setSmartCoverEnabled] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadConfig = async () => {
+      try {
+        const config = await bridge.getConfig();
+        if (!mounted) return;
+        setSmartCoverEnabled(Boolean(config.selection?.smartCoverEnabled));
+      } catch (err) {
+        console.error('Failed to load selection config', err);
+      }
+    };
+
+    void loadConfig();
+
+    const handleConfigUpdated = (evt: Event) => {
+      const next = (evt as CustomEvent<{ selection?: { smartCoverEnabled?: boolean } }>).detail;
+      setSmartCoverEnabled(Boolean(next?.selection?.smartCoverEnabled));
+    };
+
+    window.addEventListener('config-updated', handleConfigUpdated as EventListener);
+    return () => {
+      mounted = false;
+      window.removeEventListener('config-updated', handleConfigUpdated as EventListener);
+    };
+  }, []);
 
   const { folders, loading: foldersLoading, refresh: refreshFolders } = useFolders();
   const { keywords, loading: keywordsLoading, fetch: fetchKeywords } = useKeywords();
@@ -60,13 +90,18 @@ function AppContent({ isConnected }: AppContentProps) {
     [filters, subfolderIds],
   );
 
+  const stackFilters = useMemo(
+    () => ({ ...imageFilters, smartCover: smartCoverEnabled }),
+    [imageFilters, smartCoverEnabled],
+  );
+
   const {
     images, loading: imagesLoading, loadMore, totalCount, removeImage, refresh: refreshImages,
   } = useImages(50, selectedFolderId, imageFilters);
 
   const {
     stacks, loading: stacksLoading, loadMore: loadMoreStacks, totalCount: stacksTotalCount, refresh: refreshStacks,
-  } = useStacks(50, selectedFolderId, imageFilters);
+  } = useStacks(50, selectedFolderId, stackFilters);
 
   const {
     stacksMode, enableStacksMode,
@@ -78,7 +113,7 @@ function AppContent({ isConnected }: AppContentProps) {
     clearStack,
     handleSelectStack: handleSelectStackBase,
     handleImageDeleteFromStack,
-  } = useStacksMode(selectedFolderId, filters, refreshStacks);
+  } = useStacksMode(selectedFolderId, filters, refreshStacks, smartCoverEnabled);
 
   // Keep refs up to date for WebSocket callbacks
   stacksModeRef.current = stacksMode;
@@ -154,12 +189,14 @@ function AppContent({ isConnected }: AppContentProps) {
     ? (stacksLoading && stacks.length === 0)
     : (activeStackId ? stackImagesLoading : (imagesLoading && images.length === 0));
 
-  const headerTitle = activeStackId
-    ? `Stack #${activeStackId}`
-    : (currentFolder ? (currentFolder.title || 'Folder') : 'Image Gallery');
+  const headerTitle = currentView === 'embeddings'
+    ? 'Embeddings Map'
+    : activeStackId
+      ? `Stack #${activeStackId}`
+      : (currentFolder ? (currentFolder.title || 'Folder') : 'Image Gallery');
 
   const breadcrumbsNode = useMemo(() => {
-    if (currentView === 'duplicates') return null;
+    if (currentView === 'duplicates' || currentView === 'embeddings') return null;
 
     type BreadcrumbPart = { label: string; onClick: () => void; isActive: boolean };
     const parts: BreadcrumbPart[] = [];
@@ -236,6 +273,32 @@ function AppContent({ isConnected }: AppContentProps) {
         }
         sidebar={
           <div style={{ padding: 10, display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div style={{ marginBottom: 12, display: 'grid', gap: 6 }}>
+              {([
+                { key: 'gallery', label: 'Gallery' },
+                { key: 'runs', label: 'Runs' },
+                { key: 'duplicates', label: 'Duplicates' },
+                { key: 'embeddings', label: 'Embeddings' },
+              ] as const).map((view) => (
+                <button
+                  key={view.key}
+                  onClick={() => setCurrentView(view.key)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    backgroundColor: currentView === view.key ? '#4caf50' : '#2d2d2d',
+                    color: '#fff',
+                    border: '1px solid #4a4a4a',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontWeight: currentView === view.key ? 'bold' : 500,
+                  }}
+                >
+                  {view.label}
+                </button>
+              ))}
+            </div>
 
             {currentView === 'duplicates' && (
               <div style={{ marginBottom: 15 }}>
@@ -365,6 +428,15 @@ function AppContent({ isConnected }: AppContentProps) {
               />
             ) : currentView === 'duplicates' ? (
               <DuplicateFinder currentFolder={currentFolder} />
+            ) : currentView === 'embeddings' ? (
+              <EmbeddingMap
+                points={[]}
+                isLoading={false}
+                error={null}
+                onSelectPoint={(point: ProjectedEmbeddingPoint) => {
+                  void openImageById(point.id);
+                }}
+              />
             ) : (
               <>
                 {isInitialGridLoading && (

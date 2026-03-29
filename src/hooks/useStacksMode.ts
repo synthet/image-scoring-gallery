@@ -30,6 +30,7 @@ export function useStacksMode(
   selectedFolderId: number | undefined,
   filters: FilterState,
   refreshStacks: (opts?: { preserveItems?: boolean }) => void,
+  smartCoverEnabled: boolean,
 ) {
   const [stacksMode, setStacksMode] = useState(false);
   const [activeStackId, setActiveStackId] = useState<number | null>(null);
@@ -64,7 +65,7 @@ export function useStacksMode(
   // Rebuild stack cache when stacks mode is first enabled
   useEffect(() => {
     if (stacksMode && !cacheBuilt) {
-      bridge.rebuildStackCache().then((result) => {
+      bridge.rebuildStackCache({ smartCover: smartCoverEnabled }).then((result) => {
         console.log('[App] Stack cache rebuild result:', result);
         setCacheBuilt(true);
         refreshStacks();
@@ -72,7 +73,7 @@ export function useStacksMode(
         console.error('[App] Failed to rebuild stack cache:', err);
       });
     }
-  }, [stacksMode, cacheBuilt, refreshStacks]);
+  }, [stacksMode, cacheBuilt, refreshStacks, smartCoverEnabled]);
 
   const clearStack = () => {
     setActiveStackId(null);

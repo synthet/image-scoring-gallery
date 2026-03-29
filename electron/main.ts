@@ -624,8 +624,8 @@ async function startFullApplication(): Promise<void> {
         return await db.getStackCount(options);
     }));
 
-    ipcMain.handle('db:rebuild-stack-cache', wrapIpcHandler(async () => {
-        const count = await db.rebuildStackCache();
+    ipcMain.handle('db:rebuild-stack-cache', wrapIpcHandler(async (_, context) => {
+        const count = await db.rebuildStackCache(context ?? {});
         return { success: true, count };
     }));
 
