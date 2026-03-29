@@ -1007,15 +1007,14 @@ export async function ensureStackCacheTable(): Promise<void> {
 }
 
 let rebuildPromise: Promise<number> | null = null;
-let pendingRebuild: boolean = false;
+/** Merged context for a follow-up rebuild when callers arrive while `rebuildPromise` is active. */
+let pendingAfterCurrent: { smartCover?: boolean } | null = null;
 
 export async function rebuildStackCache(context: { smartCover?: boolean } = {}): Promise<number> {
-    // If a rebuild is already in progress, queue another one to run when it finishes
-    console.log(`[DB] rebuildStackCache requested (smartCover=${context.smartCover === true})`);
-
+    // If a rebuild is already in progress, queue one follow-up and merge caller context (last wins per key).
     if (rebuildPromise) {
         console.log('[DB] Stack cache rebuild already in progress, queuing another request...');
-        pendingRebuild = true;
+        pendingAfterCurrent = { ...(pendingAfterCurrent ?? {}), ...context };
         return rebuildPromise;
     }
 
@@ -1071,12 +1070,12 @@ export async function rebuildStackCache(context: { smartCover?: boolean } = {}):
             });
         } finally {
             rebuildPromise = null;
-            if (pendingRebuild) {
-                pendingRebuild = false;
+            const nextContext = pendingAfterCurrent;
+            pendingAfterCurrent = null;
+            if (nextContext !== null) {
                 console.log('[DB] Running queued stack cache rebuild...');
-                // intentionally do not await here so we don't block the previous caller
-                // but we start the next cycle
-                rebuildStackCache().catch(console.error);
+                // Do not await — start the next cycle without blocking the previous caller.
+                rebuildStackCache(nextContext).catch(console.error);
             }
         }
     };
@@ -1087,6 +1086,7 @@ export async function rebuildStackCache(context: { smartCover?: boolean } = {}):
 
 export async function getStacks(options: StackQueryOptions = {}): Promise<unknown[]> {
     const { limit = 50, offset = 0, folderId, folderIds, minRating, colorLabel, keyword, sortBy = 'score_general', order = 'DESC' } = options;
+    // `options.smartCover` is forwarded from the UI for future representative/cover selection; not used in SQL yet.
 
     await ensureStackCacheTable();
 
