@@ -330,6 +330,7 @@ declare global {
         min_support_neighbors?: number | null;
         write_mode?: 'replace_missing_only' | 'append' | null;
         max_keywords?: number | null;
+        focus_image_id?: number | null;
     }
 
     interface BackendClusteringStartRequest {

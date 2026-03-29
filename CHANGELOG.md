@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.5.0] - 2026-03-29
+
+### Added
+- **Tag propagation types**: Optional **`focus_image_id`** on **`TagPropagationRequest`** in **`electron/apiTypes.ts`** and **`src/electron.d.ts`** — dry-run preview for a focused image even when it already has keywords (server strips existing tags from suggestions).
+
 ## [4.4.2] - 2026-03-27
 
 ### Added
