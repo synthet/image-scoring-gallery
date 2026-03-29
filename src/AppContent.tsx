@@ -22,6 +22,7 @@ import { useGalleryNavigation } from './hooks/useGalleryNavigation';
 import { useStacksMode } from './hooks/useStacksMode';
 import { useImageOpener } from './hooks/useImageOpener';
 import { useGalleryWebSocket } from './hooks/useGalleryWebSocket';
+import { useOutlierMarkers } from './hooks/useOutlierMarkers';
 import breadcrumbStyles from './styles/breadcrumbs.module.css';
 import toggleStyles from './styles/toggle.module.css';
 import { EmbeddingMap, type ProjectedEmbeddingPoint } from './components/Embeddings/EmbeddingMap';
@@ -33,6 +34,7 @@ interface AppContentProps {
 function AppContent({ isConnected }: AppContentProps) {
   const [filters, setFilters] = useState<FilterState>({ minRating: 0, sortBy: 'score_general', order: 'DESC' });
   const [smartCoverEnabled, setSmartCoverEnabled] = useState(false);
+  const [outlierRefreshKey, setOutlierRefreshKey] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -85,9 +87,20 @@ function AppContent({ isConnected }: AppContentProps) {
     // cleared by useStacksMode on folder change
   });
 
+  const queryFilters = useMemo(
+    () => ({
+      minRating: filters.minRating,
+      colorLabel: filters.colorLabel,
+      keyword: filters.keyword,
+      sortBy: filters.sortBy,
+      order: filters.order,
+    }),
+    [filters.minRating, filters.colorLabel, filters.keyword, filters.sortBy, filters.order],
+  );
+
   const imageFilters = useMemo(
-    () => subfolderIds ? { ...filters, folderIds: subfolderIds } : filters,
-    [filters, subfolderIds],
+    () => subfolderIds ? { ...queryFilters, folderIds: subfolderIds } : queryFilters,
+    [queryFilters, subfolderIds],
   );
 
   const stackFilters = useMemo(
@@ -132,6 +145,17 @@ function AppContent({ isConnected }: AppContentProps) {
     loadStackImages,
     stacksModeRef,
     activeStackIdRef,
+    onVisibleRefresh: () => setOutlierRefreshKey(v => v + 1),
+  });
+
+  const selectedFolderPath = currentFolder?.path;
+  const { outlierIds, outlierMetaById } = useOutlierMarkers({
+    enabled: !!filters.highlightOutliers,
+    folderPath: selectedFolderPath,
+    zThreshold: 2.5,
+    k: 10,
+    limit: 300,
+    refreshKey: outlierRefreshKey,
   });
 
   const handleNavigateToFolder = (folderId: number) => {
@@ -180,10 +204,16 @@ function AppContent({ isConnected }: AppContentProps) {
   };
 
   // Current display list and count
-  const currentImages = (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
+  const baseCurrentImages = (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
+  const currentImages = useMemo(() => {
+    if (!filters.onlyOutliers || !filters.highlightOutliers || stacksMode) {
+      return baseCurrentImages;
+    }
+    return baseCurrentImages.filter((img) => outlierIds.has(img.id));
+  }, [baseCurrentImages, filters.onlyOutliers, filters.highlightOutliers, outlierIds, stacksMode]);
   const currentTotal = stacksMode && !activeStackId
     ? stacksTotalCount
-    : (activeStackId ? (activeStackInfo?.imageCount || stackImages.length) : totalCount);
+    : (activeStackId ? (activeStackInfo?.imageCount || stackImages.length) : (filters.onlyOutliers && filters.highlightOutliers ? currentImages.length : totalCount));
 
   const isInitialGridLoading = stacksMode && !activeStackId
     ? (stacksLoading && stacks.length === 0)
@@ -476,6 +506,9 @@ function AppContent({ isConnected }: AppContentProps) {
                   onSelectStack={handleSelectStack}
                   onStackEndReached={loadMoreStacks}
                   activeStackId={activeStackId}
+                  highlightOutliers={!!filters.highlightOutliers && !stacksMode}
+                  outlierIds={outlierIds}
+                  outlierMetaById={outlierMetaById}
                 />
                 {openingImage && (
                   <ImageViewer

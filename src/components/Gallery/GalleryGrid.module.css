@@ -143,6 +143,21 @@
   backdrop-filter: blur(4px);
 }
 
+.outlierBadge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(227, 71, 63, 0.92);
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
 /* Context menu */
 .contextMenu {
   position: fixed;

@@ -10,6 +10,7 @@ interface UseGalleryWebSocketParams {
   loadStackImages: (stackId: number) => Promise<void>;
   stacksModeRef: React.MutableRefObject<boolean>;
   activeStackIdRef: React.MutableRefObject<number | null>;
+  onVisibleRefresh?: () => void;
 }
 
 /**
@@ -25,6 +26,7 @@ export function useGalleryWebSocket({
   loadStackImages,
   stacksModeRef,
   activeStackIdRef,
+  onVisibleRefresh,
 }: UseGalleryWebSocketParams) {
   const addNotification = useNotificationStore(state => state.addNotification);
 
@@ -37,6 +39,8 @@ export function useGalleryWebSocket({
   refreshFoldersRef.current = refreshFolders;
   const loadStackImagesRef = useRef(loadStackImages);
   loadStackImagesRef.current = loadStackImages;
+  const onVisibleRefreshRef = useRef(onVisibleRefresh);
+  onVisibleRefreshRef.current = onVisibleRefresh;
 
   useEffect(() => {
     type WebSocketClient = {
@@ -59,15 +63,18 @@ export function useGalleryWebSocket({
 
         if (activeStackIdRef.current !== null) {
           void loadStackImagesRef.current(activeStackIdRef.current);
+          onVisibleRefreshRef.current?.();
           return;
         }
 
         if (stacksModeRef.current) {
           refreshStacksRef.current({ preserveItems: true });
+          onVisibleRefreshRef.current?.();
           return;
         }
 
         refreshImagesRef.current({ preserveItems: true });
+        onVisibleRefreshRef.current?.();
       }, 500);
     };
 

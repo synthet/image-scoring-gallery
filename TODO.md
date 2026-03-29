@@ -4,7 +4,7 @@ Project-level task list. Items marked `[Python]`, `[Gradio]`, or `[DB]` involve 
 
 > **Source of truth & update order:** This file is the canonical task ledger (owner: Electron maintainers). Update this file first, then sync `docs/planning/01-roadmap-todo.md`, then `docs/integration/TODO.md`, and finally `docs/features/planned/embeddings/TODO.md`.
 
-Last evaluated: 2026-03-16.
+Last evaluated: 2026-03-28.
 
 | Marker | Use when |
 |--------|----------|
@@ -98,7 +98,7 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 ## Python / Backend Integration [Python] [Gradio]
 
 - [ ] [Gradio] Gradio Integration: Enhance IPC/WebSocket bridge for real-time AI updates — coordinate bidirectional command channel protocol with Python backend (see `image-scoring/TODO.md` → Clustering & Embeddings)
-- [ ] [Gradio] Subscribe to `job_progress` for live progress bar (optional; currently job_started/job_completed only)
+- [x] [Gradio] Subscribe to `job_progress` for live progress bar (`src/hooks/useGalleryWebSocket.ts` `subscribe('job_progress', ...)`, rendered via `src/components/Layout/JobProgressBar.tsx`, state in `src/store/useJobProgressStore.ts`)
 - [ ] [Python] Add IPC handlers for new similarity endpoints when backend exposes them (`/api/similarity/*`)
 - [ ] [Python] Sync `electron/apiTypes.ts` when backend API contract changes
 - [ ] Document `config.api.url` / `config.api.port` override in user-facing docs

@@ -81,6 +81,8 @@ export interface TagPropagationRequest {
     min_support_neighbors?: number | null;
     write_mode?: 'replace_missing_only' | 'append' | null;
     max_keywords?: number | null;
+    /** Dry-run preview for this image even when it already has keywords (server strips existing tags from suggestions). */
+    focus_image_id?: number | null;
 }
 
 // ── Clustering ──────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 # TODO - Electron Image Scoring
 
-Consolidated list of unfinished work items. Last Updated: Mar 14, 2026.
+Consolidated list of unfinished work items. Last Updated: Mar 28, 2026.
 
 > **Source of truth & update order:** Secondary roadmap mirror (owner: planning/docs maintainers). Sync only after `TODO.md`, then reconcile this file before updating `docs/integration/TODO.md` and `docs/features/planned/embeddings/TODO.md`.
 
@@ -18,10 +18,10 @@ Use these rules for any count snapshots in this document:
 
 ### Compact Counting Example (from `P1 (High Priority)`)
 
-- Open items in this section: **5** (Gradio Pipeline + Embedding parent + 2 child items + request token; Vitest and handlers completed)
+- Open items in this section: **4** (Gradio Pipeline + Embedding parent + 2 child items; request token/Vitest/handlers complete)
 - Cross-repo items: **3** (Embedding parent + 2 children with `[Python]`)
-- Electron-only items: **2** (Gradio Pipeline, request token)
-- Check: `open (5) = cross-repo (3) + Electron-only (2)`
+- Electron-only items: **1** (Gradio Pipeline)
+- Check: `open (4) = cross-repo (3) + Electron-only (1)`
 
 ---
 
@@ -43,9 +43,10 @@ Use these rules for any count snapshots in this document:
 - [ ] **Embedding Feature Integration** [Python]:
     - [ ] Add "Find Similar" to context menu and details panel
     - [ ] Integrate "Duplicate Finder" into main navigation
-- [ ] Add explicit request token / in-flight guard to `useImages` for pagination races
+- [x] Add explicit request token / in-flight guard to `useImages` for pagination races
 - [x] Setup `Vitest` and basic test coverage for hooks/services
 - [x] Ensure `image_updated` and `folder_updated` handlers refresh correct views
+- [x] Subscribe to `job_progress` for live progress updates (`src/hooks/useGalleryWebSocket.ts` `subscribe('job_progress', ...)`, `src/components/Layout/JobProgressBar.tsx`, `src/store/useJobProgressStore.ts`)
 
 ## P2 (Medium Priority)
 

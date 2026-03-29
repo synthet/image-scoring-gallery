@@ -8,7 +8,7 @@ This document tracks remaining work for embedding-related features in the Electr
 - [x] "More Like This": similarity drawer + backend query path.
 
 ## 🟡 In Progress
-- [ ] Gradio/Backend integration hardening (job streaming and richer status wiring still pending).
+- [ ] **Gradio Integration**: Enhance IPC/WebSocket bridge for real-time AI updates (`job_progress` subscription is complete in `src/hooks/useGalleryWebSocket.ts` via `subscribe('job_progress', ...)`, surfaced by `src/components/Layout/JobProgressBar.tsx` with state in `src/store/useJobProgressStore.ts`; focus remaining work on broader queue/log pipeline milestones).
 - [ ] Feature 5 (2D Embedding Map): scaffolded UI route and placeholder component; backend projection + renderer still pending.
 - [ ] Feature 6 (Smart Stack Representative): toggle + persistence + request threading scaffolded; backend representative selection still pending.
 

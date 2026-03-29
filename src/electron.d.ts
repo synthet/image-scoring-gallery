@@ -212,7 +212,7 @@ declare global {
             getApiConfig: () => Promise<{ url: string }>;
             getConfig: () => Promise<AppConfig>;
             saveConfig: (updates: Partial<AppConfig>) => Promise<AppConfig>;
-            setCurrentExportImageContext: (context: { imageBytes: number[]; mimeType: string; fileName: string; id: number; sourcePath: string; imageUuid: string | null } | null) => Promise<boolean>;
+            setCurrentExportImageContext: (context: { imageBytes: number[]; mimeType: string; fileName: string; id: number; sourcePath: string; imageUuid: string | null; exifOrientationBaked?: boolean } | null) => Promise<boolean>;
             readExif: (filePath: string) => Promise<Record<string, unknown>>;
             getDiagnostics: () => Promise<{
                 os: { platform: string; release: string; arch: string; uptime: number };
@@ -331,6 +331,7 @@ declare global {
         min_support_neighbors?: number | null;
         write_mode?: 'replace_missing_only' | 'append' | null;
         max_keywords?: number | null;
+        focus_image_id?: number | null;
     }
 
     interface BackendClusteringStartRequest {

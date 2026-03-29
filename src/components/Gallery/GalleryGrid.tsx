@@ -47,7 +47,13 @@ interface GalleryGridProps {
     onSelectStack?: (stack: Image) => void;
     onStackEndReached?: () => void;
     activeStackId?: number | null;
+    highlightOutliers?: boolean;
+    outlierIds?: Set<number>;
+    outlierMetaById?: Map<number, { zScore: number; outlierScore: number; neighborSummary: string }>;
 }
+
+const EMPTY_OUTLIER_IDS = new Set<number>();
+const EMPTY_OUTLIER_META = new Map<number, { zScore: number; outlierScore: number; neighborSummary: string }>();
 
 const ItemContainer = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ style, children, className, ...props }, ref) => (
     <div ref={ref} style={style} className={`${styles.listContainer} ${className || ''}`} {...props}>
@@ -65,7 +71,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     images, onSelect, onEndReached, subfolders, onSelectFolder,
     onNavigateToParent, viewerOpen = false, sortBy = 'score_general',
     stacksMode = false, stacks = [], onSelectStack, onStackEndReached,
-    activeStackId
+    activeStackId, highlightOutliers = false, outlierIds = EMPTY_OUTLIER_IDS, outlierMetaById = EMPTY_OUTLIER_META
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -126,6 +132,11 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
 
     const renderImageCard = useCallback((img: Image, onClick: () => void) => {
         const labelColor = getLabelColor(img.label);
+        const isOutlier = highlightOutliers && outlierIds.has(img.id);
+        const outlierMeta = outlierMetaById.get(img.id);
+        const outlierTooltip = outlierMeta
+            ? `Outlier • z=${outlierMeta.zScore.toFixed(2)} • ${outlierMeta.neighborSummary}`
+            : 'Outlier';
 
         return (
             <div
@@ -141,6 +152,15 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                     <div className={styles.ratingOverlay}>
                         <span className={styles.ratingStars}>{'★'.repeat(img.rating)}</span>
                     </div>
+                    {isOutlier && (
+                        <div
+                            className={styles.outlierBadge}
+                            title={outlierTooltip}
+                            aria-label={outlierTooltip}
+                        >
+                            Outlier
+                        </div>
+                    )}
                 </div>
 
                 <div className={styles.cardMeta} style={{ borderTop: `2px solid ${labelColor}` }}>
@@ -153,7 +173,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 </div>
             </div>
         );
-    }, [getScoreDisplay, getLabelColor]);
+    }, [getScoreDisplay, getLabelColor, highlightOutliers, outlierIds, outlierMetaById]);
 
     const renderStackCard = useCallback((stack: Image, onClick: () => void) => {
         const labelColor = getLabelColor(stack.label);
