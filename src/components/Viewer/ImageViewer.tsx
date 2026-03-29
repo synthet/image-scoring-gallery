@@ -7,6 +7,7 @@ import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
 import { usePropagateTags } from '../../hooks/useDatabase';
 import { toMediaUrl } from '../../utils/mediaUrl';
 import { bridge } from '../../bridge';
+import type { TagPropagationRequest } from '../../../electron/apiTypes';
 
 /**
  * Re-encode raster image so pixel data matches browser preview (EXIF Orientation applied).
@@ -101,8 +102,6 @@ const normalizeKeywords = (keywords: string): string => (
         .filter(tag => tag.length > 0)
         .join(', ')
 );
-
-type TagPropagationPayload = Parameters<NonNullable<Window['electron']>['api']['propagateTags']>[0];
 
 type SuggestionDecision = 'pending' | 'accepted' | 'rejected';
 
@@ -332,29 +331,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         localStorage.setItem(LOCAL_REJECTION_KEY, JSON.stringify(suppressedByImage));
     }, [suppressedByImage]);
 
-    useEffect(() => {
-        if (initialSimilarSearchImageId != null) {
-            setSimilarSearchImageId(initialSimilarSearchImageId);
-            setIsSimilarDrawerOpen(true);
-        }
-    }, [initialSimilarSearchImageId]);
-
-    useEffect(() => {
-        editKeywordsRef.current = editForm.keywords;
-    }, [editForm.keywords]);
-
-    useEffect(() => {
-        if (isEditing) {
-            setEditForm({
-                title: image.title || '',
-                description: image.description || '',
-                rating: image.rating || 0,
-                label: image.label || 'None',
-                keywords: image.keywords || ''
-            });
-        }
-    }, [isEditing, image]);
-
     const extractSuggestedKeywords = useCallback((payload: unknown): SuggestedKeywordRow[] => {
         if (!payload || typeof payload !== 'object') {
             return [];
@@ -412,7 +388,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         setSuggestionsLoading(true);
         setSuggestionsLoadError(null);
         try {
-            const payload: TagPropagationPayload = {
+            const payload: TagPropagationRequest = {
                 folder_path: folderPath,
                 dry_run: true,
                 k: 5,
@@ -504,6 +480,29 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     }, [addNotification, editForm.keywords, persistKeywords, suggestionRows]);
 
     useEffect(() => {
+        if (initialSimilarSearchImageId != null) {
+            setSimilarSearchImageId(initialSimilarSearchImageId);
+            setIsSimilarDrawerOpen(true);
+        }
+    }, [initialSimilarSearchImageId]);
+
+    useEffect(() => {
+        editKeywordsRef.current = editForm.keywords;
+    }, [editForm.keywords]);
+
+    useEffect(() => {
+        if (isEditing) {
+            setEditForm({
+                title: image.title || '',
+                description: image.description || '',
+                rating: image.rating || 0,
+                label: image.label || 'None',
+                keywords: image.keywords || ''
+            });
+        }
+    }, [isEditing, image]);
+
+    useEffect(() => {
         if (!isEditing) {
             setSuggestionRows([]);
             setSuggestionsLoadError(null);
@@ -511,7 +510,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         }
         void loadSuggestedKeywords();
     }, [isEditing, image.id, loadSuggestedKeywords]);
-
 
     const handleSave = async () => {
         try {
@@ -1029,7 +1027,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                         )
                     )}
                 </div>
-
                 {isEditing && (
                     <div style={{ marginTop: 0, marginBottom: 5 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
