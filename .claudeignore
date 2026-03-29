@@ -1,0 +1,43 @@
+# Claude Code — skip heavy / non-source paths (startup indexing, context)
+# See: https://docs.anthropic.com/en/docs/claude-code (ignore file name may vary by version)
+
+# Dependencies & build output
+node_modules/
+dist/
+dist-ssr/
+dist-electron/
+release-builds/
+release-builds-v2/
+coverage/
+
+# Python venvs (if opened from a multi-root workspace or stray .venv here)
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Raster images & camera raws (large; avoid full-tree scan)
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.gif
+*.bmp
+*.tif
+*.tiff
+*.heic
+*.heif
+*.nef
+*.NEF
+*.cr2
+*.CR2
+*.arw
+*.ARW
+*.dng
+*.DNG
+
+# Packaged / binary artifacts
+*.exe
+*.dll
+*.zip
+*.7z

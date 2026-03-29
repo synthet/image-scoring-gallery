@@ -212,11 +212,18 @@ const exportCurrentImage = async () => {
                 'FocalLength', 'DateTimeOriginal', 'CreateDate', 'GPSLatitude',
                 'GPSLongitude', 'GPSAltitude', 'Orientation'
             ];
+            const tagsToRead = currentExportImageContext.exifOrientationBaked
+                ? preserveTags.filter((tag) => tag !== 'Orientation')
+                : preserveTags;
 
-            for (const tag of preserveTags) {
+            for (const tag of tagsToRead) {
                 if (sourceTags[tag as keyof typeof sourceTags] !== undefined) {
                     tagsToCopy[tag] = sourceTags[tag as keyof typeof sourceTags];
                 }
+            }
+
+            if (currentExportImageContext.exifOrientationBaked) {
+                tagsToCopy.Orientation = 1;
             }
 
             // Add our custom description

@@ -7,6 +7,36 @@ import { usePropagateTags } from '../../hooks/useDatabase';
 import { toMediaUrl } from '../../utils/mediaUrl';
 import { bridge } from '../../bridge';
 
+/**
+ * Re-encode raster image so pixel data matches browser preview (EXIF Orientation applied).
+ * Raw fetch bytes often stay sensor-oriented while <img> rotates for display.
+ */
+async function bakeExifOrientationToBlob(blob: Blob, outMime: string): Promise<Blob | null> {
+    const t = blob.type || '';
+    if (!t.startsWith('image/') || t === 'image/svg+xml') {
+        return null;
+    }
+    try {
+        const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return null;
+            ctx.drawImage(bitmap, 0, 0);
+            const quality = outMime === 'image/jpeg' ? 0.92 : undefined;
+            return await new Promise<Blob | null>((resolve) => {
+                canvas.toBlob((b) => resolve(b), outMime, quality);
+            });
+        } finally {
+            bitmap.close();
+        }
+    } catch {
+        return null;
+    }
+}
+
 interface Image {
     id: number;
     file_path: string;
@@ -441,22 +471,42 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             try {
                 const response = await fetch(src);
                 const blob = await response.blob();
-                const buffer = await blob.arrayBuffer();
-                const bytes = Array.from(new Uint8Array(buffer));
                 const mimeType = blob.type || 'image/jpeg';
+                const outMime =
+                    mimeType.includes('jpeg') || mimeType.includes('jpg')
+                        ? 'image/jpeg'
+                        : mimeType.includes('png')
+                            ? 'image/png'
+                            : mimeType.includes('webp')
+                                ? 'image/webp'
+                                : 'image/jpeg';
+
+                const baked = await bakeExifOrientationToBlob(blob, outMime);
+                const exportBlob = baked ?? blob;
+                const exifOrientationBaked = baked != null;
+                const exportMime = exifOrientationBaked ? outMime : mimeType;
+
+                const buffer = await exportBlob.arrayBuffer();
+                const bytes = Array.from(new Uint8Array(buffer));
 
                 const baseName = image.file_name.replace(/\.[^/.]+$/, '');
-                const suggestedFileName = mimeType.includes('jpeg') || mimeType.includes('jpg')
-                    ? `${baseName}.jpg`
-                    : image.file_name;
+                const suggestedFileName =
+                    exportMime.includes('jpeg') || exportMime.includes('jpg')
+                        ? `${baseName}.jpg`
+                        : exportMime.includes('png')
+                            ? `${baseName}.png`
+                            : exportMime.includes('webp')
+                                ? `${baseName}.webp`
+                                : image.file_name;
 
                 return {
                     bytes,
-                    mimeType,
+                    mimeType: exportMime,
                     suggestedFileName,
                     id: image.id,
                     sourcePath: image.win_path || image.file_path,
-                    imageUuid: image.image_uuid || null
+                    imageUuid: image.image_uuid || null,
+                    exifOrientationBaked
                 };
             } catch (e) {
                 console.error('Failed to read displayed preview bytes:', e);
@@ -484,7 +534,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 fileName: payload.suggestedFileName,
                 id: payload.id as number,
                 sourcePath: payload.sourcePath as string,
-                imageUuid: payload.imageUuid as string | null
+                imageUuid: payload.imageUuid as string | null,
+                exifOrientationBaked: payload.exifOrientationBaked
             });
         };
 

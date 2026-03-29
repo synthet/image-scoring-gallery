@@ -211,7 +211,7 @@ declare global {
             getApiConfig: () => Promise<{ url: string }>;
             getConfig: () => Promise<AppConfig>;
             saveConfig: (updates: Partial<AppConfig>) => Promise<AppConfig>;
-            setCurrentExportImageContext: (context: { imageBytes: number[]; mimeType: string; fileName: string; id: number; sourcePath: string; imageUuid: string | null } | null) => Promise<boolean>;
+            setCurrentExportImageContext: (context: { imageBytes: number[]; mimeType: string; fileName: string; id: number; sourcePath: string; imageUuid: string | null; exifOrientationBaked?: boolean } | null) => Promise<boolean>;
             readExif: (filePath: string) => Promise<Record<string, unknown>>;
             getDiagnostics: () => Promise<{
                 os: { platform: string; release: string; arch: string; uptime: number };
