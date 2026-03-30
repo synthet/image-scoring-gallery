@@ -1,7 +1,7 @@
 # Refined Cross-Repo Migration Plan: Firebird -> PostgreSQL + pgvector
 
 Date: 2026-03-08  
-Status: Draft (Refined)  
+Status: Completed
 Scope: image-scoring + image-scoring-gallery coordinated migration
 
 ## Summary
@@ -33,10 +33,10 @@ Scope: image-scoring + image-scoring-gallery coordinated migration
 - Replace `firebird-admin` MCP with `postgres-admin`; keep old Firebird admin in read-only rollback mode during stabilization.
 
 5. **Electron Alignment Before Final Decommission (Phase 4)**
-- Add DB provider abstraction in Electron main-process DB layer (`electron/db.ts`) while preserving IPC contracts.
-- Migrate Electron from `node-firebird` to Postgres client only after Python cutover stabilizes.
-- Remove Firebird-specific runtime assumptions (port checks, auto-start server path, Firebird-only SQL).
-- Final Firebird decommission only after Electron + Python both pass production soak on Postgres.
+- [x] Add DB provider abstraction in Electron main-process DB layer (`electron/db.ts`) while preserving IPC contracts.
+- [x] Migrate Electron from `node-firebird` to Postgres client only after Python cutover stabilizes.
+- [x] Remove Firebird-specific runtime assumptions (port checks, auto-start server path, Firebird-only SQL).
+- [x] Final Firebird decommission only after Electron + Python both pass production soak on Postgres.
 
 ## Public API / Interface Changes
 

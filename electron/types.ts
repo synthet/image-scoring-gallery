@@ -98,7 +98,7 @@ export interface DuplicateResponse {
     message?: string;
 }
 
-export type DatabaseEngine = 'firebird' | 'postgres' | 'api';
+export type DatabaseEngine = 'postgres' | 'api';
 
 export interface PostgresSslConfig {
     enabled?: boolean;
@@ -125,16 +125,7 @@ export interface PostgresConfig {
     pool?: PostgresPoolConfig;
 }
 
-export interface FirebirdDatabaseConfig {
-    engine?: 'firebird';
-    /** @deprecated Prefer `engine`. Kept for backward compatibility with older configs/branches. */
-    provider?: 'firebird';
-    host?: string;
-    port?: number;
-    path?: string;
-    user?: string;
-    password?: string;
-}
+
 
 export interface PostgresDatabaseConfig {
     engine: 'postgres';
@@ -150,13 +141,13 @@ export interface ApiDatabaseConfig {
     api: {
         url?: string;
         timeout?: number;
-        dialect?: 'firebird' | 'postgres';
-        /** SQL shape the gallery builds; align with backend database.engine (default firebird). */
-        sqlDialect?: 'firebird' | 'postgres';
+        dialect?: 'postgres';
+        /** SQL shape the gallery builds; align with backend database.engine (default postgres). */
+        sqlDialect?: 'postgres';
     };
 }
 
-export type DatabaseConfig = FirebirdDatabaseConfig | PostgresDatabaseConfig | ApiDatabaseConfig;
+export type DatabaseConfig = PostgresDatabaseConfig | ApiDatabaseConfig;
 
 export interface AppConfig {
     database?: DatabaseConfig;
@@ -168,9 +159,7 @@ export interface AppConfig {
         port?: number;
         host?: string;
     };
-    firebird?: {
-        path?: string;
-    };
+
     selection?: Record<string, unknown>;
     /** Optional path remaps for renamed backend folders (thumbnail JPEG locations) */
     paths?: {

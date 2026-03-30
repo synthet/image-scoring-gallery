@@ -537,8 +537,8 @@ async function startFullApplication(): Promise<void> {
     console.log('[Main] App ready, setting up protocol...');
 
     // Provider-aware DB init:
-    // - Firebird: ensure server is up (and auto-start when configured)
-    // - Postgres: lightweight connectivity check only
+    // - Local/Postgres: lightweight connectivity check
+    // - API: connectivity via health endpoint
     await db.initializeDatabaseProvider();
 
     // Handle media:// requests with path sanitization
@@ -746,7 +746,7 @@ async function startFullApplication(): Promise<void> {
             throw new Error(`Path is not a directory: ${folderPath}`);
         }
 
-        // Try API first (Gradio backend); fallback to direct Firebird DB
+        // Try API first (Gradio backend); fallback to direct local DB
         const useApi = await apiService.isAvailable();
         if (useApi) {
             try {
@@ -768,10 +768,10 @@ async function startFullApplication(): Promise<void> {
                 console.warn('[Main] Import via API failed, falling back to direct DB:', e);
             }
         } else {
-            console.log('[Main] Gradio not available, using direct Firebird DB for import');
+            console.log('[Main] Gradio not available, using direct local DB for import');
         }
 
-        // Fallback: direct Firebird DB
+        // Fallback: direct local DB
         const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });
         const files = entries
             .filter(e => e.isFile())

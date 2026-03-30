@@ -3,7 +3,6 @@ import type { DatabaseConfig } from '../types';
 import {
     createDatabaseConnector,
     ApiConnector,
-    FirebirdConnector,
     PostgresConnector,
     sqlQuestionMarksToPgNumbered,
 } from './provider';
@@ -49,16 +48,19 @@ describe('Database Connector Abstraction', () => {
             expect(connector.type).toBe('api');
         });
 
-        it('should create a FirebirdConnector by default', () => {
+        it('should create a PostgresConnector as fallback for firebird legacy config', () => {
             const config = {
-                dbConfig: { engine: 'firebird' },
+                dbConfig: { 
+                    engine: 'firebird',
+                    postgres: { host: 'localhost', port: 5432, database: 'test', user: 'user' }
+                },
                 firebirdDatabasePath: 'test.fdb'
             };
             const connector = createDatabaseConnector(
                 config as { dbConfig: DatabaseConfig; firebirdDatabasePath: string }
             );
-            expect(connector).toBeInstanceOf(FirebirdConnector);
-            expect(connector.type).toBe('firebird');
+            expect(connector).toBeInstanceOf(PostgresConnector);
+            expect(connector.type).toBe('postgres');
         });
 
         it('should create a PostgresConnector when engine is "postgres"', () => {

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.0.0] - 2026-03-29
+
+### Removed
+- **Direct Firebird in Electron**: Dropped **`node-firebird`**, **`FirebirdConnector`**, **`FirebirdDatabaseConfig`**, top-level **`firebird.path`**, Firebird auto-start/port checks, and dual Firebird/Postgres SQL templates. Gallery SQL is **Postgres-shaped** only (local **`pg`** or backend **`api`**).
+- **Bootstrap scripts**: Removed **`scripts/start_db.ps1`**, **`scripts/patch-node-firebird.js`**, **`npm run db:start`**, and **`postinstall`** patching.
+
+### Changed
+- **`DatabaseEngine`**: **`postgres` | `api`** only; **`normalizeAppConfig`** maps non-API configs to **Postgres** with defaults when fields are omitted (**`localhost`**, **`5432`**, **`image_scoring`**, etc.).
+- **`npm run dev`**: Runs **Vite + Electron** only (no bundled DB start).
+- **`createDatabaseConnector`**: Legacy raw **`engine: firebird`** (runtime string) still routes to **Postgres** when **`database.postgres`** is present; types no longer advertise Firebird.
+- **Planning doc**: **`02-firebird-postgresql-migration.md`** marked completed for the Electron alignment items.
+
 ## [4.6.0] - 2026-03-29
 
 ### Added

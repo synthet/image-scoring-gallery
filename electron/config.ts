@@ -3,11 +3,11 @@ import path from 'path';
 import type {
     AppConfig,
     DatabaseEngine,
-    FirebirdDatabaseConfig,
     PostgresDatabaseConfig,
     PostgresPoolConfig,
     PostgresSslConfig,
     PostgresConfig,
+    ApiDatabaseConfig,
 } from './types';
 
 type JsonRecord = Record<string, unknown>;
@@ -25,7 +25,7 @@ function asNumber(value: unknown): number | undefined {
 }
 
 function toEngine(value: unknown): DatabaseEngine {
-    return value === 'postgres' ? 'postgres' : 'firebird';
+    return value === 'api' ? 'api' : 'postgres';
 }
 
 function getEngineFromDatabaseConfig(rawDatabase: JsonRecord): DatabaseEngine {
@@ -60,32 +60,23 @@ function normalizePostgresPool(value: unknown): PostgresPoolConfig | undefined {
 }
 
 export function validatePostgresConfig(databaseConfig: JsonRecord): PostgresConfig {
-    const postgres = isRecord(databaseConfig.postgres) ? databaseConfig.postgres : null;
-    if (!postgres) {
-        throw new Error('database.postgres is required when database.engine is "postgres".');
-    }
+    const postgres = isRecord(databaseConfig.postgres) ? databaseConfig.postgres : {};
 
-    const host = asString(postgres.host);
-    const port = asNumber(postgres.port);
-    const database = asString(postgres.database);
-    const user = asString(postgres.user);
-    const password = asString(postgres.password);
+    const host = asString(postgres.host) || 'localhost';
+    const port = asNumber(postgres.port) || 5432;
+    const database = asString(postgres.database) || 'image_scoring';
+    const user = asString(postgres.user) || 'postgres';
+    const password = asString(postgres.password) || 'postgres';
 
-    if (!host) throw new Error('database.postgres.host is required.');
-    if (!port || port <= 0) throw new Error('database.postgres.port must be a positive number.');
-    if (!database) throw new Error('database.postgres.database is required.');
-    if (!user) throw new Error('database.postgres.user is required.');
     const normalized: PostgresConfig = {
         host,
         port,
         database,
         user,
+        password,
         ssl: normalizePostgresSsl(postgres.ssl),
         pool: normalizePostgresPool(postgres.pool),
     };
-    if (password) {
-        normalized.password = password;
-    }
     return normalized;
 }
 
@@ -94,21 +85,18 @@ export function normalizeAppConfig(rawConfig: unknown): AppConfig {
     const rawDatabase = isRecord(cfg.database) ? { ...cfg.database } : {};
     const engine = getEngineFromDatabaseConfig(rawDatabase);
 
-    if (engine === 'firebird') {
-        const normalizedDatabase: FirebirdDatabaseConfig = {
-            engine: 'firebird',
-            provider: 'firebird',
-            host: asString(rawDatabase.host) || '127.0.0.1',
-            port: asNumber(rawDatabase.port) || 3050,
-            user: asString(rawDatabase.user) || 'sysdba',
-            password: asString(rawDatabase.password) || 'masterkey',
+    if (engine === 'api') {
+        const apiConfigRaw = isRecord(rawDatabase.api) ? rawDatabase.api : {};
+        const normalizedDatabase: ApiDatabaseConfig = {
+            engine: 'api',
+            provider: 'api',
+            api: {
+                url: asString(apiConfigRaw.url),
+                timeout: asNumber(apiConfigRaw.timeout),
+                dialect: 'postgres',
+                sqlDialect: 'postgres',
+            }
         };
-
-        const dbPath = asString(rawDatabase.path);
-        if (dbPath) {
-            normalizedDatabase.path = dbPath;
-        }
-
         return {
             ...cfg,
             database: normalizedDatabase,
