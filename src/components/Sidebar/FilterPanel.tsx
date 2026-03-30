@@ -56,7 +56,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange }) =
                 </div>
             </div>
 
-            <div>
+            <div className={styles.section}>
                 <div className={styles.sectionLabel}>Color Label</div>
                 <div className={styles.colorRow}>
                     <button

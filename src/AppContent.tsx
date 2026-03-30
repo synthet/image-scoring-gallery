@@ -27,11 +27,7 @@ import breadcrumbStyles from './styles/breadcrumbs.module.css';
 import toggleStyles from './styles/toggle.module.css';
 import { EmbeddingMap, type ProjectedEmbeddingPoint } from './components/Embeddings/EmbeddingMap';
 
-interface AppContentProps {
-  isConnected: boolean;
-}
-
-function AppContent({ isConnected }: AppContentProps) {
+function AppContent() {
   const [filters, setFilters] = useState<FilterState>({ minRating: 0, sortBy: 'score_general', order: 'DESC' });
   const [smartCoverEnabled, setSmartCoverEnabled] = useState(false);
   const [outlierRefreshKey, setOutlierRefreshKey] = useState(0);
@@ -286,6 +282,11 @@ function AppContent({ isConnected }: AppContentProps) {
     );
   }, [folders, selectedFolderId, activeStackId, currentView]);
 
+  const canGalleryNavigateBack = useMemo(
+    () => activeStackId !== null || selectedFolderId !== undefined,
+    [activeStackId, selectedFolderId],
+  );
+
   return (
     <>
       <MainLayout
@@ -303,56 +304,46 @@ function AppContent({ isConnected }: AppContentProps) {
         }
         sidebar={
           <div style={{ padding: 10, display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div style={{ marginBottom: 12, display: 'grid', gap: 6 }}>
-              {([
-                { key: 'gallery', label: 'Gallery' },
-                { key: 'runs', label: 'Runs' },
-                { key: 'duplicates', label: 'Duplicates' },
-                { key: 'embeddings', label: 'Embeddings' },
-              ] as const).map((view) => (
+            <div style={{ marginBottom: 15 }}>
+              {currentView === 'gallery' ? (
                 <button
-                  key={view.key}
-                  onClick={() => setCurrentView(view.key)}
+                  type="button"
+                  disabled={!canGalleryNavigateBack}
+                  onClick={() => handleNavigateToParent()}
+                  aria-label="Back to previous folder"
                   style={{
                     width: '100%',
-                    padding: '8px 10px',
-                    backgroundColor: currentView === view.key ? '#4caf50' : '#2d2d2d',
-                    color: '#fff',
-                    border: '1px solid #4a4a4a',
+                    padding: '10px',
+                    backgroundColor: canGalleryNavigateBack ? '#4caf50' : '#3a3a3a',
+                    color: canGalleryNavigateBack ? '#fff' : '#888',
+                    border: 'none',
                     borderRadius: 4,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontWeight: currentView === view.key ? 'bold' : 500,
+                    cursor: canGalleryNavigateBack ? 'pointer' : 'not-allowed',
+                    fontWeight: 'bold',
+                    borderLeft: canGalleryNavigateBack ? '4px solid #fff' : '4px solid #555',
                   }}
                 >
-                  {view.label}
+                  Back
                 </button>
-              ))}
-            </div>
-
-            {currentView === 'duplicates' && (
-              <div style={{ marginBottom: 15 }}>
+              ) : (
                 <button
+                  type="button"
                   onClick={() => setCurrentView('gallery')}
                   style={{
-                    width: '100%', padding: '10px',
+                    width: '100%',
+                    padding: '10px',
                     backgroundColor: '#4caf50',
-                    color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer',
-                    fontWeight: 'bold', borderLeft: '4px solid #fff',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    borderLeft: '4px solid #fff',
                   }}
                 >
-                  Back to Gallery
+                  Gallery
                 </button>
-              </div>
-            )}
-
-            <h3 style={{ marginBottom: 10, marginTop: 0 }}>Folders</h3>
-            <div style={{ marginBottom: 10, fontSize: '0.8em', color: '#888' }}>
-              <p>DB Status:
-                <span style={{ color: isConnected ? '#4caf50' : '#f44336', fontWeight: 'bold', marginLeft: 5 }}>
-                  {isConnected ? 'Connected' : 'Disconnected'}
-                </span>
-              </p>
+              )}
             </div>
 
             <div style={{ padding: '0 0 10px 0', display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -454,7 +445,6 @@ function AppContent({ isConnected }: AppContentProps) {
                 folders={folders}
                 foldersLoading={foldersLoading}
                 onRefreshFolders={refreshFolders}
-                onBackToGallery={() => setCurrentView('gallery')}
               />
             ) : currentView === 'duplicates' ? (
               <DuplicateFinder currentFolder={currentFolder} />

@@ -315,6 +315,25 @@ const rebuildApplicationMenu = () => {
                 },
                 { type: 'separator' },
                 {
+                    label: 'Runs',
+                    click: () => {
+                        mainWindow?.webContents.send('open-runs');
+                    }
+                },
+                {
+                    label: 'Duplicates',
+                    click: () => {
+                        mainWindow?.webContents.send('open-duplicates');
+                    }
+                },
+                {
+                    label: 'Embeddings',
+                    click: () => {
+                        mainWindow?.webContents.send('open-embeddings');
+                    }
+                },
+                { type: 'separator' },
+                {
                     label: 'Scoring...',
                     click: () => {
                         openScoringWindow();

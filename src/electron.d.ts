@@ -225,6 +225,7 @@ declare global {
             onOpenSettings: (callback: () => void) => () => void;
             onOpenDuplicates: (callback: () => void) => () => void;
             onOpenRuns: (callback: () => void) => () => void;
+            onOpenEmbeddings: (callback: () => void) => () => void;
             onOpenDiagnostics: (callback: () => void) => () => void;
             onImportFolderSelected: (callback: (folderPath: string) => void) => () => void;
             importRun: (folderPath: string) => Promise<{ added: number; skipped: number; errors: string[] }>;

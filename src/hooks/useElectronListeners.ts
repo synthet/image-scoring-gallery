@@ -33,6 +33,10 @@ export function useElectronListeners() {
       setCurrentView('runs');
     });
 
+    const cleanupEmbeddings = bridge.onOpenEmbeddings(() => {
+      setCurrentView('embeddings');
+    });
+
     const cleanupImport = bridge.onImportFolderSelected((path) => {
       setImportFolderPath(path);
       setIsImportModalOpen(true);
@@ -47,6 +51,7 @@ export function useElectronListeners() {
       cleanupDiagnostics();
       cleanupDuplicates();
       cleanupRuns();
+      cleanupEmbeddings();
       cleanupImport();
       cleanupNotification();
     };

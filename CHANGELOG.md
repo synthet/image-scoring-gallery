@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.6.0] - 2026-03-29
+
+### Added
+- **Tools menu**: **Runs**, **Duplicates**, and **Embeddings** open the matching gallery views via IPC (**`open-runs`**, **`open-duplicates`**, **`open-embeddings`**).
+- **Preload / bridge**: **`onOpenEmbeddings`** subscription (Electron + browser **`noop`** stub).
+
+### Changed
+- **Sidebar**: Gallery uses a **Back** control (parent folder or stack) instead of a four-tab view switcher; **Runs** / **Duplicates** / **Embeddings** return via **Gallery**. Removed the sidebar DB connection line ( **`AppContent`** no longer takes **`isConnected`**).
+- **`RunsPage`**: Dropped the header **← Gallery** button; use sidebar **Gallery**.
+- **`FilterPanel`**: **Color Label** block wrapped with **`section`** styling for consistency with other blocks.
+
 ## [4.5.0] - 2026-03-29
 
 ### Added
