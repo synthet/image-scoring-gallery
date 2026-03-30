@@ -161,6 +161,13 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.removeListener('open-runs', handler);
         };
     },
+    onOpenEmbeddings: (callback: () => void) => {
+        const handler = () => callback();
+        ipcRenderer.on('open-embeddings', handler);
+        return () => {
+            ipcRenderer.removeListener('open-embeddings', handler);
+        };
+    },
     onOpenDiagnostics: (callback: () => void) => {
         const handler = () => callback();
         ipcRenderer.on('open-diagnostics', handler);

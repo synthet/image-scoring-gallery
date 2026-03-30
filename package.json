@@ -1,15 +1,14 @@
 {
   "name": "electron-gallery",
   "private": true,
-  "version": "4.5.0",
+  "version": "5.0.0",
   "description": "A high-performance image gallery with scoring capabilities",
   "author": "Electron Image Scoring Team",
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "concurrently --kill-others-on-fail \"npm run db:start\" \"npm run dev:web\" \"npm run dev:electron\"",
+    "dev": "concurrently --kill-others-on-fail \"npm run dev:web\" \"npm run dev:electron\"",
     "dev:web": "vite",
     "dev:electron": "wait-on tcp:5173 && tsc -p electron/tsconfig.json && cross-env ELECTRON_IS_DEV=1 electron .",
-    "db:start": "powershell -ExecutionPolicy Bypass -File scripts/start_db.ps1",
     "build": "tsc -p electron/tsconfig.json && tsc -b && vite build && electron-packager . --overwrite --platform=win32 --arch=x64 --out=release-builds --prune=true",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -22,7 +21,6 @@
     "contract:check": "node scripts/sync-api-contract.mjs --check",
     "contract:diff": "node scripts/sync-api-contract.mjs --diff",
     "contract:validate": "node scripts/validate-api-types.mjs",
-    "postinstall": "node scripts/patch-node-firebird.js",
     "dev:browser": "concurrently --kill-others-on-fail \"npm run server\" \"npm run dev:web\"",
     "server": "npx tsx server/index.ts",
     "start:browser": "npm run build && node dist-server/index.js"
@@ -52,7 +50,6 @@
     "express": "^5.2.1",
     "http-proxy-middleware": "^3.0.5",
     "lucide-react": "^0.563.0",
-    "node-firebird": "^1.1.9",
     "pg": "8.20.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

@@ -11,10 +11,9 @@ interface RunsPageProps {
     folders: Folder[];
     foldersLoading: boolean;
     onRefreshFolders: () => void;
-    onBackToGallery: () => void;
 }
 
-export function RunsPage({ folders, foldersLoading, onRefreshFolders, onBackToGallery }: RunsPageProps) {
+export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPageProps) {
     const { activeJobId, setActiveJobId, logBuffer, appendLog, clearLog, setQueueDepth, queueDepth } = useRunsStore();
     const addNotification = useNotificationStore(s => s.addNotification);
 
@@ -197,9 +196,6 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders, onBackToGa
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #333', background: '#141414' }}>
-                <button onClick={onBackToGallery} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '0.85em', marginRight: 15 }}>
-                    ← Gallery
-                </button>
                 <div style={{ fontSize: '1.1em', fontWeight: 600 }}>Scoring...</div>
                 <div style={{ flex: 1 }} />
                 <div style={{ fontSize: '0.85em', color: '#888', marginRight: 15 }}>

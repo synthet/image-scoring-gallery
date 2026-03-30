@@ -36,7 +36,7 @@ function App() {
     </div>
   );
 
-  return <AppContent isConnected={isConnected} />;
+  return <AppContent />;
 }
 
 export default App;

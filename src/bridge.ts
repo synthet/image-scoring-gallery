@@ -169,6 +169,7 @@ function createHttpBridge(): Window['electron'] {
         onOpenSettings: noop,
         onOpenDuplicates: noop,
         onOpenRuns: noop,
+        onOpenEmbeddings: noop,
         onOpenDiagnostics: noop,
         onImportFolderSelected: noop,
         onImportProgress: noop,

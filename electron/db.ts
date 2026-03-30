@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 
 import { getConfigPath, loadAppConfig } from './config';
-import type { ApiDatabaseConfig, AppConfig, DatabaseConfig, FirebirdDatabaseConfig } from './types';
+import type { AppConfig, DatabaseConfig } from './types';
 import { createDatabaseConnector, IDatabaseConnector, QueryParam, TxQuery } from './db/provider';
 
 // Load configuration
@@ -13,71 +13,31 @@ function loadConfig(): AppConfig {
 const config = loadConfig();
 const dbConfig = config.database || {};
 const projectRoot = path.resolve(__dirname, '..');
-// Support both `database.engine` and legacy `database.provider` during branch convergence.
-const dbKind = (dbConfig.engine || dbConfig.provider || 'firebird').toLowerCase();
-const isFirebirdDb = dbKind === 'firebird';
-const firebirdDbConfig: FirebirdDatabaseConfig = isFirebirdDb
-    ? (dbConfig as FirebirdDatabaseConfig)
-    : {};
-
-// ---------------------------------------------------------------------------
-// Dialect-aware SQL helpers
-// SQL_DIALECT is derived from the same source as the DB provider so they
-// always agree. Both 'postgres' and 'firebird' values are valid; anything
-// else falls back to 'firebird'.
-// ---------------------------------------------------------------------------
-type SqlDialect = 'firebird' | 'postgres';
-
-function resolveSqlDialect(): SqlDialect {
-    if (dbKind === 'postgres') return 'postgres';
-    if (dbKind === 'api') {
-        const apiCfg = (dbConfig as ApiDatabaseConfig).api;
-        const d = (apiCfg?.dialect || apiCfg?.sqlDialect)?.toLowerCase();
-        if (d === 'postgres') return 'postgres';
-        return 'firebird';
-    }
-    return 'firebird';
-}
-
-const SQL_DIALECT: SqlDialect = resolveSqlDialect();
-
-/** Both variants are required — forces you to implement Postgres SQL, not just silence the error. */
-interface DialectSqlTemplate { firebird: string; postgres: string; }
-
-function getDialectSql(_feature: string, t: DialectSqlTemplate): string {
-    return SQL_DIALECT === 'postgres' ? t.postgres : t.firebird;
-}
 
 /** Returns the pagination clause for the current dialect. */
 function paginationSql(): string {
-    return SQL_DIALECT === 'postgres'
-        ? 'LIMIT ? OFFSET ?'
-        : 'OFFSET ? ROWS FETCH NEXT ? ROWS ONLY';
+    return 'LIMIT ? OFFSET ?';
 }
 
 /**
- * Returns paging params in the order the current dialect expects.
- * Firebird: OFFSET first, then FETCH NEXT (row limit).
- * Postgres: LIMIT first, then OFFSET.
+ * Returns paging params in the order the expected.
  */
 function pagingParams(offset: number, limit: number): number[] {
-    return SQL_DIALECT === 'postgres' ? [limit, offset] : [offset, limit];
+    return [limit, offset];
 }
 
 /**
- * Returns a column expression that coerces a BLOB/TEXT column to a plain string.
- * Firebird stores text fields like `keywords` as BLOBs; Postgres uses TEXT natively.
+ * Returns a column expression that coerces a TEXT column to a plain string.
  */
 function castTextExpr(col: string): string {
-    return SQL_DIALECT === 'postgres' ? `${col}::text` : `CAST(${col} AS VARCHAR(8191))`;
+    return `${col}::text`;
 }
 
 /**
  * Returns a COUNT expression that guarantees a JS number (not a driver-specific bigint).
- * Postgres drivers may return COUNT as a string or BigInt without the explicit cast.
  */
 function countBigint(expr = '*'): string {
-    return SQL_DIALECT === 'postgres' ? `COUNT(${expr})::bigint` : `COUNT(${expr})`;
+    return `COUNT(${expr})::bigint`;
 }
 
 /** Optional config: see config.example.json → paths */
@@ -206,46 +166,8 @@ function mapRowsThumbnails(rows: unknown[]): unknown[] {
     return rows;
 }
 
-/** Prefer sibling `image-scoring-backend`, then legacy `image-scoring`. */
-function resolveSiblingDbPath(filename: string): string {
-    const candidates = [
-        `../image-scoring-backend/${filename}`,
-        `../image-scoring/${filename}`,
-    ];
-    for (const rel of candidates) {
-        if (fs.existsSync(path.resolve(projectRoot, rel))) {
-            return rel;
-        }
-    }
-    return candidates[0];
-}
-
-// Add test detection — tests must NEVER use production DB
-const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST;
-
-let dbPath: string;
-if (isFirebirdDb) {
-    let rawDbPath: string;
-    if (isTestEnv) {
-        rawDbPath = resolveSiblingDbPath('scoring_history_test.fdb');
-        console.warn('[DB] Test environment detected! Using test DB only: scoring_history_test.fdb');
-    } else {
-        rawDbPath = firebirdDbConfig.path
-            ? firebirdDbConfig.path
-            : resolveSiblingDbPath('SCORING_HISTORY.FDB');
-    }
-    dbPath = path.isAbsolute(rawDbPath)
-        ? rawDbPath
-        : path.resolve(projectRoot, rawDbPath);
-    console.log('Connecting to DB at:', dbPath);
-} else {
-    dbPath = '';
-}
-
 const connector: IDatabaseConnector = createDatabaseConnector({
     dbConfig: dbConfig as DatabaseConfig,
-    firebirdConfig: config.firebird,
-    firebirdDatabasePath: dbPath,
 });
 
 export async function connectDB(): Promise<void> {
@@ -281,62 +203,7 @@ export async function runTransaction<T>(
     return connector.runTransaction(callback);
 }
 
-// ---------------------------------------------------------------------------
-// SQL templates for statements that are structurally different per dialect.
-// Pagination and BLOB-cast differences are handled by the helpers above.
-// ---------------------------------------------------------------------------
-const SQL_TEMPLATES = {
-    /**
-     * Update rep_image_id in stack_cache to the highest-scoring image per stack.
-     * Firebird: MERGE ... WHEN MATCHED. Postgres: INSERT ... ON CONFLICT DO UPDATE.
-     */
-    mergeStackRepId: {
-        firebird: `
-            MERGE INTO stack_cache sc
-            USING (
-                SELECT i.stack_id, MIN(i.id) as best_id
-                FROM images i
-                WHERE i.stack_id IS NOT NULL
-                  AND i.score_general = (
-                      SELECT MAX(i2.score_general) FROM images i2 WHERE i2.stack_id = i.stack_id
-                  )
-                GROUP BY i.stack_id
-            ) src
-            ON sc.stack_id = src.stack_id
-            WHEN MATCHED THEN UPDATE SET sc.rep_image_id = src.best_id
-        `,
-        postgres: `
-            INSERT INTO stack_cache (stack_id, rep_image_id)
-            SELECT src.stack_id, src.best_id FROM (
-                SELECT i.stack_id, MIN(i.id) as best_id
-                FROM images i
-                WHERE i.stack_id IS NOT NULL
-                  AND i.score_general = (
-                      SELECT MAX(i2.score_general) FROM images i2 WHERE i2.stack_id = i.stack_id
-                  )
-                GROUP BY i.stack_id
-            ) src
-            ON CONFLICT (stack_id) DO UPDATE SET rep_image_id = EXCLUDED.rep_image_id
-        `,
-    } satisfies DialectSqlTemplate,
 
-    /**
-     * Upsert a keyword association for an image.
-     * Firebird: UPDATE OR INSERT ... MATCHING. Postgres: INSERT ... ON CONFLICT DO UPDATE.
-     */
-    upsertImageKeyword: {
-        firebird: `
-            UPDATE OR INSERT INTO image_keywords (image_id, keyword_id, source, confidence)
-            VALUES (?, ?, ?, ?) MATCHING (image_id, keyword_id)
-        `,
-        postgres: `
-            INSERT INTO image_keywords (image_id, keyword_id, source, confidence)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT (image_id, keyword_id) DO UPDATE
-                SET source = EXCLUDED.source, confidence = EXCLUDED.confidence
-        `,
-    } satisfies DialectSqlTemplate,
-} as const;
 
 function pushFolderFilter(
     whereParts: string[], params: (string | number | null)[],
@@ -930,11 +797,13 @@ export async function syncImageKeywords(imageId: number, keywordsStr: string | n
             }
             
             if (kwId !== null) {
-                // Dialect: Firebird uses UPDATE OR INSERT ... MATCHING; Postgres uses INSERT ... ON CONFLICT DO UPDATE.
-                await query(
-                    getDialectSql('upsertImageKeyword', SQL_TEMPLATES.upsertImageKeyword),
-                    [imageId, kwId, 'electron_ui', 1.0]
-                );
+                // Postgres: INSERT ... ON CONFLICT DO UPDATE
+                await query(`
+                    INSERT INTO image_keywords (image_id, keyword_id, source, confidence)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT (image_id, keyword_id) DO UPDATE
+                        SET source = EXCLUDED.source, confidence = EXCLUDED.confidence
+                `, [imageId, kwId, 'electron_ui', 1.0]);
             }
         }
     } catch (e) {
@@ -1060,8 +929,20 @@ export async function rebuildStackCache(context: { smartCover?: boolean } = {}):
                 await txQuery(sql);
 
                 // Update rep_image_id to be the image with the highest general score in each stack.
-                // Dialect: Firebird uses MERGE ... WHEN MATCHED; Postgres uses INSERT ... ON CONFLICT DO UPDATE.
-                await txQuery(getDialectSql('mergeStackRepId', SQL_TEMPLATES.mergeStackRepId));
+                // Postgres uses INSERT ... ON CONFLICT DO UPDATE.
+                await txQuery(`
+                    INSERT INTO stack_cache (stack_id, rep_image_id)
+                    SELECT src.stack_id, src.best_id FROM (
+                        SELECT i.stack_id, MIN(i.id) as best_id
+                        FROM images i
+                        WHERE i.stack_id IS NOT NULL
+                          AND i.score_general = (
+                              SELECT MAX(i2.score_general) FROM images i2 WHERE i2.stack_id = i.stack_id
+                          )
+                        GROUP BY i.stack_id
+                    ) src
+                    ON CONFLICT (stack_id) DO UPDATE SET rep_image_id = EXCLUDED.rep_image_id
+                `);
 
                 const countRows = await txQuery<{ cnt: number }>('SELECT COUNT(*) as "cnt" FROM stack_cache');
                 const count = countRows[0]?.cnt || 0;
