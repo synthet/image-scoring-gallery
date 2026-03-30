@@ -1,28 +1,42 @@
 # 06 - Smart Stack Representative (Frontend)
 
-*Status: **Planned***
+*Status: **In Progress (Preference + request threading scaffolded on March 28, 2026)***
 
 *Part of [Embedding Applications - Frontend Implementation Index](README.md).*
 
 ## Goal
 
-Allow users to configure whether stack covers display the highest-scoring image or the most "representative" image (the one closest to the stack's embedding centroid).
+Allow users to configure whether stack covers display the highest-scoring image or a future "representative" image (e.g., nearest stack centroid).
+
+## Current Implementation Phase
+
+The UI + request threading scaffolding is in place:
+
+1. **Settings UI component**: `src/components/Settings/SelectionSettings.tsx`.
+2. **Persisted config key**: `selection.smartCoverEnabled` (saved via existing config bridge).
+3. **Stack request threading**:
+   - `smartCover` is now included in stack query options.
+   - rebuild calls now pass context `{ smartCover }` through bridge/preload/main/server layers.
+
+> Note: Stack representative selection logic is still backend-driven and not yet implemented in SQL/embedding logic.
 
 ## UI Integration Points
 
-1. **Settings View (`src/components/Settings/SelectionSettings.tsx`)**
-   - Add a toggle: **"Use Smart Stack Covers (Centroid)"**.
-   - This setting dictates which `image_id` the backend returns as the `cover_id` for stacks.
+1. **Settings Modal Integration**
+   - `SettingsModal.tsx` now renders `SelectionSettings` and updates selection preferences.
 
-2. **Stack Rendering**
-   - Display a "Target" icon badge on stack covers when chosen via centroid logic.
-   - This provides transparency to the user why a lower-scoring image might be the cover.
+2. **Stack Rendering Behavior (Current)**
+   - Existing visual stack rendering remains unchanged.
+   - Smart Cover currently affects request context only.
 
 ## IPC / Configuration Flow
 
-- **Setting**: Update `clustering.smart_cover_enabled` in `config.json`.
-- **Effect**: Next time stacks are queried or rebuilt, the backend uses embedding proximity to choose the cover.
+- **Setting key**: `selection.smartCoverEnabled` in saved app config.
+- **Runtime behavior**: value is loaded into `AppContent` and passed into stack fetch/rebuild calls.
+- **Future backend effect**: stack cover selection should switch to representative image when enabled.
 
-## Design Considerations
+## Next Steps
 
-- **Hybrid Mode**: Optionally allow a "Best of Both" where it chooses the highest-scoring image within the 10% closest to the centroid.
+1. Implement backend representative-image selection strategy.
+2. Surface representative-selection indicators on stack cards.
+3. Add test coverage verifying request context propagation and config persistence.

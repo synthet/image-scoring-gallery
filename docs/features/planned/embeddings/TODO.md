@@ -1,33 +1,33 @@
 # Embedding Features TODO List
 
-This document tracks the remaining work for the embedding-based features in the Electron Gallery.
+This document tracks remaining work for embedding-related features in the Electron Gallery.
 
-> **Source of truth & update order:** Embeddings feature-detail mirror (owner: feature maintainers). Update only after `TODO.md` and `docs/planning/01-roadmap-todo.md`; use `docs/integration/TODO.md` to confirm backend milestone status before changing Gradio/API states.
-
-## 🟢 Implemented
-- [x] **Diversity-Aware Selection**: Settings and MMR logic integrated.
-- [x] **Near-Duplicate Detection**: Duplicate finder view and IPC bridge.
-- [x] **"More Like This" Search**: Similarity search drawer and context menu.
+## ✅ Implemented
+- [x] Diversity-Aware Selection: settings + MMR logic integrated.
+- [x] Near-Duplicate Detection: duplicate finder view + bridge.
+- [x] "More Like This": similarity drawer + backend query path.
 
 ## 🟡 In Progress
 - [ ] **Gradio Integration**: Enhance IPC/WebSocket bridge for real-time AI updates (`job_progress` subscription is complete in `src/hooks/useGalleryWebSocket.ts` via `subscribe('job_progress', ...)`, surfaced by `src/components/Layout/JobProgressBar.tsx` with state in `src/store/useJobProgressStore.ts`; focus remaining work on broader queue/log pipeline milestones).
+- [ ] Feature 5 (2D Embedding Map): scaffolded UI route and placeholder component; backend projection + renderer still pending.
+- [ ] Feature 6 (Smart Stack Representative): toggle + persistence + request threading scaffolded; backend representative selection still pending.
 
-## 🔴 Planned (Missing)
+## 🔴 Planned
 ### Feature 3: Tag Propagation
-- [ ] Implement `propagateTags` service call (dry-run/apply).
-- [ ] Add "AI Suggestions" section to `ImageViewer.tsx` metadata sidebar.
-- [ ] Add "Accept/Reject" interaction logic.
+- [ ] Wire full `propagateTags` dry-run/apply UX.
+- [ ] Add AI suggestion acceptance/rejection workflow in image details UI.
 
 ### Feature 4: Outlier Detection
-- [ ] Add "Show Outliers" toggle to `FilterPanel.tsx`.
-- [ ] Implement visual badge/highlight for outliers in `GalleryGrid.tsx`.
-- [ ] Connect to backend outlier detection endpoint.
+- [ ] Add outlier controls to filtering UI.
+- [ ] Add outlier highlighting/badging in grid.
+- [ ] Add endpoint integration and result state handling.
 
-### Feature 5: 2D Embedding Map
-- [ ] Create `EmbeddingMap.tsx` component.
-- [ ] Implement WebGL-based visualization of 1280-d feature vectors projected to 2D.
-- [ ] Add navigation to map view in `AppContent.tsx`.
+### Feature 5: 2D Embedding Map (remaining)
+- [ ] Add embeddings projection endpoint to bridge/backend.
+- [ ] Replace placeholder with performant canvas/WebGL renderer.
+- [ ] Add map interactions (pan/zoom/hover/lasso).
 
-### Feature 6: Smart Stack Representative
-- [ ] Add "Smart Cover" toggle to `SelectionSettings.tsx`.
-- [ ] Implement cover selection logic based on stack centroid in IPC/Backend.
+### Feature 6: Smart Stack Representative (remaining)
+- [ ] Implement backend representative-image selection (embedding centroid or hybrid).
+- [ ] Expose representative metadata to frontend stack cards.
+- [ ] Add UI marker/badge explaining representative-selected covers.

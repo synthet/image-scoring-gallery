@@ -13,6 +13,7 @@ interface ImageQueryOptions {
     keyword?: string;
     sortBy?: string;
     order?: 'ASC' | 'DESC';
+    smartCover?: boolean;
 }
 
 interface ImageRow {

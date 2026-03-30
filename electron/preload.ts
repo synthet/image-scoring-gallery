@@ -96,8 +96,8 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('db:get-stack-count', options);
         return unwrapEnvelope<number>(response);
     },
-    rebuildStackCache: async () => {
-        const response = await ipcRenderer.invoke('db:rebuild-stack-cache');
+    rebuildStackCache: async (context?: { smartCover?: boolean }) => {
+        const response = await ipcRenderer.invoke('db:rebuild-stack-cache', context ?? {});
         return unwrapEnvelope<{ success: boolean; count: number }>(response);
     },
     log: async (level: string, message: string, data?: unknown) => {

@@ -30,6 +30,7 @@ export function useStacksMode(
   selectedFolderId: number | undefined,
   filters: FilterState,
   refreshStacks: (opts?: { preserveItems?: boolean }) => void,
+  smartCoverEnabled: boolean,
 ) {
   const [stacksMode, setStacksMode] = useState(false);
   const [activeStackId, setActiveStackId] = useState<number | null>(null);
@@ -54,6 +55,8 @@ export function useStacksMode(
   const loadStackImagesRef = useRef(loadStackImages);
   loadStackImagesRef.current = loadStackImages;
 
+  const prevSmartCoverRef = useRef(smartCoverEnabled);
+
   // Reload stack images when activeStackId or filters change
   useEffect(() => {
     if (activeStackId !== null) {
@@ -64,7 +67,7 @@ export function useStacksMode(
   // Rebuild stack cache when stacks mode is first enabled
   useEffect(() => {
     if (stacksMode && !cacheBuilt) {
-      bridge.rebuildStackCache().then((result) => {
+      bridge.rebuildStackCache({ smartCover: smartCoverEnabled }).then((result) => {
         console.log('[App] Stack cache rebuild result:', result);
         setCacheBuilt(true);
         refreshStacks();
@@ -72,7 +75,19 @@ export function useStacksMode(
         console.error('[App] Failed to rebuild stack cache:', err);
       });
     }
-  }, [stacksMode, cacheBuilt, refreshStacks]);
+  }, [stacksMode, cacheBuilt, refreshStacks, smartCoverEnabled]);
+
+  // After cache exists, changing Smart Cover should rebuild so rep rows stay consistent when backend honors the flag.
+  useEffect(() => {
+    const prev = prevSmartCoverRef.current;
+    prevSmartCoverRef.current = smartCoverEnabled;
+    if (!stacksMode || !cacheBuilt || prev === smartCoverEnabled) return;
+    bridge.rebuildStackCache({ smartCover: smartCoverEnabled }).then(() => {
+      refreshStacks();
+    }).catch((err) => {
+      console.error('[App] Failed to rebuild stack cache after Smart Cover change:', err);
+    });
+  }, [smartCoverEnabled, stacksMode, cacheBuilt, refreshStacks]);
 
   const clearStack = () => {
     setActiveStackId(null);

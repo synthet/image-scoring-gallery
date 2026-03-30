@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { bridge } from '../../bridge';
+import { SelectionSettings } from './SelectionSettings';
 
 interface AppConfig {
+    selection?: {
+        smartCoverEnabled?: boolean;
+        [key: string]: unknown;
+    };
     [key: string]: unknown;
 }
 
@@ -88,10 +93,25 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                         <div style={{ color: '#aaa', textAlign: 'center', padding: '20px' }}>Loading settings...</div>
                     ) : error ? (
                         <div style={{ color: '#ff6b6b', padding: '12px', background: 'rgba(255,107,107,0.1)', borderRadius: 4, border: '1px solid rgba(255,107,107,0.3)' }}>{error}</div>
+                    ) : config ? (
+                        <SelectionSettings
+                            smartCoverEnabled={Boolean(config.selection?.smartCoverEnabled)}
+                            onSmartCoverChange={(enabled) => {
+                                setConfig((prev) => {
+                                    if (!prev) return prev;
+                                    return {
+                                        ...prev,
+                                        selection: {
+                                            ...(prev.selection ?? {}),
+                                            smartCoverEnabled: enabled,
+                                        },
+                                    };
+                                });
+                            }}
+                        />
                     ) : (
                         <div style={{ color: '#aaa', textAlign: 'center', padding: '40px 20px' }}>
                             <div style={{ fontSize: '1.2em', marginBottom: '10px' }}>No configurable preferences.</div>
-                            <div style={{ fontSize: '0.9em' }}>General settings are currently managed automatically.</div>
                         </div>
                     )}
                 </div>

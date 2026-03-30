@@ -169,9 +169,9 @@ async function startServer() {
     }));
 
     // DB: rebuild stack cache
-    router.post('/db/rebuild-stack-cache', wrap(async (_req, res) => {
+    router.post('/db/rebuild-stack-cache', wrap(async (req, res) => {
         try {
-            const count = await db.rebuildStackCache();
+            const count = await db.rebuildStackCache((req.body ?? {}) as { smartCover?: boolean });
             ok(res, { success: true, count });
         } catch (e) { fail(res, e); }
     }));

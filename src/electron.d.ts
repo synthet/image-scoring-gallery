@@ -23,6 +23,7 @@ interface ImageQueryOptions {
     keyword?: string;
     sortBy?: string;
     order?: 'ASC' | 'DESC';
+    smartCover?: boolean;
 }
 
 interface ImageRow {
@@ -199,7 +200,7 @@ declare global {
             getStacks: (options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getImagesByStack: (stackId: number | null, options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getStackCount: (options?: ImageQueryOptions) => Promise<number>;
-            rebuildStackCache: () => Promise<{ success: boolean; count: number }>;
+            rebuildStackCache: (context?: { smartCover?: boolean }) => Promise<{ success: boolean; count: number }>;
             log: (level: string, message: string, data?: unknown) => Promise<boolean>;
             extractNefPreview: (filePath: string) => Promise<{
                 success: boolean;
