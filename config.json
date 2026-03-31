@@ -1,12 +1,14 @@
 {
   "database": {
-    "engine": "firebird",
-    "provider": "firebird",
-    "host": "127.0.0.1",
-    "port": 3050,
-    "user": "sysdba",
-    "password": "masterkey",
-    "path": "../image-scoring-backend/SCORING_HISTORY.FDB"
+    "engine": "postgres",
+    "provider": "postgres",
+    "postgres": {
+      "host": "localhost",
+      "port": 5432,
+      "database": "image_scoring",
+      "user": "postgres",
+      "password": "postgres"
+    }
   },
   "dev": {
     "url": "http://localhost:5173"
@@ -34,5 +36,9 @@
         "to": "/mnt/d/Projects/image-scoring-backend/thumbnails"
       }
     ]
-  }
+  },
+  "selection": {
+    "smartCoverEnabled": true
+  },
+  "lightModeRootFolder": "D:\\Photos"
 }

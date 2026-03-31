@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { bridge } from '../bridge';
+import { useAppMode } from '../context/AppModeContext';
 
 const MAX_LOADED_ITEMS = 2000;
 
@@ -37,6 +38,7 @@ interface ImageRow {
 }
 
 export function useDatabase() {
+    const { mode } = useAppMode();
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [retryCount, setRetryCount] = useState(0);
@@ -80,23 +82,30 @@ export function useDatabase() {
         }
     }, []);
 
-    // Initial connection + auto-retry with backoff
+    // Initial connection + auto-retry (skipped in folder mode — no DB)
     useEffect(() => {
+        if (mode === 'folder') {
+            return;
+        }
         // eslint-disable-next-line react-hooks/set-state-in-effect
         connect();
-    }, [connect]);
+    }, [connect, mode]);
 
     useEffect(() => {
-        if (error && retryCount < MAX_AUTO_RETRIES) {
-            const delay = BASE_DELAY_MS * Math.pow(2, retryCount);
-            console.log(`[useDatabase] Auto-retry ${retryCount + 1}/${MAX_AUTO_RETRIES} in ${delay}ms...`);
-            const timer = setTimeout(() => {
-                setRetryCount(prev => prev + 1);
-                connect();
-            }, delay);
-            return () => clearTimeout(timer);
+        if (mode === 'folder') {
+            return;
         }
-    }, [error, retryCount, connect]);
+        if (!error || retryCount >= MAX_AUTO_RETRIES) {
+            return;
+        }
+        const delay = BASE_DELAY_MS * Math.pow(2, retryCount);
+        console.log(`[useDatabase] Auto-retry ${retryCount + 1}/${MAX_AUTO_RETRIES} in ${delay}ms...`);
+        const timer = setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+            connect();
+        }, delay);
+        return () => clearTimeout(timer);
+    }, [error, retryCount, connect, mode]);
 
     // Manual retry (resets counter)
     const retry = useCallback(() => {

@@ -8,12 +8,161 @@ import * as db from './db';
 import { nefExtractor } from './nefExtractor';
 import { ExifTool } from 'exiftool-vendored';
 import { ApiService } from './apiService';
-import { ExportImageContext } from './types';
+import {
+    ExportImageContext,
+    type FileImageMetadataDetail,
+    type FileImageMetadataResult,
+    type FsDirEntry,
+    type FsReadDirResult,
+} from './types';
 import { SessionLogManager } from './sessionLogManager';
 import { deepMergeConfig, getConfigPath, loadAppConfig, normalizeAppConfig } from './config';
 import { resolveBackendUiStaticDir, startScoringUiServer, type ScoringUiServer } from './scoringUiServer';
 
 const exiftool = new ExifTool({ maxProcs: 2 });
+
+function convertFsImagePathForExif(filePath: string): string {
+    let convertedPath = filePath;
+    if (process.platform === 'win32' && filePath.match(/^\/mnt\/[a-zA-Z]\//)) {
+        convertedPath = filePath.replace(/^\/mnt\/([a-zA-Z])\//, '$1:/');
+    }
+    return convertedPath;
+}
+
+/** XMP sidecar wins for these tag names when merging over embedded image tags. */
+const XMP_MERGE_KEYS = new Set([
+    'Title',
+    'ObjectName',
+    'Headline',
+    'Description',
+    'ImageDescription',
+    'Caption',
+    'Caption-Abstract',
+    'CaptionAbstract',
+    'Subject',
+    'Keywords',
+    'HierarchicalSubject',
+    'LastKeywordXMP',
+    'Rating',
+    'XMPRating',
+    'Label',
+    'ColorLabels',
+]);
+
+function tagsToSerializable(tags: Record<string, unknown>): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const key of Object.keys(tags)) {
+        const v = tags[key];
+        if (v === undefined) continue;
+        if (v === null) {
+            out[key] = null;
+            continue;
+        }
+        const t = typeof v;
+        if (t === 'string' || t === 'number' || t === 'boolean') {
+            out[key] = v;
+        } else if (Array.isArray(v)) {
+            out[key] = v.map((item) =>
+                item !== null && typeof item === 'object' ? String(item) : item,
+            );
+        } else {
+            out[key] = String(v);
+        }
+    }
+    return out;
+}
+
+async function readExiftoolAsPlain(filePath: string): Promise<Record<string, unknown>> {
+    const tags = await exiftool.read(filePath);
+    return tagsToSerializable(tags as unknown as Record<string, unknown>);
+}
+
+function mergeXmpOverImage(
+    imageTags: Record<string, unknown>,
+    xmpTags: Record<string, unknown>,
+): Record<string, unknown> {
+    const merged = { ...imageTags };
+    for (const key of Object.keys(xmpTags)) {
+        if (!XMP_MERGE_KEYS.has(key)) continue;
+        const v = xmpTags[key];
+        if (v === undefined || v === null) continue;
+        if (typeof v === 'string' && v.trim() === '') continue;
+        merged[key] = v;
+    }
+    return merged;
+}
+
+function metadataDetailFromTags(m: Record<string, unknown>): FileImageMetadataDetail {
+    const title = [m.Title, m.ObjectName, m.Headline].find(
+        (x) => typeof x === 'string' && x.trim(),
+    ) as string | undefined;
+    const description = [
+        m.Description,
+        m.ImageDescription,
+        m.Caption,
+        m['Caption-Abstract'],
+        m.CaptionAbstract,
+    ].find((x) => typeof x === 'string' && x.trim()) as string | undefined;
+
+    let keywords = '';
+    const kw = m.Keywords ?? m.Subject;
+    if (Array.isArray(kw)) {
+        keywords = kw.map(String).filter(Boolean).join(', ');
+    } else if (typeof kw === 'string') {
+        keywords = kw;
+    }
+
+    let rating = 0;
+    const r = m.Rating ?? m.XMPRating;
+    if (typeof r === 'number' && !Number.isNaN(r)) {
+        rating = Math.max(0, Math.round(r));
+    } else if (typeof r === 'string') {
+        const n = parseInt(r, 10);
+        if (!Number.isNaN(n)) rating = Math.max(0, n);
+    }
+
+    const labelRaw = m.Label ?? m.ColorLabels;
+    const label = labelRaw !== undefined && labelRaw !== null ? String(labelRaw) : null;
+
+    const iso = m.ISO;
+    let exif_iso: number | null = null;
+    if (typeof iso === 'number' && !Number.isNaN(iso)) exif_iso = iso;
+    else if (typeof iso === 'string') {
+        const n = parseFloat(iso);
+        exif_iso = Number.isNaN(n) ? null : n;
+    }
+
+    let exif_shutter: string | null = null;
+    const ss = m.ShutterSpeed ?? m.ExposureTime;
+    if (ss !== undefined && ss !== null) exif_shutter = String(ss);
+
+    let exif_aperture: string | null = null;
+    const ap = m.Aperture ?? m.FNumber;
+    if (ap !== undefined && ap !== null) exif_aperture = String(ap);
+
+    const fl = m.FocalLength;
+    const exif_focal_length = fl !== undefined && fl !== null ? String(fl) : null;
+
+    const mod = m.Model ?? m.CameraModelName;
+    const exif_model = mod !== undefined && mod !== null ? String(mod) : null;
+
+    const lens = m.LensModel ?? m.Lens;
+    const exif_lens_model = lens !== undefined && lens !== null ? String(lens) : null;
+
+    return {
+        title: title?.trim() || undefined,
+        description: description?.trim() || undefined,
+        keywords: keywords || undefined,
+        rating,
+        label,
+        exif_iso,
+        exif_shutter,
+        exif_aperture,
+        exif_focal_length,
+        exif_model,
+        exif_lens_model,
+    };
+}
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 // if (require('electron-squirrel-startup')) {
@@ -25,6 +174,50 @@ let mainWindow: BrowserWindow | null = null;
 let webuiShellWindow: BrowserWindow | null = null;
 let currentExportImageContext: ExportImageContext | null = null;
 let sessionLogManager: SessionLogManager | null = null;
+
+/** UI mode: full database gallery vs filesystem-only fallback. */
+let appGalleryMode: 'db' | 'folder' = 'db';
+
+const FS_IMAGE_EXTENSIONS = new Set([
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.tif', '.tiff', '.heic', '.heif',
+    '.nef', '.nrw', '.cr2', '.cr3', '.arw', '.orf', '.rw2', '.dng',
+]);
+
+function defaultLightModeRoot(): string {
+    const pictures = path.join(os.homedir(), 'Pictures');
+    if (process.platform === 'win32') {
+        if (fs.existsSync(pictures)) {
+            return pictures;
+        }
+        return 'D:\\Photos';
+    }
+    return pictures;
+}
+
+function readLightModeRootFromConfig(): string {
+    try {
+        const configPath = getConfigPath(__dirname);
+        if (fs.existsSync(configPath)) {
+            const raw = JSON.parse(fs.readFileSync(configPath, 'utf8')) as { lightModeRootFolder?: string };
+            if (typeof raw.lightModeRootFolder === 'string' && raw.lightModeRootFolder.trim()) {
+                return path.resolve(raw.lightModeRootFolder.trim());
+            }
+        }
+    } catch {
+        /* ignore */
+    }
+    return path.resolve(defaultLightModeRoot());
+}
+
+function isPathInsideLightRoot(root: string, target: string): boolean {
+    const resolvedRoot = path.resolve(root);
+    const resolvedTarget = path.resolve(target);
+    if (resolvedTarget === resolvedRoot) {
+        return true;
+    }
+    const rel = path.relative(resolvedRoot, resolvedTarget);
+    return !rel.startsWith('..') && !path.isAbsolute(rel);
+}
 
 /**
  * Thumbnails may not exist at the exact path from the DB:
@@ -256,6 +449,8 @@ const exportCurrentImage = async () => {
 };
 
 const rebuildApplicationMenu = () => {
+    const folderMode = appGalleryMode === 'folder';
+
     const menu = Menu.buildFromTemplate([
         {
             label: 'File',
@@ -270,6 +465,7 @@ const rebuildApplicationMenu = () => {
                 },
                 {
                     label: 'Import',
+                    enabled: !folderMode,
                     click: async () => {
                         const win = getDialogWindow();
                         const result = await dialog.showOpenDialog(win || mainWindow!, {
@@ -307,6 +503,7 @@ const rebuildApplicationMenu = () => {
             submenu: [
                 {
                     label: 'Diagnostics',
+                    enabled: !folderMode,
                     click: () => {
                         if (mainWindow) {
                             mainWindow.webContents.send('open-diagnostics');
@@ -316,18 +513,21 @@ const rebuildApplicationMenu = () => {
                 { type: 'separator' },
                 {
                     label: 'Runs',
+                    enabled: !folderMode,
                     click: () => {
                         mainWindow?.webContents.send('open-runs');
                     }
                 },
                 {
                     label: 'Duplicates',
+                    enabled: !folderMode,
                     click: () => {
                         mainWindow?.webContents.send('open-duplicates');
                     }
                 },
                 {
                     label: 'Embeddings',
+                    enabled: !folderMode,
                     click: () => {
                         mainWindow?.webContents.send('open-embeddings');
                     }
@@ -335,6 +535,7 @@ const rebuildApplicationMenu = () => {
                 { type: 'separator' },
                 {
                     label: 'Scoring...',
+                    enabled: !folderMode,
                     click: () => {
                         openScoringWindow();
                     }
@@ -342,13 +543,47 @@ const rebuildApplicationMenu = () => {
             ]
         },
         { role: 'editMenu' },
-        { role: 'viewMenu' },
+        {
+            label: 'View',
+            submenu: [
+                { role: 'reload' },
+                { role: 'forceReload' },
+                { role: 'toggleDevTools' },
+                { type: 'separator' },
+                { role: 'resetZoom' },
+                { role: 'zoomIn' },
+                { role: 'zoomOut' },
+                { type: 'separator' },
+                { role: 'togglefullscreen' },
+                { type: 'separator' },
+                {
+                    label: 'Mode: DB',
+                    type: 'radio',
+                    checked: appGalleryMode === 'db',
+                    click: () => setGalleryModeAndNotify('db'),
+                },
+                {
+                    label: 'Mode: Folder',
+                    type: 'radio',
+                    checked: appGalleryMode === 'folder',
+                    click: () => setGalleryModeAndNotify('folder'),
+                },
+            ],
+        },
         { role: 'windowMenu' },
 
     ]);
 
     Menu.setApplicationMenu(menu);
 };
+
+function setGalleryModeAndNotify(mode: 'db' | 'folder') {
+    appGalleryMode = mode;
+    rebuildApplicationMenu();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('app-mode-changed', mode);
+    }
+}
 
 // Register secure media protocol
 protocol.registerSchemesAsPrivileged([
@@ -883,6 +1118,125 @@ async function startFullApplication(): Promise<void> {
             console.error('[Main] EXIF read error:', e);
             throw e;
         }
+    }));
+
+    ipcMain.handle('fs:read-image-metadata', wrapIpcHandler(async (_, filePath: string) => {
+        if (!filePath || typeof filePath !== 'string') {
+            throw new Error('file path required');
+        }
+        const convertedPath = convertFsImagePathForExif(filePath);
+        let merged = await readExiftoolAsPlain(convertedPath);
+        const dir = path.dirname(convertedPath);
+        const base = path.basename(convertedPath, path.extname(convertedPath));
+        const xmpPath = path.join(dir, `${base}.xmp`);
+        try {
+            await fs.promises.access(xmpPath, fs.constants.R_OK);
+            const xmpPlain = await readExiftoolAsPlain(xmpPath);
+            merged = mergeXmpOverImage(merged, xmpPlain);
+        } catch {
+            /* no readable sidecar */
+        }
+        const detail = metadataDetailFromTags(merged);
+        const result: FileImageMetadataResult = { tags: merged, detail };
+        return result;
+    }));
+
+    ipcMain.handle('fs:get-light-mode-root', wrapIpcHandler(async () => readLightModeRootFromConfig()));
+
+    ipcMain.handle('fs:read-dir', wrapIpcHandler(async (_, args: {
+        dirPath: string;
+        offset?: number;
+        limit?: number;
+        kinds?: 'all' | 'dirsOnly';
+    }) => {
+        const rootPath = readLightModeRootFromConfig();
+        const dirPath = typeof args?.dirPath === 'string' ? args.dirPath : '';
+        const resolvedDir = path.resolve(dirPath);
+        if (!isPathInsideLightRoot(rootPath, resolvedDir)) {
+            throw new Error('Directory is outside the configured light mode root');
+        }
+        let stat: fs.Stats;
+        try {
+            stat = await fs.promises.stat(resolvedDir);
+        } catch {
+            throw new Error('Directory not found');
+        }
+        if (!stat.isDirectory()) {
+            throw new Error('Not a directory');
+        }
+        const kinds = args.kinds ?? 'all';
+        const names = await fs.promises.readdir(resolvedDir);
+        const directories: FsDirEntry[] = [];
+        const allImages: FsDirEntry[] = [];
+        // Use stat() per entry (not readdir Dirent) so files are never misclassified on Windows
+        // and symlinks resolve to real NEF/JPEG files.
+        const statRows = await Promise.all(
+            names.map(async (name) => {
+                if (name === '.' || name === '..') {
+                    return null;
+                }
+                const full = path.join(resolvedDir, name);
+                try {
+                    const st = await fs.promises.stat(full);
+                    return { name, full, st };
+                } catch {
+                    return null;
+                }
+            }),
+        );
+        for (const row of statRows) {
+            if (!row) {
+                continue;
+            }
+            const { name, full, st } = row;
+            if (st.isDirectory()) {
+                directories.push({ name, path: full });
+            } else if (kinds !== 'dirsOnly' && st.isFile()) {
+                const ext = path.extname(name).toLowerCase();
+                if (FS_IMAGE_EXTENSIONS.has(ext)) {
+                    allImages.push({ name, path: full });
+                }
+            }
+        }
+        const sortByName = (a: FsDirEntry, b: FsDirEntry) =>
+            a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        directories.sort(sortByName);
+        allImages.sort(sortByName);
+        const offset = Math.max(0, Number(args.offset) || 0);
+        const limit = Math.min(500, Math.max(1, Number(args.limit) || 80));
+        const totalImageCount = allImages.length;
+        const images = kinds === 'dirsOnly' ? [] : allImages.slice(offset, offset + limit);
+        const result: FsReadDirResult = {
+            dirPath: resolvedDir,
+            directories,
+            images,
+            totalImageCount,
+            rootPath,
+        };
+        return result;
+    }));
+
+    ipcMain.handle('app:set-gallery-mode', wrapIpcHandler(async (_, mode: unknown) => {
+        if (mode !== 'db' && mode !== 'folder') {
+            throw new Error('Invalid gallery mode');
+        }
+        appGalleryMode = mode;
+        rebuildApplicationMenu();
+        return mode;
+    }));
+
+    ipcMain.handle('app:get-gallery-mode', () => appGalleryMode);
+
+    ipcMain.handle('fs:select-directory', wrapIpcHandler(async () => {
+        const win = getDialogWindow();
+        const result = await dialog.showOpenDialog(win || mainWindow!, {
+            properties: ['openDirectory'],
+            title: 'Choose folder',
+        });
+        if (result.canceled || !result.filePaths[0]) {
+            return null;
+        }
+        return result.filePaths[0];
     }));
 
     ipcMain.handle('export:set-current-image-context', async (_, context: ExportImageContext | null) => {

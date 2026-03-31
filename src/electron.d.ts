@@ -174,7 +174,40 @@ interface AppConfig {
         remap_legacy_image_scoring_thumbnails?: boolean;
         thumbnail_base_dir?: string;
     };
+    lightModeRootFolder?: string;
     [key: string]: unknown;
+}
+
+interface FsDirEntry {
+    name: string;
+    path: string;
+}
+
+interface FsReadDirResult {
+    dirPath: string;
+    directories: FsDirEntry[];
+    images: FsDirEntry[];
+    totalImageCount: number;
+    rootPath: string;
+}
+
+interface FileImageMetadataDetail {
+    title?: string;
+    description?: string;
+    keywords?: string;
+    rating: number;
+    label: string | null;
+    exif_iso?: number | null;
+    exif_shutter?: string | null;
+    exif_aperture?: string | null;
+    exif_focal_length?: string | null;
+    exif_model?: string | null;
+    exif_lens_model?: string | null;
+}
+
+interface FileImageMetadataResult {
+    tags: Record<string, unknown>;
+    detail: FileImageMetadataDetail;
 }
 
 declare global {
@@ -214,6 +247,18 @@ declare global {
             saveConfig: (updates: Partial<AppConfig>) => Promise<AppConfig>;
             setCurrentExportImageContext: (context: { imageBytes: number[]; mimeType: string; fileName: string; id: number; sourcePath: string; imageUuid: string | null; exifOrientationBaked?: boolean } | null) => Promise<boolean>;
             readExif: (filePath: string) => Promise<Record<string, unknown>>;
+            readImageMetadata: (filePath: string) => Promise<FileImageMetadataResult>;
+            getLightModeRoot: () => Promise<string>;
+            readFsDir: (args: {
+                dirPath: string;
+                offset?: number;
+                limit?: number;
+                kinds?: 'all' | 'dirsOnly';
+            }) => Promise<FsReadDirResult>;
+            setGalleryMode: (mode: 'db' | 'folder') => Promise<'db' | 'folder'>;
+            getGalleryMode: () => Promise<'db' | 'folder'>;
+            onAppModeChanged: (callback: (mode: 'db' | 'folder') => void) => () => void;
+            selectDirectory: () => Promise<string | null>;
             getDiagnostics: () => Promise<{
                 os: { platform: string; release: string; arch: string; uptime: number };
                 versions: { electron: string; node: string; chrome: string; v8: string };

@@ -169,7 +169,44 @@ export interface AppConfig {
         /** Absolute thumbnails root, e.g. D:\\Projects\\image-scoring-backend\\thumbnails */
         thumbnail_base_dir?: string;
     };
+    /** Root folder for filesystem-only (light) mode when the database is unavailable. */
+    lightModeRootFolder?: string;
     [key: string]: unknown;
+}
+
+/** One directory entry from `fs:read-dir` (filesystem light mode). */
+export interface FsDirEntry {
+    name: string;
+    path: string;
+}
+
+/** Result of paginated `fs:read-dir`. */
+export interface FsReadDirResult {
+    dirPath: string;
+    directories: FsDirEntry[];
+    images: FsDirEntry[];
+    totalImageCount: number;
+    rootPath: string;
+}
+
+/** Normalized metadata for folder-mode viewer (EXIF + merged XMP sidecar). */
+export interface FileImageMetadataDetail {
+    title?: string;
+    description?: string;
+    keywords?: string;
+    rating: number;
+    label: string | null;
+    exif_iso?: number | null;
+    exif_shutter?: string | null;
+    exif_aperture?: string | null;
+    exif_focal_length?: string | null;
+    exif_model?: string | null;
+    exif_lens_model?: string | null;
+}
+
+export interface FileImageMetadataResult {
+    tags: Record<string, unknown>;
+    detail: FileImageMetadataDetail;
 }
 export interface ExportImageContext {
     imageBytes: number[];

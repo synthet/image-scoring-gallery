@@ -9,6 +9,8 @@
  * `import { bridge } from '../bridge'` and call `bridge.xxx()` instead.
  */
 
+import type { FileImageMetadataResult } from '../electron/types';
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const BASE = '/gallery-api';
@@ -74,6 +76,112 @@ async function del<T>(path: string): Promise<T> {
 }
 
 function noop() { return () => { /* no-op cleanup */ }; }
+
+const emptyFileImageMetadata = (): FileImageMetadataResult => ({
+    tags: {},
+    detail: {
+        rating: 0,
+        label: null,
+    },
+});
+
+// ── Folder mode (Electron): synchronous renderer flag + IPC stubs ─────────────
+
+export type GalleryBridgeAppMode = 'db' | 'folder';
+
+let galleryAppMode: GalleryBridgeAppMode = 'db';
+
+/** Called from AppModeContext whenever gallery mode changes (including initial). */
+export function setGalleryAppMode(mode: GalleryBridgeAppMode): void {
+    galleryAppMode = mode;
+}
+
+function bridgeIsElectronHost(): boolean {
+    return typeof window !== 'undefined' && !!window.electron;
+}
+
+function useFolderModeStubs(): boolean {
+    return bridgeIsElectronHost() && galleryAppMode === 'folder';
+}
+
+const FOLDER_API_STUB: Window['electron']['api'] = {
+    healthCheck: async () => ({
+        status: 'unavailable',
+        scoring_available: false,
+        tagging_available: false,
+        clustering_available: false,
+    }),
+    isAvailable: async () => false,
+    getStatus: async () => ({
+        is_running: false,
+        status_message: 'folder mode',
+        progress: { current: 0, total: 0 },
+        log: '',
+    }),
+    getStats: async () => ({
+        total_images: 0,
+        by_rating: {},
+        by_label: {},
+        score_distribution: {},
+        average_scores: {},
+        total_folders: 0,
+        total_stacks: 0,
+        jobs_by_status: {},
+        images_today: 0,
+        error: 'folder mode',
+    }),
+    startScoring: async () => ({ success: false, message: 'folder mode' }),
+    stopScoring: async () => ({ success: false, message: 'folder mode' }),
+    getScoringStatus: async () => ({
+        is_running: false,
+        status_message: '',
+        progress: { current: 0, total: 0 },
+        log: '',
+    }),
+    scoreSingleImage: async () => ({ success: false, message: 'folder mode' }),
+    startTagging: async () => ({ success: false, message: 'folder mode' }),
+    stopTagging: async () => ({ success: false, message: 'folder mode' }),
+    getTaggingStatus: async () => ({
+        is_running: false,
+        status_message: '',
+        progress: { current: 0, total: 0 },
+        log: '',
+    }),
+    tagSingleImage: async () => ({ success: false, message: 'folder mode' }),
+    propagateTags: async () => ({ success: false, message: 'folder mode' }),
+    startClustering: async () => ({ success: false, message: 'folder mode' }),
+    stopClustering: async () => ({ success: false, message: 'folder mode' }),
+    getClusteringStatus: async () => ({
+        is_running: false,
+        status_message: '',
+        progress: { current: 0, total: 0 },
+        log: '',
+    }),
+    submitPipeline: async () => ({ success: false, message: 'folder mode' }),
+    skipPipelinePhase: async () => ({ success: false, message: 'folder mode' }),
+    retryPipelinePhase: async () => ({ success: false, message: 'folder mode' }),
+    getRecentJobs: async () => [],
+    getJobDetail: async () => ({ status: 'unavailable' }),
+    getAllStatus: async () => ({
+        scoring: {
+            is_running: false,
+            status_message: '',
+            progress: { current: 0, total: 0 },
+            log: '',
+            available: false,
+        },
+        tagging: {
+            is_running: false,
+            status_message: '',
+            progress: { current: 0, total: 0 },
+            log: '',
+            available: false,
+        },
+    }),
+    getJobsQueue: async () => ({ queue_depth: 0, jobs: [] }),
+    cancelJob: async () => ({ success: false, message: 'folder mode' }),
+    getScopeTree: async () => ({ folders: [] }),
+};
 
 // ── HTTP Bridge (browser mode) ────────────────────────────────────────────────
 
@@ -146,6 +254,21 @@ function createHttpBridge(): Window['electron'] {
         // Not supported in browser mode — EXIF extraction requires Electron native modules.
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         readExif: (_filePath: string) => Promise.resolve({}),
+
+        readImageMetadata: (_filePath: string) => Promise.resolve(emptyFileImageMetadata()),
+
+        getLightModeRoot: () => Promise.reject(new Error('Not available in browser mode')),
+
+        readFsDir: () =>
+            Promise.reject(new Error('Filesystem gallery is only available in the Electron app')),
+
+        setGalleryMode: () => Promise.reject(new Error('Not available in browser mode')),
+
+        getGalleryMode: () => Promise.resolve('db'),
+
+        onAppModeChanged: noop,
+
+        selectDirectory: () => Promise.resolve(null),
 
         getDiagnostics: async () => {
             const apiCfg = await get<{ url: string }>('/api-config');
@@ -226,28 +349,73 @@ const _httpBridge = createHttpBridge();
  * not at module-load time. This allows tests to inject `window.electron`
  * after the module is imported (via beforeEach) and have it picked up correctly.
  */
+const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unknown[]) => unknown>> = {
+    checkDbConnection: () => Promise.resolve(false),
+    getImageCount: () => Promise.resolve(0),
+    getImages: () => Promise.resolve([]),
+    getFolders: () => Promise.resolve([]),
+    getKeywords: () => Promise.resolve([]),
+    getStacks: () => Promise.resolve([]),
+    getStackCount: () => Promise.resolve(0),
+    getImagesByStack: () => Promise.resolve([]),
+    getImageDetails: () => Promise.resolve(null),
+    updateImageDetails: () => Promise.resolve(false),
+    deleteImage: () => Promise.resolve(false),
+    deleteFolder: () => Promise.resolve(false),
+    findNearDuplicates: () =>
+        Promise.resolve({ success: false, data: { duplicates: [] }, message: 'folder mode' }),
+    searchSimilarImages: () =>
+        Promise.resolve({
+            query_image_id: 0,
+            results: [],
+            count: 0,
+            error: 'folder mode',
+        }),
+    findOutliers: () =>
+        Promise.resolve({
+            outliers: [],
+            stats: {},
+            skipped: [],
+        }),
+    rebuildStackCache: () => Promise.resolve({ success: false, count: 0 }),
+    importRun: () => Promise.resolve({ added: 0, skipped: 0, errors: [] }),
+};
+
 export const bridge: Window['electron'] = new Proxy({} as Window['electron'], {
     get(_target, prop: string | symbol) {
         const source: Window['electron'] =
             typeof window !== 'undefined' && window.electron
                 ? window.electron
                 : _httpBridge;
-        const value = (source as Record<string | symbol, unknown>)[prop];
+        const folderStubs = useFolderModeStubs();
+
         if (prop === 'api') {
-            // Proxy the nested api object too so api.xxx checks window.electron lazily
             return new Proxy({} as Window['electron']['api'], {
                 get(_t, apiProp: string | symbol) {
-                    const apiSource: Window['electron'] =
-                        typeof window !== 'undefined' && window.electron
-                            ? window.electron
-                            : _httpBridge;
-                    const apiValue = (apiSource.api as Record<string | symbol, unknown>)[apiProp];
+                    if (folderStubs) {
+                        const stub = (FOLDER_API_STUB as Record<string | symbol, unknown>)[apiProp];
+                        if (typeof stub === 'function') {
+                            return (stub as (...a: unknown[]) => unknown).bind(FOLDER_API_STUB);
+                        }
+                        return stub;
+                    }
+                    const apiSource = source.api;
+                    const apiValue = (apiSource as Record<string | symbol, unknown>)[apiProp];
                     return typeof apiValue === 'function'
-                        ? (apiValue as (...a: unknown[]) => unknown).bind(apiSource.api)
+                        ? (apiValue as (...a: unknown[]) => unknown).bind(apiSource)
                         : apiValue;
                 },
             });
         }
+
+        if (folderStubs) {
+            const stubFn = FOLDER_TOP_STUBS[prop as keyof Window['electron']];
+            if (typeof stubFn === 'function') {
+                return stubFn.bind(null);
+            }
+        }
+
+        const value = (source as Record<string | symbol, unknown>)[prop];
         return typeof value === 'function'
             ? (value as (...a: unknown[]) => unknown).bind(source)
             : value;

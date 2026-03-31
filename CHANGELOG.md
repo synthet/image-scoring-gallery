@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.1.0] - 2026-03-30
+
+### Added
+- **Folder mode**: Switch between **database** and **folder** gallery (**`AppModeProvider`** / **`useAppMode`**); filesystem UI (**`FsGallery`**, **`FsSidebar`**, **`FsImageGrid`**), pagination (**`useFsPagination`**), and **`mapFsEntryToImageRow`** for row-shaped entries.
+- **Folder listing cache**: In-memory cache for **`readFsDir`** (**`fsReadDirCache`**) with subtree invalidation; **Ctrl/Cmd+Shift+R** refreshes folder listings and **raw preview** cache for the current folder (**`galleryRawPreviewCache`**).
+- **Config**: Optional **`lightModeRootFolder`** (persisted via **`LightModeConfig`** / **`saveConfig`**) and **`selection.smartCoverEnabled`**.
+- **Electron IPC / main**: **`readFsDir`** (paginated directories + images, totals, root), **`setGalleryMode`**, and safer per-entry **`stat`** on Windows so files are not misclassified from **`readdir`** dirents alone.
+- **Dev scripts**: **`dev:web`** runs **`server`** and **Vite** together; **`vite:only`** for Vite alone; **`dev:browser`** now runs **`dev:web`**.
+- **Tests**: **`fsReadDirCache.test.ts`** for cache keys and invalidation.
+
+### Changed
+- **`App`**, **`bridge`**, **`useDatabase`**, **`GalleryGrid`**, **`GalleryThumbnail`**, **`ImageViewer`**, layout CSS, **`electron` types/preload/main**, and **`electron.d.ts`** to support folder mode and the new IPC.
+
 ## [5.0.0] - 2026-03-29
 
 ### Removed

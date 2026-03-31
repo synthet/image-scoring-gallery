@@ -32,6 +32,7 @@ interface Image {
 
 import type { Folder } from '../Tree/treeUtils';
 import { Folder as FolderIcon, Layers } from 'lucide-react';
+import { GalleryThumbnail } from './GalleryThumbnail';
 
 interface GalleryGridProps {
     images: Image[];
@@ -50,6 +51,8 @@ interface GalleryGridProps {
     highlightOutliers?: boolean;
     outlierIds?: Set<number>;
     outlierMetaById?: Map<number, { zScore: number; outlierScore: number; neighborSummary: string }>;
+    /** Use RAW-aware thumbnails (filesystem-only mode without DB-generated JPEGs). */
+    useGalleryThumbnail?: boolean;
 }
 
 const EMPTY_OUTLIER_IDS = new Set<number>();
@@ -71,7 +74,8 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     images, onSelect, onEndReached, subfolders, onSelectFolder,
     onNavigateToParent, viewerOpen = false, sortBy = 'score_general',
     stacksMode = false, stacks = [], onSelectStack, onStackEndReached,
-    activeStackId, highlightOutliers = false, outlierIds = EMPTY_OUTLIER_IDS, outlierMetaById = EMPTY_OUTLIER_META
+    activeStackId, highlightOutliers = false, outlierIds = EMPTY_OUTLIER_IDS, outlierMetaById = EMPTY_OUTLIER_META,
+    useGalleryThumbnail = false,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -145,7 +149,17 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
             >
                 <div className={styles.imageArea}>
                     {(img.thumbnail_path || img.file_path) ? (
-                        <img src={toMediaUrl(img.thumbnail_path || img.file_path!)} loading="lazy" className={styles.image} alt={img.file_name} />
+                        useGalleryThumbnail ? (
+                            <GalleryThumbnail
+                                fileName={img.file_name}
+                                filePath={img.file_path}
+                                thumbnailPath={img.thumbnail_path}
+                                className={styles.image}
+                                alt={img.file_name}
+                            />
+                        ) : (
+                            <img src={toMediaUrl(img.thumbnail_path || img.file_path!)} loading="lazy" className={styles.image} alt={img.file_name} />
+                        )
                     ) : (
                         <div className={styles.noImage}>No Image</div>
                     )}
@@ -173,7 +187,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 </div>
             </div>
         );
-    }, [getScoreDisplay, getLabelColor, highlightOutliers, outlierIds, outlierMetaById]);
+    }, [getScoreDisplay, getLabelColor, highlightOutliers, outlierIds, outlierMetaById, useGalleryThumbnail]);
 
     const renderStackCard = useCallback((stack: Image, onClick: () => void) => {
         const labelColor = getLabelColor(stack.label);
@@ -190,7 +204,17 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
 
                 <div className={styles.imageAreaStack}>
                     {(stack.thumbnail_path || stack.file_path) ? (
-                        <img src={toMediaUrl(stack.thumbnail_path || stack.file_path!)} loading="lazy" className={styles.image} alt={stack.file_name} />
+                        useGalleryThumbnail ? (
+                            <GalleryThumbnail
+                                fileName={stack.file_name}
+                                filePath={stack.file_path}
+                                thumbnailPath={stack.thumbnail_path}
+                                className={styles.image}
+                                alt={stack.file_name}
+                            />
+                        ) : (
+                            <img src={toMediaUrl(stack.thumbnail_path || stack.file_path!)} loading="lazy" className={styles.image} alt={stack.file_name} />
+                        )
                     ) : (
                         <div className={styles.noImage}>No Image</div>
                     )}
@@ -217,7 +241,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 </div>
             </div>
         );
-    }, [getScoreDisplay, getLabelColor]);
+    }, [getScoreDisplay, getLabelColor, useGalleryThumbnail]);
 
     // Determine what data source to use
     const isStacksView = stacksMode && !activeStackId;

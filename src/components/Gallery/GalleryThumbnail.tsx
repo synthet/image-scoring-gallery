@@ -18,6 +18,11 @@ export interface GalleryThumbProps {
 /**
  * Grid thumbnail: JPEG/PNG use media://; RAW uses embedded preview extraction (same strategy as ImageViewer).
  */
+function basenameFromPath(pathStr: string): string {
+    const s = pathStr.replace(/[/\\]+$/, '');
+    return s.split(/[/\\]/).pop() || '';
+}
+
 export const GalleryThumbnail: React.FC<GalleryThumbProps> = ({
     fileName,
     filePath,
@@ -26,6 +31,9 @@ export const GalleryThumbnail: React.FC<GalleryThumbProps> = ({
     imageStyle,
     alt,
 }) => {
+    /** Prefer explicit name; otherwise infer from path so RAW/WEB checks work in folder mode. */
+    const displayName = (fileName?.trim() || basenameFromPath(filePath)).trim() || 'image';
+
     const [src, setSrc] = useState<string | null>(null);
     const [phase, setPhase] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
@@ -80,7 +88,7 @@ export const GalleryThumbnail: React.FC<GalleryThumbProps> = ({
                     lower.endsWith('.jpeg') ||
                     lower.endsWith('.png') ||
                     lower.endsWith('.webp');
-                if (looksRasterThumb || !isRaw(fileName)) {
+                if (looksRasterThumb || !isRaw(displayName)) {
                     if (!cancelledRef.current) {
                         setSrc(toMediaUrl(thumb));
                         setPhase('ready');
@@ -89,7 +97,7 @@ export const GalleryThumbnail: React.FC<GalleryThumbProps> = ({
                 }
             }
 
-            if (isWebSafe(fileName) && raw) {
+            if (isWebSafe(displayName) && raw) {
                 if (!cancelledRef.current) {
                     setSrc(toMediaUrl(raw));
                     setPhase('ready');
@@ -97,7 +105,7 @@ export const GalleryThumbnail: React.FC<GalleryThumbProps> = ({
                 return;
             }
 
-            if (isRaw(fileName) && raw) {
+            if (isRaw(displayName) && raw) {
                 setPhase('loading');
                 await loadRaw(raw, cancelledRef);
                 return;
@@ -119,16 +127,16 @@ export const GalleryThumbnail: React.FC<GalleryThumbProps> = ({
         return () => {
             cancelledRef.current = true;
         };
-    }, [fileName, filePath, thumbnailPath, loadRaw]);
+    }, [displayName, filePath, thumbnailPath, loadRaw]);
 
     const onImgError = useCallback(() => {
         // Thumbnail path pointed to missing file or NEF — try RAW extraction once
-        if (isRaw(fileName) && filePath && phase === 'ready' && src?.startsWith('media://')) {
+        if (isRaw(displayName) && filePath && phase === 'ready' && src?.startsWith('media://')) {
             void loadRaw(filePath, { current: false });
             return;
         }
         setPhase('error');
-    }, [fileName, filePath, phase, src, loadRaw]);
+    }, [displayName, filePath, phase, src, loadRaw]);
 
     if (phase === 'idle' || phase === 'loading') {
         return (
@@ -148,7 +156,7 @@ export const GalleryThumbnail: React.FC<GalleryThumbProps> = ({
             loading="lazy"
             className={className}
             style={imageStyle}
-            alt={alt}
+            alt={alt || displayName}
             onError={onImgError}
         />
     );

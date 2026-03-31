@@ -1,13 +1,14 @@
 {
   "name": "electron-gallery",
   "private": true,
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "A high-performance image gallery with scoring capabilities",
   "author": "Electron Image Scoring Team",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "concurrently --kill-others-on-fail \"npm run dev:web\" \"npm run dev:electron\"",
-    "dev:web": "vite",
+    "dev:web": "concurrently --kill-others-on-fail \"npm run server\" \"vite\"",
+    "vite:only": "vite",
     "dev:electron": "wait-on tcp:5173 && tsc -p electron/tsconfig.json && cross-env ELECTRON_IS_DEV=1 electron .",
     "build": "tsc -p electron/tsconfig.json && tsc -b && vite build && electron-packager . --overwrite --platform=win32 --arch=x64 --out=release-builds --prune=true",
     "lint": "eslint .",
@@ -21,7 +22,7 @@
     "contract:check": "node scripts/sync-api-contract.mjs --check",
     "contract:diff": "node scripts/sync-api-contract.mjs --diff",
     "contract:validate": "node scripts/validate-api-types.mjs",
-    "dev:browser": "concurrently --kill-others-on-fail \"npm run server\" \"npm run dev:web\"",
+    "dev:browser": "npm run dev:web",
     "server": "npx tsx server/index.ts",
     "start:browser": "npm run build && node dist-server/index.js"
   },

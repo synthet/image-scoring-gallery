@@ -1,5 +1,16 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ImageQueryOptions, ImageRow, ImageDetail, ImageUpdates, FolderRow, DuplicateResponse, AppConfig, ExportImageContext } from './types';
+import type {
+    ImageQueryOptions,
+    ImageRow,
+    ImageDetail,
+    ImageUpdates,
+    FolderRow,
+    DuplicateResponse,
+    AppConfig,
+    ExportImageContext,
+    FsReadDirResult,
+    FileImageMetadataResult,
+} from './types';
 import type {
     ApiResponse as BackendApiResponse,
     HealthResponse,
@@ -139,6 +150,41 @@ contextBridge.exposeInMainWorld('electron', {
     readExif: async (filePath: string) => {
         const response = await ipcRenderer.invoke('nef:read-exif', filePath);
         return unwrapEnvelope<Record<string, unknown>>(response);
+    },
+    readImageMetadata: async (filePath: string) => {
+        const response = await ipcRenderer.invoke('fs:read-image-metadata', filePath);
+        return unwrapEnvelope<FileImageMetadataResult>(response);
+    },
+    getLightModeRoot: async () => {
+        const response = await ipcRenderer.invoke('fs:get-light-mode-root');
+        return unwrapEnvelope<string>(response);
+    },
+    readFsDir: async (args: {
+        dirPath: string;
+        offset?: number;
+        limit?: number;
+        kinds?: 'all' | 'dirsOnly';
+    }) => {
+        const response = await ipcRenderer.invoke('fs:read-dir', args);
+        return unwrapEnvelope<FsReadDirResult>(response);
+    },
+    setGalleryMode: async (mode: 'db' | 'folder') => {
+        const response = await ipcRenderer.invoke('app:set-gallery-mode', mode);
+        return unwrapEnvelope<'db' | 'folder'>(response);
+    },
+    getGalleryMode: async () => {
+        return ipcRenderer.invoke('app:get-gallery-mode') as Promise<'db' | 'folder'>;
+    },
+    onAppModeChanged: (callback: (mode: 'db' | 'folder') => void) => {
+        const handler = (_: unknown, mode: 'db' | 'folder') => callback(mode);
+        ipcRenderer.on('app-mode-changed', handler);
+        return () => {
+            ipcRenderer.removeListener('app-mode-changed', handler);
+        };
+    },
+    selectDirectory: async () => {
+        const response = await ipcRenderer.invoke('fs:select-directory');
+        return unwrapEnvelope<string | null>(response);
     },
     onOpenSettings: (callback: () => void) => {
         const handler = () => callback();

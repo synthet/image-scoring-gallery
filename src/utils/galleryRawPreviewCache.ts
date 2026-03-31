@@ -3,6 +3,30 @@ const MAX_ENTRIES = 160;
 const cache = new Map<string, string>();
 const order: string[] = [];
 
+function normalizePathForFolderPrefix(p: string): string {
+    return p.trim().replace(/[/\\]+$/, '').replace(/\\/g, '/').toLowerCase();
+}
+
+/** Revoke and drop RAW preview blob URLs for files under `folderPath` (inclusive of exact file paths in that tree). */
+export function invalidateRawPreviewCacheForFolder(folderPath: string): void {
+    const root = normalizePathForFolderPrefix(folderPath);
+    if (!root) return;
+    const toRemove: string[] = [];
+    for (const filePath of cache.keys()) {
+        const n = normalizePathForFolderPrefix(filePath);
+        if (n === root || n.startsWith(`${root}/`)) {
+            toRemove.push(filePath);
+        }
+    }
+    for (const fp of toRemove) {
+        const u = cache.get(fp);
+        if (u) URL.revokeObjectURL(u);
+        cache.delete(fp);
+        const idx = order.indexOf(fp);
+        if (idx >= 0) order.splice(idx, 1);
+    }
+}
+
 export function getCachedRawPreviewUrl(filePath: string): string | undefined {
     return cache.get(filePath);
 }

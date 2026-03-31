@@ -83,6 +83,8 @@ interface ImageViewerProps {
     onOpenImageById?: (id: number) => Promise<boolean>;
     /** When set (e.g. opening viewer from a “similar” entry), opens the similar-images drawer for this id */
     initialSimilarSearchImageId?: number | null;
+    /** Read-only: no DB fetch, no edits, no similar search (filesystem-only / light mode). */
+    readOnlyFilesystemMode?: boolean;
 }
 
 const isWebSafe = (filename: string) => {
@@ -169,9 +171,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     onOpenFolder,
     onOpenImageById,
     initialSimilarSearchImageId = null,
+    readOnlyFilesystemMode = false,
 }) => {
     const [image, setImage] = React.useState<Image>(initialImage);
-    const [detailsLoaded, setDetailsLoaded] = React.useState(false);
+    const [detailsLoaded, setDetailsLoaded] = React.useState(() => readOnlyFilesystemMode);
     const [exifData, setExifData] = React.useState<ExifData | null>(null);
     const [exifLoading, setExifLoading] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -206,6 +209,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
     // Fetch full details
     useEffect(() => {
+        if (readOnlyFilesystemMode) {
+            setDetailsLoaded(true);
+            return;
+        }
         let active = true;
         const fetchDetails = async () => {
             try {
@@ -225,10 +232,62 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         };
         fetchDetails();
         return () => { active = false; };
-    }, [image.id]);
+    }, [image.id, readOnlyFilesystemMode]);
+
+    // Folder mode: single merged metadata load (EXIF + optional .xmp sidecar)
+    useEffect(() => {
+        if (!readOnlyFilesystemMode) {
+            return;
+        }
+        let active = true;
+        const pathSchema = image.win_path || image.file_path;
+        setExifData(null);
+        setExifLoading(true);
+        if (!pathSchema) {
+            setExifLoading(false);
+            return;
+        }
+        void (async () => {
+            try {
+                const meta = await bridge.readImageMetadata(pathSchema);
+                if (!active) return;
+                const d = meta.detail;
+                setImage((prev) => ({
+                    ...prev,
+                    title: d.title ?? prev.title,
+                    description: d.description ?? prev.description,
+                    keywords: d.keywords ?? prev.keywords,
+                    rating: d.rating ?? prev.rating,
+                    label: d.label ?? prev.label,
+                    exif_iso: d.exif_iso ?? prev.exif_iso,
+                    exif_shutter: d.exif_shutter ?? prev.exif_shutter,
+                    exif_aperture: d.exif_aperture ?? prev.exif_aperture,
+                    exif_focal_length: d.exif_focal_length ?? prev.exif_focal_length,
+                    exif_model: d.exif_model ?? prev.exif_model,
+                    exif_lens_model: d.exif_lens_model ?? prev.exif_lens_model,
+                }));
+                setExifData({
+                    ISO: d.exif_iso ?? undefined,
+                    ShutterSpeed: d.exif_shutter ?? undefined,
+                    Aperture: d.exif_aperture ? Number(d.exif_aperture) : undefined,
+                    FocalLength: d.exif_focal_length ?? undefined,
+                    Model: d.exif_model ?? undefined,
+                    LensModel: d.exif_lens_model ?? undefined,
+                });
+            } catch (e) {
+                console.error('[ImageViewer] readImageMetadata failed', e);
+            } finally {
+                if (active) setExifLoading(false);
+            }
+        })();
+        return () => { active = false; };
+    }, [readOnlyFilesystemMode, image.id, image.win_path, image.file_path]);
 
     // Lazy load or use DB EXIF data
     useEffect(() => {
+        if (readOnlyFilesystemMode) {
+            return;
+        }
         let active = true;
         console.log('[ImageViewer] EXIF effect triggered', { 
             id: image.id, 
@@ -300,6 +359,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
     // Editing & Drawer State
     const [isEditing, setIsEditing] = useState(false);
+    const effectiveEditing = !readOnlyFilesystemMode && isEditing;
     const { propagate, loading: propagateLoading } = usePropagateTags();
     const [suggestionRows, setSuggestionRows] = useState<SuggestedKeywordRow[]>([]);
     const [suggestionsLoading, setSuggestionsLoading] = useState(false);
@@ -503,13 +563,13 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     }, [isEditing, image]);
 
     useEffect(() => {
-        if (!isEditing) {
+        if (!isEditing || readOnlyFilesystemMode) {
             setSuggestionRows([]);
             setSuggestionsLoadError(null);
             return;
         }
         void loadSuggestedKeywords();
-    }, [isEditing, image.id, loadSuggestedKeywords]);
+    }, [isEditing, readOnlyFilesystemMode, image.id, loadSuggestedKeywords]);
 
     const handleSave = async () => {
         try {
@@ -771,7 +831,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 image.label === 'Blue' ? '#1e88e5' :
                     image.label === 'Purple' ? '#8e24aa' : 'None';
     const normalizedEditKeywords = normalizeKeywords(editForm.keywords);
-    const keywordSource = isEditing ? editForm.keywords : image.keywords || '';
+    const keywordSource = effectiveEditing ? editForm.keywords : image.keywords || '';
     const keywordItems = keywordSource
         .split(',')
         .map(tag => tag.trim())
@@ -880,31 +940,33 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 </div>
 
                 {/* Edit & Core Controls */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                        {!isEditing ? (
-                            <>
-                                <button onClick={() => setIsEditing(true)} style={{ flex: 1, padding: 8, background: '#007acc', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                                    <Edit2 size={16} /> Edit
-                                </button>
-                                <button onClick={handleDeleteClick} style={{ flex: 1, padding: 8, background: '#d32f2f', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                                    <Trash2 size={16} /> Delete
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <button onClick={handleSave} style={{ flex: 1, padding: 8, background: '#43a047', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                                    <Save size={16} /> Save
-                                </button>
-                                <button onClick={() => setIsEditing(false)} style={{ flex: 1, padding: 8, background: '#555', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                                    <RotateCcw size={16} /> Cancel
-                                </button>
-                            </>
-                        )}
+                {!readOnlyFilesystemMode && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            {!isEditing ? (
+                                <>
+                                    <button onClick={() => setIsEditing(true)} style={{ flex: 1, padding: 8, background: '#007acc', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                                        <Edit2 size={16} /> Edit
+                                    </button>
+                                    <button onClick={handleDeleteClick} style={{ flex: 1, padding: 8, background: '#d32f2f', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                                        <Trash2 size={16} /> Delete
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button onClick={handleSave} style={{ flex: 1, padding: 8, background: '#43a047', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                                        <Save size={16} /> Save
+                                    </button>
+                                    <button onClick={() => setIsEditing(false)} style={{ flex: 1, padding: 8, background: '#555', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                                        <RotateCcw size={16} /> Cancel
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
-                {!isEditing ? (
+                {!effectiveEditing ? (
                     <>
                         {image.title && (
                             <div>
@@ -947,7 +1009,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 <div style={{ marginTop: 5, marginBottom: 5 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                         <div style={{ fontSize: '0.8em', color: '#888' }}>KEYWORDS</div>
-                        {isEditing && (
+                        {effectiveEditing && (
                             <button
                                 onClick={() => {
                                     void handlePropagateTags();
@@ -979,7 +1041,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                             </button>
                         )}
                     </div>
-                    {isEditing ? (
+                    {effectiveEditing ? (
                         <>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                                 {keywordItems.map((tag, i) => (
@@ -1027,7 +1089,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                         )
                     )}
                 </div>
-                {isEditing && (
+                {effectiveEditing && (
                     <div style={{ marginTop: 0, marginBottom: 5 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                             <div style={{ fontSize: '0.8em', color: '#888' }}>AI SUGGESTED KEYWORDS</div>
@@ -1126,7 +1188,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 0', borderTop: '1px solid #333', borderBottom: '1px solid #333' }}>
                     <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '0.8em', color: '#888', marginBottom: 4 }}>RATING</div>
-                        {!isEditing ? (
+                        {!effectiveEditing ? (
                             <div style={{ color: '#ffd700', fontSize: '1.1em', display: 'flex', alignItems: 'center' }}>
                                 <Star fill="#ffd700" size={16} style={{ marginRight: 4 }} />
                                 {image.rating}
@@ -1159,7 +1221,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
                 <div>
                     <div style={{ fontSize: '0.8em', color: '#888', marginBottom: 8 }}>LABEL</div>
-                    {!isEditing ? (
+                    {!effectiveEditing ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <div style={{
                                 width: 16, height: 16, borderRadius: '50%',
@@ -1202,22 +1264,24 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
                 {detailsLoaded && (
                     <>
-                        {/* Scores Section */}
-                        <div style={{ borderTop: '1px solid #333', paddingTop: 15 }}>
-                            <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 15, color: '#ddd' }}>Model Scores</div>
+                        {!readOnlyFilesystemMode && (
+                            <>
+                                {/* Scores Section */}
+                                <div style={{ borderTop: '1px solid #333', paddingTop: 15 }}>
+                                    <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 15, color: '#ddd' }}>Model Scores</div>
 
-                            <ScoreBar label="General" value={image.score_general} color="#ff5722" />
-                            <ScoreBar label="Technical" value={image.score_technical ?? 0} />
-                            <ScoreBar label="Aesthetic" value={image.score_aesthetic ?? 0} />
+                                    <ScoreBar label="General" value={image.score_general} color="#ff5722" />
+                                    <ScoreBar label="Technical" value={image.score_technical ?? 0} />
+                                    <ScoreBar label="Aesthetic" value={image.score_aesthetic ?? 0} />
 
-                            {(image.score_spaq ?? 0) > 0 && <ScoreBar label="SPAQ" value={image.score_spaq ?? 0} />}
-                            {(image.score_ava ?? 0) > 0 && <ScoreBar label="AVA" value={image.score_ava ?? 0} />}
-                            {(image.score_liqe ?? 0) > 0 && <ScoreBar label="LIQE" value={image.score_liqe ?? 0} />}
-                        </div>
+                                    {(image.score_spaq ?? 0) > 0 && <ScoreBar label="SPAQ" value={image.score_spaq ?? 0} />}
+                                    {(image.score_ava ?? 0) > 0 && <ScoreBar label="AVA" value={image.score_ava ?? 0} />}
+                                    {(image.score_liqe ?? 0) > 0 && <ScoreBar label="LIQE" value={image.score_liqe ?? 0} />}
+                                </div>
 
-                        {/* Database IDs */}
-                        <div style={{ borderTop: '1px solid #333', paddingTop: 15 }}>
-                            <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 10, color: '#ddd' }}>Database Info</div>
+                                {/* Database IDs */}
+                                <div style={{ borderTop: '1px solid #333', paddingTop: 15 }}>
+                                    <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 10, color: '#ddd' }}>Database Info</div>
                             <div style={{ fontSize: '0.85em', display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                     <span style={{ color: '#888' }}>Image UUID:</span>
@@ -1275,7 +1339,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     </div>
                                 )}
                             </div>
-                        </div>
+                                </div>
+                            </>
+                        )}
 
                         {/* EXIF Info */}
                         <div style={{ borderTop: '1px solid #333', paddingTop: 15 }}>
@@ -1318,42 +1384,43 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                             )}
                         </div>
 
-                        {/* Phases Info */}
-                        <div style={{ borderTop: '1px solid #333', paddingTop: 15 }}>
-                            <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 10, color: '#ddd' }}>Phases</div>
-                            <div style={{ fontSize: '0.85em', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: '#888' }}>Scoring:</span>
-                                    <span style={{ color: image.score_general !== null && image.score_general !== undefined ? '#4caf50' : '#ffa726' }}>
-                                        {image.score_general !== null && image.score_general !== undefined ? 'Completed' : 'Pending'}
-                                    </span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: '#888' }}>Metadata:</span>
-                                    <span style={{ color: exifData ? '#4caf50' : '#ffa726' }}>
-                                        {exifData ? 'Extracted' : 'Pending'}
-                                    </span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: '#888' }}>Culling:</span>
-                                    <span style={{ color: image.rating > 0 || (image.label && image.label !== 'None') ? '#4caf50' : '#ffa726' }}>
-                                        {image.rating > 0 || (image.label && image.label !== 'None') ? 'Completed' : 'Pending'}
-                                    </span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: '#888' }}>Keywords:</span>
-                                    <span style={{ color: image.keywords ? '#4caf50' : '#ffa726' }}>
-                                        {image.keywords ? 'Completed' : 'Pending'}
-                                    </span>
+                        {!readOnlyFilesystemMode && (
+                            <div style={{ borderTop: '1px solid #333', paddingTop: 15 }}>
+                                <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 10, color: '#ddd' }}>Phases</div>
+                                <div style={{ fontSize: '0.85em', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#888' }}>Scoring:</span>
+                                        <span style={{ color: image.score_general !== null && image.score_general !== undefined ? '#4caf50' : '#ffa726' }}>
+                                            {image.score_general !== null && image.score_general !== undefined ? 'Completed' : 'Pending'}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#888' }}>Metadata:</span>
+                                        <span style={{ color: exifData ? '#4caf50' : '#ffa726' }}>
+                                            {exifData ? 'Extracted' : 'Pending'}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#888' }}>Culling:</span>
+                                        <span style={{ color: image.rating > 0 || (image.label && image.label !== 'None') ? '#4caf50' : '#ffa726' }}>
+                                            {image.rating > 0 || (image.label && image.label !== 'None') ? 'Completed' : 'Pending'}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#888' }}>Keywords:</span>
+                                        <span style={{ color: image.keywords ? '#4caf50' : '#ffa726' }}>
+                                            {image.keywords ? 'Completed' : 'Pending'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </>
                 )}
 
                 {/* Bottom Action Area */}
                 <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid #333', paddingTop: 20 }}>
-                    {!isEditing && (
+                    {!effectiveEditing && !readOnlyFilesystemMode && (
                         <>
                             {image.folder_id && onOpenFolder && (
                                 <button
@@ -1409,36 +1476,38 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 </div>
             </div>
 
-            <SimilarSearchDrawer
-                open={isSimilarDrawerOpen}
-                onClose={() => setIsSimilarDrawerOpen(false)}
-                queryImageId={similarSearchImageId ?? image.id}
-                currentFolderId={image.folder_id}
-                onSelectImage={async (id) => {
-                    const idx = allImages.findIndex(img => img.id === id);
-                    if (idx >= 0 && onNavigate) {
-                        onNavigate(idx);
-                        setIsSimilarDrawerOpen(false);
-                        return;
-                    }
-
-                    if (onOpenImageById) {
-                        const opened = await onOpenImageById(id);
-                        if (opened) {
+            {!readOnlyFilesystemMode && (
+                <SimilarSearchDrawer
+                    open={isSimilarDrawerOpen}
+                    onClose={() => setIsSimilarDrawerOpen(false)}
+                    queryImageId={similarSearchImageId ?? image.id}
+                    currentFolderId={image.folder_id}
+                    onSelectImage={async (id) => {
+                        const idx = allImages.findIndex(img => img.id === id);
+                        if (idx >= 0 && onNavigate) {
+                            onNavigate(idx);
                             setIsSimilarDrawerOpen(false);
                             return;
                         }
-                    }
 
-                    const details = await bridge.getImageDetails(id);
-                    if (details) {
-                        setImage(details);
-                        setDetailsLoaded(true);
-                        setIsSimilarDrawerOpen(false);
-                    }
-                }}
-                onJumpToImageFolder={(id) => { void onOpenImageById?.(id); }}
-            />
+                        if (onOpenImageById) {
+                            const opened = await onOpenImageById(id);
+                            if (opened) {
+                                setIsSimilarDrawerOpen(false);
+                                return;
+                            }
+                        }
+
+                        const details = await bridge.getImageDetails(id);
+                        if (details) {
+                            setImage(details);
+                            setDetailsLoaded(true);
+                            setIsSimilarDrawerOpen(false);
+                        }
+                    }}
+                    onJumpToImageFolder={(id) => { void onOpenImageById?.(id); }}
+                />
+            )}
 
             <ConfirmDialog
                 isOpen={isDeleteDialogOpen}
