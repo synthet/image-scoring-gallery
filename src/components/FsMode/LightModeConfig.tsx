@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { bridge } from '../../bridge';
+import styles from './FsGallery.module.css';
 
 interface LightModeConfigProps {
     open: boolean;
@@ -58,81 +59,49 @@ export const LightModeConfig: React.FC<LightModeConfigProps> = ({
 
     return (
         <div
-            style={{
-                position: 'fixed',
-                inset: 0,
-                background: 'rgba(0,0,0,0.6)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 10000,
-            }}
+            className={styles.modalOverlay}
             role="dialog"
             aria-modal="true"
             aria-labelledby="light-mode-config-title"
+            onClick={(e) => {
+                if (e.target === e.currentTarget) onClose();
+            }}
         >
-            <div
-                style={{
-                    background: '#2a2a2a',
-                    border: '1px solid #555',
-                    borderRadius: 8,
-                    padding: 24,
-                    minWidth: 420,
-                    maxWidth: '90vw',
-                    color: '#eee',
-                }}
-            >
-                <h2 id="light-mode-config-title" style={{ margin: '0 0 12px', fontSize: '1.1rem' }}>
-                    Folder mode root
+            <div className={styles.modalCard}>
+                <h2 id="light-mode-config-title" className={styles.modalTitle}>
+                    Folder Mode Root
                 </h2>
-                <p style={{ margin: '0 0 16px', fontSize: 13, color: '#aaa', lineHeight: 1.4 }}>
-                    Only folders under this path can be browsed. Paths are stored in <code style={{ color: '#7cb7ff' }}>config.json</code>.
+                <p className={styles.modalDescription}>
+                    Only folders under this root can be browsed in Folder Mode.
+                    This setting is persisted in <code>config.json</code>.
                 </p>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <div className={styles.modalInputRow}>
                     <input
                         type="text"
                         value={pathInput}
                         onChange={(e) => setPathInput(e.target.value)}
                         placeholder="e.g. D:\Photos"
-                        style={{
-                            flex: 1,
-                            padding: '8px 10px',
-                            background: '#1a1a1a',
-                            border: '1px solid #555',
-                            borderRadius: 4,
-                            color: '#fff',
-                            fontSize: 13,
+                        className={styles.modalInput}
+                        autoFocus
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') void handleSave();
                         }}
                     />
                     <button
                         type="button"
                         onClick={() => void handleBrowse()}
-                        style={{
-                            padding: '8px 14px',
-                            background: '#444',
-                            border: '1px solid #666',
-                            borderRadius: 4,
-                            color: '#fff',
-                            cursor: 'pointer',
-                        }}
+                        className={styles.browseButton}
                     >
                         Browse…
                     </button>
                 </div>
-                {error && <div style={{ color: '#ff6b6b', fontSize: 13, marginBottom: 12 }}>{error}</div>}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                {error && <div className={styles.modalError}>{error}</div>}
+                <div className={styles.modalActions}>
                     <button
                         type="button"
                         onClick={onClose}
                         disabled={saving}
-                        style={{
-                            padding: '8px 16px',
-                            background: 'transparent',
-                            border: '1px solid #666',
-                            borderRadius: 4,
-                            color: '#ccc',
-                            cursor: 'pointer',
-                        }}
+                        className={styles.cancelButton}
                     >
                         Cancel
                     </button>
@@ -140,14 +109,7 @@ export const LightModeConfig: React.FC<LightModeConfigProps> = ({
                         type="button"
                         onClick={() => void handleSave()}
                         disabled={saving}
-                        style={{
-                            padding: '8px 16px',
-                            background: '#007acc',
-                            border: 'none',
-                            borderRadius: 4,
-                            color: '#fff',
-                            cursor: 'pointer',
-                        }}
+                        className={styles.saveButton}
                     >
                         {saving ? 'Saving…' : 'Save'}
                     </button>

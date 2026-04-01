@@ -38,37 +38,6 @@
                 "@playwright/mcp@latest"
             ],
             "disabled": true
-        },
-        "imgscore-el-firebird": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "mcp-firebird",
-                "--database",
-                "d:\\Projects\\image-scoring-backend\\SCORING_HISTORY.FDB",
-                "--user",
-                "sysdba",
-                "--password",
-                "masterkey"
-            ],
-            "disabled": false,
-            "disabledTools": [
-                "verify-wire-encryption",
-                "restore-database",
-                "backup-database",
-                "analyze-table-statistics",
-                "get-field-descriptions",
-                "system-health-check",
-                "get-database-info",
-                "get-server-info",
-                "execute-batch-queries",
-                "describe-batch-tables",
-                "analyze-missing-indexes",
-                "get-tool-help",
-                "list-available-tools",
-                "get-execution-plan",
-                "analyze-query-performance"
-            ]
         }
     }
 }

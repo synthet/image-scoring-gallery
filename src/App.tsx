@@ -5,6 +5,8 @@ import AppContent from './AppContent';
 import { AppModeProvider, useAppMode } from './context/AppModeContext';
 import { FsGallery } from './components/FsMode/FsGallery';
 import { bridge } from './bridge';
+import styles from './components/FsMode/FsGallery.module.css';
+import { AlertCircle } from 'lucide-react';
 
 function AppShell() {
   useSessionRecorder();
@@ -20,51 +22,40 @@ function AppShell() {
   }
 
   if (!isConnected && !error) return (
-    <div style={{ padding: 40, textAlign: 'center', color: '#aaa' }}>
-      <div style={{ fontSize: '1.2em', marginBottom: 10 }}>Connecting to services...</div>
-      <div style={{ fontSize: '0.85em', color: '#666' }}>Connecting to database...</div>
+    <div className={styles.connectingScreen}>
+      <div className={styles.connectingSpinner} />
+      <div className={styles.connectingTitle}>Connecting to services…</div>
+      <div className={styles.connectingSubtitle}>Establishing database connection</div>
     </div>
   );
 
   if (error) return (
-    <div style={{ padding: 40, textAlign: 'center' }}>
-      <div style={{ fontSize: '1.2em', color: '#ff6b6b', marginBottom: 10 }}>Connection Error</div>
-      <div style={{ fontSize: '0.9em', color: '#aaa', marginBottom: 20, maxWidth: 520, margin: '0 auto 20px' }}>{error}</div>
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+    <div className={styles.errorScreen}>
+      <div className={styles.errorIcon}>
+        <AlertCircle size={28} color="#ef5350" />
+      </div>
+      <div className={styles.errorTitle}>Connection Error</div>
+      <div className={styles.errorMessage}>{error}</div>
+      <div className={styles.errorActions}>
         <button
           type="button"
           onClick={() => void enterFolderMode()}
-          style={{
-            padding: '10px 24px',
-            background: '#2e7d32',
-            color: 'white',
-            border: 'none',
-            borderRadius: 6,
-            cursor: 'pointer',
-            fontSize: '0.95em',
-            fontWeight: 600,
-          }}
+          className={styles.folderModeButton}
         >
-          Enter Folder Mode (filesystem only)
+          Enter Folder Mode
         </button>
         <button
           type="button"
           onClick={retry}
-          style={{
-            padding: '10px 24px',
-            background: '#007acc',
-            color: 'white',
-            border: 'none',
-            borderRadius: 6,
-            cursor: 'pointer',
-            fontSize: '0.95em',
-          }}
+          className={styles.retryButton}
         >
           Retry Connection
         </button>
       </div>
-      <p style={{ marginTop: 24, fontSize: '0.8em', color: '#666', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>
-        Folder mode is read-only: browse images under your configured root, view EXIF, and use RAW previews. It does not write ratings or keywords to sidecars.
+      <p className={styles.errorHint}>
+        Folder Mode is read-only: browse images under your configured root,
+        view EXIF metadata, and preview RAW files. Ratings and keywords are
+        not persisted in this mode.
       </p>
     </div>
   );

@@ -10,7 +10,7 @@ You are a senior full-stack engineer editing an **existing** Electron + React co
 - **Electron Security**: Respect `contextBridge` boundaries; never bypass preload security.
 
 ## Step 1 — Project Recon
-1. Identify project type: Electron + React + Vite + Firebird.
+1. Identify project type: Electron + React + Vite + PostgreSQL.
 2. Find entrypoints:
    - `electron/main.ts` (Main process)
    - `src/main.tsx` (Renderer process)

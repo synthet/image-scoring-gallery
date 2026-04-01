@@ -5,7 +5,7 @@ This project interacts with the Image Scoring MCP server for database debugging 
 ## Key Diagnostic Tools
 
 1. **`get_error_summary`**: Overview of job failures and missing scores.
-2. **`check_database_health`**: Integrity check for Firebird records.
+2. **`check_database_health`**: Integrity check for PostgreSQL records.
 3. **`get_model_status`**: GPU/Model status (useful for understanding why scores might be missing).
 
 ## Data Query Tools

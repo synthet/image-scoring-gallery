@@ -11,7 +11,8 @@ import { NotificationTray } from '../Layout/NotificationTray';
 import { bridge } from '../../bridge';
 import type { Folder } from '../Tree/treeUtils';
 import breadcrumbStyles from '../../styles/breadcrumbs.module.css';
-import { ChevronRight } from 'lucide-react';
+import styles from './FsGallery.module.css';
+import { ArrowLeft, ChevronRight, FolderOpen, ImageIcon } from 'lucide-react';
 import { invalidateFsReadDirCacheForFolder } from './fsReadDirCache';
 import { invalidateRawPreviewCacheForFolder } from '../../utils/galleryRawPreviewCache';
 
@@ -185,31 +186,27 @@ export const FsGallery: React.FC = () => {
             <MainLayout
                 breadcrumbs={breadcrumbsNode}
                 header={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-                        <h2 style={{ margin: 0, fontSize: '1.2em' }}>Folder mode</h2>
-                        <span style={{ fontSize: '0.85em', color: '#888' }}>
-                            ({totalCount} images{loading ? ', loading…' : ''})
+                    <div className={styles.headerRow}>
+                        <h2 className={styles.headerTitle}>Gallery</h2>
+                        <span className={styles.headerBadge}>
+                            <FolderOpen size={11} />
+                            Folder Mode
+                        </span>
+                        <span className={styles.headerCount}>
+                            {totalCount} image{totalCount !== 1 ? 's' : ''}{loading ? ' · loading…' : ''}
                         </span>
                     </div>
                 }
                 sidebar={
-                    <div style={{ padding: 10, display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <div className={styles.sidebarWrapper}>
                         <div style={{ marginBottom: 12 }}>
                             <button
                                 type="button"
                                 disabled={!canNavigateBack}
                                 onClick={handleNavigateToParent}
-                                style={{
-                                    width: '100%',
-                                    padding: '10px',
-                                    backgroundColor: canNavigateBack ? '#4caf50' : '#3a3a3a',
-                                    color: canNavigateBack ? '#fff' : '#888',
-                                    border: 'none',
-                                    borderRadius: 4,
-                                    cursor: canNavigateBack ? 'pointer' : 'not-allowed',
-                                    fontWeight: 'bold',
-                                }}
+                                className={styles.backButton}
                             >
+                                <ArrowLeft size={15} />
                                 Back
                             </button>
                         </div>
@@ -225,34 +222,36 @@ export const FsGallery: React.FC = () => {
                                 folderCacheReload={folderCacheReload}
                             />
                         ) : (
-                            <div style={{ color: '#888', fontSize: 13 }}>Loading root…</div>
+                            <div className={styles.noRoot}>Loading root…</div>
                         )}
                     </div>
                 }
                 content={
                     rootPath ? (
-                        <div
-                            style={{
-                                flex: 1,
-                                minHeight: 0,
-                                overflow: 'hidden',
-                                position: 'relative',
-                                display: 'flex',
-                                flexDirection: 'column',
-                            }}
-                        >
-                            <FsImageGrid
-                                images={items}
-                                subfolders={subfolders}
-                                onSelect={handleImageClick}
-                                onEndReached={() => void loadMore()}
-                                onSelectFolder={handleSelectFolder}
-                                onNavigateToParent={canNavigateBack ? handleNavigateToParent : undefined}
-                                viewerOpen={!!openingImage}
-                            />
+                        <div className={styles.contentWrapper}>
+                            {totalCount === 0 && !loading && subfolders.length === 0 ? (
+                                <div className={styles.emptyState}>
+                                    <ImageIcon size={48} className={styles.emptyStateIcon} />
+                                    <p className={styles.emptyStateTitle}>No images in this folder</p>
+                                    <p className={styles.emptyStateHint}>
+                                        Navigate to a folder containing image files (JPG, NEF, CR2, DNG, etc.) 
+                                        or use the sidebar tree to browse subdirectories.
+                                    </p>
+                                </div>
+                            ) : (
+                                <FsImageGrid
+                                    images={items}
+                                    subfolders={subfolders}
+                                    onSelect={handleImageClick}
+                                    onEndReached={() => void loadMore()}
+                                    onSelectFolder={handleSelectFolder}
+                                    onNavigateToParent={canNavigateBack ? handleNavigateToParent : undefined}
+                                    viewerOpen={!!openingImage}
+                                />
+                            )}
                         </div>
                     ) : (
-                        <div style={{ padding: 24, color: '#888' }}>Could not resolve folder mode root.</div>
+                        <div className={styles.noRoot}>Could not resolve folder mode root.</div>
                     )
                 }
             />

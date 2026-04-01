@@ -1324,7 +1324,7 @@ async function startFullApplication(): Promise<void> {
                 v8: process.versions.v8 ?? '',
             },
             database: {
-                engine: (dbCfg?.engine as string) ?? 'firebird',
+                engine: (dbCfg?.engine as string) ?? 'postgres',
                 connected: await db.checkConnection().catch(() => false),
                 host: (dbCfg?.host as string) ?? 'localhost',
                 database: (dbCfg?.path as string) ?? '',

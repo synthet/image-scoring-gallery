@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { bridge } from '../../bridge';
 import { Folder, FolderOpen, Settings2 } from 'lucide-react';
+import styles from './FsGallery.module.css';
 import {
     normalizeFsPathForCache,
     parentDirNormalized,
@@ -129,52 +130,27 @@ export const FsSidebar: React.FC<FsSidebarProps> = ({
         const isSelected = selectedPath === dirPath;
 
         return (
-            <div key={dirPath} style={{ marginLeft: depth === 0 ? 0 : 12 }}>
-                <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        padding: '4px 2px',
-                        borderRadius: 4,
-                        background: isSelected ? 'rgba(0, 122, 204, 0.25)' : 'transparent',
-                    }}
-                >
+            <div key={dirPath} className={styles.treeNode} style={{ marginLeft: depth === 0 ? 0 : 12 }}>
+                <div className={styles.treeNodeInner} data-selected={isSelected}>
                     <button
                         type="button"
                         aria-label={isExpanded ? 'Collapse' : 'Expand'}
                         onClick={() => toggleExpand(dirPath)}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#888',
-                            cursor: 'pointer',
-                            padding: 2,
-                            width: 22,
-                            lineHeight: 1,
-                        }}
+                        className={styles.expandButton}
                     >
                         {isLoading ? '…' : isExpanded ? '▼' : '▶'}
                     </button>
                     <button
                         type="button"
                         onClick={() => onSelectPath(dirPath)}
-                        style={{
-                            flex: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            background: 'none',
-                            border: 'none',
-                            color: '#e0e0e0',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            fontSize: 13,
-                            padding: '4px 6px',
-                        }}
+                        className={styles.folderButton}
+                        title={name}
                     >
-                        {isExpanded ? <FolderOpen size={14} color="#90caf9" /> : <Folder size={14} color="#78909c" />}
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                        {isExpanded
+                            ? <FolderOpen size={14} color="#90caf9" />
+                            : <Folder size={14} color="#78909c" />
+                        }
+                        <span className={styles.folderName}>{name}</span>
                     </button>
                 </div>
                 {isExpanded && kids && kids.map((ch) => renderNode(ch.path, depth + 1))}
@@ -184,34 +160,21 @@ export const FsSidebar: React.FC<FsSidebarProps> = ({
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-            <div style={{ padding: '8px 0', borderBottom: '1px solid #444', marginBottom: 8 }}>
-                <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>Folder mode root</div>
-                <div style={{ fontSize: 11, color: '#aaa', wordBreak: 'break-all' }} title={rootPath}>
+            <div className={styles.sidebarMeta}>
+                <div className={styles.sidebarMetaLabel}>Folder mode root</div>
+                <div className={styles.sidebarMetaPath} title={rootPath}>
                     {rootPath}
                 </div>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4 }}>
+            <div className={styles.sidebarTree}>
                 {renderNode(rootPath, 0)}
             </div>
             <button
                 type="button"
                 onClick={onOpenLightSettings}
-                style={{
-                    marginTop: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    padding: 10,
-                    background: '#333',
-                    color: '#eee',
-                    border: '1px solid #555',
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    fontSize: 13,
-                }}
+                className={styles.settingsButton}
             >
-                <Settings2 size={16} /> Root folder…
+                <Settings2 size={14} /> Root folder…
             </button>
         </div>
     );

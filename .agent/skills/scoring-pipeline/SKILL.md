@@ -49,9 +49,9 @@ All composite scores are stored as floats 0.0–1.0 in the database.
 
 ## Hybrid Environment
 
-- **Windows**: Runs the WebUI, Firebird DB, and file management.
+- **Windows**: Runs the WebUI, PostgreSQL Docker, and file management.
 - **WSL 2 (Linux)**: Runs GPU inference (TensorFlow + PyTorch with CUDA).
-- **CRITICAL**: Database access from WSL must use TCP (port 3050), never direct file access.
+- **CRITICAL**: Database access from WSL must use TCP (port 5432). PostgreSQL runs in Docker on the Windows host.
 
 ## How to Add a New Model
 

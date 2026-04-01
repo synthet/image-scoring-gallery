@@ -33,7 +33,7 @@ Add **`imgscore-el-sse`** with `"url": "http://127.0.0.1:7860/mcp/sse"` when the
 | Tool | Purpose | When to Use |
 |------|---------|-------------|
 | `get_error_summary` | Overview of job failures and missing scores | Investigating why images have no scores |
-| `check_database_health` | Integrity check for Firebird records | Verifying DB consistency after bulk operations |
+| `check_database_health` | Integrity check for database records | Verifying DB consistency after bulk operations |
 | `get_model_status` | GPU and model status | Understanding why scoring may be slow or failing |
 
 ### Data Query Tools

@@ -45,7 +45,7 @@ function normalizeSslForPg(ssl: AppPostgresConfig['ssl']): boolean | Record<stri
 }
 
 /**
- * Firebird-style `?` placeholders → `$1`..`$n` for node-pg (outside string literals; `''` = escaped quote).
+ * Legacy `?`-style placeholders → `$1`..`$n` for node-pg (outside string literals; `''` = escaped quote).
  */
 export function sqlQuestionMarksToPgNumbered(sql: string): { text: string; count: number } {
     let out = '';
@@ -319,7 +319,7 @@ export function createDatabaseConnector(config: {
     }
 
     if (kind === 'postgres' || kind === 'postgresql' || kind === 'firebird') {
-        // Firebird defaults mapping over to Postgres since Firebird is decommissioned
+        // Legacy 'firebird' engine value maps to Postgres (Firebird has been decommissioned)
         const pgCfg = 'postgres' in config.dbConfig ? config.dbConfig.postgres : undefined;
         if (!pgCfg) {
             throw new Error('[DB] database.postgres config is required.');

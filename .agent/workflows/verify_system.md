@@ -23,9 +23,10 @@ description: Verify the Electron app environment and dependencies
    ```
    **Success**: No type errors.
 
-4. **Verify Firebird**:
-   - Ensure Firebird server is running on `localhost:3050`.
-   - The app will report a connection error in the Electron console if Firebird is unreachable.
+4. **Verify PostgreSQL**:
+   - Ensure PostgreSQL Docker container is running on `localhost:5432`.
+   - Start with `docker compose up -d` in the `image-scoring-backend` project if needed.
+   - The app will report a connection error in the Electron console if PostgreSQL is unreachable.
 
 // turbo
 5. **Verify ESLint**:

@@ -99,7 +99,7 @@ The DB stores WSL-style paths (`/mnt/d/...`). The `convertPathToLocal()` functio
 | `react` | 19.x | UI framework |
 | `vite` | 7.x | Build tool + HMR |
 | `typescript` | 5.9 | Type safety |
-| `node-firebird` | 1.x | Firebird DB client |
+| `pg` | 8.x | PostgreSQL DB client |
 | `zustand` | 5.x | State management |
 | `react-virtuoso` | 4.x | Virtualized grid |
 | `exiftool-vendored` | 35.x | EXIF/RAW metadata |
@@ -108,7 +108,7 @@ The DB stores WSL-style paths (`/mnt/d/...`). The `convertPathToLocal()` functio
 
 ## Troubleshooting
 
-1. **App won't start**: Check Firebird server is running on `localhost:3050`
+1. **App won't start**: Check PostgreSQL is running (Docker container on `localhost:5432`)
 2. **Blank gallery**: Check Electron main process console for DB errors
 3. **Images not loading**: Verify `media://` protocol and WSL path conversion
 4. **Type errors**: Run `npm run lint` — check `electron.d.ts` matches `preload.ts`

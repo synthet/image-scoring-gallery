@@ -39,25 +39,23 @@ describe('Database Connector Abstraction', () => {
         it('should create an ApiConnector when engine is "api"', () => {
             const config = {
                 dbConfig: { engine: 'api', api: { url: 'http://test-backend:7860' } },
-                firebirdDatabasePath: 'test.fdb'
             };
             const connector = createDatabaseConnector(
-                config as { dbConfig: DatabaseConfig; firebirdDatabasePath: string }
+                config as { dbConfig: DatabaseConfig }
             );
             expect(connector).toBeInstanceOf(ApiConnector);
             expect(connector.type).toBe('api');
         });
 
-        it('should create a PostgresConnector as fallback for firebird legacy config', () => {
+        it('should create a PostgresConnector for legacy firebird engine config', () => {
             const config = {
                 dbConfig: { 
                     engine: 'firebird',
                     postgres: { host: 'localhost', port: 5432, database: 'test', user: 'user' }
                 },
-                firebirdDatabasePath: 'test.fdb'
             };
             const connector = createDatabaseConnector(
-                config as { dbConfig: DatabaseConfig; firebirdDatabasePath: string }
+                config as { dbConfig: DatabaseConfig }
             );
             expect(connector).toBeInstanceOf(PostgresConnector);
             expect(connector.type).toBe('postgres');
@@ -66,10 +64,9 @@ describe('Database Connector Abstraction', () => {
         it('should create a PostgresConnector when engine is "postgres"', () => {
             const config = {
                 dbConfig: { engine: 'postgres', postgres: { host: 'localhost', port: 5432, database: 'test', user: 'user' } },
-                firebirdDatabasePath: 'test.fdb'
             };
             const connector = createDatabaseConnector(
-                config as { dbConfig: DatabaseConfig; firebirdDatabasePath: string }
+                config as { dbConfig: DatabaseConfig }
             );
             expect(connector).toBeInstanceOf(PostgresConnector);
             expect(connector.type).toBe('postgres');

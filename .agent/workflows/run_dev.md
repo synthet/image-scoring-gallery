@@ -4,7 +4,7 @@ description: Start the Electron app in development mode (Vite HMR + Electron)
 
 1. **Prerequisites**:
    - Ensure `node_modules` is installed (`npm install` if not).
-   - Ensure Firebird server is running on `localhost:3050`.
+   - Ensure PostgreSQL Docker container is running on `localhost:5432`.
 
 // turbo
 2. **Launch dev mode**:

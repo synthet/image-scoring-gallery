@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.2.0] - 2026-03-31
+
+### Added
+- **Folder mode UI**: **`FsGallery.module.css`** for folder-mode layout (header badge, sidebar, empty folder state, connection spinner, error screen); **`FsGallery`** empty-state when a folder has no images; **`App`** reuses those styles for “connecting” and DB error flows.
+- **Gallery MCP API tools**: **`api_run_stages`** (`GET /api/runs/{run_id}/stages`), **`api_probe`** (timed GET with body preview and safe relative paths), and clearer **`api_job_status`** docs (job id ↔ workflow `run_id`).
+
+### Changed
+- **`LightModeConfig`** / **`FsSidebar`**: styling and structure cleanup aligned with the folder-mode CSS module.
+- **`electron/main`**: debug payload default **`database.engine`** is **`postgres`** when unset (was **`firebird`**).
+- **Comments / tests**: **`electron/db`** and **`provider.test`** wording and fixtures drop obsolete Firebird-only assumptions.
+- **Docs & agent material**: architecture, migration status, coordination, workflows, and skill guides updated for Postgres-primary operation.
+- **`.cursor/mcp.json`**: removed **`imgscore-el-firebird`** entry (no embedded DB credentials in repo config).
+
+### Removed
+- **`ensureFirebirdRunning`** export from **`electron/db`** — callers should use **`initializeDatabaseProvider()`** only.
+
 ## [5.1.0] - 2026-03-30
 
 ### Added

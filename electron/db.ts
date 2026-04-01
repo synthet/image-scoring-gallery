@@ -179,12 +179,7 @@ export function closeConnection(): void {
     });
 }
 
-/** Historical name preserved for IPC compatibility; now validates whichever DB connector is configured. */
-export async function ensureFirebirdRunning(): Promise<boolean> {
-    return connector.verifyStartup();
-}
-
-/** Connector-aware startup: Firebird verifies server is up; Postgres verifies connectivity. */
+/** Connector-aware startup: verifies database connectivity (Postgres pool check, API health, etc.) */
 export async function initializeDatabaseProvider(): Promise<boolean> {
     return connector.verifyStartup();
 }
@@ -338,7 +333,7 @@ export async function getKeywords(): Promise<string[]> {
     }
 
     // DISTINCT reduces rows sent over the wire when many images share keyword combos
-    // castTextExpr handles Firebird BLOB→VARCHAR and Postgres TEXT coercion.
+    // castTextExpr handles TEXT coercion for the current DB dialect.
     let sql = `SELECT DISTINCT ${castTextExpr('keywords')} as keywords FROM images WHERE keywords IS NOT NULL AND keywords <> ''`;
 
     console.log('[DB] Executing getKeywords SQL:', sql);
@@ -512,7 +507,7 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
     image.file_exists = fileExists;
 
     // Ultra-aggressive serialization: Convert EVERYTHING to JSON and parse back
-    // This ensures absolutely no Firebird-specific or Node.js-specific objects remain
+    // This ensures absolutely no driver-specific or Node.js-specific objects remain
     const stringified = JSON.stringify(image, (key, value) => {
         // Custom replacer to handle special types
         if (Buffer.isBuffer(value)) {
@@ -1258,13 +1253,8 @@ export async function deleteImage(id: number): Promise<boolean> {
     }
 
     // 3. Delete from DB
-    // We also need to delete from file_paths if we have a foreign key?
-    // Firebird usually enforces FK constraints.
-    // If 'images' is the parent, deleting it might fail if child records exist in 'file_paths'
-    // UNLESS there is ON DELETE CASCADE.
-    // The schema is not fully visible here, but usually we should delete from child tables first or rely on cascade.
-    // Let's assume cascade or manual cleanup.
-    // Given the previous code was just `DELETE FROM images`, it implies either Cascade exists or no dependencies blocking it.
+    // The DB enforces FK constraints — child records in file_paths, image_keywords etc.
+    // rely on ON DELETE CASCADE or need manual cleanup before this DELETE.
 
     try {
         await query('DELETE FROM images WHERE id = ?', [id]);

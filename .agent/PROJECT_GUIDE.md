@@ -3,7 +3,7 @@
 This guide provides instructions for AI agents on how to navigate, maintain, and execute the Electron-based Image Scoring Gallery.
 
 ## Project Context
-`image-scoring-gallery` is the frontend viewer for the Image Scoring ecosystem. It is built with Electron and React and connects to a shared Firebird database populated by the core scoring engine.
+`image-scoring-gallery` is the frontend viewer for the Image Scoring ecosystem. It is built with Electron and React and connects to a shared PostgreSQL database (with pgvector) populated by the core scoring engine.
 
 ## Core Agentic Skills (Commands)
 
@@ -16,9 +16,10 @@ This guide provides instructions for AI agents on how to navigate, maintain, and
 ## Technical Knowledge for Agents
 
 ### 1. Database Connectivity
-- The app uses `node-firebird` to connect to `SCORING_HISTORY.FDB`.
-- **CRITICAL**: Database credentials and path are typically managed in `config.json`.
+- The app uses `pg` (node-postgres) to connect to PostgreSQL via `electron/db/provider.ts`.
+- **CRITICAL**: Database credentials are configured in `config.json` under `database.postgres.*`.
 - All database operations must be performed in the **Main Process** (`electron/db.ts`).
+- Legacy `engine: "firebird"` config values are automatically mapped to the Postgres connector.
 
 ### 2. Architecture
 - **Main Process**: Handles DB, OS integration, and file system tasks.
@@ -36,5 +37,5 @@ This guide provides instructions for AI agents on how to navigate, maintain, and
 
 ## Troubleshooting Flow
 1. Check `npm run lint` for syntax or type errors.
-2. Verify Firebird server is accessible.
+2. Verify PostgreSQL is accessible (`localhost:5432`). Ensure Docker container is running.
 3. Check Electron console (Main) and DevTools (Renderer) for errors.

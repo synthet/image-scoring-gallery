@@ -1,89 +1,96 @@
 ---
 name: firebird-db
-description: Firebird database schema, scoring models, query patterns, and connection configuration for the image scoring database.
+description: "[DEPRECATED] Legacy Firebird database skill — the project has migrated to PostgreSQL + pgvector. See electron/db/provider.ts for the current DB abstraction."
 ---
 
-# Firebird Database & Scoring Schema
+# Database & Scoring Schema (PostgreSQL)
+
+> [!CAUTION]
+> This skill was originally written for Firebird. The project migrated to **PostgreSQL + pgvector** in March 2026. The schema and query patterns below have been updated for the current stack. See [02-database-design.md](../../docs/architecture/02-database-design.md) for the migration decision record.
 
 ## Connection
 
-The app connects to a Firebird SQL server via `node-firebird`. Configuration is in `config.json`:
+The app connects to PostgreSQL via `pg` (node-postgres). Configuration is in `config.json`:
 
 ```json
 {
     "database": {
-        "host": "127.0.0.1",
-        "port": 3050,
-        "user": "sysdba",
-        "password": "masterkey",
-        "path": "../image-scoring/SCORING_HISTORY.FDB"
+        "engine": "postgres",
+        "postgres": {
+            "host": "127.0.0.1",
+            "port": 5432,
+            "database": "image_scoring",
+            "user": "postgres",
+            "password": "postgres"
+        }
     }
 }
 ```
 
 > [!IMPORTANT]
-> Firebird requires a **running server process** — it cannot open `.FDB` files directly. Start the server with `run_firebird.bat` in the `image-scoring` project before launching the app.
+> PostgreSQL runs in Docker. Start it with `docker compose -f docker-compose.yml up -d` in the `image-scoring-backend` project.
 
 ## Database Schema
 
-The primary table is `SCORED_IMAGES` with these key columns:
+The primary table is `images` with these key columns:
 
 ### Identity & Metadata
 | Column | Type | Description |
 |--------|------|-------------|
-| `ID` | INTEGER | Primary key |
-| `FILE_PATH` | VARCHAR | Full file path (WSL format: `/mnt/d/...`) |
-| `FILE_NAME` | VARCHAR | Filename only |
-| `FOLDER_ID` | INTEGER | FK to folders |
-| `THUMBNAIL_PATH` | VARCHAR | Path to thumbnail |
-| `CREATED_AT` | TIMESTAMP | When record was added |
+| `id` | INTEGER | Primary key |
+| `file_path` | TEXT | Full file path (WSL format: `/mnt/d/...`) |
+| `file_name` | TEXT | Filename only |
+| `folder_id` | INTEGER | FK to folders |
+| `thumbnail_path` | TEXT | Path to thumbnail |
+| `created_at` | TIMESTAMP | When record was added |
 
 ### Scoring Columns (normalized 0.0–1.0)
 | Column | Model | Weight in Formulas |
 |--------|-------|-------------------|
-| `SCORE_LIQE` | LIQE | Primary in General & Aesthetic |
-| `SCORE_AVA` | AVA | Primary in General & Aesthetic |
-| `SCORE_SPAQ` | SPAQ | Primary in General & Technical |
-| `SCORE_KONIQ` | KoNIQ (legacy) | Deprecated |
-| `SCORE_PAQ2PIQ` | PaQ2PiQ (legacy) | Deprecated |
+| `score_liqe` | LIQE | Primary in General & Aesthetic |
+| `score_ava` | AVA | Primary in General & Aesthetic |
+| `score_spaq` | SPAQ | Primary in General & Technical |
+| `score_koniq` | KoNIQ (legacy) | Deprecated |
+| `score_paq2piq` | PaQ2PiQ (legacy) | Deprecated |
 
 ### Composite Scores (normalized 0.0–1.0)
 | Column | Formula |
 |--------|---------|
-| `SCORE_GENERAL` | Weighted blend of LIQE + AVA + SPAQ |
-| `SCORE_TECHNICAL` | Primarily SPAQ-based |
-| `SCORE_AESTHETIC` | Primarily LIQE + AVA based |
+| `score_general` | Weighted blend of LIQE + AVA + SPAQ |
+| `score_technical` | Primarily SPAQ-based |
+| `score_aesthetic` | Primarily LIQE + AVA based |
 
 ### Classification
 | Column | Type | Values |
 |--------|------|--------|
-| `RATING` | INTEGER | 0–5 stars |
-| `LABEL` | VARCHAR | `Red`, `Yellow`, `Green`, `Blue`, `Purple`, or NULL |
-| `KEYWORDS` | VARCHAR | Comma-separated tags |
-| `TITLE` | VARCHAR | Optional title |
-| `DESCRIPTION` | VARCHAR | Optional description |
+| `rating` | INTEGER | 0–5 stars |
+| `label` | TEXT | `Red`, `Yellow`, `Green`, `Blue`, `Purple`, or NULL |
+| `keywords` | TEXT | Comma-separated tags |
+| `title` | TEXT | Optional title |
+| `description` | TEXT | Optional description |
 
 ### Stacks
 | Column | Type | Description |
 |--------|------|-------------|
-| `STACK_ID` | INTEGER | Stack group ID |
-| `STACK_KEY` | INTEGER | Stack group key |
+| `stack_id` | INTEGER | Stack group ID |
+| `stack_key` | INTEGER | Stack group key |
+
+### Embeddings
+| Column | Type | Description |
+|--------|------|-------------|
+| `image_embedding` | vector(1280) | MUSIQ embedding via pgvector |
 
 ## Query Patterns
 
-All DB operations are in `electron/db.ts`. The core helper:
+All DB operations are in `electron/db.ts`. The core helper uses the connector abstraction:
 
 ```typescript
-async function query<T>(sql: string, params: any[] = []): Promise<T[]> {
-    const database = await connectDB();
-    return new Promise((resolve, reject) => {
-        database.query(sql, params, (err, result) => {
-            if (err) reject(err);
-            else resolve(result as T[]);
-        });
-    });
+export async function query<T = unknown>(sql: string, params: QueryParam[] = []): Promise<T[]> {
+    return connector.query<T>(sql, params);
 }
 ```
+
+The `electron/db/provider.ts` `PostgresConnector` automatically translates `?` placeholders to `$1`, `$2`, etc. for node-pg. SQL should use PostgreSQL syntax (LIMIT/OFFSET, not FIRST/SKIP).
 
 ### Filtering Pattern (used by `getImages`, `getImageCount`)
 
@@ -92,26 +99,15 @@ const conditions: string[] = [];
 const params: any[] = [];
 
 if (options.folderId) {
-    conditions.push('FOLDER_ID = ?');
+    conditions.push('folder_id = ?');
     params.push(options.folderId);
 }
 if (options.minRating) {
-    conditions.push('RATING >= ?');
+    conditions.push('rating >= ?');
     params.push(options.minRating);
 }
-// ... build WHERE clause from conditions array
 const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 ```
-
-### Firebird SQL Dialect Notes
-
-- Use `FIRST n SKIP m` instead of `LIMIT/OFFSET`:
-  ```sql
-  SELECT FIRST 50 SKIP 0 * FROM SCORED_IMAGES ORDER BY SCORE_GENERAL DESC
-  ```
-- String comparisons are case-sensitive by default
-- Use `CONTAINING` for case-insensitive substring matching (Firebird-specific)
-- Parameterized queries use `?` placeholders
 
 ## Available Functions
 
@@ -128,12 +124,12 @@ const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` 
 | `getImagesByStack(stackId, options)` | Images within a stack |
 | `getStackCount(options)` | Count of stacks |
 
-## Relationship to image-scoring Project
+## Relationship to image-scoring-backend Project
 
-The Firebird database (`SCORING_HISTORY.FDB`) is **owned by** the Python `image-scoring` project at `d:\Projects\image-scoring`. That project:
+The PostgreSQL database is **owned by** the Python `image-scoring-backend` project at `d:\Projects\image-scoring-backend`. That project:
 - Runs neural network models (MUSIQ family, LIQE) on images
 - Writes raw scores to the database
-- Manages the Firebird server process
-- Provides the `run_firebird.bat` launcher
+- Manages the PostgreSQL Docker container
+- Provides the migration scripts and Alembic versioned schema
 
 This Electron app is a **read-heavy** frontend that queries the same database. Write operations are limited to metadata edits (rating, label, title, description) and record deletion.
