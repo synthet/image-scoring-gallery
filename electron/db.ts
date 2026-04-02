@@ -817,7 +817,11 @@ export async function ensureStackCacheTable(): Promise<void> {
                 console.log('[DB] Created stack_cache table');
             } catch (e2) {
                 const errStr = String(e2);
-                if (errStr.includes('already exists') || errStr.includes('exists')) {
+                if (
+                    errStr.includes('42P07') ||
+                    errStr.toLowerCase().includes('already exists') ||
+                    errStr.includes('exists')
+                ) {
                     console.log('[DB] stack_cache table already exists (race condition ignored)');
                 } else {
                     console.error('[DB] Failed to create stack_cache table:', e2);

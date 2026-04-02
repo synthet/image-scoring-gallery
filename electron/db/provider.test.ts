@@ -49,9 +49,9 @@ describe('Database Connector Abstraction', () => {
 
         it('should throw error for decommissioned "firebird" engine', () => {
             const config = {
-                dbConfig: { 
+                dbConfig: {
                     engine: 'firebird',
-                    postgres: { host: 'localhost', port: 5432, database: 'test', user: 'user' }
+                    postgres: { host: 'localhost', port: 5432, database: 'test', user: 'user' },
                 },
             };
             expect(() => createDatabaseConnector(

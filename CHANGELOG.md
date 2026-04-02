@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.2.1] - 2026-04-01
+
+### Fixed
+- **Stack cache**: In **`ensureStackCacheTable`**, treat Postgres duplicate-table signals (**`42P07`**, case-insensitive **`already exists`**) as benign when another caller created **`stack_cache`** concurrently.
+
+### Documentation
+- **`TODO.md`**: Mark Firebird decommission / Postgres-only deep-cleanup checklist items complete under Database & Migration.
+- **`docs/planning/02-firebird-postgresql-migration.md`**: Status notes deep cleanup **2026-04-01**.
+
 ## [5.2.0] - 2026-03-31
 
 ### Added

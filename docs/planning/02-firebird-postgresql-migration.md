@@ -1,7 +1,7 @@
 # Refined Cross-Repo Migration Plan: Firebird -> PostgreSQL + pgvector
 
 Date: 2026-03-08 (plan created), 2026-03-30 (all phases completed)
-Status: **Completed** — All 4 phases done. PostgreSQL is the production database for both Python backend and Electron gallery. Firebird has been decommissioned.
+Status: **Completed** — All 4 phases done. PostgreSQL is the production database for both Python backend and Electron gallery. Firebird has been decommissioned. Final "Deep Cleanup" of shims completed 2026-04-01.
 Scope: image-scoring + image-scoring-gallery coordinated migration
 
 ## Summary

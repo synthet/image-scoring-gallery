@@ -112,6 +112,12 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 ## Database & Migration [DB]
 
 - [ ] [DB] Outdated `node-firebird` driver: evaluate `node-firebird-driver-native` or typed schema wrapper
+- [x] Finalize Firebird decommissioning in Electron app:
+    - [x] Remove legacy `engine: firebird` mapping in `provider.ts`.
+    - [x] Remove `RETURNING` syntax fallbacks in `db.ts` (Postgres supports it).
+    - [x] Remove Firebird system table checks (`RDB$RELATION_NAME`) in `db.ts`.
+    - [x] Update tests to reflect removal of `firebird` support.
+    - [x] Confirm all 115+ tests pass with Postgres-only logic.
 - [ ] [DB+Python] Phase 4 (Firebird→Postgres): Add DB provider abstraction in `electron/db.ts` for Postgres
 - [ ] [DB+Python] Migrate Electron from `node-firebird` to Postgres client after Python cutover
 - [ ] [DB+Python] Remove Firebird-specific runtime assumptions (port checks, auto-start server path, Firebird-only SQL)
