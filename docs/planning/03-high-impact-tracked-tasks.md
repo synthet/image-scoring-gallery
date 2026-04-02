@@ -90,10 +90,18 @@ These tracked tasks are the auditable execution records for the five highest-imp
   - [x] Build/tests pass with no regressions in core gallery workflows (`npx tsc --noEmit` clean).
   - [x] TODO references updated with completion status.
 
-## EIS-104 - Close local quality debt prior to backend expansion
+## EIS-104 - Close local quality debt prior to backend expansion ✅ DONE (2026-04-01)
 
 - **Source item**: "Close remaining local quality debt (`no-explicit-any`, `useImages`/`useStacks` closure and dependency issues)"
 - **Suggested owner/team**: Electron Frontend Quality
+- **Completed**: 2026-04-01
+- **Changes made**:
+  - `src/electron.d.ts` — Exported `DiagnosticsReport` and `ProcessMemorySnapshot`; `getDiagnostics` / `getProcessMemoryInfo` return types reference them.
+  - `src/components/Diagnostics/DiagnosticsModal.tsx` — Typed diagnostic state; `catch (err: unknown)` with `instanceof Error` narrowing.
+  - `src/components/Runs/RunsPage.tsx` — Use `job.input_path` on `BackendJobInfo` (removed `as any`); fixed unused destructuring binding in pipeline operations filter.
+  - `src/services/apiClient.ts` — Use typed `window.electron` for `getApiPort` (no `as any`).
+  - `src/hooks/useFolders.ts` — Initial load via `queueMicrotask` + stable `fetchFolders` (`useCallback`) to avoid synchronous `set-state-in-effect`; removed prior eslint-disable.
+  - **Note:** `useImages` / `usePaginatedData` / `useStacks` already had no `any` and EIS-101 race hardening; full-repo ESLint still reports unrelated baseline issues (tests, other components).
 - **Scope boundaries**:
   - In scope:
     - Eliminate remaining high-impact `no-explicit-any` warnings in active app code.
@@ -106,10 +114,10 @@ These tracked tasks are the auditable execution records for the five highest-imp
   - Backend: None required.
   - Migration: None.
 - **Definition of done**:
-  - Targeted lint/type debt list for this item is fully closed.
-  - Hook dependency/closure fixes are covered by tests or deterministic reproduction checks.
-  - CI/local lint pipeline passes for touched scope.
-  - TODO references updated with completion status.
+  - [x] Targeted lint/type debt list for this item is fully closed (touched production files clean under ESLint; `npx tsc --noEmit` clean).
+  - [x] Hook dependency/closure fixes are covered by tests or deterministic reproduction checks (`useFolders` mount path; existing `useImages` race tests unchanged).
+  - [x] CI/local lint pipeline passes for touched scope.
+  - [x] TODO references updated with completion status.
 
 ## EIS-105 - Execute embedding feature wave with backend coordination
 

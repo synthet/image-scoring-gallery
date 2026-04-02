@@ -145,7 +145,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
         setCreateBusy(true);
         try {
             const operations = Object.entries(createOperations)
-                .filter(([_, enabled]) => enabled)
+                .filter(([, enabled]) => enabled)
                 .map(([key]) => key);
             
             if (operations.length === 0) {
@@ -248,7 +248,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                                         </span>
                                     </div>
                                     <div style={{ fontSize: '0.75em', color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {((job as any).input_path ?? '').split(/[/\\]/).pop() || (job as any).input_path || 'No target'}
+                                        {(job.input_path ?? '').split(/[/\\]/).pop() || job.input_path || 'No target'}
                                     </div>
                                     <div style={{ fontSize: '0.7em', color: '#555', marginTop: 4 }}>
                                         {new Date(job.created_at || '').toLocaleString()}

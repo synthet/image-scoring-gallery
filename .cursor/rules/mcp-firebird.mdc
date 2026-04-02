@@ -67,3 +67,6 @@ alwaysApply: true
 
 Always present findings in a short markdown report, organized by these stages, and clearly distinguish *observations* from *risky actions* that require explicit user approval.
 
+## Related: mcp-kanban
+
+For **persistent tickets / kanban / multi-session handoffs** (user-level MCP **`mcp-kanban`**), see **`mcp-kanban.mdc`** and skill **`mcp-kanban-workflow`**.

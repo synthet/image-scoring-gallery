@@ -174,13 +174,13 @@ The following findings have been implemented and verified (TypeScript compilatio
 | 12 | Path Traversal Risk | Medium | **Resolved** | `electron/main.ts` |
 | 13 | Duplicate Hook Logic | Medium | **Resolved** | `src/hooks/useDatabase.ts` |
 | 14 | Missing Error Boundaries | Medium | **Resolved** | `src/components/ErrorBoundary.tsx`, `src/main.tsx` |
-| 15 | Minimal MCP Scope | Low | Deferred | — |
+| 15 | Minimal MCP Scope | Low | **Resolved** | `mcp-server/src/index.ts`, `mcp-server/src/tools/api.ts`, `mcp-server/src/tools/cdp.ts`, `mcp-server/src/utils/capabilities.ts`, `mcp-server/src/utils/cdp.ts` |
 | 16 | Outdated DB Driver | Low | Deferred | — |
 | 17 | Loading/Empty States | Low | Deferred | — |
 
 ### Changes Summary
 
-**11 of 17 findings resolved. 6 deferred for separate work.**
+**12 of 17 findings resolved. 5 deferred for separate work.**
 
 #### `electron/db.ts` — Persistent Connection
 - Replaced per-query `Firebird.attach()` with a `getConnection()` singleton
@@ -220,6 +220,12 @@ The following findings have been implemented and verified (TypeScript compilatio
 - Updated `extractNefPreview` buffer type from `number[]` to `Uint8Array`
 - Removed duplicate property definitions
 
+#### `mcp-server/` — Consolidated gallery MCP
+- Renamed the gallery MCP package/server to reflect its broader scope (`imgscore-el-gallery`)
+- Added `gallery_status` to probe FastAPI and Electron CDP reachability before choosing tool families
+- Added reachability-aware FastAPI probe tools (`api_*`) and Electron CDP tools (`cdp_*`)
+- Added configurable CDP endpoint resolution via `ELECTRON_CDP_URL` / `ELECTRON_REMOTE_DEBUGGING_PORT`
+
 ### Deferred Items
 
 | # | Finding | Reason |
@@ -228,7 +234,6 @@ The following findings have been implemented and verified (TypeScript compilatio
 | 5 | Testing Infrastructure | Deserves dedicated task with Vitest setup |
 | 10 | Design System / CSS | Large UI refactor requiring design decisions |
 | 11 | Prop Drilling | Depends on App.tsx decomposition (#3) |
-| 15 | MCP Server Scope | Separate feature work, low severity |
 | 16 | DB Driver Upgrade | Risky dependency swap, requires migration plan |
 | 17 | Loading/Empty States | UI polish pass, low severity |
 

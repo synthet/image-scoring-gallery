@@ -318,8 +318,7 @@ export function createDatabaseConnector(config: {
         return new ApiConnector(url, timeout);
     }
 
-    if (kind === 'postgres' || kind === 'postgresql' || kind === 'firebird') {
-        // Legacy 'firebird' engine value maps to Postgres (Firebird has been decommissioned)
+    if (kind === 'postgres' || kind === 'postgresql') {
         const pgCfg = 'postgres' in config.dbConfig ? config.dbConfig.postgres : undefined;
         if (!pgCfg) {
             throw new Error('[DB] database.postgres config is required.');

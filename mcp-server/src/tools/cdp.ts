@@ -1,3 +1,4 @@
+import { getCdpBaseUrl } from "../utils/capabilities.js";
 import { sendCdpCommand, findPageTarget } from "../utils/cdp.js";
 
 interface ToolDef {
@@ -16,7 +17,7 @@ export const cdpToolDefs: ToolDef[] = [
     {
         name: "cdp_screenshot",
         description:
-            "Take a screenshot of the Electron app window via Chrome DevTools Protocol. Returns a base64-encoded PNG image. Requires the Electron app to be running in dev mode (port 9222).",
+            "Requires electron_cdp (gallery_status). Screenshot via CDP; PNG image. Dev Electron with remote debugging (default 9222; override ELECTRON_CDP_URL / ELECTRON_REMOTE_DEBUGGING_PORT).",
         inputSchema: {
             type: "object",
             properties: {
@@ -30,7 +31,7 @@ export const cdpToolDefs: ToolDef[] = [
     {
         name: "cdp_evaluate",
         description:
-            "Execute JavaScript in the Electron renderer page context and return the result. Useful for inspecting app state, DOM, or Zustand stores.",
+            "Requires electron_cdp. Run JS in the renderer page context; inspect DOM/state.",
         inputSchema: {
             type: "object",
             properties: {
@@ -45,7 +46,7 @@ export const cdpToolDefs: ToolDef[] = [
     {
         name: "cdp_console_logs",
         description:
-            "Capture console messages from the Electron renderer for a brief period. Returns any console.log/warn/error output.",
+            "Requires electron_cdp. Collect renderer console output for duration_ms (default 2000, max 10000).",
         inputSchema: {
             type: "object",
             properties: {
@@ -148,10 +149,11 @@ export async function handleCdpTool(name: string, args: Record<string, unknown>)
     } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
         if (msg.includes("fetch failed") || msg.includes("ECONNREFUSED") || msg.includes("WebSocket")) {
+            const cdp = getCdpBaseUrl();
             return {
                 content: [{
                     type: "text",
-                    text: `Electron app CDP is not reachable at port 9222. Is the app running in dev mode?\nError: ${msg}`,
+                    text: `Electron CDP is not reachable at ${cdp}. Run the gallery in dev with remote debugging (or set ELECTRON_CDP_URL / ELECTRON_REMOTE_DEBUGGING_PORT).\nError: ${msg}`,
                 }],
                 isError: true,
             };

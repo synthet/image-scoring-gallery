@@ -47,18 +47,16 @@ describe('Database Connector Abstraction', () => {
             expect(connector.type).toBe('api');
         });
 
-        it('should create a PostgresConnector for legacy firebird engine config', () => {
+        it('should throw error for decommissioned "firebird" engine', () => {
             const config = {
                 dbConfig: { 
                     engine: 'firebird',
                     postgres: { host: 'localhost', port: 5432, database: 'test', user: 'user' }
                 },
             };
-            const connector = createDatabaseConnector(
+            expect(() => createDatabaseConnector(
                 config as { dbConfig: DatabaseConfig }
-            );
-            expect(connector).toBeInstanceOf(PostgresConnector);
-            expect(connector.type).toBe('postgres');
+            )).toThrow('[DB] Unsupported database engine: firebird');
         });
 
         it('should create a PostgresConnector when engine is "postgres"', () => {

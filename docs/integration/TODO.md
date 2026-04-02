@@ -16,5 +16,5 @@ Tasks for Electron ↔ Python backend integration. See [Agent Coordination](http
 
 ## Configuration
 
-- [ ] Document `config.api.url` / `config.api.port` override in user-facing docs
-- [ ] Project layout (sibling `image-scoring` / `image-scoring-gallery`) documented in CLAUDE.md
+- [x] Document `config.api.url` / `config.api.port` override in user-facing docs (`docs/guides/02-api-backend-config.md`)
+- [x] Project layout (sibling `image-scoring` / `image-scoring-gallery`) documented in CLAUDE.md

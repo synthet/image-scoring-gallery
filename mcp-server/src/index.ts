@@ -9,6 +9,7 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 
+import { collectGalleryStatus } from "./utils/capabilities.js";
 import { readConfig, getConfigPath } from "./utils/config.js";
 import { apiToolDefs, handleApiTool } from "./tools/api.js";
 import { cdpToolDefs, handleCdpTool } from "./tools/cdp.js";
@@ -16,8 +17,8 @@ import { cdpToolDefs, handleCdpTool } from "./tools/cdp.js";
 // Initialize server
 const server = new Server(
     {
-        name: "electron-debug-server",
-        version: "2.0.0",
+        name: "image-scoring-gallery",
+        version: "2.1.0",
     },
     {
         capabilities: {
@@ -70,7 +71,16 @@ const coreToolDefs = [
     },
     {
         name: "get_system_stats",
-        description: "Get system stats (CPU, memory, uptime) and detect running Electron/Python processes.",
+        description: "Get system stats (CPU, memory, uptime). Does not probe network; use gallery_status for API/CDP reachability.",
+        inputSchema: {
+            type: "object" as const,
+            properties: {},
+        },
+    },
+    {
+        name: "gallery_status",
+        description:
+            "Probe capabilities: python_api (FastAPI /api/health via resolved backend URL) and electron_cdp (DevTools /json). Use first to see whether api_* vs cdp_* tools are likely to work.",
         inputSchema: {
             type: "object" as const,
             properties: {},
@@ -126,6 +136,11 @@ async function handleCoreTool(name: string, args: Record<string, unknown>): Prom
         return { content: [{ type: "text", text: JSON.stringify(stats, null, 2) }] };
     }
 
+    if (name === "gallery_status") {
+        const status = await collectGalleryStatus();
+        return { content: [{ type: "text", text: JSON.stringify(status, null, 2) }] };
+    }
+
     throw new Error(`Unknown core tool: ${name}`);
 }
 
@@ -152,7 +167,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error("Electron Debug MCP Server v2.0 running on stdio");
+    console.error("image-scoring-gallery MCP (stdio) v2.1.0");
     console.error(`Tools: ${[...coreToolDefs, ...apiToolDefs, ...cdpToolDefs].map(t => t.name).join(", ")}`);
 }
 

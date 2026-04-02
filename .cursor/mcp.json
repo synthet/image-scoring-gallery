@@ -1,43 +1,9 @@
 {
-    "mcpServers": {
-        "imgscore-el-stdio": {
-            "command": "python",
-            "args": [
-                "-m",
-                "modules.mcp_server"
-            ],
-            "cwd": "d:\\Projects\\image-scoring-backend",
-            "env": {
-                "PYTHONPATH": "d:\\Projects\\image-scoring-backend"
-            }
-        },
-        "imgscore-el-sse": {
-            "url": "http://127.0.0.1:7860/mcp/sse",
-            "disabled": true
-        },
-        "imgscore-el-chrome-devtools": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "chrome-devtools-mcp",
-                "--browser-url=http://127.0.0.1:9222"
-            ],
-            "disabled": true
-        },
-        "imgscore-el-debug": {
-            "command": "node",
-            "args": [
-                "d:\\Projects\\image-scoring-gallery\\mcp-server\\dist\\index.js"
-            ],
-            "disabled": false
-        },
-        "imgscore-el-playwright": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@playwright/mcp@latest"
-            ],
-            "disabled": true
-        }
+  "mcpServers": {
+    "imgscore-el-gallery": {
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp-server/dist/index.js"],
+      "disabled": false
     }
+  }
 }

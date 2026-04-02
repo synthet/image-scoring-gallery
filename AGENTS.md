@@ -6,17 +6,27 @@ This document describes the AI agent integration for the Electron Image Scoring 
 This project is optimized for AI-assisted development using Cursor IDE and Antigravity. It leverages MCP (Model Context Protocol) to provide agents with deep visibility into the shared scoring database.
 
 ## MCP Configuration
-The `.cursor/mcp.json` file uses the **`imgscore-el-*`** prefix so server names stay unique when Cursor merges multiple project configs. Image Scoring stdio is **`imgscore-el-stdio`** (sibling **image-scoring** repo). SSE for the Python WebUI is **`imgscore-el-sse`**. The Python repo defines **`imgscore-py-stdio`** / **`imgscore-py-sse`** for the same processes when that workspace is open.
+The `.cursor/mcp.json` file uses the **`imgscore-el-*`** prefix so server names stay unique when Cursor merges multiple project configs.
+
+**Primary (enabled): `imgscore-el-gallery`** — single stdio app from [`mcp-server/`](mcp-server/) (`node …/mcp-server/dist/index.js`). Always: logs, `config.json`, `get_system_stats`, **`gallery_status`** (probes FastAPI + Electron CDP). When the Python WebUI is up: **`api_*`** tools against the resolved backend URL. When Electron runs in dev with remote debugging: **`cdp_*`** tools (default CDP port 9222; set `ELECTRON_CDP_URL` or `ELECTRON_REMOTE_DEBUGGING_PORT` to match).
+
+**Opt-in: `imgscore-el-stdio`** — Python **`modules.mcp_server`** (full DB diagnostics, ~43 tools). **Disabled by default** in this repo; enable in MCP settings or open the **image-scoring-backend** workspace, which uses **`imgscore-py-stdio`**. **`imgscore-el-sse`** — WebUI SSE (e.g. `execute_code` when `ENABLE_MCP_EXECUTE_CODE=1`).
 
 ### Requirements
-- Python environment with `mcp` and `firebird-driver` (typically inherited from the core `image-scoring` project).
-- Access to the `SCORING_HISTORY.FDB` file.
+- **`imgscore-el-gallery`**: Node; run `npm install` and `npm run build` under `mcp-server/` once.
+- **Full DB MCP**: Python env with `mcp` (and DB drivers) when **`imgscore-el-stdio`** / backend workspace is enabled.
+- Access to the `SCORING_HISTORY.FDB` file for the Electron app itself.
 
 ## Tools for Agents
-Agents have access to specialized tools via **`imgscore-el-stdio`** (stdio) and **`imgscore-el-sse`** (when the WebUI runs). Other entries: **`imgscore-el-firebird`**, **`imgscore-el-playwright`**, **`imgscore-el-chrome-devtools`**, **`imgscore-el-debug`**.
-- **Database Analysis**: Query images, check health, run SQL.
-- **System Monitoring**: Check GPU and model status.
-- **Error Diagnosis**: Analyze failed jobs and missing data.
+- **Gallery MCP (`imgscore-el-gallery`)**: Local diagnostics, optional FastAPI job/health probes, optional CDP for renderer inspection. Start with **`gallery_status`** to see what is reachable.
+- **Python MCP (optional)**: Query images, `execute_sql`, health, jobs — see backend **`AGENTS.md`** / **`imgscore-py-stdio`**.
+
+### mcp-kanban (optional, user MCP)
+
+**mcp-kanban** is configured in **user-level** MCP settings (Cursor global `mcp.json`, Claude `~/.claude.json`, Antigravity `mcp_config.json`, Codex `config.toml`) as server **`mcp-kanban`**. It provides **`kanban_*`** tools for tickets, board snapshots, and session handoffs.
+
+- **Rules / workflow:** `.cursor/rules/mcp-kanban.mdc`, `.cursor/skills/mcp-kanban-workflow/SKILL.md`
+- **Project folder:** use **`D:\Projects\image-scoring-gallery`** for gallery work and **`D:\Projects\image-scoring-backend`** for backend work (adjust paths if your clones differ).
 
 ## Documentation References
 - **[Agent Coordination](docs/technical/AGENT_COORDINATION.md)** - Cross-project integration and coordination guide
