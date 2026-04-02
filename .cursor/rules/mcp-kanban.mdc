@@ -1,0 +1,36 @@
+---
+description: Use mcp-kanban MCP for task boards, tickets, and multi-session agent handoffs (Cursor, Claude Code, Antigravity)
+alwaysApply: false
+---
+
+# mcp-kanban MCP
+
+When the user asks about a **kanban board**, **MCP tickets**, **task queue**, **agent handoff**, **multi-agent coordination**, or **work items** that should persist across sessions, use the **`mcp-kanban`** MCP server.
+
+## Where it is configured
+
+| Client | Location |
+|--------|----------|
+| Cursor | User `mcp.json` (merges with this repo’s `.cursor/mcp.json`) |
+| Claude Code | User `~/.claude.json` → `mcpServers.mcp-kanban` |
+| Antigravity | `~/.gemini/antigravity/mcp_config.json` |
+| Codex | `~/.codex/config.toml` → `[mcp_servers.mcp-kanban]` |
+
+Server key name: **`mcp-kanban`**. Upstream repo: `D:\Projects\mcp-kanban`.
+
+## Tools (invoke via MCP)
+
+- **Scope:** `kanban_list_projects`, `kanban_register_project` (`projectFolder` = absolute path to **this** gallery repo or the backend repo, depending on where work lives)
+- **Tickets:** `kanban_create_ticket`, `kanban_list_tickets`, `kanban_get_ticket`, `kanban_pull_next_ticket`, `kanban_start_ticket`, `kanban_update_ticket`, `kanban_complete_ticket`, `kanban_add_ticket_relation`, `kanban_add_ticket_context`, `kanban_add_work_log`, `kanban_board_snapshot`
+
+## This workspace
+
+For **image-scoring-gallery** work, register and use **`D:\Projects\image-scoring-gallery`** as `projectFolder`. For Python backend work, use **`D:\Projects\image-scoring-backend`** (sibling path).
+
+**Key collision:** both folder names truncate to the same Kanban key prefix `IMAGE-SCORIN`. For tickets that span both repos, create them under **one** Kanban project (often the backend folder) and set `metadata.primaryRepo` to `image-scoring-gallery` when the work is gallery-only. See backend `.cursor/rules/mcp-kanban.mdc` for detail.
+
+## Workflows and troubleshooting
+
+Same patterns as the backend rule: register project → create/list/update tickets → work logs for handoffs. See **`D:\Projects\image-scoring-backend\.cursor\skills\mcp-kanban-workflow\SKILL.md`** (or the copy under this repo’s `.cursor/skills/`) for step-by-step flows.
+
+If kanban tools are missing from the tool list, confirm **`mcp-kanban`** is enabled in the user MCP config for your client.

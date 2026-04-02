@@ -641,26 +641,14 @@ export async function getOrCreateFolder(folderPath: string): Promise<number> {
         }
     }
 
-    try {
-        const insertResult = await query<{ id: number }>(
-            'INSERT INTO folders (path, parent_id, is_fully_scored, created_at) VALUES (?, ?, 0, CURRENT_TIMESTAMP) RETURNING id',
-            [normalized, parentId]
-        );
-        if (insertResult.length > 0) {
-            return insertResult[0].id;
-        }
-    } catch (e) {
-        const errStr = String(e);
-        if (errStr.includes('RETURNING') || errStr.includes('syntax')) {
-            await query('INSERT INTO folders (path, parent_id, is_fully_scored, created_at) VALUES (?, ?, 0, CURRENT_TIMESTAMP)', [normalized, parentId]);
-            const rows = await query<{ id: number }>('SELECT id FROM folders WHERE path = ?', [normalized]);
-            if (rows.length > 0) return rows[0].id;
-        }
-        throw e;
+    const insertResult = await query<{ id: number }>(
+        'INSERT INTO folders (path, parent_id, is_fully_scored, created_at) VALUES (?, ?, 0, CURRENT_TIMESTAMP) RETURNING id',
+        [normalized, parentId]
+    );
+    if (insertResult.length > 0) {
+        return insertResult[0].id;
     }
 
-    const rows = await query<{ id: number }>('SELECT id FROM folders WHERE path = ?', [normalized]);
-    if (rows.length > 0) return rows[0].id;
     throw new Error(`Failed to get folder id for path: ${normalized}`);
 }
 
@@ -696,29 +684,14 @@ export async function insertImage(row: InsertImageRow): Promise<number> {
     const normalizedPath = normalizePathForDb(row.file_path);
     const uuid = row.image_uuid ?? null;
 
-    try {
-        const insertResult = await query<{ id: number }>(
-            'INSERT INTO images (file_path, file_name, file_type, folder_id, image_uuid, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) RETURNING id',
-            [normalizedPath, row.file_name, row.file_type, row.folder_id, uuid]
-        );
-        if (insertResult.length > 0) {
-            return insertResult[0].id;
-        }
-    } catch (e) {
-        const errStr = String(e);
-        if (errStr.includes('RETURNING') || errStr.includes('syntax')) {
-            await query(
-                'INSERT INTO images (file_path, file_name, file_type, folder_id, image_uuid, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
-                [normalizedPath, row.file_name, row.file_type, row.folder_id, uuid]
-            );
-            const rows = await query<{ id: number }>('SELECT id FROM images WHERE file_path = ? ORDER BY id DESC', [normalizedPath]);
-            if (rows.length > 0) return rows[0].id;
-        }
-        throw e;
+    const insertResult = await query<{ id: number }>(
+        'INSERT INTO images (file_path, file_name, file_type, folder_id, image_uuid, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) RETURNING id',
+        [normalizedPath, row.file_name, row.file_type, row.folder_id, uuid]
+    );
+    if (insertResult.length > 0) {
+        return insertResult[0].id;
     }
 
-    const rows = await query<{ id: number }>('SELECT id FROM images WHERE file_path = ? ORDER BY id DESC', [normalizedPath]);
-    if (rows.length > 0) return rows[0].id;
     throw new Error(`Failed to get image id after insert: ${normalizedPath}`);
 }
 
@@ -771,23 +744,12 @@ export async function syncImageKeywords(imageId: number, keywordsStr: string | n
             if (existing.length > 0) {
                 kwId = existing[0].keyword_id;
             } else {
-                try {
-                    const insertResult = await query<{ keyword_id: number }>(
-                        'INSERT INTO keywords_dim (keyword_norm, keyword_display) VALUES (?, ?) RETURNING keyword_id',
-                        [kwNorm, kw]
-                    );
-                    if (insertResult.length > 0) {
-                        kwId = insertResult[0].keyword_id;
-                    }
-                } catch (e) {
-                    const errStr = String(e);
-                    if (errStr.includes('RETURNING') || errStr.includes('syntax')) {
-                        await query('INSERT INTO keywords_dim (keyword_norm, keyword_display) VALUES (?, ?)', [kwNorm, kw]);
-                        const rows = await query<{ keyword_id: number }>('SELECT keyword_id FROM keywords_dim WHERE keyword_norm = ?', [kwNorm]);
-                        if (rows.length > 0) kwId = rows[0].keyword_id;
-                    } else {
-                        throw e;
-                    }
+                const insertResult = await query<{ keyword_id: number }>(
+                    'INSERT INTO keywords_dim (keyword_norm, keyword_display) VALUES (?, ?) RETURNING keyword_id',
+                    [kwNorm, kw]
+                );
+                if (insertResult.length > 0) {
+                    kwId = insertResult[0].keyword_id;
                 }
             }
             
@@ -855,7 +817,7 @@ export async function ensureStackCacheTable(): Promise<void> {
                 console.log('[DB] Created stack_cache table');
             } catch (e2) {
                 const errStr = String(e2);
-                if (errStr.includes('RDB$RELATION_NAME') || errStr.includes('exists')) {
+                if (errStr.includes('already exists') || errStr.includes('exists')) {
                     console.log('[DB] stack_cache table already exists (race condition ignored)');
                 } else {
                     console.error('[DB] Failed to create stack_cache table:', e2);

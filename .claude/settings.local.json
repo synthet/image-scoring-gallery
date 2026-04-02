@@ -1,0 +1,7 @@
+{
+  "enableAllProjectMcpServers": true,
+  "disabledMcpjsonServers": [
+    "imgscore-el-playwright",
+    "imgscore-el-chrome-devtools"
+  ]
+}

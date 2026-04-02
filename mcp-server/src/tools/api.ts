@@ -34,13 +34,13 @@ export const apiToolDefs: ToolDef[] = [
     {
         name: "api_health",
         description:
-            "Check if the Python scoring backend (FastAPI) is running. Returns health status, loaded models, and GPU availability.",
+            "Requires python_api reachable (see gallery_status). Check FastAPI: health + status payloads (models, GPU).",
         inputSchema: { type: "object", properties: {} },
     },
     {
         name: "api_job_status",
         description:
-            "Get recent background jobs or one job by id. job_id is the integer jobs.id — the same as workflow run_id used in POST/GET /api/runs/{run_id}/... (e.g. GET /api/jobs/296 for run 296).",
+            "Requires python_api. Recent jobs or one job: job_id is jobs.id / workflow run_id (e.g. GET /api/jobs/296).",
         inputSchema: {
             type: "object",
             properties: {
@@ -55,7 +55,7 @@ export const apiToolDefs: ToolDef[] = [
     {
         name: "api_run_stages",
         description:
-            "GET /api/runs/{run_id}/stages — all pipeline stages for a workflow run (same id as jobs.id / api_job_status job_id).",
+            "Requires python_api. GET /api/runs/{run_id}/stages — pipeline stages (run_id = jobs.id).",
         inputSchema: {
             type: "object",
             properties: {
@@ -70,7 +70,7 @@ export const apiToolDefs: ToolDef[] = [
     {
         name: "api_probe",
         description:
-            "GET a relative path on the scoring WebUI (same base URL as other API tools) and return status, elapsed ms, and a short body preview. Use for slow endpoints (e.g. /api/scope/tree). path must start with / and must not contain ..",
+            "Requires python_api. Timed GET on backend base URL; status, elapsed_ms, body preview. path must start with /, no ..",
         inputSchema: {
             type: "object",
             properties: {
@@ -89,7 +89,7 @@ export const apiToolDefs: ToolDef[] = [
     {
         name: "api_runner_status",
         description:
-            "Get the current status of all background runners (scoring, tagging, clustering) — whether they are idle, running, or errored, and their progress.",
+            "Requires python_api. Scoring / tagging / clustering runner status from FastAPI.",
         inputSchema: { type: "object", properties: {} },
     },
 ];

@@ -12,6 +12,20 @@ export interface BackendJobInfo {
     [key: string]: unknown;
 }
 
+export interface DiagnosticsReport {
+    os: { platform: string; release: string; arch: string; uptime: number };
+    versions: { electron: string; node: string; chrome: string; v8: string };
+    database: { engine: string; connected: boolean; host: string; database: string };
+    api: { url: string; connected: boolean };
+    memory: { workingSetSize: number; peakWorkingSetSize: number; privateBytes?: number; sharedBytes?: number } | null;
+}
+
+export interface ProcessMemorySnapshot {
+    workingSetSize: number;
+    peakWorkingSetSize: number;
+    privateBytes?: number;
+    sharedBytes?: number;
+}
 
 interface ImageQueryOptions {
     limit?: number;
@@ -259,14 +273,8 @@ declare global {
             getGalleryMode: () => Promise<'db' | 'folder'>;
             onAppModeChanged: (callback: (mode: 'db' | 'folder') => void) => () => void;
             selectDirectory: () => Promise<string | null>;
-            getDiagnostics: () => Promise<{
-                os: { platform: string; release: string; arch: string; uptime: number };
-                versions: { electron: string; node: string; chrome: string; v8: string };
-                database: { engine: string; connected: boolean; host: string; database: string };
-                api: { url: string; connected: boolean };
-                memory: { workingSetSize: number; peakWorkingSetSize: number; privateBytes?: number; sharedBytes?: number } | null;
-            }>;
-            getProcessMemoryInfo: () => Promise<{ workingSetSize: number; peakWorkingSetSize: number; privateBytes?: number; sharedBytes?: number } | null>;
+            getDiagnostics: () => Promise<DiagnosticsReport>;
+            getProcessMemoryInfo: () => Promise<ProcessMemorySnapshot | null>;
             onOpenSettings: (callback: () => void) => () => void;
             onOpenDuplicates: (callback: () => void) => () => void;
             onOpenRuns: (callback: () => void) => () => void;

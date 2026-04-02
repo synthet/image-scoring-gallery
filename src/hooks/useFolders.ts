@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { buildFolderTree } from '../components/Tree/treeUtils';
 import type { Folder } from '../components/Tree/treeUtils';
 import { bridge } from '../bridge';
@@ -19,13 +19,13 @@ export function useFolders(): { folders: Folder[]; loading: boolean; refresh: ()
     const [loading, setLoading] = useState(true);
     const initialLoadDone = useRef(false);
 
-    const fetchFolders = () => {
+    const fetchFolders = useCallback(() => {
         if (!initialLoadDone.current) {
             setLoading(true);
         }
 
         const foldersPromise = bridge.getFolders();
-        
+
         foldersPromise.then(folderRows => {
             setFlatFolders(folderRows);
             initialLoadDone.current = true;
@@ -34,12 +34,13 @@ export function useFolders(): { folders: Folder[]; loading: boolean; refresh: ()
             console.error('[useFolders] Failed to fetch folders:', err);
             setLoading(false);
         });
-    };
+    }, []);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        fetchFolders();
-    }, []);
+        void queueMicrotask(() => {
+            fetchFolders();
+        });
+    }, [fetchFolders]);
 
     const folderTree = useMemo(() => buildFolderTree(flatFolders), [flatFolders]);
 

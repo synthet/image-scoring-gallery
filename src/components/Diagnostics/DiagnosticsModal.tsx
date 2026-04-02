@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import type { DiagnosticsReport, ProcessMemorySnapshot } from '../../electron.d';
 
 interface Props {
     isOpen: boolean;
@@ -6,8 +7,8 @@ interface Props {
 }
 
 export const DiagnosticsModal: React.FC<Props> = ({ isOpen, onClose }) => {
-    const [diagnostics, setDiagnostics] = useState<any>(null);
-    const [rendererMemory, setRendererMemory] = useState<any>(null);
+    const [diagnostics, setDiagnostics] = useState<DiagnosticsReport | null>(null);
+    const [rendererMemory, setRendererMemory] = useState<ProcessMemorySnapshot | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -29,9 +30,9 @@ export const DiagnosticsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 setDiagnostics(diagData);
                 setRendererMemory(rendMem);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to load diagnostics:', err);
-            setError(err.message || 'Failed to load diagnostics.');
+            setError(err instanceof Error ? err.message : 'Failed to load diagnostics.');
         } finally {
             setIsLoading(false);
         }

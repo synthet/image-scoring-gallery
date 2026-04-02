@@ -63,6 +63,7 @@ API and backend integration documentation.
 Development workflows and maintenance recommendations.
 
 - [01 - Lint Recommendations](guides/01-lint-recommendations.md) - Code quality and ESLint fix guidance
+- [02 - API Backend Configuration](guides/02-api-backend-config.md) - How `config.api.url` / `host` / `port` interact with backend lock-file discovery
 - [Agent Coordination](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) - Cross-project integration and coordination protocols (External)
 
 ---

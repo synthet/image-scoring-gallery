@@ -47,7 +47,7 @@ export class ApiClient {
         }
 
         const getPort = (): Promise<number> => {
-            const electron = (window as any).electron;
+            const electron = window.electron;
             if (electron?.getApiPort) {
                 return electron.getApiPort();
             }

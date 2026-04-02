@@ -1,4 +1,4 @@
-const CDP_URL = "http://127.0.0.1:9222";
+import { getCdpBaseUrl } from "./capabilities.js";
 
 interface CdpTarget {
     id: string;
@@ -12,7 +12,7 @@ interface CdpTarget {
  * Discover available CDP targets from the Electron dev server.
  */
 export async function listTargets(): Promise<CdpTarget[]> {
-    const resp = await fetch(`${CDP_URL}/json`, { signal: AbortSignal.timeout(3000) });
+    const resp = await fetch(`${getCdpBaseUrl()}/json`, { signal: AbortSignal.timeout(3000) });
     return (await resp.json()) as CdpTarget[];
 }
 

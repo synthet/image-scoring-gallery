@@ -13,13 +13,20 @@ High-performance Electron desktop gallery app with image scoring, browsing, and 
 
 The backend owns all DDL/schema migrations (`modules/db.py`). This project queries the shared Firebird database but does NOT create or alter tables (except `STACK_CACHE` probe).
 
+## MCP mcp-kanban (optional, user-level)
+
+**mcp-kanban** provides SQLite-backed **tickets / kanban** for multi-session work. Configure it in **user** MCP settings (Cursor, Claude Code, Antigravity, Codex) as server **`mcp-kanban`**—see `.cursor/rules/mcp-kanban.mdc` and `.cursor/skills/mcp-kanban-workflow/SKILL.md`.
+
+- Register this repo with `kanban_register_project` using **`D:\Projects\image-scoring-gallery`** (or your clone path) as `projectFolder`.
+- Use **`D:\Projects\image-scoring-backend`** as `projectFolder` for backend-only tasks.
+
 ## Key Files
 
 - `electron/db.ts` — Firebird query layer (single-connection promise queue)
 - `electron/main.ts` — Electron main process, IPC handlers
 - `electron/apiService.ts` — HTTP client to Python FastAPI backend
 - `src/` — React frontend (Vite + TypeScript)
-- `mcp-server/` — MCP server for AI agent debugging
+- `mcp-server/` — Consolidated stdio MCP (`imgscore-el-gallery`): local tools, optional FastAPI + Electron CDP
 
 ## Backend Integration Points
 
