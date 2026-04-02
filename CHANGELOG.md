@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.2.2] - 2026-04-01
+
+### Fixed
+- **Electron startup**: **`initializeDatabaseProvider`** runs **after** the main window and menu exist so a slow or down Postgres/API check (long **`connectionTimeoutMillis`**) no longer blocks the UI from appearing; failures log a warning and the renderer can still show connection errors.
+- **Browser-mode server** (`server/index.ts`): **`process.stdin.resume()`** when stdin is a non-TTY pipe so nested **`npm`** / **`concurrently`** on Windows does not let Node exit immediately after listen.
+
+### Changed
+- **`npm run dev`**: Single **`concurrently`** with named tabs (**`server`**, **`vite`**, **`electron`**) instead of nesting; **`dev:web`** names **`server`** and **`vite`**; **`dev:electron`** uses **`wait-on http://localhost:5173`** instead of **`tcp:5173`**.
+- **Vite**: **`server.port`** **`5173`** and **`strictPort: true`** so dev URL and readiness checks stay aligned.
+- **`config.example.json`**: Note to keep dev URL / port in sync with Vite (**`strictPort`** fails if the port is busy).
+
 ## [5.2.1] - 2026-04-01
 
 ### Fixed

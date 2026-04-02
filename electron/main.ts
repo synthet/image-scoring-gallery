@@ -771,11 +771,6 @@ function createWebuiShellWindow(targetUrl: string): void {
 async function startFullApplication(): Promise<void> {
     console.log('[Main] App ready, setting up protocol...');
 
-    // Provider-aware DB init:
-    // - Local/Postgres: lightweight connectivity check
-    // - API: connectivity via health endpoint
-    await db.initializeDatabaseProvider();
-
     // Handle media:// requests with path sanitization
     protocol.handle('media', (request) => {
         console.log('[Main] Media request:', request.url);
@@ -1470,6 +1465,14 @@ async function startFullApplication(): Promise<void> {
     console.log('[Main] All IPC handlers registered. Creating window...');
     createWindow();
     rebuildApplicationMenu();
+
+    // Non-blocking: Postgres/API can take connectionTimeoutMillis (e.g. 10s) when Docker/DB is down.
+    // Show the window immediately; the renderer surfaces connection errors via IPC.
+    void db.initializeDatabaseProvider().then((ok) => {
+        if (!ok) {
+            console.warn('[Main] Database provider check failed at startup; UI may show connection errors until DB is reachable.');
+        }
+    });
 }
 
 if (webuiShellOnlyUrl) {

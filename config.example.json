@@ -1,4 +1,5 @@
 {
+    "_example_comment_dev_url": "Keep dev.url in sync with vite.config.ts server.port (default 5173; strictPort fails if that port is busy—free it or change both places).",
     "database": {
         "engine": "firebird",
         "provider": "firebird",

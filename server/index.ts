@@ -12,6 +12,18 @@ import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { URL } from 'url';
+import type { Server } from 'http';
+
+/** When stdin is a closed pipe (nested npm/concurrently on Windows), Node can exit right after startup unless we resume it. */
+function keepStdinFromEndingProcess(): void {
+    try {
+        if (process.stdin.isTTY === false) {
+            process.stdin.resume();
+        }
+    } catch {
+        /* ignore */
+    }
+}
 
 import * as db from '../electron/db';
 import { loadAppConfig, getConfigPath } from '../electron/config';
@@ -27,7 +39,10 @@ const backendBaseUrl = resolveBaseUrl(appConfig);
 
 // ── DB Startup ────────────────────────────────────────────────────────────────
 
+let httpServer: Server | undefined;
+
 async function startServer() {
+    keepStdinFromEndingProcess();
     try {
         await db.connectDB();
         console.log('[Server] DB connected');
@@ -349,7 +364,7 @@ async function startServer() {
     // ── Start ─────────────────────────────────────────────────────────────────
 
     const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
-    app.listen(PORT, () => {
+    httpServer = app.listen(PORT, () => {
         console.log(`[Server] Browser-mode server running on http://localhost:${PORT}`);
         console.log(`[Server] Python backend URL: ${backendBaseUrl}`);
     });
