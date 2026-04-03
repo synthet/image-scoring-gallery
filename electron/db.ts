@@ -50,7 +50,7 @@ interface PathsConfig {
      */
     remap_legacy_image_scoring_thumbnails?: boolean;
     /**
-     * Absolute folder where JPEG thumbnails live (e.g. D:\\Projects\\image-scoring-backend\\thumbnails).
+     * Absolute folder where JPEG thumbnails live (set in config to your machine’s thumbnails root).
      * Used when the DB stores a repo-relative path like thumbnails\\ab\\hash.jpg.
      * If unset, uses ../image-scoring-backend/thumbnails next to the gallery repo when that folder exists.
      */
@@ -232,8 +232,13 @@ export async function getImageCount(options: ImageQueryOptions = {}): Promise<nu
     }
 
     if (keyword) {
-        whereParts.push('keywords LIKE ?');
-        params.push(`%${keyword}%`);
+        whereParts.push(`EXISTS (
+            SELECT 1 FROM image_keywords ik
+            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
+            WHERE ik.image_id = images.id
+            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
+        )`);
+        params.push(`%${keyword}%`, `%${keyword}%`);
     }
 
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
@@ -273,8 +278,13 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
     }
 
     if (keyword) {
-        whereParts.push('keywords LIKE ?');
-        params.push(`%${keyword}%`);
+        whereParts.push(`EXISTS (
+            SELECT 1 FROM image_keywords ik
+            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
+            WHERE ik.image_id = i.id
+            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
+        )`);
+        params.push(`%${keyword}%`, `%${keyword}%`);
     }
 
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
@@ -332,45 +342,16 @@ export async function getKeywords(): Promise<string[]> {
         return keywordsCache.result;
     }
 
-    // DISTINCT reduces rows sent over the wire when many images share keyword combos
-    // castTextExpr handles TEXT coercion for the current DB dialect.
-    let sql = `SELECT DISTINCT ${castTextExpr('keywords')} as keywords FROM images WHERE keywords IS NOT NULL AND keywords <> ''`;
+    // Fetch from normalized keywords_dim table, sorted by keyword_display
+    const sql = `SELECT DISTINCT keyword_display FROM keywords_dim WHERE keyword_display IS NOT NULL AND keyword_display <> '' ORDER BY keyword_display ASC`;
 
     console.log('[DB] Executing getKeywords SQL:', sql);
 
     try {
-        let rows = await query<{ keywords: string | Buffer; KEYWORDS?: string | Buffer; KEYWORDS_1?: string | Buffer }>(sql);
-        console.log(`[DB] getKeywords returned ${rows.length} distinct rows`);
+        const rows = await query<{ keyword_display: string }>(sql);
+        console.log(`[DB] getKeywords returned ${rows.length} distinct keywords`);
 
-        // Fallback if CAST returns nothing but plain query might work (unlikely but safe)
-        if (rows.length === 0) {
-            console.log('[DB] CAST query returned 0 rows. Retrying with raw BLOB query...');
-            sql = `SELECT DISTINCT keywords FROM images WHERE keywords IS NOT NULL AND keywords <> ''`;
-            rows = await query<{ keywords: string | Buffer; KEYWORDS?: string | Buffer; KEYWORDS_1?: string | Buffer }>(sql);
-            console.log(`[DB] Fallback query returned ${rows.length} rows`);
-        }
-
-        const uniqueKeywords = new Set<string>();
-
-        for (const row of rows) {
-            const val = row.keywords || row.KEYWORDS || row.KEYWORDS_1;
-
-            let kwStr = '';
-            if (val) {
-                if (Buffer.isBuffer(val)) {
-                    kwStr = val.toString('utf8');
-                } else if (typeof val === 'string') {
-                    kwStr = val;
-                }
-            }
-
-            if (kwStr) {
-                const parts = kwStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
-                parts.forEach(p => uniqueKeywords.add(p));
-            }
-        }
-
-        const result = Array.from(uniqueKeywords).sort();
+        const result = rows.map(row => row.keyword_display).filter(kw => kw && kw.length > 0);
         console.log(`[DB] Found ${result.length} unique keywords`);
 
         keywordsCache = { result, timestamp: Date.now() };
@@ -562,7 +543,7 @@ export async function deleteFolder(id: number): Promise<boolean> {
 }
 
 /**
- * Strip erroneously concatenated absolute path (e.g. D:/Projects/image-scoring/D:/Photos/...).
+ * Strip erroneously concatenated absolute path (e.g. `D:/repo/D:/Photos/...`).
  * Returns the canonical absolute path.
  */
 function stripConcatenatedAbsolutePath(filePath: string): string {

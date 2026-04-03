@@ -18,6 +18,6 @@ describe('toMediaUrl', () => {
 
     it('electron mnt path uses media:///', () => {
         (window as unknown as { electron: Record<string, unknown> }).electron = {};
-        expect(toMediaUrl('/mnt/d/Projects/x.jpg')).toBe('media:///mnt/d/Projects/x.jpg');
+        expect(toMediaUrl('/mnt/c/Projects/x.jpg')).toBe('media:///mnt/c/Projects/x.jpg');
     });
 });

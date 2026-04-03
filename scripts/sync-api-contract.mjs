@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SNAPSHOT_PATH = resolve(__dirname, '..', 'api-contract', 'openapi.json');
-const SIBLING_PATH = resolve(__dirname, '..', '..', 'image-scoring', 'openapi.json');
+const SIBLING_PATH = resolve(__dirname, '..', '..', 'image-scoring-backend', 'openapi.json');
 const BACKEND_URL = process.env.API_URL || 'http://localhost:7860';
 
 const mode = process.argv[2];

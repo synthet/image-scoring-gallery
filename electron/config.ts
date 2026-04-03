@@ -114,14 +114,25 @@ export function normalizeAppConfig(rawConfig: unknown): AppConfig {
     }
 }
 
+export function getEnvironmentPath(fromDirname: string): string {
+    return path.resolve(path.join(fromDirname, '../environment.json'));
+}
+
 export function loadAppConfig(configPath: string): AppConfig {
     try {
-        if (fs.existsSync(configPath)) {
-            const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            return normalizeAppConfig(parsed);
-        }
+        const baseRaw = fs.existsSync(configPath)
+            ? JSON.parse(fs.readFileSync(configPath, 'utf8'))
+            : {};
+        const base: JsonRecord = isRecord(baseRaw) ? baseRaw : {};
+        const envPath = path.resolve(path.dirname(configPath), 'environment.json');
+        const envRaw = fs.existsSync(envPath)
+            ? JSON.parse(fs.readFileSync(envPath, 'utf8'))
+            : {};
+        const env: JsonRecord = isRecord(envRaw) ? envRaw : {};
+        const merged = deepMergeConfig(base, env);
+        return normalizeAppConfig(merged);
     } catch (e) {
-        console.error('Failed to load config.json:', e);
+        console.error('Failed to load config.json / environment.json:', e);
     }
     return normalizeAppConfig({});
 }

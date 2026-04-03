@@ -37,6 +37,7 @@ dm_check.json
 
 # Local config
 config.json
+environment.json
 
 # Scratch logs
 git_log.txt

@@ -1,16 +1,17 @@
 const Firebird = require('node-firebird');
 const fs = require('fs');
 const path = require('path');
+const { loadMergedConfig } = require('./load-config.cjs');
 
 async function main() {
     console.log("Starting identical duplicate removal script...");
 
-    // 1. Load config
-    const configPath = path.resolve(__dirname, '../config.json');
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    // 1. Load config (config.json merged with environment.json)
+    const projectRoot = path.resolve(__dirname, '..');
+    const config = loadMergedConfig(projectRoot);
     const dbConfig = config.database || {};
 
-    let rawDbPath = dbConfig.path || '../image-scoring/SCORING_HISTORY.FDB';
+    let rawDbPath = dbConfig.path || '../image-scoring-backend/SCORING_HISTORY.FDB';
     const dbPath = path.isAbsolute(rawDbPath)
         ? rawDbPath
         : path.resolve(__dirname, '..', rawDbPath);

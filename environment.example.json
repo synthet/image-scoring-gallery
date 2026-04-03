@@ -1,8 +1,6 @@
 {
-    "_example_comment_dev_url": "Keep dev.url in sync with vite.config.ts server.port (default 5173; strictPort fails if that port is busy—free it or change both places).",
+    "_comment": "Copy to environment.json and set real paths, ports, and URLs for this machine. environment.json is gitignored. Values override the same keys in config.json when both exist.",
     "database": {
-        "engine": "firebird",
-        "provider": "firebird",
         "host": "127.0.0.1",
         "port": 3050,
         "user": "sysdba",
@@ -13,17 +11,7 @@
             "port": 5432,
             "database": "image_scoring",
             "user": "postgres",
-            "password": "postgres",
-            "ssl": {
-                "enabled": false,
-                "rejectUnauthorized": true
-            },
-            "pool": {
-                "min": 0,
-                "max": 10,
-                "idleTimeoutMillis": 30000,
-                "connectionTimeoutMillis": 10000
-            }
+            "password": "postgres"
         }
     },
     "dev": {
@@ -36,7 +24,6 @@
         "path": "../image-scoring-backend/Firebird"
     },
     "paths": {
-        "remap_legacy_image_scoring_thumbnails": true,
         "thumbnail_base_dir": "../image-scoring-backend/thumbnails",
         "thumbnail_path_remap": [
             {

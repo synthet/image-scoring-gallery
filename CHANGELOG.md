@@ -2,11 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.2.4] - 2026-04-02
+
+### Documentation
+
+- **Backlog workflow**: `docs/project/00-backlog-workflow.md` (canonical), `docs/project/BACKLOG_GOVERNANCE.md` (alias), `docs/planning/00-backlog-workflow.md` (redirect); aligned with **image-scoring-backend** and `blob/main` GitHub links.
+- **CLAUDE.md**, **README.md**, **TODO.md**, **AGENTS.md**, **docs/README.md**, integration/planning mirrors: Postgres-only wording, Agent Coordination links, no hardcoded local drives in examples.
+- **`.agent` / `.cursor`**: Workflow and skill copy refreshed where touched.
+
+### Changed
+
+- **`scripts/extract_preview.js`**: Requires **`EXTRACT_PREVIEW_PAIRS_JSON`**; default output under **`tmp/extract-preview`** (no embedded user paths).
+
 ## [5.2.3] - 2026-04-02
 
 ### Documentation
 - **AGENT_COORDINATION**: Link to **DATABASE_REFACTOR_ANALYSIS** for database refactor impact assessments.
 - **DATABASE_REFACTOR_ANALYSIS**: New technical note on gallery compatibility with backend **DB_VECTORS_REFACTOR** (vectors, keywords normalization, scores fact table, stack cache).
+- **Backlog & planning**: `docs/planning/00-backlog-workflow.md`, `docs/project/` (INDEX, TODO, BACKLOG_GOVERNANCE), and planning hub updates aligned with **image-scoring-backend** backlog governance.
+- **Agent material**: Skills (Firebird DB, git-changelog, image-scoring MCP), `setup_env` workflow, and MCP kanban rule/skill refreshed for canonical repo names and Postgres-primary context.
 
 ## [5.2.2] - 2026-04-01
 

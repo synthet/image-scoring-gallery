@@ -166,7 +166,7 @@ export interface AppConfig {
         thumbnail_path_remap?: Array<{ from: string; to: string }>;
         /** Default true: map .../image-scoring/thumbnails/ → .../image-scoring-backend/thumbnails/ */
         remap_legacy_image_scoring_thumbnails?: boolean;
-        /** Absolute thumbnails root, e.g. D:\\Projects\\image-scoring-backend\\thumbnails */
+        /** Absolute thumbnails root (your local path from config) */
         thumbnail_base_dir?: string;
     };
     /** Root folder for filesystem-only (light) mode when the database is unavailable. */

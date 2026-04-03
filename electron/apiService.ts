@@ -262,12 +262,12 @@ export class ApiService {
     // ── Duplicates & Similarity ─────────────────────────────────────────────
 
     findDuplicates(opts?: FindDuplicatesRequest) {
-        return this.post<ApiResponse>('/api/duplicates/find', opts ?? {}, LONG_TIMEOUT);
+        return this.post<ApiResponse>('/api/similarity/duplicates', opts ?? {}, LONG_TIMEOUT);
     }
 
     searchSimilar(opts: SimilarSearchParams) {
         return this.get<SimilarSearchResult>(
-            '/api/similar',
+            '/api/similarity/search',
             {
                 image_id: opts.image_id,
                 limit: opts.limit,
@@ -280,7 +280,7 @@ export class ApiService {
 
     getOutliers(opts: OutlierSearchParams) {
         return this.get<OutlierSearchResult>(
-            '/api/outliers',
+            '/api/similarity/outliers',
             {
                 folder_path: opts.folder_path,
                 z_threshold: opts.z_threshold,

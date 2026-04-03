@@ -21,24 +21,24 @@
   },
   "paths": {
     "remap_legacy_image_scoring_thumbnails": true,
-    "thumbnail_base_dir": "D:\\Projects\\image-scoring-backend\\thumbnails",
+    "thumbnail_base_dir": "./thumbnails",
     "thumbnail_path_remap": [
       {
-        "from": "D:\\Projects\\image-scoring\\thumbnails",
-        "to": "D:\\Projects\\image-scoring-backend\\thumbnails"
+        "from": "../image-scoring/thumbnails",
+        "to": "./thumbnails"
       },
       {
-        "from": "D:/Projects/image-scoring/thumbnails",
-        "to": "D:/Projects/image-scoring-backend/thumbnails"
+        "from": "../image-scoring/thumbnails",
+        "to": "./thumbnails"
       },
       {
-        "from": "/mnt/d/Projects/image-scoring/thumbnails",
-        "to": "/mnt/d/Projects/image-scoring-backend/thumbnails"
+        "from": "/mnt/wsl/path/to/image-scoring/thumbnails",
+        "to": "./thumbnails"
       }
     ]
   },
   "selection": {
     "smartCoverEnabled": true
   },
-  "lightModeRootFolder": "D:\\Photos"
+  "lightModeRootFolder": ""
 }

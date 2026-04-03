@@ -2,18 +2,19 @@ const Firebird = require('node-firebird');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { loadMergedConfig } = require('./load-config.cjs');
 const { ExifTool } = require('exiftool-vendored');
 const exiftool = new ExifTool({ maxProcs: 10 });
 
 async function main() {
     console.log("Starting UUID generation (Deterministic Mode - Read Only)...");
 
-    // 1. Load config
-    const configPath = path.resolve(__dirname, '../config.json');
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    // 1. Load config (config.json merged with environment.json)
+    const projectRoot = path.resolve(__dirname, '..');
+    const config = loadMergedConfig(projectRoot);
     const dbConfig = config.database || {};
 
-    let rawDbPath = dbConfig.path || '../image-scoring/SCORING_HISTORY.FDB';
+    let rawDbPath = dbConfig.path || '../image-scoring-backend/SCORING_HISTORY.FDB';
     const dbPath = path.isAbsolute(rawDbPath)
         ? rawDbPath
         : path.resolve(__dirname, '..', rawDbPath);
