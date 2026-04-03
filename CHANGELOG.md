@@ -10,10 +10,6 @@ All notable changes to this project will be documented in this file.
 - **CLAUDE.md**, **README.md**, **TODO.md**, **AGENTS.md**, **docs/README.md**, integration/planning mirrors: Postgres-only wording, Agent Coordination links, no hardcoded local drives in examples.
 - **`.agent` / `.cursor`**: Workflow and skill copy refreshed where touched.
 
-### Changed
-
-- **`scripts/extract_preview.js`**: Requires **`EXTRACT_PREVIEW_PAIRS_JSON`**; default output under **`tmp/extract-preview`** (no embedded user paths).
-
 ## [5.2.3] - 2026-04-02
 
 ### Documentation
