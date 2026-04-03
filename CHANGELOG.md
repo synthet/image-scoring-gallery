@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.3.0] - 2026-04-03
+
+### Added
+- **Vite dev proxy**: Resolves the backend base URL from **`webui.lock`** / **`webui-debug.lock`** (sibling **image-scoring-backend** or repo root) and proxies **`/gallery-api`** (with path rewrite) and **`/media`** to that host/port; logs the chosen target at config load.
+
+### Changed
+- **Postgres / `electron/db`**: **`getImageDetails`** builds **`keywords`** from **`image_keywords`** + **`keywords_dim`** (**`string_agg`** on **`keyword_display`**); stack image queries filter by keyword via **`EXISTS`** on those tables (**`keyword_display`** / **`keyword_norm`**, case-insensitive) instead of **`images.keywords LIKE`**.
+
+### Documentation
+- **environment.example.json**: **`browser_server.port`** example for the browser-mode server.
+
 ## [5.2.4] - 2026-04-02
 
 ### Documentation

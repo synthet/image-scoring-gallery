@@ -31,5 +31,8 @@
                 "to": "../image-scoring-backend/thumbnails"
             }
         ]
+    },
+    "browser_server": {
+        "port": 3001
     }
 }

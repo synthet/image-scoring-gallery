@@ -421,7 +421,10 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
             i.score_koniq,
             i.score_paq2piq,
             i.score_liqe,
-            ${castTextExpr('i.keywords')} as keywords,
+            (SELECT string_agg(kd.keyword_display, ', ') 
+             FROM image_keywords ik 
+             JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id 
+             WHERE ik.image_id = i.id) as keywords,
             ${castTextExpr('i.title')} as title,
             ${castTextExpr('i.description')} as description,
             i.metadata,
@@ -1065,8 +1068,13 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
     }
 
     if (keyword) {
-        whereParts.push('i.keywords LIKE ?');
-        params.push(`%${keyword}%`);
+        whereParts.push(`EXISTS (
+            SELECT 1 FROM image_keywords ik
+            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
+            WHERE ik.image_id = i.id
+            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
+        )`);
+        params.push(`%${keyword}%`, `%${keyword}%`);
     }
 
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
