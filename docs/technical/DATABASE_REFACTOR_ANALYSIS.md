@@ -1,14 +1,14 @@
 # Database Refactor Compatibility Analysis
 
 ## Overview
-This document analyzes the impact of the proposed [DB_VECTORS_REFACTOR.md](file:///D:/Projects/image-scoring-backend/docs/plans/database/DB_VECTORS_REFACTOR.md) on the `image-scoring-gallery` (Electron) application.
+This document analyzes the impact of the proposed [DB_VECTORS_REFACTOR.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/plans/database/DB_VECTORS_REFACTOR.md) on the **image-scoring-gallery** (Electron) application.
 
 ## Compatibility Matrix
 
 | Refactor Phase | Impact | Risk Level | Required Actions |
 | :--- | :--- | :--- | :--- |
 | **Multi-Type Vectors** | Low | 🟢 Low | None (uses legacy columns). |
-| **Keywords Normalization (A0)** | Medium | 🟡 Medium | Update `db.ts` to use `keywords_dim`. |
+| **Keywords Normalization (A0)** | Medium | 🟢 Low | Implemented (Compatibility Mode) — `db.ts` updated. |
 | **Scores Fact Table (A1)** | High | 🔴 High | Update all query logic or use DB VIEWS. |
 | **Stack Cache** | Medium | 🟡 Medium | Sync `stack_cache` schema with `image_scores`. |
 

@@ -1,5 +1,5 @@
 # Frontend Code & Design Review Report
-## electron-image-scoring v3.24.1
+## image-scoring-gallery v3.24.1
 
 **Date:** 2026-03-02
 
@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-This document provides a comprehensive technical review of the **electron-image-scoring** repository, which serves as the frontend client for the AI-powered Image Scoring System. While the application establishes a solid foundation leveraging Electron, React, and Vite, it currently suffers from significant technical debt related to database connection management, memory scalability, and test coverage.
+This document provides a comprehensive technical review of the **image-scoring-gallery** repository, which serves as the frontend client for the AI-powered Image Scoring System. While the application establishes a solid foundation leveraging Electron, React, and Vite, it currently suffers from significant technical debt related to database connection management, memory scalability, and test coverage.
 
 Addressing the critical architectural bottlenecks—particularly the lack of database connection pooling and unbounded memory growth—is essential before adding new features. These improvements should be paired with the security and thread-safety resolutions required on the backend Python pipeline.
 
@@ -241,6 +241,6 @@ The following findings have been implemented and verified (TypeScript compilatio
 
 ## Conclusion
 
-The currently architected electron-image-scoring frontend presents a deeply capable, functionally rich foundation intended for navigating and dynamically analyzing exponentially large photographer media sets. Realistically however, its long-term baseline stability remains heavily compromised by critical scaling bottlenecks primarily driven by the 1-to-1 database connection teardown design and deeply unstructured IPC/error reporting methodologies.
+The currently architected image-scoring-gallery frontend presents a deeply capable, functionally rich foundation intended for navigating and dynamically analyzing exponentially large photographer media sets. Realistically however, its long-term baseline stability remains heavily compromised by critical scaling bottlenecks primarily driven by the 1-to-1 database connection teardown design and deeply unstructured IPC/error reporting methodologies.
 
 Just as its paired system architecture—the Image Scoring Backend Pipeline—requires immediate thread safety and robust queue-processing modifications—the frontend codebase must unequivocally mandate memory-safety state prioritization and explicit connection economy pooling ahead of engaging new extensive graphical features to achieve a true production-ready status.

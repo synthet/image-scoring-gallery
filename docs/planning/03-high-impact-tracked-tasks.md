@@ -133,7 +133,7 @@ These tracked tasks are the auditable execution records for the five highest-imp
     - Shipping features without agreed backend contract/versioning.
 - **Dependencies (backend/migration)**:
   - Backend: Required for similarity/embedding endpoints and progress/event support.
-  - Migration: Potentially impacted by Firebird→Postgres milestones if embedding data paths change.
+  - Migration: Embedding data lives in PostgreSQL; coordinate with backend schema/API changes only.
 - **Definition of done**:
   - Each of the four features has: implemented UI path, integrated backend calls/events, and user-facing acceptance criteria met.
   - Contract/version notes documented for cross-repo compatibility.

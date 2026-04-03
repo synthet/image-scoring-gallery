@@ -10,17 +10,19 @@ description: Set up the Node.js development environment
 2. **Install dependencies**:
    // turbo
    ```pwsh
-   npm install --prefix "d:\Projects\image-scoring-gallery"
+   npm install
    ```
+   (Run from the gallery repo root.)
 
 3. **Start PostgreSQL**:
    Ensure the PostgreSQL Docker container is running:
    ```pwsh
-   docker compose -f "d:\Projects\image-scoring-backend\docker-compose.yml" up -d
+   docker compose -f "../image-scoring-backend/docker-compose.yml" up -d
    ```
+   (Adjust the path if your backend clone is not a sibling folder.)
 
 4. **Configure database connection**:
-   Edit `d:\Projects\image-scoring-gallery\config.json` with your PostgreSQL credentials:
+   Edit `config.json` in the gallery repo root with your PostgreSQL credentials:
    ```json
    {
      "database": {
@@ -39,7 +41,7 @@ description: Set up the Node.js development environment
 5. **Verify setup**:
    // turbo
    ```pwsh
-   npm run lint --prefix "d:\Projects\image-scoring-gallery"
+   npm run lint
    ```
    **Success**: No ESLint errors.
 

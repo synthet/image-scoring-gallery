@@ -221,13 +221,13 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - **Gallery thumbnails**: Grid and similar-search tiles no longer point `<img>` at `.NEF`/RAW files (browsers cannot decode them). Prefer `thumbnail_path` JPEGs; otherwise use the same embedded-JPEG extraction path as the viewer, with a small concurrency limit and LRU blob cache. **`media://` handler** now uses `pathToFileURL` for correct Windows `file:` URLs and allows absolute paths without the old `:` heuristic that blocked UNC locations.
-- **Thumbnail paths from DB**: List/detail queries now load `thumbnail_path_win` and resolve **`thumbnail_path` for the renderer** (Windows prefers the native column, matching Python `get_thumb_win`). Default remap **`.../image-scoring/thumbnails/` → `.../image-scoring-backend/thumbnails/`** when the backend repo was renamed; **`paths.thumbnail_base_dir`** (e.g. `D:\\Projects\\image-scoring-backend\\thumbnails`) joins repo-relative DB paths; **`paths.thumbnail_path_remap`** handles other prefixes. `config.json` / `config.example.json` include the usual layout.
+- **Thumbnail paths from DB**: List/detail queries now load `thumbnail_path_win` and resolve **`thumbnail_path` for the renderer** (Windows prefers the native column, matching Python `get_thumb_win`). Default remap **`.../image-scoring/thumbnails/` → `.../image-scoring-backend/thumbnails/`** when the backend repo was renamed; **`paths.thumbnail_base_dir`** (absolute thumbnails root on your machine) joins repo-relative DB paths; **`paths.thumbnail_path_remap`** handles other prefixes. `config.json` / `config.example.json` include the usual layout.
 
 ## [3.43.0] - 2026-03-19
 
 ### Changed
 - **apiService**: `getScopeTree` now passes `include_phase_status: false` by default.
-- **db**: Added `stripConcatenatedAbsolutePath` to fix erroneously concatenated paths (e.g. `D:/Projects/.../D:/Photos/...`) in folder creation and path normalization.
+- **db**: Added `stripConcatenatedAbsolutePath` to fix erroneously concatenated paths (e.g. `D:/repo/.../D:/Photos/...`) in folder creation and path normalization.
 - **AppContent**: Header label shows "items (grouped)" instead of "stacks" when in stacks mode.
 
 ## [3.42.0] - 2026-03-18

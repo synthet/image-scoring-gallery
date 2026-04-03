@@ -16,7 +16,7 @@ When the user asks about a **kanban board**, **MCP tickets**, **task queue**, **
 | Antigravity | `~/.gemini/antigravity/mcp_config.json` |
 | Codex | `~/.codex/config.toml` → `[mcp_servers.mcp-kanban]` |
 
-Server key name: **`mcp-kanban`**. Upstream repo: `D:\Projects\mcp-kanban`.
+Server key name: **`mcp-kanban`**. Clone the upstream **mcp-kanban** repo wherever you keep third-party tools (use that path when contributing upstream).
 
 ## Tools (invoke via MCP)
 
@@ -25,12 +25,12 @@ Server key name: **`mcp-kanban`**. Upstream repo: `D:\Projects\mcp-kanban`.
 
 ## This workspace
 
-For **image-scoring-gallery** work, register and use **`D:\Projects\image-scoring-gallery`** as `projectFolder`. For Python backend work, use **`D:\Projects\image-scoring-backend`** (sibling path).
+For **image-scoring-gallery** work, register and use your **absolute local path** to this repo as `projectFolder`. For Python backend work, use your **absolute local path** to the **image-scoring-backend** clone (often a sibling folder).
 
 **Key collision:** both folder names truncate to the same Kanban key prefix `IMAGE-SCORIN`. For tickets that span both repos, create them under **one** Kanban project (often the backend folder) and set `metadata.primaryRepo` to `image-scoring-gallery` when the work is gallery-only. See backend `.cursor/rules/mcp-kanban.mdc` for detail.
 
 ## Workflows and troubleshooting
 
-Same patterns as the backend rule: register project → create/list/update tickets → work logs for handoffs. See **`D:\Projects\image-scoring-backend\.cursor\skills\mcp-kanban-workflow\SKILL.md`** (or the copy under this repo’s `.cursor/skills/`) for step-by-step flows.
+Same patterns as the backend rule: register project → create/list/update tickets → work logs for handoffs. See **image-scoring-backend** `.cursor/skills/mcp-kanban-workflow/SKILL.md` (or the copy under this repo’s `.cursor/skills/`) for step-by-step flows.
 
 If kanban tools are missing from the tool list, confirm **`mcp-kanban`** is enabled in the user MCP config for your client.

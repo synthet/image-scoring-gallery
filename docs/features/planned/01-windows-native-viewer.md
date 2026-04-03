@@ -499,7 +499,7 @@ Use JSON or INI for user preferences:
 
 ```json
 {
-  "database_path": "/path/to/image-scoring/scoring_history.fdb",
+  "database_path": "/path/to/image-scoring-backend/scoring_history.fdb",
   "thumbnail_cache_size_mb": 200,
   "page_size": 50,
   "default_sort": "score_general",

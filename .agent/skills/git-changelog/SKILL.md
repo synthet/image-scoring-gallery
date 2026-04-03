@@ -24,7 +24,7 @@ The `git` MCP server is enabled and configured for the `image-scoring` repo. For
 | `mcp_git_git_checkout` | Switch branches |
 
 > [!NOTE]
-> The MCP git server is configured for `d:\Projects\image-scoring`. For the Electron project at `d:\Projects\image-scoring-gallery`, use shell `git` commands instead.
+> The MCP git server may be configured for a specific backend clone. For this gallery repo, use shell `git` commands or your editor’s git integration.
 
 ## Changelog Format
 
@@ -59,7 +59,7 @@ All notable changes to this project will be documented in this file.
 
 ### Step 1: Research Recent Changes
 ```bash
-cd d:\Projects\image-scoring-gallery
+cd /path/to/image-scoring-gallery
 git log --oneline -10
 git status
 git diff --stat HEAD~5

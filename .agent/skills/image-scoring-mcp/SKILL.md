@@ -63,8 +63,8 @@ This server points at sibling **`image-scoring-backend`** and is disabled by def
 "imgscore-el-stdio": {
     "command": "python",
     "args": ["-m", "modules.mcp_server"],
-    "cwd": "d:\\Projects\\image-scoring-backend",
-    "env": { "PYTHONPATH": "d:\\Projects\\image-scoring-backend" },
+    "cwd": "${workspaceFolder}/../image-scoring-backend",
+    "env": { "PYTHONPATH": "${workspaceFolder}/../image-scoring-backend" },
     "disabled": true
 }
 ```

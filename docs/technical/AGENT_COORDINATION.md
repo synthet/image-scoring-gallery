@@ -1,43 +1,14 @@
-# Agent Coordination: Integration Guide
+# Agent Coordination (stub)
 
-This document defines the coordination protocols for AI agents working across the [image-scoring-backend](https://github.com/synthet/image-scoring) (backend) and [image-scoring-gallery](https://github.com/synthet/electron-image-scoring) (gallery) projects.
+Cross-project integration rules for **image-scoring-gallery** ↔ **image-scoring-backend** are maintained in a **single canonical document** in the backend repo:
 
-## 🏗️ Architectural Overview
+**[Agent Coordination — Integration Guide](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md)** (canonical copy in **image-scoring-backend**)
 
-The integration relies on two primary shared components:
-1.  **Shared Database**: PostgreSQL + pgvector (running in Docker).
-    *   **Owner**: `image-scoring-backend` defines the schema in `modules/db_postgres.py` and versioned migrations via Alembic.
-    *   **Consumer**: `image-scoring-gallery` performs high-speed queries for the UI via `pg` (node-postgres).
-2.  **Service Interface**: FastAPI backend (default port `7860`).
-    *   **Provider**: `image-scoring-backend` exposes endpoints for scoring, tagging, and clustering.
-    *   **Consumer**: `image-scoring-gallery` triggers jobs via this API.
+Read that guide for shared database ownership (PostgreSQL + Alembic), FastAPI contract (`modules/api.py`), and MCP troubleshooting.
 
-## 🤝 Coordination Protocols
+**Gallery-specific sync points:**
 
-### 1. Schema Changes
-*   **Protocol**: Changes to the database schema MUST be implemented in the backend project first (via Alembic migrations).
-*   **Agent Action**: The backend agent should notify the frontend agent (or the user) of any column additions, removals, or type changes.
-*   **Sync Point**: The frontend agent must update `electron/db.ts` to reflect the new schema in query logic. See [DATABASE_REFACTOR_ANALYSIS.md](DATABASE_REFACTOR_ANALYSIS.md) for current impact assessments.
+- **`electron/db.ts`** — Query layer must match backend schema and views; see [DATABASE_REFACTOR_ANALYSIS.md](DATABASE_REFACTOR_ANALYSIS.md) for refactor impact.
+- **`electron/apiService.ts`** — Must stay aligned with backend REST shapes and paths when jobs or metadata APIs change.
 
-### 2. API Contract
-*   **Protocol**: The backend defines the REST API surface in `modules/api.py`.
-*   **Agent Action**: Any modification to request/response structures or endpoint paths requires a corresponding update in the frontend.
-*   **Sync Point**: The frontend agent must update `electron/apiService.ts` and relevant frontend hooks.
-
-### 3. Shared Resource Configuration
-*   **Protocol**: Configuration paths in `image-scoring-gallery/config.json` point to resources in `image-scoring-backend/`.
-*   **Agent Action**: Moving the database Docker container or changing connection credentials necessitates config updates in both projects.
-
-## 🔍 Troubleshooting with MCP
-
-Agents in both projects have access to the `image-scoring` MCP server. Use it to diagnose cross-project issues:
-
-| Tool | Usage in Coordination |
-|------|------------------------|
-| `get_recent_jobs` | Verify if a job triggered by the Electron app actually started in the backend. |
-| `check_database_health` | Diagnose data inconsistencies after bulk operations. |
-| `query_images` | Compare CLI/DB output with UI results to locate bugs in the query layer. |
-| `get_runner_status` | Check if background workers (scoring/tagging) are alive. |
-
-## 📚 Maintenance
-Keep this document and `AGENTS.md` in both repositories synchronized after any major integration refactor.
+For backlog habits and cross-repo task tags, see [`docs/project/00-backlog-workflow.md`](../project/00-backlog-workflow.md) (this repo; [`BACKLOG_GOVERNANCE.md`](../project/BACKLOG_GOVERNANCE.md) is an alias) and the backend twin **[`00-backlog-workflow.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/project/00-backlog-workflow.md)**; also [`docs/integration/TODO.md`](../integration/TODO.md).

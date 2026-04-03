@@ -126,7 +126,7 @@ const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` 
 
 ## Relationship to image-scoring-backend Project
 
-The PostgreSQL database is **owned by** the Python `image-scoring-backend` project at `d:\Projects\image-scoring-backend`. That project:
+The PostgreSQL database is **owned by** the Python **image-scoring-backend** project (your local clone). That project:
 - Runs neural network models (MUSIQ family, LIQE) on images
 - Writes raw scores to the database
 - Manages the PostgreSQL Docker container

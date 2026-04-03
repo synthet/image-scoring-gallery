@@ -1,17 +1,19 @@
 # TODO - Electron Image Scoring
 
-Project-level task list. Items marked `[Python]`, `[Gradio]`, or `[DB]` involve the Python image-scoring project or database integrations.
+**Last evaluated:** 2026-04-02
 
-> **Source of truth & update order:** This file is the canonical task ledger (owner: Electron maintainers). Update this file first, then sync `docs/planning/01-roadmap-todo.md`, then `docs/integration/TODO.md`, and finally `docs/features/planned/embeddings/TODO.md`.
+Project-level task list. Items marked `[Python]`, `[Gradio]`, or `[DB]` involve the Python backend or database integrations. The backend’s root [`TODO.md`](https://github.com/synthet/image-scoring-backend/blob/main/TODO.md) uses **`[Electron]`** for work in this repo — same cross-repo pairs, opposite perspective.
 
-Last evaluated: 2026-04-01.
+**How to use this file:** See [`docs/project/00-backlog-workflow.md`](docs/project/00-backlog-workflow.md) for source-of-truth rules, mirror sync order, tracking habits, and hygiene ([`BACKLOG_GOVERNANCE.md`](docs/project/BACKLOG_GOVERNANCE.md) is an alias). Twin in **image-scoring-backend**: **[`docs/project/00-backlog-workflow.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/project/00-backlog-workflow.md)** ([`BACKLOG_GOVERNANCE.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/project/BACKLOG_GOVERNANCE.md) there is an alias).
+
+> **Source of truth & update order:** Canonical task ledger (owner: Electron maintainers). Update this file first, then sync `docs/planning/01-roadmap-todo.md`, then `docs/integration/TODO.md`, and finally `docs/features/planned/embeddings/TODO.md` — full order in [`docs/project/00-backlog-workflow.md`](docs/project/00-backlog-workflow.md).
 
 | Marker | Use when |
 |--------|----------|
-| `[Python]` | Requires changes in `D:\Projects\image-scoring` or coordination with Python backend |
+| `[Python]` | Requires changes in the Python backend repo (sibling `image-scoring-backend`) or API coordination |
 | `[Gradio]` | Gradio/WebSocket bridge or real-time AI pipeline integration |
-| `[DB]` | Firebird schema, queries, connection layer, or migration |
-| `[DB+Python]` | Coordinated DB work across both repos (e.g. Firebird→Postgres migration) |
+| `[DB]` | Database schema, queries, or connector layer in this app (`pg` / `api`) |
+| `[DB+Python]` | Coordinated DB work across gallery + Python backend (e.g. schema or API contract) |
 
 ### Count Snapshot Rules
 
@@ -23,36 +25,33 @@ Use these rules whenever reporting counts in this file (or in linked planning do
   - Items with none of those markers are counted as **Electron-only**.
   - `[DB+Python]` is a single cross-repo class (do not double-count it as both `[DB]` and `[Python]`).
 
-#### Compact Counting Example (from `Python / Backend Integration`)
+#### Compact Counting Example (illustrative)
 
-- Open items in the section: **5**
-- Cross-repo items: **4** (`[Gradio]` ×2, `[Python]` ×2)
-- Electron-only items: **1** (`Document config.api.url / config.api.port override in user-facing docs`)
-- Check: `open (5) = cross-repo (4) + Electron-only (1)`
+If a section had five open lines — four tagged `[Python]`/`[Gradio]` and one with no marker — then: open **5** = cross-repo **4** + Electron-only **1**. Recompute from the current checklist whenever you update the snapshot above.
 
 ---
 
-## Unfinished Business Evaluation (2026-04-01)
+## Unfinished Business Evaluation (2026-04-02)
 
 ### Current Status Snapshot
 
-- **Total open items**: 14
+- **Total open items**: 10
 - **Electron-only (unblocked) items**: 1
-- **Cross-repo dependency items** (`[Python]`, `[Gradio]`, `[DB]`, `[DB+Python]`): 13
+- **Cross-repo dependency items** (`[Python]`, `[Gradio]`, `[DB]`, `[DB+Python]`): 9
 
 ### Highest-Impact Next Steps (Recommended Sequence)
 
 1. **[EIS-105](docs/planning/03-high-impact-tracked-tasks.md#eis-105---execute-embedding-feature-wave-with-backend-coordination) - Execute embedding feature wave with backend coordination** (Tag Propagation → Outlier Detection → 2D Map → Smart Stack Representative).
 2. **Consolidate styling into a unified system** (CSS Modules or Tailwind) to reduce UI churn after the `AppContent.tsx` decomposition.
 3. **Tighten backend integration hygiene** by keeping `electron/apiTypes.ts` aligned with backend contract changes and adding similarity IPC handlers as backend endpoints land.
-4. **Plan the Firebird→Postgres provider transition** (provider abstraction, client cutover, and removal of Firebird-only runtime assumptions) before deeper backend expansion.
+4. **Residual Postgres-era cleanup** — align user-facing copy, `README.md`, and `config.example.json` with PostgreSQL-only operation (remove misleading Firebird-era strings where they still appear).
 5. ~~**[EIS-104](docs/planning/03-high-impact-tracked-tasks.md#eis-104---close-local-quality-debt-prior-to-backend-expansion) - Close local quality debt**~~ — done (2026-04-01).
 
 ### Dependency Notes
 
-- **Backend-gated work**: Similarity endpoints, Gradio live progress, and semantic embedding features require coordinated Python API support.
-- **Migration-gated work**: Firebird driver replacement and provider abstraction should be planned together with Python's Firebird→Postgres cutover milestones.
-- **Docs drift risk**: Keep this file, `docs/planning/01-roadmap-todo.md`, and feature-specific TODO docs synchronized whenever statuses change.
+- **Backend-gated work**: Similarity endpoints, Gradio bridge milestones, and semantic embedding features require coordinated Python API support ([Agent Coordination](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md)).
+- **Database stack**: Production Electron paths use **`pg`** (local Postgres) or **`api`** (HTTP SQL to the backend). Firebird is decommissioned; see [migration doc](docs/planning/02-firebird-postgresql-migration.md).
+- **Docs drift risk**: Keep this file, `docs/planning/01-roadmap-todo.md`, and feature-specific TODO docs synchronized whenever statuses change. Follow [`docs/project/00-backlog-workflow.md`](docs/project/00-backlog-workflow.md).
 
 ---
 
@@ -92,7 +91,7 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 
 - [ ] Refactor folder lookup to indexed structure in `useFolders` [DB]
 - [x] Cleanup high-impact production `no-explicit-any` / hook smell in paths touched for EIS-104 (full-repo ESLint baseline still includes test mocks and other files)
-- [ ] **2D Embedding Map** [Python]: Create `EmbeddingMap.tsx`, WebGL visualization of 1280-d vectors projected to 2D, add navigation to map view in `AppContent.tsx`
+- [ ] **2D Embedding Map** [Python]: Extend `EmbeddingMap.tsx` (currently a placeholder scaffold) with projection pipeline, WebGL/canvas visualization of 1280-d vectors projected to 2D, and map UX in `AppContent.tsx`
 - [ ] **Outlier Detection** UI [Python]: Add "Show Outliers" toggle to `FilterPanel.tsx`, visual badge in `GalleryGrid.tsx`, connect to backend outlier detection endpoint
 - [ ] **Smart Stack Representative** [Python]: Add "Smart Cover" toggle to `SelectionSettings.tsx`, implement centroid-based cover selection in IPC/Backend
 
@@ -100,7 +99,7 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 
 ## Python / Backend Integration [Python] [Gradio]
 
-- [ ] [Gradio] Gradio Integration: Enhance IPC/WebSocket bridge for real-time AI updates — coordinate bidirectional command channel protocol with Python backend (see `image-scoring/TODO.md` → Clustering & Embeddings)
+- [ ] [Gradio] Gradio Integration: Enhance IPC/WebSocket bridge for real-time AI updates — coordinate bidirectional command channel protocol with Python backend (see sibling **`image-scoring-backend`/TODO.md** → Clustering & Embeddings)
 - [x] [Gradio] Subscribe to `job_progress` for live progress bar (`src/hooks/useGalleryWebSocket.ts` `subscribe('job_progress', ...)`, rendered via `src/components/Layout/JobProgressBar.tsx`, state in `src/store/useJobProgressStore.ts`)
 - [ ] [Python] Add IPC handlers for new similarity endpoints when backend exposes them (`/api/similarity/*`)
 - [ ] [Python] Sync `electron/apiTypes.ts` when backend API contract changes
@@ -111,16 +110,13 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 
 ## Database & Migration [DB]
 
-- [ ] [DB] Outdated `node-firebird` driver: evaluate `node-firebird-driver-native` or typed schema wrapper
 - [x] Finalize Firebird decommissioning in Electron app:
     - [x] Remove legacy `engine: firebird` mapping in `provider.ts`.
     - [x] Remove `RETURNING` syntax fallbacks in `db.ts` (Postgres supports it).
     - [x] Remove Firebird system table checks (`RDB$RELATION_NAME`) in `db.ts`.
     - [x] Update tests to reflect removal of `firebird` support.
     - [x] Confirm all 115+ tests pass with Postgres-only logic.
-- [ ] [DB+Python] Phase 4 (Firebird→Postgres): Add DB provider abstraction in `electron/db.ts` for Postgres
-- [ ] [DB+Python] Migrate Electron from `node-firebird` to Postgres client after Python cutover
-- [ ] [DB+Python] Remove Firebird-specific runtime assumptions (port checks, auto-start server path, Firebird-only SQL)
+- [x] [DB+Python] Phase 4 (Firebird→Postgres): DB provider abstraction (`electron/db/provider.ts`), `pg` driver, removal of `node-firebird` and Firebird runtime assumptions (completed 2026-03/04; see [migration plan](docs/planning/02-firebird-postgresql-migration.md)).
 
 ---
 
@@ -134,6 +130,7 @@ Use these rules whenever reporting counts in this file (or in linked planning do
 
 ## References
 
+- [Backlog workflow (how to pick & track tasks)](docs/project/00-backlog-workflow.md)
 - [Roadmap / Planning](docs/planning/01-roadmap-todo.md)
 - [Firebird→PostgreSQL Migration](docs/planning/02-firebird-postgresql-migration.md)
 - [API Integration TODO](docs/integration/TODO.md)

@@ -1,8 +1,8 @@
 ## Roadmap update checklist
 - [ ] Counts recalculated
-- [ ] Related TODO docs synced
+- [ ] Related TODO docs synced (mirror order: `docs/project/00-backlog-workflow.md`)
 - [ ] Dependency labels reviewed
-- [ ] "Last evaluated" date updated
+- [ ] **Last evaluated** / **Last reviewed** date updated in root `TODO.md`
 
 ## Open-item totals and dependency split (required)
 Provide a short before/after summary covering both:

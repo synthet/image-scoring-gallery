@@ -1,6 +1,6 @@
 # Embedding Features TODO List
 
-This document tracks remaining work for embedding-related features in the Electron Gallery.
+This document tracks remaining work for embedding-related features in the Electron Gallery. **Canonical backlog:** repo-root [`TODO.md`](../../../../TODO.md). **Workflow / sync order:** [`docs/project/00-backlog-workflow.md`](../../../project/00-backlog-workflow.md).
 
 ## ✅ Implemented
 - [x] Diversity-Aware Selection: settings + MMR logic integrated.
@@ -8,9 +8,9 @@ This document tracks remaining work for embedding-related features in the Electr
 - [x] "More Like This": similarity drawer + backend query path.
 
 ## 🟡 In Progress
-- [ ] **Gradio Integration**: Enhance IPC/WebSocket bridge for real-time AI updates (`job_progress` subscription is complete in `src/hooks/useGalleryWebSocket.ts` via `subscribe('job_progress', ...)`, surfaced by `src/components/Layout/JobProgressBar.tsx` with state in `src/store/useJobProgressStore.ts`; focus remaining work on broader queue/log pipeline milestones).
-- [ ] Feature 5 (2D Embedding Map): scaffolded UI route and placeholder component; backend projection + renderer still pending.
-- [ ] Feature 6 (Smart Stack Representative): toggle + persistence + request threading scaffolded; backend representative selection still pending.
+- [ ] **Gradio / pipeline bridge**: Broaden IPC/WebSocket coverage beyond `job_progress` (subscription is done: `useGalleryWebSocket` → `JobProgressBar` / `useJobProgressStore`). Remaining: queue/log pipeline parity with backend milestones.
+- [ ] **Feature 5 (2D Embedding Map):** `EmbeddingMap.tsx` is a **placeholder scaffold** (props + loading/error UI); projection endpoint, WebGL/canvas renderer, and interactions remain.
+- [ ] **Feature 6 (Smart Stack Representative):** UI toggle/persistence/threading partially scaffolded; backend centroid/hybrid representative selection and UI polish remain.
 
 ## 🔴 Planned
 ### Feature 3: Tag Propagation

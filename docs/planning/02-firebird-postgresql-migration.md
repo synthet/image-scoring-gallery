@@ -2,11 +2,11 @@
 
 Date: 2026-03-08 (plan created), 2026-03-30 (all phases completed)
 Status: **Completed** — All 4 phases done. PostgreSQL is the production database for both Python backend and Electron gallery. Firebird has been decommissioned. Final "Deep Cleanup" of shims completed 2026-04-01.
-Scope: image-scoring + image-scoring-gallery coordinated migration
+Scope: **image-scoring-backend** + **image-scoring-gallery** coordinated migration
 
 ## Summary
 
-- Treat this as a **coordinated platform migration** across both repos (`image-scoring` and `image-scoring-gallery`), not a frontend-only or backend-only DB split.
+- Treat this as a **coordinated platform migration** across both repos (**image-scoring-backend** and **image-scoring-gallery**), not a frontend-only or backend-only DB split.
 - Keep your selected rollout defaults: **phased dual-write**, **Postgres in local Docker**, **Python app + MCP as day-1 cutover scope**.
 - Add explicit **Electron migration gates** before final Firebird retirement, aligned with Electron docs that currently recommend Firebird until coordinated migration is ready.
 
@@ -40,7 +40,7 @@ Scope: image-scoring + image-scoring-gallery coordinated migration
 
 ## Public API / Interface Changes
 
-- `image-scoring` config:
+- **image-scoring-backend** config:
   - `database.backend` (`firebird|postgres`)
   - `database.dual_write_enabled`
   - `database.postgres.{host,port,db,user,password,sslmode,pool}`

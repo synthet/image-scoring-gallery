@@ -1,17 +1,19 @@
 # Database Connection Abstraction Layer
 
-The goal is to create a robust database connection abstraction layer with multiple implementations:
-1.  **FirebirdConnector**: Direct connection to Firebird (existing logic).
-2.  **PostgresConnector**: Direct connection to PostgreSQL (existing logic).
-3.  **ApiConnector**: Redirects database requests to a remote Python backend (new).
+> **Status (2026-04):** Implemented in **`electron/db/provider.ts`**. Firebird and `node-firebird` have been **removed** from the Electron app; production uses **`PostgresConnector`** (`pg`) or **`ApiConnector`** (HTTP SQL to the backend). This note is kept for historical context; see [02-database-design.md](../architecture/02-database-design.md) and [02-firebird-postgresql-migration.md](02-firebird-postgresql-migration.md).
+
+The connection layer provides multiple implementations behind one interface:
+
+1. **PostgresConnector** — Direct PostgreSQL via `pg` pool.
+2. **ApiConnector** — Database requests proxied to the Python backend (`POST /api/db/query`).
 
 ## Architecture
 
-The system uses an interface `IDatabaseConnector` to unify different database access methods.
+The system uses `IDatabaseConnector` to unify database access.
 
 ```typescript
 export interface IDatabaseConnector {
-    readonly type: 'firebird' | 'postgres' | 'api';
+    readonly type: 'postgres' | 'api';
     connect(): Promise<unknown>;
     close(): Promise<void>;
     query<T = unknown>(sql: string, params?: QueryParam[]): Promise<T[]>;
@@ -23,8 +25,7 @@ export interface IDatabaseConnector {
 
 ### Implementations
 
-- **FirebirdConnector**: Wraps `node-firebird`.
-- **PostgresConnector**: Wraps `pg` pool.
+- **PostgresConnector**: Wraps `pg` pool; `?`-style placeholders are translated for PostgreSQL.
 - **ApiConnector**: Sends SQL queries to the Python backend via HTTP POST `/api/db/query`.
 
 ## Configuration

@@ -9,8 +9,8 @@ Same workflows as the Python backend skill: use MCP server **`mcp-kanban`** with
 
 ## Project folders
 
-- **Gallery / Electron UI work:** `D:\Projects\image-scoring-gallery` (adjust if your clone path differs)
-- **Backend / API / ML work:** `D:\Projects\image-scoring-backend`
+- **Gallery / Electron UI work:** absolute path to your **image-scoring-gallery** clone
+- **Backend / API / ML work:** absolute path to your **image-scoring-backend** clone
 
 Register each scope with `kanban_register_project` before creating tickets if it is not already listed in `kanban_list_projects`.
 
@@ -23,5 +23,5 @@ Register each scope with `kanban_register_project` before creating tickets if it
 ## References
 
 - Rule: `.cursor/rules/mcp-kanban.mdc`
-- Full step text and tool list: `D:\Projects\image-scoring-backend\.cursor\skills\mcp-kanban-workflow\SKILL.md` (canonical copy)
+- Full step text and tool list: **image-scoring-backend** `.cursor/skills/mcp-kanban-workflow/SKILL.md` (canonical copy)
 - User MCP config must include **`mcp-kanban`** (Cursor / Claude / Antigravity / Codex)

@@ -15,7 +15,7 @@ The `.cursor/mcp.json` file uses the **`imgscore-el-*`** prefix so server names 
 ### Requirements
 - **`imgscore-el-gallery`**: Node; run `npm install` and `npm run build` under `mcp-server/` once.
 - **Full DB MCP**: Python env with `mcp` (and DB drivers) when **`imgscore-el-stdio`** / backend workspace is enabled.
-- Access to the `SCORING_HISTORY.FDB` file for the Electron app itself.
+- **Database:** PostgreSQL (local `pg`) and/or backend API SQL mode; configure `database` in `config.json` (see `docs/architecture/02-database-design.md`).
 
 ## Tools for Agents
 - **Gallery MCP (`imgscore-el-gallery`)**: Local diagnostics, optional FastAPI job/health probes, optional CDP for renderer inspection. Start with **`gallery_status`** to see what is reachable.
@@ -26,10 +26,11 @@ The `.cursor/mcp.json` file uses the **`imgscore-el-*`** prefix so server names 
 **mcp-kanban** is configured in **user-level** MCP settings (Cursor global `mcp.json`, Claude `~/.claude.json`, Antigravity `mcp_config.json`, Codex `config.toml`) as server **`mcp-kanban`**. It provides **`kanban_*`** tools for tickets, board snapshots, and session handoffs.
 
 - **Rules / workflow:** `.cursor/rules/mcp-kanban.mdc`, `.cursor/skills/mcp-kanban-workflow/SKILL.md`
-- **Project folder:** use **`D:\Projects\image-scoring-gallery`** for gallery work and **`D:\Projects\image-scoring-backend`** for backend work (adjust paths if your clones differ).
+- **Project folder:** use your local clone path to **image-scoring-gallery** for gallery work and to **image-scoring-backend** for backend work.
 
 ## Documentation References
-- **[Agent Coordination](docs/technical/AGENT_COORDINATION.md)** - Cross-project integration and coordination guide
+- **[Backlog workflow](docs/project/00-backlog-workflow.md)** — Root `TODO.md`, mirror sync order (**image-scoring-backend** twin: [`00-backlog-workflow.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/project/00-backlog-workflow.md); [`BACKLOG_GOVERNANCE.md`](docs/project/BACKLOG_GOVERNANCE.md) here is an alias)
+- **[Agent Coordination](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md)** — Cross-project integration (canonical; local stub: [`docs/technical/AGENT_COORDINATION.md`](docs/technical/AGENT_COORDINATION.md))
 - **[.cursorrules](.cursorrules)**: Core project rules and architecture patterns.
 - **[Project Guide](.agent/PROJECT_GUIDE.md)**: Navigation and maintenance guide.
 - **[AI Edit Spec](.agent/ai_edit_spec.md)**: Coding guidelines for agents.
@@ -52,7 +53,7 @@ The `.cursor/mcp.json` file uses the **`imgscore-el-*`** prefix so server names 
   1. `npm run dev:web` — starts the Vite dev server
   2. `npx tsc -p electron/tsconfig.json` — compiles Electron main process TypeScript
   3. `ELECTRON_IS_DEV=1 npx electron .` — launches Electron (set env var directly; `cross-env` may not be on PATH as a global binary)
-- The app will show a "Connection Error" at startup because Firebird SQL (port 3050) is not available in the cloud VM. This is expected — the UI still loads and is fully interactive.
+- The app may show a connection error at startup if PostgreSQL or the backend API URL is unreachable in the VM. The UI can still load for layout and static testing.
 - `cross-env` is installed as a devDependency but not globally, so use `ELECTRON_IS_DEV=1` env prefix directly instead of `cross-env ELECTRON_IS_DEV=1`.
 - dbus errors in Electron logs (e.g. `Failed to connect to the bus`) are harmless in a headless/container Linux environment.
 
