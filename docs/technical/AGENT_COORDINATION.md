@@ -17,7 +17,7 @@ The integration relies on two primary shared components:
 ### 1. Schema Changes
 *   **Protocol**: Changes to the database schema MUST be implemented in the backend project first (via Alembic migrations).
 *   **Agent Action**: The backend agent should notify the frontend agent (or the user) of any column additions, removals, or type changes.
-*   **Sync Point**: The frontend agent must update `electron/db.ts` to reflect the new schema in query logic.
+*   **Sync Point**: The frontend agent must update `electron/db.ts` to reflect the new schema in query logic. See [DATABASE_REFACTOR_ANALYSIS.md](DATABASE_REFACTOR_ANALYSIS.md) for current impact assessments.
 
 ### 2. API Contract
 *   **Protocol**: The backend defines the REST API surface in `modules/api.py`.
