@@ -189,8 +189,52 @@ interface AppConfig {
         thumbnail_base_dir?: string;
     };
     lightModeRootFolder?: string;
+    sync?: {
+        destinationRoot?: string;
+    };
+    backup?: {
+        minScore?: number;
+        maxInstances?: number;
+    };
     [key: string]: unknown;
 }
+
+// -- Backup Feature Types --
+
+interface BackupTargetInfo {
+    exists: boolean;
+    imageCount: number;
+    lastBackup: string | null;
+    bytes: number;
+}
+
+interface BackupManifestEntry {
+    id: number;
+    relPath: string;
+    score: number;
+    size: number;
+    hash: string;
+}
+
+interface BackupManifest {
+    updatedAt: string;
+    images: BackupManifestEntry[];
+}
+
+interface BackupProgress {
+    phase: 'scanning' | 'deduplicating' | 'calculating' | 'copying' | 'cleaning' | 'done';
+    current: number;
+    total: number;
+    detail?: string;
+}
+
+interface BackupResult {
+    copied: number;
+    skipped: number;
+    deduplicated: number;
+    errors: string[];
+}
+
 
 interface FsDirEntry {
     name: string;
@@ -284,6 +328,35 @@ declare global {
             importRun: (folderPath: string) => Promise<{ added: number; skipped: number; errors: string[] }>;
             onImportProgress: (callback: (data: { current: number; total: number; path?: string }) => void) => () => void;
             onShowNotification: (callback: (data: { message: string; type: 'info' | 'success' | 'warning' | 'error' }) => void) => () => void;
+
+            // ── Sync ────────────────────────────────────────────────────
+            onSyncSourceSelected: (callback: (sourcePath: string) => void) => () => void;
+            syncPreview: (sourcePath: string) => Promise<{
+                thresholdDate: string | null;
+                destinationRoot: string;
+                scanned: number;
+                skipped: number;
+                wouldCopy: number;
+                importOnly: number;
+                newFolders: string[];
+                errors: string[];
+            }>;
+            syncRun: (sourcePath: string) => Promise<{
+                scanned: number;
+                copied: number;
+                imported: number;
+                skipped: number;
+                folders: number;
+                errors: string[];
+                thresholdDate: string | null;
+            }>;
+            onSyncProgress: (callback: (data: { phase: string; current: number; total: number; detail: string }) => void) => () => void;
+
+            // ── Backup ──────────────────────────────────────────────────
+            backupCheckTarget: (targetPath: string) => Promise<BackupTargetInfo | null>;
+            backupRun: (targetPath: string, minScore: number, similarityThreshold: number) => Promise<BackupResult>;
+            onBackupTargetSelected: (callback: (targetPath: string) => void) => () => void;
+            onBackupProgress: (callback: (data: BackupProgress) => void) => () => void;
 
             // ── Backend API (Python REST) ───────────────────────────────
             api: {

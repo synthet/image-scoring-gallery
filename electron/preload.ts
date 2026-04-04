@@ -10,6 +10,9 @@ import type {
     ExportImageContext,
     FsReadDirResult,
     FileImageMetadataResult,
+    BackupTargetInfo,
+    BackupProgress,
+    BackupResult,
 } from './types';
 import type {
     ApiResponse as BackendApiResponse,
@@ -228,6 +231,24 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.removeListener('import:folder-selected', handler);
         };
     },
+    backupCheckTarget: async (targetPath: string) => {
+        const response = await ipcRenderer.invoke('backup:check-target', targetPath);
+        return unwrapEnvelope<BackupTargetInfo | null>(response);
+    },
+    backupRun: async (targetPath: string, minScore: number, similarityThreshold: number) => {
+        const response = await ipcRenderer.invoke('backup:run', { targetPath, minScore, similarityThreshold });
+        return unwrapEnvelope<BackupResult>(response);
+    },
+    onBackupTargetSelected: (callback: (targetPath: string) => void) => {
+        const handler = (_: unknown, targetPath: string) => callback(targetPath);
+        ipcRenderer.on('backup:target-selected', handler);
+        return () => {
+            ipcRenderer.removeListener('backup:target-selected', handler);
+        };
+    },
+    onBackupProgress: (callback: (progress: BackupProgress) => void) => {
+        ipcRenderer.on('backup:progress', (_, progress) => callback(progress));
+    },
     importRun: async (folderPath: string) => {
         const response = await ipcRenderer.invoke('import:run', folderPath);
         return unwrapEnvelope<{ added: number; skipped: number; errors: string[] }>(response);
@@ -244,6 +265,47 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.on('show-notification', handler);
         return () => {
             ipcRenderer.removeListener('show-notification', handler);
+        };
+    },
+
+    // ── Sync ────────────────────────────────────────────────────────────
+    onSyncSourceSelected: (callback: (sourcePath: string) => void) => {
+        const handler = (_: unknown, sourcePath: string) => callback(sourcePath);
+        ipcRenderer.on('sync:source-selected', handler);
+        return () => {
+            ipcRenderer.removeListener('sync:source-selected', handler);
+        };
+    },
+    syncPreview: async (sourcePath: string) => {
+        const response = await ipcRenderer.invoke('sync:preview', sourcePath);
+        return unwrapEnvelope<{
+            thresholdDate: string | null;
+            destinationRoot: string;
+            scanned: number;
+            skipped: number;
+            wouldCopy: number;
+            importOnly: number;
+            newFolders: string[];
+            errors: string[];
+        }>(response);
+    },
+    syncRun: async (sourcePath: string) => {
+        const response = await ipcRenderer.invoke('sync:run', sourcePath);
+        return unwrapEnvelope<{
+            scanned: number;
+            copied: number;
+            imported: number;
+            skipped: number;
+            folders: number;
+            errors: string[];
+            thresholdDate: string | null;
+        }>(response);
+    },
+    onSyncProgress: (callback: (data: { phase: string; current: number; total: number; detail: string }) => void) => {
+        const handler = (_: unknown, data: { phase: string; current: number; total: number; detail: string }) => callback(data);
+        ipcRenderer.on('sync:progress', handler);
+        return () => {
+            ipcRenderer.removeListener('sync:progress', handler);
         };
     },
 

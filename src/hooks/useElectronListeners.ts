@@ -14,6 +14,10 @@ export function useElectronListeners() {
   const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importFolderPath, setImportFolderPath] = useState('');
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [syncSourcePath, setSyncSourcePath] = useState('');
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [backupTargetPath, setBackupTargetPath] = useState('');
   const [currentView, setCurrentView] = useState<'gallery' | 'duplicates' | 'runs' | 'embeddings'>('gallery');
 
   useEffect(() => {
@@ -42,6 +46,16 @@ export function useElectronListeners() {
       setIsImportModalOpen(true);
     });
 
+    const cleanupSync = bridge.onSyncSourceSelected((path) => {
+      setSyncSourcePath(path);
+      setIsSyncModalOpen(true);
+    });
+
+    const cleanupBackup = bridge.onBackupTargetSelected((path) => {
+      setBackupTargetPath(path);
+      setIsBackupModalOpen(true);
+    });
+
     const cleanupNotification = bridge.onShowNotification((data) => {
       addNotification(data.message, data.type);
     });
@@ -53,6 +67,8 @@ export function useElectronListeners() {
       cleanupRuns();
       cleanupEmbeddings();
       cleanupImport();
+      cleanupSync();
+      cleanupBackup();
       cleanupNotification();
     };
   }, [addNotification]);
@@ -66,6 +82,14 @@ export function useElectronListeners() {
     setIsImportModalOpen,
     importFolderPath,
     setImportFolderPath,
+    isSyncModalOpen,
+    setIsSyncModalOpen,
+    syncSourcePath,
+    setSyncSourcePath,
+    isBackupModalOpen,
+    setIsBackupModalOpen,
+    backupTargetPath,
+    setBackupTargetPath,
     currentView,
     setCurrentView,
   };

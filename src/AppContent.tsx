@@ -14,6 +14,8 @@ import { DiagnosticsModal } from './components/Diagnostics/DiagnosticsModal';
 import { DuplicateFinder } from './components/Duplicates/DuplicateFinder';
 import { RunsPage } from './components/Runs/RunsPage';
 import { ImportModal } from './components/Import/ImportModal';
+import { SyncModal } from './components/Sync/SyncModal';
+import { BackupModal } from './components/Backup/BackupModal';
 import { Loader2, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { bridge } from './bridge';
@@ -67,6 +69,10 @@ function AppContent() {
     isDiagnosticsOpen, setIsDiagnosticsOpen,
     isImportModalOpen, setIsImportModalOpen,
     importFolderPath, setImportFolderPath,
+    isSyncModalOpen, setIsSyncModalOpen,
+    syncSourcePath, setSyncSourcePath,
+    isBackupModalOpen, setIsBackupModalOpen,
+    backupTargetPath, setBackupTargetPath,
     currentView, setCurrentView,
   } = useElectronListeners();
 
@@ -532,6 +538,25 @@ function AppContent() {
         }}
         onComplete={refreshFolders}
       />
+      {isSyncModalOpen && syncSourcePath && (
+        <SyncModal
+          isOpen={isSyncModalOpen}
+          sourcePath={syncSourcePath}
+          onClose={() => setIsSyncModalOpen(false)}
+          onComplete={() => {
+            refreshImages();
+            refreshFolders();
+          }}
+        />
+      )}
+
+      {isBackupModalOpen && backupTargetPath && (
+        <BackupModal
+          isOpen={isBackupModalOpen}
+          targetPath={backupTargetPath}
+          onClose={() => setIsBackupModalOpen(false)}
+        />
+      )}
     </>
   );
 }

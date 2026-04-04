@@ -1,17 +1,28 @@
-## Roadmap update checklist
-- [ ] Counts recalculated
-- [ ] Related TODO docs synced (mirror order: `docs/project/00-backlog-workflow.md`)
-- [ ] Dependency labels reviewed
-- [ ] **Last evaluated** / **Last reviewed** date updated in root `TODO.md`
+## Cross-repo / backlog
 
-## Open-item totals and dependency split (required)
-Provide a short before/after summary covering both:
-- Open-item totals
-- Dependency split
+- [ ] If **image-scoring-backend** is affected: note in PR body + sync per [`docs/project/00-backlog-workflow.md`](docs/project/00-backlog-workflow.md)
 
-**Before:**
+## Summary
 
-**After:**
+**What changed:**
 
-## Reviewer note
-Please verify cross-document consistency (roadmap, TODO docs, and dependency labeling).
+## Motivation
+
+<!-- Why is this change needed? Link issues: Fixes # -->
+
+## How to test
+
+<!-- Commands or steps; match AGENTS.md and CLAUDE.md -->
+
+**Risk / testing notes:**
+
+## Risk / rollout
+
+<!-- Breaking changes, migrations, feature flags, downtime -->
+
+## SDLC checklist (agent-sdlc)
+
+- [ ] Tests added or updated as needed
+- [ ] Lint / typecheck pass
+- [ ] No secrets or credentials in code
+- [ ] Docs updated if behavior is user-visible

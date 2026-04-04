@@ -9,7 +9,7 @@
  * `import { bridge } from '../bridge'` and call `bridge.xxx()` instead.
  */
 
-import type { FileImageMetadataResult } from '../electron/types';
+import type { FileImageMetadataResult, BackupTargetInfo, BackupProgress, BackupResult } from '../electron/types';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -297,8 +297,28 @@ function createHttpBridge(): Window['electron'] {
         onImportFolderSelected: noop,
         onImportProgress: noop,
         onShowNotification: noop,
+        onSyncSourceSelected: noop,
+        onSyncProgress: noop,
 
         importRun: (folderPath) => post('/import/run', { folderPath }),
+
+        syncPreview: () =>
+            Promise.resolve({
+                thresholdDate: null,
+                destinationRoot: '',
+                scanned: 0,
+                skipped: 0,
+                wouldCopy: 0,
+                importOnly: 0,
+                newFolders: [] as string[],
+                errors: ['Sync not available in browser mode'],
+            }),
+        syncRun: () => Promise.resolve({ scanned: 0, copied: 0, imported: 0, skipped: 0, folders: 0, errors: ['Sync not available in browser mode'], thresholdDate: null }),
+
+        backupCheckTarget: () => Promise.resolve(null),
+        backupRun: () => Promise.resolve({ copied: 0, skipped: 0, deduplicated: 0, errors: ['Not available in browser mode'] }),
+        onBackupTargetSelected: noop,
+        onBackupProgress: noop,
 
         api: {
             healthCheck: () => post('/backend/health'),
@@ -379,6 +399,18 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
         }),
     rebuildStackCache: () => Promise.resolve({ success: false, count: 0 }),
     importRun: () => Promise.resolve({ added: 0, skipped: 0, errors: [] }),
+    syncPreview: () =>
+        Promise.resolve({
+            thresholdDate: null,
+            destinationRoot: '',
+            scanned: 0,
+            skipped: 0,
+            wouldCopy: 0,
+            importOnly: 0,
+            newFolders: [] as string[],
+            errors: [],
+        }),
+    syncRun: () => Promise.resolve({ scanned: 0, copied: 0, imported: 0, skipped: 0, folders: 0, errors: [], thresholdDate: null }),
 };
 
 export const bridge: Window['electron'] = new Proxy({} as Window['electron'], {

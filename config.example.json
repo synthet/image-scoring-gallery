@@ -44,5 +44,9 @@
                 "to": "../image-scoring-backend/thumbnails"
             }
         ]
+    },
+    "_example_comment_sync": "File → Sync: set destinationRoot to your local photo library root (Windows path). Photos copy into destinationRoot/camera/lens/year/date.",
+    "sync": {
+        "destinationRoot": ""
     }
 }

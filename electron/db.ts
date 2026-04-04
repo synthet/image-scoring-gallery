@@ -198,7 +198,43 @@ export async function runTransaction<T>(
     return connector.runTransaction(callback);
 }
 
+/** `LIKE` prefixes for `images.file_path` under a Windows sync destination root (also matches WSL `/mnt/x/...`). */
+function syncDestinationPathLikeParams(destRootWin: string): { destLike: string; wslLike: string } {
+    const destNorm = destRootWin.replace(/\\/g, '/');
+    const destLike = destNorm.endsWith('/') ? `${destNorm}%` : `${destNorm}/%`;
+    const wslLike = destNorm.replace(/^([A-Za-z]):/, (_, d: string) => `/mnt/${d.toLowerCase()}`) + '%';
+    return { destLike, wslLike };
+}
 
+/**
+ * Latest calendar shoot date (YYYY-MM-DD) from indexed EXIF under the destination tree.
+ * Uses COALESCE(date_time_original, create_date) per row; ignores images with no EXIF row or no dates.
+ */
+export async function getMaxIndexedCaptureDateUnderDestRoot(destRootWin: string): Promise<string | null> {
+    const { destLike, wslLike } = syncDestinationPathLikeParams(destRootWin);
+    const rows = await query<{ max_date: string | null }>(
+        `SELECT MAX((COALESCE(e.date_time_original, e.create_date))::date)::text AS max_date
+         FROM images i
+         INNER JOIN image_exif e ON e.image_id = i.id
+         WHERE (i.file_path LIKE ? OR i.file_path LIKE ?)
+           AND (e.date_time_original IS NOT NULL OR e.create_date IS NOT NULL)`,
+        [destLike, wslLike]
+    );
+    const v = rows[0]?.max_date;
+    return v && String(v).trim() ? String(v).trim() : null;
+}
+
+/** Latest import date (YYYY-MM-DD) for any indexed image under the destination tree. */
+export async function getMaxIndexedCreatedDateUnderDestRoot(destRootWin: string): Promise<string | null> {
+    const { destLike, wslLike } = syncDestinationPathLikeParams(destRootWin);
+    const rows = await query<{ max_date: string | null }>(
+        `SELECT MAX((i.created_at)::date)::text AS max_date FROM images i
+         WHERE i.file_path LIKE ? OR i.file_path LIKE ?`,
+        [destLike, wslLike]
+    );
+    const v = rows[0]?.max_date;
+    return v && String(v).trim() ? String(v).trim() : null;
+}
 
 function pushFolderFilter(
     whereParts: string[], params: (string | number | null)[],
@@ -582,7 +618,7 @@ function stripConcatenatedAbsolutePath(filePath: string): string {
  * On Windows, converts drive-letter paths (D:\... or D:/...) to /mnt/d/...
  * Paths already in WSL format are returned as-is (before resolve, to avoid mangling).
  */
-function normalizePathForDb(filePath: string): string {
+export function normalizePathForDb(filePath: string): string {
     filePath = stripConcatenatedAbsolutePath(filePath);
     const withSlashes = filePath.replace(/\\/g, '/');
     if (process.platform === 'win32') {
@@ -1218,5 +1254,66 @@ export async function deleteImage(id: number): Promise<boolean> {
     } catch (e) {
         console.error('[DB] Delete failed:', e);
         return false;
+    }
+}
+
+import { ScoredImageForBackup } from './types';
+
+/**
+ * Get all images with a general score >= minScore, including file path details.
+ * Useful for planning backup.
+ */
+export async function getAllScoredImagesForBackup(minScore: number): Promise<ScoredImageForBackup[]> {
+    const sql = `
+        SELECT
+            i.id,
+            COALESCE(fp.path, i.file_path) as path,
+            i.file_name,
+            i.score_general as composite_score,
+            i.image_hash,
+            i.stack_id
+        FROM images i
+        LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
+            AND POSITION('/thumbnails/' IN fp.path) = 0
+        WHERE i.score_general >= ?
+        ORDER BY i.score_general DESC
+    `;
+    const rows = await query(sql, [minScore]) as any[];
+    return rows;
+}
+
+/**
+ * Find pairs of similar images within a specific set of IDs using pgvector.
+ * Returns pairs with similarity >= threshold.
+ */
+export async function getSimilarPairsInGroup(imageIds: number[], threshold: number): Promise<Array<{ id_a: number; id_b: number; similarity: number }>> {
+    if (imageIds.length < 2) return [];
+
+    // Use a temporary table or values list for larger sets of IDs to avoid param limits if needed,
+    // but for backup filtering batches of a few hundreds/thousands should be fine with IN if partitioned.
+    // However, Postgres ANY($1) is better. Since we use ? -> $n, we'll try IN (?, ?, ...) first
+    // like the rest of the file does.
+    
+    const placeholders = imageIds.map(() => '?').join(', ');
+    const sql = `
+        SELECT 
+            e1.image_id as id_a, 
+            e2.image_id as id_b, 
+            (1 - (e1.embedding <=> e2.embedding)) as similarity
+        FROM image_embeddings e1
+        JOIN image_embeddings e2 ON e1.image_id < e2.image_id
+        WHERE e1.image_id IN (${placeholders}) 
+          AND e2.image_id IN (${placeholders})
+          AND (1 - (e1.embedding <=> e2.embedding)) >= ?
+    `;
+
+    // Flatten parameters: [ids..., ids..., threshold]
+    const params = [...imageIds, ...imageIds, threshold];
+    
+    try {
+        return await query<{ id_a: number; id_b: number; similarity: number }>(sql, params);
+    } catch (e) {
+        console.error('[DB] getSimilarPairsInGroup failed:', e);
+        return [];
     }
 }

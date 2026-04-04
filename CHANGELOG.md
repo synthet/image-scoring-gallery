@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.4.0] - 2026-04-04
+
+### Added
+- **File → Sync**: Copy new photos from a removable drive or folder into **`destinationRoot / camera / lens / year / date`**; preview (dry run) and full sync with progress; configurable **`sync.destinationRoot`** in **`config.json`**; lens segment names prefer focal-length tokens (e.g. **`180-600mm`**) so layouts stay consistent with backend maintenance tooling.
+- **File → Backup**: Back up scored images to a folder you choose, with manifest, progress, minimum score and similarity controls; backup and sync block each other while one run is in progress.
+- **UI**: **`SyncModal`** and **`BackupModal`** in the database gallery flow.
+- **Electron / DB**: IPC for sync preview and run, backup target check and run, import-after-sync; **`getMaxIndexedCaptureDateUnderDestRoot`**, **`getMaxIndexedCreatedDateUnderDestRoot`**, and **`getAllScoredImagesForBackup`** for planning and execution.
+- **Tests**: **`lensFolderName`** unit tests for lens folder normalization.
+- **`config.example.json`**: **`sync.destinationRoot`** placeholder and comment for File → Sync.
+
+### Changed
+- **AGENTS.md**, **`.github/pull_request_template.md`**: Agent workflow and PR checklist updates.
+
+### Removed
+- **`.cursor/rules` / `.cursor/skills`**: Removed bundled **mcp-firebird** and **mcp-kanban** copies; use user-level MCP configuration as documented in **AGENTS.md**.
+
 ## [5.3.1] - 2026-04-04
 
 ### Changed

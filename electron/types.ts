@@ -169,8 +169,19 @@ export interface AppConfig {
         /** Absolute thumbnails root (your local path from config) */
         thumbnail_base_dir?: string;
     };
-    /** Root folder for filesystem-only (light) mode when the database is unavailable. */
     lightModeRootFolder?: string;
+    /** Sync: copy new photos from external drives into a structured local folder tree. */
+    sync?: {
+        /** Destination root where synced photos are stored (e.g. "D:\\Photos"). */
+        destinationRoot?: string;
+    };
+    /** Backup: export high-quality images to an external drive. */
+    backup?: {
+        /** Minimum quality score to include in backup */
+        minScore?: number;
+        /** Maximum number of similar images (per stack or cluster) to include */
+        maxInstances?: number;
+    };
     [key: string]: unknown;
 }
 
@@ -217,4 +228,49 @@ export interface ExportImageContext {
     imageUuid: string | null;
     /** True when pixels were re-encoded with EXIF orientation applied (matches on-screen preview). */
     exifOrientationBaked?: boolean;
+}
+
+// -- Backup Feature Types --
+
+export interface BackupTargetInfo {
+    exists: boolean;
+    imageCount: number;
+    lastBackup: string | null;
+    bytes: number;
+}
+
+export interface BackupManifestEntry {
+    id: number;
+    relPath: string;
+    score: number;
+    size: number;
+    hash: string;
+}
+
+export interface BackupManifest {
+    updatedAt: string;
+    images: BackupManifestEntry[];
+}
+
+export interface ScoredImageForBackup {
+    id: number;
+    path: string;
+    file_name: string;
+    composite_score: number;
+    image_hash: string | null;
+    stack_id: number | null;
+}
+
+export interface BackupProgress {
+    phase: 'scanning' | 'deduplicating' | 'calculating' | 'copying' | 'cleaning' | 'done';
+    current: number;
+    total: number;
+    detail?: string;
+}
+
+export interface BackupResult {
+    copied: number;
+    skipped: number;
+    deduplicated: number;
+    errors: string[];
 }
