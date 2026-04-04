@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.3.1] - 2026-04-04
+
+### Changed
+- **`.gitignore`**: Ignore **`lint_results.txt`** and **`test_result.json`** for local tooling output.
+
 ## [5.3.0] - 2026-04-03
 
 ### Added

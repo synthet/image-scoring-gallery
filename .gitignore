@@ -48,3 +48,5 @@ git_status.txt
 # Test coverage
 coverage/
 coverage_report*.txt
+lint_results.txt
+test_result.json
