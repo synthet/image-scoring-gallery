@@ -142,8 +142,20 @@ export function useGalleryWebSocket({
       });
 
       subscribe('job_progress', (data: unknown) => {
-        const d = data as { job_id: string | number; current: number; total: number; message?: string };
-        useJobProgressStore.getState().updateProgress(String(d.job_id), d.current, d.total, d.message);
+        const d = data as {
+          job_id: string | number;
+          current: number;
+          total: number;
+          message?: string;
+          job_type?: string;
+        };
+        useJobProgressStore.getState().updateProgress(
+          String(d.job_id),
+          d.current,
+          d.total,
+          d.message,
+          d.job_type,
+        );
       });
 
       subscribe('job_completed', (data: unknown) => {

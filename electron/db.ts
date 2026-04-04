@@ -26,6 +26,11 @@ function pagingParams(offset: number, limit: number): number[] {
     return [limit, offset];
 }
 
+/** PostgreSQL default for DESC is NULLS FIRST; gallery sort should rank real values first. */
+function pgNullsLastIfDesc(sortOrder: string): string {
+    return sortOrder === 'DESC' ? ' NULLS LAST' : '';
+}
+
 /**
  * Returns a column expression that coerces a TEXT column to a plain string.
  */
@@ -356,7 +361,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
         ${whereClause}
-        ORDER BY ${sortColumn} ${sortOrder}
+        ORDER BY ${sortColumn} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}
         ${paginationSql()}
     `;
     const rows = await query(sql, [...params, ...pagingParams(offset, limit)]);
@@ -1070,7 +1075,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 AND POSITION('/thumbnails/' IN fp.path) = 0
             ${whereClauseNonStack}
         ) a
-        ORDER BY a.sort_value ${sortOrder}, a.stack_key DESC
+        ORDER BY a.sort_value ${sortOrder}${pgNullsLastIfDesc(sortOrder)}, a.stack_key DESC
         ${paginationSql()}
     `;
 
@@ -1144,7 +1149,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
         ${whereClause}
-        ORDER BY ${sortColumn} ${sortOrder}
+        ORDER BY ${sortColumn} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}
         ${paginationSql()}
     `;
     const rows = await query(sql, [...params, ...pagingParams(offset, limit)]);
@@ -1276,7 +1281,7 @@ export async function getAllScoredImagesForBackup(minScore: number): Promise<Sco
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
         WHERE i.score_general >= ?
-        ORDER BY i.score_general DESC
+        ORDER BY i.score_general DESC NULLS LAST
     `;
     const rows = await query(sql, [minScore]) as any[];
     return rows;

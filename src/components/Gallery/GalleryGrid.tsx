@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useMemo, useCallback, useRef, useEffect, useState } from 'react';
 import { VirtuosoGrid } from 'react-virtuoso';
 import { Logger } from '../../services/Logger';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
@@ -33,6 +33,7 @@ interface Image {
 import type { Folder } from '../Tree/treeUtils';
 import { Folder as FolderIcon, Layers } from 'lucide-react';
 import { GalleryThumbnail } from './GalleryThumbnail';
+import { ThumbnailPlaceholder } from './ThumbnailPlaceholder';
 
 interface GalleryGridProps {
     images: Image[];
@@ -57,6 +58,26 @@ interface GalleryGridProps {
 
 const EMPTY_OUTLIER_IDS = new Set<number>();
 const EMPTY_OUTLIER_META = new Map<number, { zScore: number; outlierScore: number; neighborSummary: string }>();
+
+/** Plain media:// img with a styled fallback when the format is not browser-decodable (e.g. NEF). */
+const SimpleMediaThumb: React.FC<{ src: string; alt: string; className: string }> = ({ src, alt, className }) => {
+    const [failed, setFailed] = useState(false);
+    useEffect(() => {
+        setFailed(false);
+    }, [src]);
+    if (failed) {
+        return <ThumbnailPlaceholder title="No preview" />;
+    }
+    return (
+        <img
+            src={src}
+            loading="lazy"
+            className={className}
+            alt={alt}
+            onError={() => setFailed(true)}
+        />
+    );
+};
 
 const ItemContainer = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ style, children, className, ...props }, ref) => (
     <div ref={ref} style={style} className={`${styles.listContainer} ${className || ''}`} {...props}>
@@ -158,10 +179,14 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                                 alt={img.file_name}
                             />
                         ) : (
-                            <img src={toMediaUrl(img.thumbnail_path || img.file_path!)} loading="lazy" className={styles.image} alt={img.file_name} />
+                            <SimpleMediaThumb
+                                src={toMediaUrl(img.thumbnail_path || img.file_path!)}
+                                className={styles.image}
+                                alt={img.file_name}
+                            />
                         )
                     ) : (
-                        <div className={styles.noImage}>No Image</div>
+                        <ThumbnailPlaceholder title="No image" aria-label="No image" />
                     )}
                     <div className={styles.ratingOverlay}>
                         <span className={styles.ratingStars}>{'★'.repeat(img.rating)}</span>
@@ -213,10 +238,14 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                                 alt={stack.file_name}
                             />
                         ) : (
-                            <img src={toMediaUrl(stack.thumbnail_path || stack.file_path!)} loading="lazy" className={styles.image} alt={stack.file_name} />
+                            <SimpleMediaThumb
+                                src={toMediaUrl(stack.thumbnail_path || stack.file_path!)}
+                                className={styles.image}
+                                alt={stack.file_name}
+                            />
                         )
                     ) : (
-                        <div className={styles.noImage}>No Image</div>
+                        <ThumbnailPlaceholder title="No image" aria-label="No image" />
                     )}
 
                     {count > 1 && (

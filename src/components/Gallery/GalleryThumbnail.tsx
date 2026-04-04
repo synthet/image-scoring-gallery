@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { Loader2 } from 'lucide-react';
 import styles from './GalleryGrid.module.css';
+import { ThumbnailPlaceholder } from './ThumbnailPlaceholder';
 import { isWebSafe, isRaw } from '../../utils/imageFormats';
 import { toMediaUrl } from '../../utils/mediaUrl';
 import { getCachedRawPreviewUrl, setCachedRawPreviewUrl } from '../../utils/galleryRawPreviewCache';
@@ -132,6 +134,8 @@ export const GalleryThumbnail: React.FC<GalleryThumbProps> = ({
     const onImgError = useCallback(() => {
         // Thumbnail path pointed to missing file or NEF — try RAW extraction once
         if (isRaw(displayName) && filePath && phase === 'ready' && src?.startsWith('media://')) {
+            setSrc(null);
+            setPhase('loading');
             void loadRaw(filePath, { current: false });
             return;
         }
@@ -140,14 +144,20 @@ export const GalleryThumbnail: React.FC<GalleryThumbProps> = ({
 
     if (phase === 'idle' || phase === 'loading') {
         return (
-            <div className={styles.noImage} title={phase === 'loading' ? 'Loading preview…' : '…'}>
-                …
+            <div
+                className={styles.thumbnailLoading}
+                title={phase === 'loading' ? 'Loading preview…' : undefined}
+                aria-busy={phase === 'loading'}
+            >
+                {phase === 'loading' ? (
+                    <Loader2 className={styles.thumbnailLoadingSpinner} size={28} strokeWidth={1.5} aria-hidden />
+                ) : null}
             </div>
         );
     }
 
     if (phase === 'error' || !src) {
-        return <div className={styles.noImage} title="No preview">No preview</div>;
+        return <ThumbnailPlaceholder title="No preview" />;
     }
 
     return (

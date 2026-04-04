@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.4.1] - 2026-04-04
+
+### Added
+
+- **`ThumbnailPlaceholder`**: Shared empty/error thumbnail surface; **`SimpleMediaThumb`** in **`GalleryGrid`** shows a fallback when **`media://`** URLs are not browser-decodable (e.g. NEF).
+- **RAW preview loading**: Spinner (**`Loader2`**) while extracting; **`GalleryThumbnail`** resets and retries extraction on image error for RAW files.
+
+### Changed
+
+- **`npm run dev`**: **`concurrently`** uses **`--kill-others --success command-electron`** so stopping Vite/server tears down Electron cleanly.
+- **`JobProgressBar`**: Labels for **`indexing`**, **`metadata`**, **`bird_species`**, **`pipeline`**.
+- **WebSocket `job_progress`**: Forwards optional **`job_type`** into **`useJobProgressStore.updateProgress`** so the bar reflects the active phase.
+
+### Fixed
+
+- **PostgreSQL sorting**: **`getImages`**, **`getStacks`**, **`getImagesByStack`**, and **`getAllScoredImagesForBackup`** append **`NULLS LAST`** on descending sorts so rows without sort values do not float to the top.
+
 ## [5.4.0] - 2026-04-04
 
 ### Added

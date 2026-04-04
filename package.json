@@ -1,12 +1,12 @@
 {
   "name": "electron-gallery",
   "private": true,
-  "version": "5.4.0",
+  "version": "5.4.1",
   "description": "A high-performance image gallery with scoring capabilities",
   "author": "Electron Image Scoring Team",
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "concurrently --kill-others-on-fail -n server,vite,electron \"npm run server\" \"vite\" \"npm run dev:electron\"",
+    "dev": "concurrently --kill-others --success command-electron -n server,vite,electron \"npm run server\" \"vite\" \"npm run dev:electron\"",
     "dev:web": "concurrently --kill-others-on-fail -n server,vite \"npm run server\" \"vite\"",
     "vite:only": "vite",
     "dev:electron": "wait-on http://localhost:5173 && tsc -p electron/tsconfig.json && cross-env ELECTRON_IS_DEV=1 electron .",

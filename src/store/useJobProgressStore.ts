@@ -12,7 +12,13 @@ export interface JobProgress {
 interface JobProgressState {
     activeJobs: Record<string, JobProgress>;
     startJob: (job_id: string, job_type: string) => void;
-    updateProgress: (job_id: string, current: number, total: number, message?: string) => void;
+    updateProgress: (
+        job_id: string,
+        current: number,
+        total: number,
+        message?: string,
+        job_type?: string,
+    ) => void;
     completeJob: (job_id: string) => void;
 }
 
@@ -25,15 +31,16 @@ export const useJobProgressStore = create<JobProgressState>((set) => ({
                 [job_id]: { job_id, job_type, current: 0, total: 0, started_at: Date.now() },
             },
         })),
-    updateProgress: (job_id, current, total, message) =>
+    updateProgress: (job_id, current, total, message, job_type) =>
         set((state) => {
             const existing = state.activeJobs[job_id];
+            const resolvedType = job_type ?? existing?.job_type ?? 'unknown';
             return {
                 activeJobs: {
                     ...state.activeJobs,
                     [job_id]: {
                         job_id,
-                        job_type: existing?.job_type ?? 'unknown',
+                        job_type: resolvedType,
                         current,
                         total,
                         message,

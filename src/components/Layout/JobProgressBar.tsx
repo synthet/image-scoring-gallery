@@ -7,6 +7,10 @@ const JOB_TYPE_LABELS: Record<string, string> = {
     clustering: 'Clustering',
     selection: 'Selection',
     fix_db: 'Fix DB',
+    indexing: 'Indexing',
+    metadata: 'Metadata',
+    bird_species: 'Bird species',
+    pipeline: 'Pipeline',
 };
 
 export const JobProgressBar: React.FC = () => {
