@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.4.2] - 2026-04-04
+
+### Fixed
+
+- **Direct-DB import**: After **`insertImage`**, **`markImageIndexingPhaseDone`** sets **`image_phase_status`** for **indexing** to **done** (aligned with backend import-register) and marks **`folders.phase_agg_dirty`** for the image’s folder chain so folder phase aggregates stay consistent.
+
 ## [5.4.1] - 2026-04-04
 
 ### Added

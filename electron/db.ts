@@ -720,6 +720,61 @@ export async function insertImage(row: InsertImageRow): Promise<number> {
     throw new Error(`Failed to get image id after insert: ${normalizedPath}`);
 }
 
+/** Matches `modules/indexing_runner.py` INDEXING_VERSION and backend import-register. */
+const IMPORT_INDEXING_EXECUTOR_VERSION = '1.0.0';
+const IMPORT_INDEXING_APP_VERSION = 'electron-gallery';
+
+async function invalidateFolderPhaseAggregatesForImage(imageId: number): Promise<void> {
+    const imgRows = await query<{ folder_id: number | null }>('SELECT folder_id FROM images WHERE id = ?', [imageId]);
+    let folderId: number | null = imgRows[0]?.folder_id ?? null;
+    const ancestorIds: number[] = [];
+    const seen = new Set<number>();
+    while (folderId != null && !seen.has(folderId)) {
+        seen.add(folderId);
+        ancestorIds.push(folderId);
+        const parentRows = await query<{ parent_id: number | null }>('SELECT parent_id FROM folders WHERE id = ?', [folderId]);
+        folderId = parentRows[0]?.parent_id ?? null;
+    }
+    if (ancestorIds.length === 0) {
+        return;
+    }
+    const ph = ancestorIds.map(() => '?').join(', ');
+    await query(`UPDATE folders SET phase_agg_dirty = 1 WHERE id IN (${ph})`, ancestorIds);
+}
+
+/**
+ * Mark the indexing (Discovery) phase complete for an image after direct-DB import.
+ * Mirrors backend `set_image_phase_status` + folder aggregate invalidation.
+ */
+export async function markImageIndexingPhaseDone(imageId: number): Promise<void> {
+    const phaseRows = await query<{ id: number }>(
+        'SELECT id FROM pipeline_phases WHERE code = ? LIMIT 1',
+        ['indexing']
+    );
+    const phaseId = phaseRows[0]?.id;
+    if (phaseId == null) {
+        console.warn('[DB] markImageIndexingPhaseDone: no pipeline_phases row for indexing');
+        return;
+    }
+    await query(
+        `INSERT INTO image_phase_status (
+            image_id, phase_id, status, app_version, executor_version,
+            attempt_count, last_error, started_at, finished_at, updated_at, skip_reason, skipped_by
+        ) VALUES (?, ?, 'done', ?, ?, 0, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, NULL)
+        ON CONFLICT (image_id, phase_id) DO UPDATE SET
+            status = 'done',
+            app_version = EXCLUDED.app_version,
+            executor_version = EXCLUDED.executor_version,
+            finished_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP,
+            last_error = NULL,
+            skip_reason = NULL,
+            skipped_by = NULL`,
+        [imageId, phaseId, IMPORT_INDEXING_APP_VERSION, IMPORT_INDEXING_EXECUTOR_VERSION]
+    );
+    await invalidateFolderPhaseAggregatesForImage(imageId);
+}
+
 export async function updateImageDetails(id: number, updates: Record<string, string | number | null>): Promise<boolean> {
     const allowedFields = ['title', 'description', 'rating', 'label', 'keywords'];
     const setParts: string[] = [];

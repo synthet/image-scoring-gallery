@@ -1332,13 +1332,18 @@ async function startFullApplication(): Promise<void> {
                     // No EXIF or read failed; proceed without UUID
                 }
 
-                await db.insertImage({
+                const newImageId = await db.insertImage({
                     file_path: filePath,
                     file_name: fileName,
                     file_type: fileType,
                     folder_id: folderId,
                     image_uuid: imageUuid
                 });
+                try {
+                    await db.markImageIndexingPhaseDone(newImageId);
+                } catch (phaseErr) {
+                    console.warn('[Main] Import: markImageIndexingPhaseDone failed:', phaseErr);
+                }
                 added++;
             } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e);
