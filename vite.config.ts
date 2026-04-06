@@ -1,49 +1,41 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
-import fs from 'fs'
-import path from 'path'
+import { createProxyMiddleware } from 'http-proxy-middleware'
 
-// Helper to resolve backend URL from lock file
-function getBackendUrl() {
-  const defaultUrl = 'http://localhost:3001'
-  try {
-    const locks = [
-      path.resolve(__dirname, '../image-scoring-backend/webui.lock'),
-      path.resolve(__dirname, '../image-scoring-backend/webui-debug.lock'),
-      path.resolve(__dirname, './webui.lock'),
-    ]
-    for (const lock of locks) {
-      if (fs.existsSync(lock)) {
-        const data = JSON.parse(fs.readFileSync(lock, 'utf-8'))
-        if (data.port) return `http://localhost:${data.port}`
-      }
-    }
-  } catch (e) {
-    console.warn('[Vite] Failed to resolve backend from lock file:', e)
+/**
+ * Browser dev: proxy `/gallery-api/*` and `/media/*` to the gallery Express server
+ * (`npm run server`, default port 3001). Do not point this at the Python WebUI port.
+ */
+const galleryServerUrl =
+  process.env.VITE_GALLERY_SERVER_URL || 'http://127.0.0.1:3001'
+
+function galleryBrowserProxy(target: string): Plugin {
+  return {
+    name: 'gallery-browser-proxy',
+    enforce: 'pre',
+    configureServer(server) {
+      const proxy = createProxyMiddleware({
+        target,
+        changeOrigin: true,
+        pathFilter: (pathname: string) =>
+          pathname.startsWith('/gallery-api') ||
+          pathname.startsWith('/media'),
+      })
+      server.middlewares.use(proxy)
+    },
   }
-  return defaultUrl
 }
 
-const backendUrl = getBackendUrl()
-console.log(`[Vite] Proxying to backend: ${backendUrl}`)
+console.log(`[Vite] Proxying /gallery-api and /media to: ${galleryServerUrl}`)
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  base: './',
+export default defineConfig(({ command }) => ({
+  plugins: [galleryBrowserProxy(galleryServerUrl), react()],
+  // Dev: `/` avoids baseMiddleware 404 for absolute paths (e.g. /gallery-api/ping) that
+  // would otherwise fall through if proxy order fails. Build keeps `./` for Electron/file://.
+  base: command === 'serve' ? '/' : './',
   server: {
     port: 5173,
     strictPort: true,
-    proxy: {
-      '/gallery-api': {
-        target: backendUrl,
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/gallery-api/, '')
-      },
-      '/media': {
-        target: backendUrl,
-        changeOrigin: true
-      },
-    },
   },
-})
+}))

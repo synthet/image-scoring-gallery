@@ -34,6 +34,7 @@ type ElectronMock = {
     deleteImage: ReturnType<typeof vi.fn>;
     api: {
         propagateTags: ReturnType<typeof vi.fn>;
+        fixImageMetadata: ReturnType<typeof vi.fn>;
     };
 };
 
@@ -82,6 +83,7 @@ describe('ImageViewer tag propagation suggestions', () => {
                         ],
                     },
                 }),
+                fixImageMetadata: vi.fn().mockResolvedValue({ success: true, message: 'ok' }),
             },
         };
 

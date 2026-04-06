@@ -6,7 +6,8 @@ export type GalleryAppMode = 'db' | 'folder';
 interface AppModeContextValue {
     mode: GalleryAppMode;
     setMode: (m: GalleryAppMode) => void;
-    enterFolderMode: () => Promise<void>;
+    /** Resolves true when the host switched to folder mode (Electron IPC succeeded). */
+    enterFolderMode: () => Promise<boolean>;
     exitFolderMode: () => Promise<void>;
 }
 
@@ -19,25 +20,35 @@ export function AppModeProvider({ children }: { children: React.ReactNode }) {
         setGalleryAppMode(mode);
     }, [mode]);
 
+    useEffect(() => {
+        if (typeof window === 'undefined' || !window.electron) return;
+        void bridge.getGalleryMode().then((m) => {
+            if (m === 'folder' || m === 'db') setModeState(m);
+        });
+    }, []);
+
     const setMode = useCallback((m: GalleryAppMode) => {
         setModeState(m);
     }, []);
 
-    const enterFolderMode = useCallback(async () => {
-        setModeState('folder');
+    const enterFolderMode = useCallback(async (): Promise<boolean> => {
         try {
             await bridge.setGalleryMode('folder');
+            setModeState('folder');
+            return true;
         } catch (e) {
             console.error('[AppMode] setGalleryMode folder', e);
+            return false;
         }
     }, []);
 
     const exitFolderMode = useCallback(async () => {
-        setModeState('db');
         try {
             await bridge.setGalleryMode('db');
         } catch (e) {
             console.error('[AppMode] setGalleryMode db', e);
+        } finally {
+            setModeState('db');
         }
     }, []);
 

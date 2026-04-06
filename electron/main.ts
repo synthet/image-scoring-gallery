@@ -25,6 +25,7 @@ import { SessionLogManager } from './sessionLogManager';
 import { deepMergeConfig, getConfigPath, loadAppConfig, normalizeAppConfig } from './config';
 import { resolveBackendUiStaticDir, startScoringUiServer, type ScoringUiServer } from './scoringUiServer';
 import { normalizeLensFolderName, UNKNOWN_LENS_FOLDER } from './lensFolderName';
+import { collapseMalformedThumbnailSegments } from './thumbnailPathNormalize';
 
 /** Placeholder when camera model cannot be derived; sync/backup must not create this folder. */
 const UNKNOWN_CAMERA_FOLDER = '_unknown_camera';
@@ -244,6 +245,8 @@ function isPathInsideLightRoot(root: string, target: string): boolean {
  * - DB stores flat thumbnails/<hash>.jpg but on-disk layout is nested thumbnails/<aa>/<hash>.jpg
  */
 function resolveMediaFilePathWithFallbacks(normalizedPath: string): string {
+    normalizedPath = collapseMalformedThumbnailSegments(normalizedPath);
+
     if (fs.existsSync(normalizedPath)) {
         return normalizedPath;
     }
@@ -2208,6 +2211,10 @@ async function startFullApplication(): Promise<void> {
 
     ipcMain.handle('api:scoring-single', wrapIpcHandler(async (_, filePath: string) => {
         return await apiService.scoreSingleImage(filePath);
+    }));
+
+    ipcMain.handle('api:scoring-fix-image', wrapIpcHandler(async (_, filePath: string) => {
+        return await apiService.fixImage(filePath);
     }));
 
     // Tagging

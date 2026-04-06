@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDatabase } from './hooks/useDatabase';
 import { useSessionRecorder } from './hooks/useSessionRecorder';
 import AppContent from './AppContent';
@@ -12,6 +12,7 @@ function AppShell() {
   useSessionRecorder();
   const { mode, setMode, enterFolderMode } = useAppMode();
   const { isConnected, error, retry } = useDatabase();
+  const [folderModeBlockedHint, setFolderModeBlockedHint] = useState<string | null>(null);
 
   useEffect(() => {
     return bridge.onAppModeChanged((m) => setMode(m));
@@ -39,7 +40,16 @@ function AppShell() {
       <div className={styles.errorActions}>
         <button
           type="button"
-          onClick={() => void enterFolderMode()}
+          onClick={() => {
+            setFolderModeBlockedHint(null);
+            void enterFolderMode().then((ok) => {
+              if (!ok) {
+                setFolderModeBlockedHint(
+                  'Folder mode needs the desktop Electron app. A browser-only dev session (e.g. localhost:5173) cannot read your disk.',
+                );
+              }
+            });
+          }}
           className={styles.folderModeButton}
         >
           Enter Folder Mode
@@ -57,6 +67,11 @@ function AppShell() {
         view EXIF metadata, and preview RAW files. Ratings and keywords are
         not persisted in this mode.
       </p>
+      {folderModeBlockedHint && (
+        <p className={styles.errorMessage} style={{ marginTop: 16, maxWidth: 420, textAlign: 'center' }}>
+          {folderModeBlockedHint}
+        </p>
+      )}
     </div>
   );
 

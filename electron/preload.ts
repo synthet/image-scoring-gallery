@@ -345,6 +345,10 @@ contextBridge.exposeInMainWorld('electron', {
             const r = await ipcRenderer.invoke('api:scoring-single', filePath);
             return unwrapEnvelope<BackendApiResponse>(r);
         },
+        fixImageMetadata: async (filePath: string) => {
+            const r = await ipcRenderer.invoke('api:scoring-fix-image', filePath);
+            return unwrapEnvelope<BackendApiResponse>(r);
+        },
 
         // Tagging
         startTagging: async (opts: TaggingStartRequest) => {

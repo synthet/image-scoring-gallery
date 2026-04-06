@@ -139,6 +139,7 @@ const FOLDER_API_STUB: Window['electron']['api'] = {
         log: '',
     }),
     scoreSingleImage: async () => ({ success: false, message: 'folder mode' }),
+    fixImageMetadata: async () => ({ success: false, message: 'folder mode' }),
     startTagging: async () => ({ success: false, message: 'folder mode' }),
     stopTagging: async () => ({ success: false, message: 'folder mode' }),
     getTaggingStatus: async () => ({
@@ -257,12 +258,16 @@ function createHttpBridge(): Window['electron'] {
 
         readImageMetadata: (_filePath: string) => Promise.resolve(emptyFileImageMetadata()),
 
-        getLightModeRoot: () => Promise.reject(new Error('Not available in browser mode')),
+        // Empty string: folder mode is Electron-only; FsGallery shows a clear message instead of rejecting.
+        getLightModeRoot: () => Promise.resolve(''),
 
         readFsDir: () =>
             Promise.reject(new Error('Filesystem gallery is only available in the Electron app')),
 
-        setGalleryMode: () => Promise.reject(new Error('Not available in browser mode')),
+        setGalleryMode: (mode: 'db' | 'folder') =>
+            mode === 'folder'
+                ? Promise.reject(new Error('Folder mode requires the Electron app'))
+                : Promise.resolve('db'),
 
         getGalleryMode: () => Promise.resolve('db'),
 
@@ -330,6 +335,7 @@ function createHttpBridge(): Window['electron'] {
             stopScoring: () => post('/backend/scoring/stop'),
             getScoringStatus: () => get('/backend/scoring/status'),
             scoreSingleImage: (filePath) => post('/backend/scoring/single', { file_path: filePath }),
+            fixImageMetadata: (filePath) => post('/backend/scoring/fix-image', { file_path: filePath }),
 
             startTagging: (opts) => post('/backend/tagging/start', opts),
             stopTagging: () => post('/backend/tagging/stop'),

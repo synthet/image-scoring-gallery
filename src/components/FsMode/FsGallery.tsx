@@ -15,6 +15,7 @@ import styles from './FsGallery.module.css';
 import { ArrowLeft, ChevronRight, FolderOpen, ImageIcon } from 'lucide-react';
 import { invalidateFsReadDirCacheForFolder } from './fsReadDirCache';
 import { invalidateRawPreviewCacheForFolder } from '../../utils/galleryRawPreviewCache';
+import { useAppMode } from '../../context/AppModeContext';
 
 function fsDirsToSubfolders(entries: { name: string; path: string }[]): Folder[] {
     return entries.map((d) => ({
@@ -53,8 +54,14 @@ function pathChain(rootPath: string, targetPath: string): { label: string; full:
     return chain;
 }
 
+function isElectronHost(): boolean {
+    return typeof window !== 'undefined' && !!window.electron;
+}
+
 export const FsGallery: React.FC = () => {
+    const { exitFolderMode } = useAppMode();
     const [rootPath, setRootPath] = useState<string>('');
+    const [rootResolved, setRootResolved] = useState(false);
     const [selectedPath, setSelectedPath] = useState<string>('');
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [openingImage, setOpeningImage] = useState<FsImageRow | null>(null);
@@ -67,15 +74,20 @@ export const FsGallery: React.FC = () => {
     );
 
     const refreshRootFromConfig = useCallback(async () => {
+        setRootResolved(false);
         try {
             const root = await bridge.getLightModeRoot();
             if (root) {
                 setRootPath(root);
                 setSelectedPath((prev) => (prev ? prev : root));
+            } else {
+                setRootPath('');
             }
         } catch (e) {
             console.error('[FsGallery] getLightModeRoot', e);
             setRootPath('');
+        } finally {
+            setRootResolved(true);
         }
     }, []);
 
@@ -181,6 +193,28 @@ export const FsGallery: React.FC = () => {
 
     const canNavigateBack = selectedPath && rootPath && selectedPath !== rootPath;
 
+    const noRootMessage = !isElectronHost()
+        ? 'Folder mode needs the Electron desktop app. A Vite-only session (localhost:5173) cannot access your filesystem. Run npm run dev to launch Electron, or use database mode once the API and DB are reachable.'
+        : 'Could not resolve folder mode root. Use “Root folder…” in the sidebar to set lightModeRootFolder in config.';
+
+    const showRootLoading = !rootResolved;
+    const showNoRoot = rootResolved && !rootPath;
+
+    const noRootPanel = showNoRoot ? (
+        <div className={styles.noRoot}>
+            <p style={{ margin: '0 0 14px', lineHeight: 1.55, maxWidth: 520 }}>{noRootMessage}</p>
+            <button type="button" className={styles.folderModeButton} onClick={() => void exitFolderMode()}>
+                Return to database gallery
+            </button>
+        </div>
+    ) : null;
+
+    const noRootSidebarHint = showNoRoot ? (
+        <div className={styles.noRoot} style={{ fontSize: '0.88em' }}>
+            No folder root available. See the main panel for details and “Return to database gallery”.
+        </div>
+    ) : null;
+
     return (
         <>
             <MainLayout
@@ -210,7 +244,9 @@ export const FsGallery: React.FC = () => {
                                 Back
                             </button>
                         </div>
-                        {rootPath ? (
+                        {showRootLoading ? (
+                            <div className={styles.noRoot}>Loading root…</div>
+                        ) : rootPath ? (
                             <FsSidebar
                                 rootPath={rootPath}
                                 selectedPath={selectedPath}
@@ -222,12 +258,14 @@ export const FsGallery: React.FC = () => {
                                 folderCacheReload={folderCacheReload}
                             />
                         ) : (
-                            <div className={styles.noRoot}>Loading root…</div>
+                            noRootSidebarHint
                         )}
                     </div>
                 }
                 content={
-                    rootPath ? (
+                    showRootLoading ? (
+                        <div className={styles.noRoot}>Loading root…</div>
+                    ) : rootPath ? (
                         <div className={styles.contentWrapper}>
                             {totalCount === 0 && !loading && subfolders.length === 0 ? (
                                 <div className={styles.emptyState}>
@@ -251,7 +289,7 @@ export const FsGallery: React.FC = () => {
                             )}
                         </div>
                     ) : (
-                        <div className={styles.noRoot}>Could not resolve folder mode root.</div>
+                        noRootPanel
                     )
                 }
             />

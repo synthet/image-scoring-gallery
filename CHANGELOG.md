@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.4.3] - 2026-04-05
+
+### Added
+
+- **Fix metadata on server**: Image viewer control calls the backend **fix-image** flow (Electron **`api:scoring-fix-image`** / **`fixImageMetadata`**, browser **`POST /backend/scoring/fix-image`**) to re-read EXIF/XMP and refresh DB fields without a full AI re-score.
+
+### Changed
+
+- **Vite dev proxy**: **`/gallery-api`** and **`/media`** forward to the gallery Express dev server (**`VITE_GALLERY_SERVER_URL`**, default **`http://127.0.0.1:3001`**) via **`http-proxy-middleware`** instead of the Python WebUI lock file; dev **`base`** is **`/`** so absolute proxy paths resolve correctly.
+
+### Fixed
+
+- **Thumbnail paths**: Collapse duplicated **`thumbnails/app/thumbnails`** segments and strip **`../image-scoring(-backend)/thumbnails/`** repo-relative prefixes when resolving DB and **`media://`** paths (**`electron/thumbnailPathNormalize.ts`**, used from **`db.ts`** and **`main.ts`**).
+- **Folder mode in browser**: **`enterFolderMode`** returns **`true`** only after IPC succeeds; DB connection screen explains Vite-only limits; **`FsGallery`** shows loading / no-root messaging and **Return to database gallery**; HTTP bridge **`getLightModeRoot`** resolves to **`''`** instead of rejecting; **`setGalleryMode('db')`** still works in browser.
+- **App mode**: Hydrate **`galleryMode`** from the main process on startup; **`exitFolderMode`** resets local mode in **`finally`**.
+
 ## [5.4.2] - 2026-04-04
 
 ### Fixed

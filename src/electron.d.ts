@@ -370,6 +370,7 @@ declare global {
                 stopScoring: () => Promise<BackendApiResponse>;
                 getScoringStatus: () => Promise<BackendStatusResponse>;
                 scoreSingleImage: (filePath: string) => Promise<BackendApiResponse>;
+                fixImageMetadata: (filePath: string) => Promise<BackendApiResponse>;
 
                 // Tagging
                 startTagging: (opts: BackendTaggingStartRequest) => Promise<BackendApiResponse>;

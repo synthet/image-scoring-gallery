@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs';
 
 import { getConfigPath, loadAppConfig } from './config';
+import { collapseMalformedThumbnailSegments, stripThumbnailRepoRelativePrefix } from './thumbnailPathNormalize';
 import type { AppConfig, DatabaseConfig } from './types';
 import { createDatabaseConnector, IDatabaseConnector, QueryParam, TxQuery } from './db/provider';
 
@@ -98,9 +99,10 @@ function applyThumbnailPathRemaps(p: string): string {
 
 /** Resolve repo-relative thumbnail paths against thumbnail_base_dir or sibling backend thumbnails/. */
 function absolutizeThumbnailIfRelative(p: string): string {
-    const flat = p.replace(/\\/g, '/');
+    const cleaned = collapseMalformedThumbnailSegments(p);
+    const flat = cleaned.replace(/\\/g, '/');
     if (/^[a-zA-Z]:\//i.test(flat) || /^\/mnt\//i.test(flat) || flat.startsWith('//')) {
-        return p;
+        return path.normalize(cleaned);
     }
 
     const cfgBase = getPathsConfig().thumbnail_base_dir?.trim();
@@ -114,10 +116,10 @@ function absolutizeThumbnailIfRelative(p: string): string {
         }
     }
     if (!base) {
-        return p;
+        return cleaned;
     }
 
-    let rest = flat.replace(/^\//, '');
+    let rest = stripThumbnailRepoRelativePrefix(flat.replace(/^\//, ''));
     if (/^thumbnails\//i.test(rest)) {
         rest = rest.replace(/^thumbnails\//i, '');
     }

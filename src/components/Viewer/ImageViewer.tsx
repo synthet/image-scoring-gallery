@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Search, FolderOpen, Tag, Loader2 } from 'lucide-react';
+import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Search, FolderOpen, Tag, Loader2, Wrench } from 'lucide-react';
 import { SimilarSearchDrawer } from './SimilarSearchDrawer';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
 import { useNotificationStore } from '../../store/useNotificationStore';
@@ -178,7 +178,34 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [exifData, setExifData] = React.useState<ExifData | null>(null);
     const [exifLoading, setExifLoading] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+    const [fixMetadataBusy, setFixMetadataBusy] = React.useState(false);
     const addNotification = useNotificationStore(state => state.addNotification);
+
+    const handleFixImageMetadata = useCallback(async () => {
+        const path = image.file_path?.trim();
+        if (!path) {
+            addNotification('No database file path for this image', 'error');
+            return;
+        }
+        setFixMetadataBusy(true);
+        try {
+            const result = await bridge.api.fixImageMetadata(path);
+            if (result?.success) {
+                addNotification(result.message || 'Metadata synced from file on server', 'success');
+                const details = await bridge.getImageDetails(image.id);
+                if (details) {
+                    setImage(details);
+                }
+            } else {
+                addNotification(result?.message || 'Server did not update metadata', 'warning');
+            }
+        } catch (e) {
+            console.error('[ImageViewer] fixImageMetadata failed', e);
+            addNotification('Fix metadata request failed', 'error');
+        } finally {
+            setFixMetadataBusy(false);
+        }
+    }, [addNotification, image.file_path, image.id]);
 
     useKeyboardLayer('drawer', useCallback((e: KeyboardEvent) => {
         if (e.key === 'Escape') {
@@ -1412,6 +1439,40 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                             {image.keywords ? 'Completed' : 'Pending'}
                                         </span>
                                     </div>
+                                    {image.file_path && (
+                                        <div style={{ marginTop: 12 }}>
+                                            <p style={{ margin: '0 0 8px', fontSize: '0.8em', color: '#888', lineHeight: 1.4 }}>
+                                                Re-read EXIF/XMP and refresh DB fields for this file on the Python backend (no full AI re-score).
+                                            </p>
+                                            <button
+                                                type="button"
+                                                disabled={fixMetadataBusy}
+                                                onClick={() => { void handleFixImageMetadata(); }}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '8px',
+                                                    background: '#2a4a2a',
+                                                    color: '#e8f5e9',
+                                                    border: '1px solid #3d6b3d',
+                                                    borderRadius: 4,
+                                                    cursor: fixMetadataBusy ? 'wait' : 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: 8,
+                                                    fontWeight: 500,
+                                                    opacity: fixMetadataBusy ? 0.7 : 1,
+                                                }}
+                                            >
+                                                {fixMetadataBusy ? (
+                                                    <Loader2 size={16} className="animate-spin" />
+                                                ) : (
+                                                    <Wrench size={16} />
+                                                )}
+                                                Fix metadata on server
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
