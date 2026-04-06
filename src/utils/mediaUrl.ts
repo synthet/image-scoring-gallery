@@ -9,7 +9,7 @@ export function toMediaUrl(filePath: string | null | undefined): string {
     if (!filePath) return '';
     if (typeof window !== 'undefined' && window.electron) {
         const normalized = filePath.replace(/\\/g, '/');
-        // Windows drive: D:/...  →  media:///D:/...  (pathname /D:/...)
+        // Windows drive: D:/...  →  media:///D:/...
         if (/^[a-zA-Z]:\//.test(normalized)) {
             return `media:///${normalized}`;
         }
@@ -18,9 +18,10 @@ export function toMediaUrl(filePath: string | null | undefined): string {
             const rest = normalized.replace(/^\/+/, '');
             return `media:///${rest}`;
         }
-        // Other absolute paths (POSIX, etc.): single leading slash in pathname
-        const rest = normalized.replace(/^\/+/, '');
-        return `media:///${rest}`;
+        // If it's a repo-relative path (e.g. ../../image-scoring-backend) or Docker root (/app/...),
+        // pass it as a query parameter so Chromium's URL parser doesn't collapse `../` sequences 
+        // into `media:///image-scoring-backend/...`.
+        return `media:///?path=${encodeURIComponent(normalized)}`;
     }
     return `/media/${encodeURIComponent(filePath)}`;
 }

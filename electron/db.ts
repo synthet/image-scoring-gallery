@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 
 import { getConfigPath, loadAppConfig } from './config';
-import { collapseMalformedThumbnailSegments, stripThumbnailRepoRelativePrefix } from './thumbnailPathNormalize';
+import { absolutizeThumbnailPath } from './thumbnailPathNormalize';
 import type { AppConfig, DatabaseConfig } from './types';
 import { createDatabaseConnector, IDatabaseConnector, QueryParam, TxQuery } from './db/provider';
 
@@ -97,33 +97,10 @@ function applyThumbnailPathRemaps(p: string): string {
     return out;
 }
 
-/** Resolve repo-relative thumbnail paths against thumbnail_base_dir or sibling backend thumbnails/. */
+/** Resolve repo-relative thumbnail paths against thumbnail_base_dir or default sibling backend thumbnails/. */
 function absolutizeThumbnailIfRelative(p: string): string {
-    const cleaned = collapseMalformedThumbnailSegments(p);
-    const flat = cleaned.replace(/\\/g, '/');
-    if (/^[a-zA-Z]:\//i.test(flat) || /^\/mnt\//i.test(flat) || flat.startsWith('//')) {
-        return path.normalize(cleaned);
-    }
-
     const cfgBase = getPathsConfig().thumbnail_base_dir?.trim();
-    let base: string | undefined;
-    if (cfgBase) {
-        base = path.normalize(cfgBase);
-    } else {
-        const auto = path.resolve(projectRoot, '../image-scoring-backend/thumbnails');
-        if (fs.existsSync(auto)) {
-            base = auto;
-        }
-    }
-    if (!base) {
-        return cleaned;
-    }
-
-    let rest = stripThumbnailRepoRelativePrefix(flat.replace(/^\//, ''));
-    if (/^thumbnails\//i.test(rest)) {
-        rest = rest.replace(/^thumbnails\//i, '');
-    }
-    return path.normalize(path.join(base, rest));
+    return absolutizeThumbnailPath(p, projectRoot, cfgBase || undefined);
 }
 
 /**

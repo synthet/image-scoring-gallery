@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.4.4] - 2026-04-06
+
+### Added
+
+- **`electron/thumbnailPathNormalize`**: **`stripDockerAppThumbnailPrefix`** and **`absolutizeThumbnailPath`** (shared by **`db.ts`** and **`main.ts`**) to align with backend Docker/static thumbnail roots.
+
+### Changed
+
+- **`toMediaUrl`**: paths that are not Windows drive absolutes use **`media:///?path=…`** for repo-relative and similar values so Chromium does not collapse **`../`** segments in the authority.
+- **Electron main**: per-request **`media://`** logging only when **`DEBUG_GALLERY_MEDIA=1`**; missing-file warnings capped (with note to enable verbose mode); path fallback logging only in dev or verbose mode.
+
+### Fixed
+
+- **`media://` handler**: after URL parse, thumbnail strings are passed through **`absolutizeThumbnailPath`** so Docker **`/app/thumbnails`** (and similar) map to the host thumbnail base; blocks only if the path stays non-absolute after normalization.
+- **Relative `paths.thumbnail_base_dir`**: resolved from the gallery app root so **`../image-scoring-backend/thumbnails`** in config does not leave **`..`** segments that break **`media://`** resolution.
+
 ## [5.4.3] - 2026-04-05
 
 ### Added

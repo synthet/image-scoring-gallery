@@ -25,7 +25,15 @@ import { SessionLogManager } from './sessionLogManager';
 import { deepMergeConfig, getConfigPath, loadAppConfig, normalizeAppConfig } from './config';
 import { resolveBackendUiStaticDir, startScoringUiServer, type ScoringUiServer } from './scoringUiServer';
 import { normalizeLensFolderName, UNKNOWN_LENS_FOLDER } from './lensFolderName';
-import { collapseMalformedThumbnailSegments } from './thumbnailPathNormalize';
+import { collapseMalformedThumbnailSegments, absolutizeThumbnailPath } from './thumbnailPathNormalize';
+
+/** Verbose `media://` request logging (default off in dev — huge galleries flood the console). */
+function debugGalleryMedia(): boolean {
+    return process.env.DEBUG_GALLERY_MEDIA === '1';
+}
+
+let mediaMissingLogCount = 0;
+const MEDIA_MISSING_LOG_MAX = 12;
 
 /** Placeholder when camera model cannot be derived; sync/backup must not create this folder. */
 const UNKNOWN_CAMERA_FOLDER = '_unknown_camera';
@@ -311,18 +319,22 @@ function resolveBackendWebuiWindowIcon(): string | undefined {
  */
 function parseMediaUrlToFilePath(requestUrl: string): string {
     const u = new URL(requestUrl);
-    let pathname = u.pathname;
-    try {
-        pathname = decodeURIComponent(pathname);
-    } catch {
-        throw new Error('invalid encoding');
+    
+    let filePath = u.searchParams.get('path');
+    if (!filePath) {
+        let pathname = u.pathname;
+        try {
+            pathname = decodeURIComponent(pathname);
+        } catch {
+            throw new Error('invalid encoding');
+        }
+
+        if (process.platform === 'win32' && /^[a-zA-Z]$/.test(u.hostname) && pathname.length > 1) {
+            return `${u.hostname.toUpperCase()}:${pathname}`;
+        }
+        filePath = pathname;
     }
 
-    if (process.platform === 'win32' && /^[a-zA-Z]$/.test(u.hostname) && pathname.length > 1) {
-        return `${u.hostname.toUpperCase()}:${pathname}`;
-    }
-
-    let filePath = pathname;
     if (filePath.match(/^\/?mnt\/[a-zA-Z]\//)) {
         filePath = filePath.replace(/^\/?mnt\/([a-zA-Z])\//, '$1:/');
     }
@@ -823,7 +835,9 @@ async function startFullApplication(): Promise<void> {
 
     // Handle media:// requests with path sanitization
     protocol.handle('media', (request) => {
-        console.log('[Main] Media request:', request.url);
+        if (debugGalleryMedia()) {
+            console.log('[Main] Media request:', request.url);
+        }
         try {
             let filePath: string;
             try {
@@ -850,10 +864,15 @@ async function startFullApplication(): Promise<void> {
                 filePath = filePath.slice(1);
             }
 
+            // Convert any DB-persisted root (like /app/thumbnails or ../../) to an absolute host path.
+            // This safely passes through paths that are ALREADY host absolute.
+            const projectRoot = path.resolve(__dirname, '..');
+            filePath = absolutizeThumbnailPath(filePath, projectRoot, config?.paths?.thumbnail_base_dir);
+
             // Check before path.resolve: resolve() always yields an absolute path, so the old
             // check on normalizedPath could not block relative paths like d/Projects/... (bad URL parse).
             if (!path.isAbsolute(filePath)) {
-                console.error('[Main] Blocked non-absolute path:', filePath);
+                console.error('[Main] Media blocked (non-absolute path after parse):', filePath, '| url=', request.url);
                 return new Response('Access denied', { status: 403 });
             }
 
@@ -862,7 +881,27 @@ async function startFullApplication(): Promise<void> {
 
             const mediaPath = resolveMediaFilePathWithFallbacks(normalizedPath);
             if (mediaPath !== normalizedPath && fs.existsSync(mediaPath)) {
-                console.log('[Main] Media path fallback:', normalizedPath, '->', mediaPath);
+                if (isDev || debugGalleryMedia()) {
+                    console.log('[Main] Media path fallback:', normalizedPath, '->', mediaPath);
+                }
+            }
+
+            if (!fs.existsSync(mediaPath)) {
+                if (mediaMissingLogCount < MEDIA_MISSING_LOG_MAX) {
+                    console.warn(
+                        '[Main] Media file missing:',
+                        mediaPath,
+                        '| requested URL:',
+                        request.url,
+                        normalizedPath !== mediaPath ? `(tried flat: ${normalizedPath})` : '',
+                    );
+                    mediaMissingLogCount += 1;
+                } else if (mediaMissingLogCount === MEDIA_MISSING_LOG_MAX) {
+                    console.warn(
+                        '[Main] Media file missing: further messages suppressed (set DEBUG_GALLERY_MEDIA=1 for per-request logs).',
+                    );
+                    mediaMissingLogCount += 1;
+                }
             }
 
             const fileUrl = pathToFileURL(mediaPath).href;
