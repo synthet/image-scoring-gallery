@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.4.6] - 2026-04-10
+
+### Changed
+
+- **Development**: Cursor subagents **`gallery-electron-ts`** and **`pr-ready-hygiene`**, plus **`gallery-electron-ts`** skill for Electron/DB/API alignment and merge-readiness workflows.
+
 ## [5.4.5] - 2026-04-10
 
 ### Fixed
