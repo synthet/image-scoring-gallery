@@ -387,11 +387,7 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
                                     <div style={{ color: '#888', marginBottom: 8, wordBreak: 'break-all' }}>
                                         Destination: <strong style={{ color: '#ccc' }}>{destTrunc}</strong>
                                     </div>
-                                    {preview.thresholdDate && (
-                                        <div style={{ color: '#888', marginBottom: 8 }}>
-                                            Fast-skip date: photos on or before <strong>{preview.thresholdDate}</strong>
-                                        </div>
-                                    )}
+
                                     <div style={{ marginBottom: 4 }}>
                                         <strong>{preview.wouldCopy}</strong> file{preview.wouldCopy === 1 ? '' : 's'}{' '}
                                         will be copied
@@ -518,11 +514,7 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
 
                             {isComplete && result && (
                                 <div style={{ fontSize: '0.9em', color: '#ccc', lineHeight: 1.8 }}>
-                                    {result.thresholdDate && (
-                                        <div style={{ color: '#888', marginBottom: 4 }}>
-                                            Fast-skip date: photos on or before <strong>{result.thresholdDate}</strong>
-                                        </div>
-                                    )}
+
                                     <div>
                                         Scanned: <strong>{result.scanned}</strong> files
                                     </div>
