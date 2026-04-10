@@ -1416,15 +1416,15 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 10, color: '#ddd' }}>Phases</div>
                                 <div style={{ fontSize: '0.85em', display: 'flex', flexDirection: 'column', gap: 6 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#888' }}>Scoring:</span>
-                                        <span style={{ color: image.score_general !== null && image.score_general !== undefined ? '#4caf50' : '#ffa726' }}>
-                                            {image.score_general !== null && image.score_general !== undefined ? 'Completed' : 'Pending'}
-                                        </span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ color: '#888' }}>Metadata:</span>
                                         <span style={{ color: exifData ? '#4caf50' : '#ffa726' }}>
                                             {exifData ? 'Extracted' : 'Pending'}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#888' }}>Scoring:</span>
+                                        <span style={{ color: image.score_general !== null && image.score_general !== undefined ? '#4caf50' : '#ffa726' }}>
+                                            {image.score_general !== null && image.score_general !== undefined ? 'Completed' : 'Pending'}
                                         </span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { bridge } from '../../bridge';
+import { useOperationStore } from '../../store/useOperationStore';
+import { Logger } from '../../services/Logger';
 
 interface SyncResult {
     scanned: number;
@@ -58,6 +60,8 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
 
     const runRef = useRef(false);
     const modeRef = useRef<'preview' | 'sync'>('preview');
+    const opIdRef = useRef<string>('');
+    const { startOp, updateOp, completeOp } = useOperationStore();
 
     useEffect(() => {
         if (!isOpen || !sourcePath) return;
@@ -71,6 +75,7 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
         setIsComplete(false);
         setPreviewLoading(true);
         setProgress({ phase: 'detecting', current: 0, total: 0, detail: 'Starting…' });
+        Logger.info('[SyncModal] Preview started', { sourcePath });
 
         const cleanupProgress = bridge.onSyncProgress((data) => {
             if (runRef.current && modeRef.current === 'preview') {
@@ -83,11 +88,29 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
             .then((res) => {
                 if (runRef.current) {
                     setPreview(res);
+                    Logger.info('[SyncModal] Preview completed', {
+                        sourcePath,
+                        destination: res.destinationRoot,
+                        wouldCopy: res.wouldCopy,
+                        importOnly: res.importOnly,
+                        scanned: res.scanned,
+                        skipped: res.skipped,
+                        newFolders: res.newFolders.length,
+                        errors: res.errors.length,
+                        thresholdDate: res.thresholdDate,
+                    });
+                    if (res.errors.length > 0) {
+                        Logger.warn('[SyncModal] Preview produced warnings', {
+                            errors: res.errors.slice(0, 10),
+                        });
+                    }
                 }
             })
             .catch((err: unknown) => {
+                const msg = err instanceof Error ? err.message : String(err);
+                Logger.error('[SyncModal] Preview failed', { sourcePath, error: msg });
                 if (runRef.current) {
-                    setPreviewError(err instanceof Error ? err.message : String(err));
+                    setPreviewError(msg);
                 }
             })
             .finally(() => {
@@ -98,6 +121,7 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
             });
 
         return () => {
+            Logger.info('[SyncModal] Preview cleanup — effect unmounting', { sourcePath });
             runRef.current = false;
             cleanupProgress();
         };
@@ -106,6 +130,8 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
     const handleStartSync = useCallback(() => {
         if (!sourcePath || previewLoading || isSyncRunning) return;
 
+        const opId = `sync-${Date.now()}`;
+        opIdRef.current = opId;
         runRef.current = true;
         modeRef.current = 'sync';
         setIsSyncRunning(true);
@@ -113,10 +139,36 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
         setResult(null);
         setIsComplete(false);
         setProgress({ phase: 'detecting', current: 0, total: 0, detail: 'Starting…' });
+        startOp(opId, 'sync', 'Syncing…');
+        Logger.info('[SyncModal] Sync run started', { opId, sourcePath });
 
+        let lastLoggedPhase = '';
+        let lastLoggedPct = -1;
         const cleanupProgress = bridge.onSyncProgress((data) => {
             if (runRef.current && modeRef.current === 'sync') {
                 setProgress(data);
+                const phaseLabel = PHASE_LABELS[data.phase] || data.phase;
+                updateOp(opId, {
+                    current: data.current,
+                    total: data.total,
+                    label: data.total > 0
+                        ? `${phaseLabel} ${data.current}/${data.total}`
+                        : phaseLabel,
+                });
+                // Log on phase change or every 10% progress
+                const pct = data.total > 0 ? Math.floor((data.current / data.total) * 10) * 10 : 0;
+                if (data.phase !== lastLoggedPhase) {
+                    lastLoggedPhase = data.phase;
+                    lastLoggedPct = -1;
+                    Logger.info(`[SyncModal] Phase: ${phaseLabel}`, {
+                        opId, phase: data.phase, current: data.current, total: data.total, detail: data.detail,
+                    });
+                } else if (pct !== lastLoggedPct) {
+                    lastLoggedPct = pct;
+                    Logger.info(`[SyncModal] Progress ${pct}%`, {
+                        opId, phase: data.phase, current: data.current, total: data.total,
+                    });
+                }
             }
         });
 
@@ -126,20 +178,38 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
                 if (runRef.current) {
                     setResult(res);
                     setIsComplete(true);
+                    Logger.info('[SyncModal] Sync completed', {
+                        opId,
+                        scanned: res.scanned,
+                        copied: res.copied,
+                        imported: res.imported,
+                        skipped: res.skipped,
+                        folders: res.folders,
+                        errorCount: res.errors.length,
+                        thresholdDate: res.thresholdDate,
+                    });
+                    if (res.errors.length > 0) {
+                        Logger.warn('[SyncModal] Sync finished with errors', {
+                            opId, errors: res.errors.slice(0, 20),
+                        });
+                    }
                 }
             })
             .catch((err: unknown) => {
+                const msg = err instanceof Error ? err.message : String(err);
+                Logger.error('[SyncModal] Sync run failed', { opId, error: msg });
                 if (runRef.current) {
-                    setSyncError(err instanceof Error ? err.message : String(err));
+                    setSyncError(msg);
                 }
             })
             .finally(() => {
                 cleanupProgress();
+                completeOp(opId);
                 if (runRef.current) {
                     setIsSyncRunning(false);
                 }
             });
-    }, [sourcePath, previewLoading, isSyncRunning]);
+    }, [sourcePath, previewLoading, isSyncRunning, startOp, updateOp, completeOp]);
 
     const handleClose = () => {
         if (isComplete && onComplete) {

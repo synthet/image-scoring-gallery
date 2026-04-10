@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { bridge } from '../../bridge';
+import { useOperationStore } from '../../store/useOperationStore';
+import { Logger } from '../../services/Logger';
 
 interface Props {
     isOpen: boolean;
@@ -19,10 +21,14 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
     const [isComplete, setIsComplete] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const runRef = useRef(false);
+    const opIdRef = useRef<string>('');
+    const { startOp, updateOp, completeOp } = useOperationStore();
 
     useEffect(() => {
         if (!isOpen || !folderPath) return;
 
+        const opId = `import-${Date.now()}`;
+        opIdRef.current = opId;
         runRef.current = true;
         setIsRunning(true);
         setIsComplete(false);
@@ -33,12 +39,28 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
         setAdded(0);
         setSkipped(0);
         setErrors([]);
+        startOp(opId, 'import', 'Importing…');
+        Logger.info('[ImportModal] Import started', { opId, folderPath });
 
+        let lastLoggedPct = -1;
         const cleanupProgress = bridge.onImportProgress((data) => {
             if (runRef.current) {
                 setCurrent(data.current);
                 setTotal(data.total);
                 setCurrentPath(data.path ?? '');
+                updateOp(opId, {
+                    current: data.current,
+                    total: data.total,
+                    label: `Importing ${data.current}/${data.total}`,
+                });
+                // Log progress at every 10% increment to avoid flooding
+                const pct = data.total > 0 ? Math.floor((data.current / data.total) * 10) * 10 : 0;
+                if (pct !== lastLoggedPct) {
+                    lastLoggedPct = pct;
+                    Logger.info(`[ImportModal] Progress ${pct}%`, {
+                        opId, current: data.current, total: data.total, path: data.path,
+                    });
+                }
             }
         });
 
@@ -49,22 +71,35 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
                     setSkipped(result.skipped);
                     setErrors(result.errors);
                     setIsComplete(true);
+                    Logger.info('[ImportModal] Import completed', {
+                        opId, added: result.added, skipped: result.skipped, errorCount: result.errors.length,
+                    });
+                    if (result.errors.length > 0) {
+                        Logger.warn('[ImportModal] Import finished with errors', {
+                            opId, errors: result.errors.slice(0, 20),
+                        });
+                    }
                 }
             })
             .catch((err: unknown) => {
+                const msg = err instanceof Error ? err.message : String(err);
+                Logger.error('[ImportModal] Import failed', { opId, error: msg });
                 if (runRef.current) {
-                    setError(err instanceof Error ? err.message : String(err));
+                    setError(msg);
                 }
             })
             .finally(() => {
                 if (runRef.current) {
                     setIsRunning(false);
                 }
+                completeOp(opId);
                 cleanupProgress();
             });
 
         return () => {
+            Logger.info('[ImportModal] Cleanup — effect unmounting', { opId });
             runRef.current = false;
+            completeOp(opId);
             cleanupProgress();
         };
     }, [isOpen, folderPath]);

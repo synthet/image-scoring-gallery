@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.4.5] - 2026-04-10
+
+### Fixed
+
+- **Modals**: Prevent `Sync` and `Import` modals from prematurely disappearing by keeping `<AppContent />` mounted during transient DB disconnects.
+- **State**: New Zustand `useOperationStore` to track long-running sync and import operations independent of modal UI state.
+- **UI**: Persistent activity pill badge in the header shows progress of background operations even when modals are closed.
+- **Sync**: Restricted processing extensions to `.nef` files only in the main process.
+
 ## [5.4.4] - 2026-04-06
 
 ### Added

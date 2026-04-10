@@ -1,4 +1,38 @@
 {
+  "permissions": {
+    "allow": [
+      "mcp__filesystem__directory_tree",
+      "mcp__filesystem__list_allowed_directories",
+      "mcp__filesystem__read_text_file",
+      "mcp__filesystem__list_directory",
+      "Bash(npx tsc:*)",
+      "Bash(grep -n \"class.*Runner\" D:/Projects/image-scoring-backend/modules/*.py)",
+      "Bash(python -m pytest tests/integration/test_pipeline_workflow_matrix.py -x -v --timeout=120 --tb=short)",
+      "Bash(python -m pytest tests/integration/test_pipeline_workflow_matrix.py -x -v --tb=short)",
+      "Bash(PIPELINE_MATRIX_MAX_CASES=0 python -m pytest tests/integration/test_pipeline_workflow_matrix.py --co -q)",
+      "Bash(PIPELINE_MATRIX_MAX_CASES=0 python -m pytest tests/integration/test_pipeline_workflow_matrix.py -v --tb=short)",
+      "Bash(PIPELINE_MATRIX_MAX_CASES=0 python -m pytest \"tests/integration/test_pipeline_workflow_matrix.py::TestPipelineWorkflowMatrix::test_lifecycle[metadata+keywords|monolithic|skip=True|fail_then_restart]\" -v --tb=long)",
+      "Bash(python -m pytest \"tests/integration/test_pipeline_workflow_matrix.py::TestDispatcherEdgeCases::test_restart_failed_increments_retry_count\" -v --tb=short)",
+      "Bash(PIPELINE_MATRIX_MAX_CASES=0 python -m pytest tests/integration/test_pipeline_workflow_matrix.py --tb=short -q)",
+      "Bash(python -m pytest tests/integration/test_pipeline_workflow_matrix.py --tb=short -q)",
+      "Bash(python -m pytest tests/test_multi_phase_job_postgres.py tests/test_job_dispatcher_fakes.py -v --tb=short -q)",
+      "Bash(python -c \"from tests.support.testing_samples import testing_samples_root, list_sample_image_files; root = testing_samples_root\\(\\); print\\(f'Root: {root}'\\); files = list_sample_image_files\\(\\); print\\(f'Files: {len\\(files\\)}'\\)\")",
+      "Bash(python scripts/maintenance/schedule_incomplete_scope_runs.py --help)",
+      "Bash(python scripts/maintenance/schedule_incomplete_scope_runs.py --dry-run)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(psql:*)",
+      "Bash(where psql:*)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Read(//d/Program Files/**)",
+      "Read(//d//**)",
+      "Bash(cmd.exe /c \"where psql\")",
+      "Bash(node -e ':*)",
+      "Bash(ls \"D:/Photos/Z6ii/28-400mm/2026/2026-04-08/\"*.JPG)",
+      "Bash(ls \"D:/Photos/Z6ii/28-400mm/2026/2026-04-08/\"*.NEF)",
+      "Bash(find \"D:/Photos/Z6ii\" -iname \"*.jpg\" -delete -print)"
+    ]
+  },
   "enableAllProjectMcpServers": true,
   "disabledMcpjsonServers": [
     "imgscore-el-playwright",

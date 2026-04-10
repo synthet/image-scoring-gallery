@@ -1415,6 +1415,9 @@ async function startFullApplication(): Promise<void> {
     }
 
     /** Recursively collect image files from a directory. */
+    /** Sync only processes Nikon RAW files. */
+    const SYNC_EXTENSIONS = new Set(['.nef']);
+
     async function collectImageFiles(dir: string): Promise<string[]> {
         const result: string[] = [];
         const entries = await fs.promises.readdir(dir, { withFileTypes: true });
@@ -1423,7 +1426,7 @@ async function startFullApplication(): Promise<void> {
             if (entry.isDirectory()) {
                 const sub = await collectImageFiles(fullPath);
                 result.push(...sub);
-            } else if (entry.isFile() && IMAGE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+            } else if (entry.isFile() && SYNC_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
                 result.push(fullPath);
             }
         }
@@ -1788,7 +1791,7 @@ async function startFullApplication(): Promise<void> {
                 const files = entries
                     .filter(e => e.isFile())
                     .map(e => path.join(folderPath, e.name))
-                    .filter(p => IMAGE_EXTENSIONS.has(path.extname(p).toLowerCase()));
+                    .filter(p => SYNC_EXTENSIONS.has(path.extname(p).toLowerCase()));
 
                 const folderId = await db.getOrCreateFolder(folderPath);
 
@@ -2163,11 +2166,7 @@ async function startFullApplication(): Promise<void> {
         const cfg = loadConfig();
         const dbCfg = (cfg as Record<string, unknown>).database as Record<string, unknown> | undefined;
         const apiUrl = apiService.getBaseUrl();
-        let apiConnected = false;
-        try {
-            const r = await fetch(apiUrl + '/health');
-            apiConnected = r.ok;
-        } catch { /* backend unreachable */ }
+        const apiConnected = await apiService.isAvailable();
         return {
             os: {
                 platform: os.platform(),

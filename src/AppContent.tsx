@@ -16,7 +16,8 @@ import { RunsPage } from './components/Runs/RunsPage';
 import { ImportModal } from './components/Import/ImportModal';
 import { SyncModal } from './components/Sync/SyncModal';
 import { BackupModal } from './components/Backup/BackupModal';
-import { Loader2, ChevronRight } from 'lucide-react';
+import { Loader2, ChevronRight, RefreshCw } from 'lucide-react';
+import { useOperationStore } from './store/useOperationStore';
 import { useState } from 'react';
 import { bridge } from './bridge';
 import { useElectronListeners } from './hooks/useElectronListeners';
@@ -33,6 +34,7 @@ function AppContent() {
   const [filters, setFilters] = useState<FilterState>({ minRating: 0, sortBy: 'score_general', order: 'DESC' });
   const [smartCoverEnabled, setSmartCoverEnabled] = useState(false);
   const [outlierRefreshKey, setOutlierRefreshKey] = useState(0);
+  const activeOps = useOperationStore((s) => s.activeOps);
 
   useEffect(() => {
     let mounted = true;
@@ -304,7 +306,27 @@ function AppContent() {
               ({currentTotal} {stacksMode && !activeStackId ? 'items (grouped)' : 'items'})
             </span>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '15px', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-              {/* Header actions can go here */}
+              {activeOps.size > 0 && Array.from(activeOps.values()).map((op, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    if (op.type === 'import') setIsImportModalOpen(true);
+                    else if (op.type === 'sync') setIsSyncModalOpen(true);
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '4px 12px', background: 'rgba(0, 120, 212, 0.15)',
+                    border: '1px solid rgba(0, 120, 212, 0.4)', borderRadius: 16,
+                    fontSize: '0.8em', color: '#7cc4ff', fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                  title="Click to show progress"
+                >
+                  <RefreshCw size={12} className="app-spinner" />
+                  {op.label}
+                </button>
+              ))}
             </div>
           </div>
         }
@@ -538,25 +560,21 @@ function AppContent() {
         }}
         onComplete={refreshFolders}
       />
-      {isSyncModalOpen && syncSourcePath && (
-        <SyncModal
-          isOpen={isSyncModalOpen}
-          sourcePath={syncSourcePath}
-          onClose={() => setIsSyncModalOpen(false)}
-          onComplete={() => {
-            refreshImages();
-            refreshFolders();
-          }}
-        />
-      )}
+      <SyncModal
+        isOpen={isSyncModalOpen}
+        sourcePath={syncSourcePath}
+        onClose={() => setIsSyncModalOpen(false)}
+        onComplete={() => {
+          refreshImages();
+          refreshFolders();
+        }}
+      />
 
-      {isBackupModalOpen && backupTargetPath && (
-        <BackupModal
-          isOpen={isBackupModalOpen}
-          targetPath={backupTargetPath}
-          onClose={() => setIsBackupModalOpen(false)}
-        />
-      )}
+      <BackupModal
+        isOpen={isBackupModalOpen}
+        targetPath={backupTargetPath}
+        onClose={() => setIsBackupModalOpen(false)}
+      />
     </>
   );
 }
