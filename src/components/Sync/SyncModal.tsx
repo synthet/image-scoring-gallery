@@ -389,7 +389,7 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
                                     </div>
                                     {preview.thresholdDate && (
                                         <div style={{ color: '#888', marginBottom: 8 }}>
-                                            Threshold: photos after <strong>{preview.thresholdDate}</strong>
+                                            Fast-skip date: photos on or before <strong>{preview.thresholdDate}</strong>
                                         </div>
                                     )}
                                     <div style={{ marginBottom: 4 }}>
@@ -520,7 +520,7 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
                                 <div style={{ fontSize: '0.9em', color: '#ccc', lineHeight: 1.8 }}>
                                     {result.thresholdDate && (
                                         <div style={{ color: '#888', marginBottom: 4 }}>
-                                            Threshold: photos after <strong>{result.thresholdDate}</strong>
+                                            Fast-skip date: photos on or before <strong>{result.thresholdDate}</strong>
                                         </div>
                                     )}
                                     <div>

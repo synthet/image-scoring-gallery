@@ -42,7 +42,7 @@ function isUnresolvedSyncLayout(camera: string, lens: string): boolean {
     return camera === UNKNOWN_CAMERA_FOLDER || lens === UNKNOWN_LENS_FOLDER;
 }
 
-const exiftool = new ExifTool({ maxProcs: 2 });
+const exiftool = new ExifTool({ maxProcs: 6 });
 
 function convertFsImagePathForExif(filePath: string): string {
     let convertedPath = filePath;
@@ -1444,7 +1444,7 @@ async function startFullApplication(): Promise<void> {
 
     /**
      * Detect the threshold date for sync: photos on or before this date are
-     * presumed already synced and can be skipped without an expensive EXIF read.
+     * presumed already synced and can be bypassed by an EXIF quick-skip check.
      *
      * Heuristics (combined, then 1-day safety margin):
      * 1. Walk destRoot for leaf folders named YYYY-MM-DD (sync layout).
@@ -1610,9 +1610,7 @@ async function startFullApplication(): Promise<void> {
 
         mainWindow?.webContents.send('sync:progress', {
             phase: 'scanning', current: totalScanned, total: totalScanned,
-            detail: thresholdDate
-                ? `Found ${totalScanned} files, ${candidates.length} newer than ${thresholdDate}`
-                : `Found ${totalScanned} image files`
+            detail: `Found ${totalScanned} image files`
         });
 
         const totalCandidates = candidates.length;
