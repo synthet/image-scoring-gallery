@@ -1579,26 +1579,8 @@ async function startFullApplication(): Promise<void> {
         const allFiles = await collectImageFiles(sourcePath);
         const totalScanned = allFiles.length;
 
-        let candidates: string[];
-        let skippedByDate = 0;
-        if (thresholdDate) {
-            const thresholdMs = new Date(thresholdDate + 'T00:00:00').getTime();
-            candidates = [];
-            for (const f of allFiles) {
-                try {
-                    const fstat = await fs.promises.stat(f);
-                    if (fstat.mtime.getTime() < thresholdMs) {
-                        skippedByDate++;
-                    } else {
-                        candidates.push(f);
-                    }
-                } catch {
-                    candidates.push(f);
-                }
-            }
-        } else {
-            candidates = allFiles;
-        }
+        const candidates = allFiles;
+        const skippedByDate = 0;
 
         if (candidates.length === 0) {
             mainWindow?.webContents.send('sync:progress', {
@@ -1643,118 +1625,126 @@ async function startFullApplication(): Promise<void> {
         const newFolderRelPaths = new Set<string>();
 
         const processPhase = dryRun ? 'preview' : 'copying';
+        let processedCount = 0;
+        const concurrencyLimit = 15; // Safe parallelism for exiftool + DB queries
 
-        for (let i = 0; i < candidates.length; i++) {
-            const filePath = candidates[i];
-            const fileName = path.basename(filePath);
+        for (let batchStart = 0; batchStart < candidates.length; batchStart += concurrencyLimit) {
+            const batch = candidates.slice(batchStart, batchStart + concurrencyLimit);
 
-            mainWindow?.webContents.send('sync:progress', {
-                phase: processPhase, current: i + 1, total: totalCandidates, detail: fileName
-            });
-
-            try {
-                let dateStr: string | null = null;
-                let cameraModel: string | null = null;
-                let lensModel: string | null = null;
-                let imageUuid: string | null = null;
+            await Promise.all(batch.map(async (filePath) => {
+                const fileName = path.basename(filePath);
 
                 try {
-                    const tags = await exiftool.read(filePath);
+                    let dateStr: string | null = null;
+                    let cameraModel: string | null = null;
+                    let lensModel: string | null = null;
+                    let imageUuid: string | null = null;
 
-                    const dto = tags.DateTimeOriginal ?? tags.CreateDate ?? tags.ModifyDate;
-                    if (dto) {
-                        const raw = typeof dto === 'string' ? dto : String(dto);
-                        const match = raw.match(/(\d{4})[:\-](\d{2})[:\-](\d{2})/);
-                        if (match) {
-                            dateStr = `${match[1]}-${match[2]}-${match[3]}`;
+                    try {
+                        const tags = await exiftool.read(filePath);
+
+                        const dto = tags.DateTimeOriginal ?? tags.CreateDate ?? tags.ModifyDate;
+                        if (dto) {
+                            const raw = typeof dto === 'string' ? dto : String(dto);
+                            const match = raw.match(/(\d{4})[:\-](\d{2})[:\-](\d{2})/);
+                            if (match) {
+                                dateStr = `${match[1]}-${match[2]}-${match[3]}`;
+                            }
+                        }
+
+                        cameraModel = (tags.Model as string) ?? null;
+                        lensModel = (tags.LensModel as string) ?? (tags.Lens as string) ?? null;
+
+                        const uid = tags.ImageUniqueID ?? tags.DocumentID ?? null;
+                        if (uid && typeof uid === 'string') {
+                            imageUuid = uid;
+                        }
+                    } catch {
+                        // EXIF read failed; use file date fallback
+                    }
+
+                    if (!dateStr) {
+                        const fstat = await fs.promises.stat(filePath);
+                        const d = fstat.mtime;
+                        dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    }
+
+                    const camera = normalizeCameraModel(cameraModel);
+                    const lens = normalizeLensFolderName(lensModel);
+                    if (isUnresolvedSyncLayout(camera, lens)) {
+                        console.warn(
+                            `[Sync] Skip (missing camera/lens for layout): ${filePath} exif_model=${cameraModel ?? '—'} exif_lens=${lensModel ?? '—'}`
+                        );
+                        skippedCount++;
+                        return;
+                    }
+
+                    if (thresholdDate && dateStr <= thresholdDate) {
+                        if (imageUuid) {
+                            const existsByUuid = await db.findImageByUuid(imageUuid);
+                            if (existsByUuid) {
+                                skippedCount++;
+                                return;
+                            }
+                        }
+                        const year = dateStr.substring(0, 4);
+                        const destFileEarly = path.join(destRoot, camera, lens, year, dateStr, fileName);
+                        if (await fs.promises.stat(destFileEarly).then(() => true, () => false)) {
+                            skippedCount++;
+                            return;
                         }
                     }
 
-                    cameraModel = (tags.Model as string) ?? null;
-                    lensModel = (tags.LensModel as string) ?? (tags.Lens as string) ?? null;
-
-                    const uid = tags.ImageUniqueID ?? tags.DocumentID ?? null;
-                    if (uid && typeof uid === 'string') {
-                        imageUuid = uid;
-                    }
-                } catch {
-                    // EXIF read failed; use file date fallback
-                }
-
-                if (!dateStr) {
-                    const fstat = await fs.promises.stat(filePath);
-                    const d = fstat.mtime;
-                    dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                }
-
-                const camera = normalizeCameraModel(cameraModel);
-                const lens = normalizeLensFolderName(lensModel);
-                if (isUnresolvedSyncLayout(camera, lens)) {
-                    console.warn(
-                        `[Sync] Skip (missing camera/lens for layout): ${filePath} exif_model=${cameraModel ?? '—'} exif_lens=${lensModel ?? '—'}`
-                    );
-                    skippedCount++;
-                    continue;
-                }
-
-                if (thresholdDate && dateStr <= thresholdDate) {
                     if (imageUuid) {
                         const existsByUuid = await db.findImageByUuid(imageUuid);
                         if (existsByUuid) {
                             skippedCount++;
-                            continue;
+                            return;
                         }
                     }
+
                     const year = dateStr.substring(0, 4);
-                    const destFileEarly = path.join(destRoot, camera, lens, year, dateStr, fileName);
-                    if (await fs.promises.stat(destFileEarly).then(() => true, () => false)) {
-                        skippedCount++;
-                        continue;
-                    }
-                }
+                    const destDir = path.join(destRoot, camera, lens, year, dateStr);
+                    const destFile = path.join(destDir, fileName);
 
-                if (imageUuid) {
-                    const existsByUuid = await db.findImageByUuid(imageUuid);
-                    if (existsByUuid) {
-                        skippedCount++;
-                        continue;
-                    }
-                }
-
-                const year = dateStr.substring(0, 4);
-                const destDir = path.join(destRoot, camera, lens, year, dateStr);
-                const destFile = path.join(destDir, fileName);
-
-                if (await fs.promises.stat(destFile).then(() => true, () => false)) {
-                    const existsByPath = await db.findImageByFilePath(destFile);
-                    if (existsByPath) {
-                        skippedCount++;
-                        continue;
-                    }
-                    if (dryRun) {
-                        importOnly++;
-                    }
-                } else {
-                    if (dryRun) {
-                        wouldCopy++;
-                        const destDirExists = await fs.promises.stat(destDir).then(() => true, () => false);
-                        if (!destDirExists) {
-                            newFolderRelPaths.add(syncRelDisplay(destRoot, destDir));
+                    if (await fs.promises.stat(destFile).then(() => true, () => false)) {
+                        const existsByPath = await db.findImageByFilePath(destFile);
+                        if (existsByPath) {
+                            skippedCount++;
+                            return;
+                        }
+                        if (dryRun) {
+                            importOnly++;
                         }
                     } else {
-                        await fs.promises.mkdir(destDir, { recursive: true });
-                        await fs.promises.copyFile(filePath, destFile);
-                        copied++;
+                        if (dryRun) {
+                            wouldCopy++;
+                            const destDirExists = await fs.promises.stat(destDir).then(() => true, () => false);
+                            if (!destDirExists) {
+                                newFolderRelPaths.add(syncRelDisplay(destRoot, destDir));
+                            }
+                        } else {
+                            await fs.promises.mkdir(destDir, { recursive: true });
+                            await fs.promises.copyFile(filePath, destFile);
+                            copied++;
+                        }
+                    }
+
+                    if (!dryRun) {
+                        newFolders.add(destDir);
+                    }
+                } catch (e) {
+                    const msg = e instanceof Error ? e.message : String(e);
+                    errors.push(`${fileName}: ${msg}`);
+                } finally {
+                    processedCount++;
+                    if (processedCount % 5 === 0 || processedCount === totalCandidates) {
+                        mainWindow?.webContents.send('sync:progress', {
+                            phase: processPhase, current: processedCount, total: totalCandidates, detail: fileName
+                        });
                     }
                 }
-
-                if (!dryRun) {
-                    newFolders.add(destDir);
-                }
-            } catch (e) {
-                const msg = e instanceof Error ? e.message : String(e);
-                errors.push(`${fileName}: ${msg}`);
-            }
+            }));
         }
 
         if (dryRun) {
