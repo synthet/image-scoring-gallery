@@ -204,6 +204,8 @@ function createHttpBridge(): Window['electron'] {
 
         deleteFolder: (id) => del(`/db/folder/${id}`),
 
+        getDatesWithShots: (options?) => get('/db/dates-with-shots', options as Record<string, unknown> | undefined),
+
         getFolders: () => get('/db/folders'),
 
         getKeywords: () => get('/db/keywords'),

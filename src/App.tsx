@@ -15,18 +15,19 @@ function AppShell() {
   const { isConnected, error, retry } = useDatabase();
   const [folderModeBlockedHint, setFolderModeBlockedHint] = useState<string | null>(null);
   const hasConnectedOnce = useRef(false);
+  const prevConnected = useRef<boolean | null>(null);
 
   useEffect(() => {
     return bridge.onAppModeChanged((m) => setMode(m));
   }, [setMode]);
 
-  // Track connection state transitions for logging
-  const prevConnected = useRef<boolean | null>(null);
-  if (isConnected !== prevConnected.current) {
+  // Log only on real transitions (avoids strict-mode double logs and repeated "restored" spam)
+  useEffect(() => {
+    const was = prevConnected.current;
     if (isConnected && !hasConnectedOnce.current) {
       Logger.info('[AppShell] First DB connection established — latching hasConnectedOnce');
       hasConnectedOnce.current = true;
-    } else if (isConnected && hasConnectedOnce.current && prevConnected.current === false) {
+    } else if (isConnected && was === false && hasConnectedOnce.current) {
       Logger.info('[AppShell] DB connection restored after transient disconnect');
     } else if (!isConnected && hasConnectedOnce.current) {
       Logger.warn('[AppShell] DB connection lost after initial connect — AppContent stays mounted', { error });
@@ -34,11 +35,7 @@ function AppShell() {
       Logger.warn('[AppShell] DB connection failed on startup', { error });
     }
     prevConnected.current = isConnected;
-  }
-
-  if (isConnected) {
-    hasConnectedOnce.current = true;
-  }
+  }, [isConnected, error]);
 
   if (mode === 'folder') {
     return <FsGallery />;

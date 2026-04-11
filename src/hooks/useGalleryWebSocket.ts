@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useJobProgressStore } from '../store/useJobProgressStore';
 import { bridge } from '../bridge';
+import { BACKEND_JOB_TYPE_LABEL } from '../constants/pipelineLabels';
 
 interface UseGalleryWebSocketParams {
   refreshImages: (opts?: { preserveItems?: boolean }) => void;
@@ -134,10 +135,8 @@ export function useGalleryWebSocket({
       subscribe('job_started', (data: unknown) => {
         const d = data as { job_type: string; job_id: string };
         console.log('[App] Job started:', d);
-        const typeLabel = d.job_type === 'scoring' ? 'Scoring' :
-          d.job_type === 'tagging' ? 'Tagging' :
-            d.job_type === 'clustering' ? 'Clustering' : 'Process';
-        addNotification(`${typeLabel} job started (ID: ${d.job_id})`, 'info');
+        const typeLabel = BACKEND_JOB_TYPE_LABEL[d.job_type] ?? 'Process';
+        addNotification(`${typeLabel} run started (#${d.job_id})`, 'info');
         useJobProgressStore.getState().startJob(String(d.job_id), d.job_type);
       });
 
@@ -163,7 +162,7 @@ export function useGalleryWebSocket({
         console.log('[App] Job completed:', d);
         const status = d.status === 'completed' ? 'finished successfully' : 'failed';
         const type = d.status === 'completed' ? 'success' : 'error';
-        addNotification(`Job ${d.job_id} ${status}`, type);
+        addNotification(`Run ${d.job_id} ${status}`, type);
         useJobProgressStore.getState().completeJob(String(d.job_id));
 
         if (d.status === 'completed') {

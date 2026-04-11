@@ -283,7 +283,13 @@ declare global {
             updateImageDetails: (id: number, updates: ImageUpdates) => Promise<boolean>;
             deleteImage: (id: number) => Promise<boolean>;
             deleteFolder: (id: number) => Promise<boolean>;
-            getDatesWithShots: () => Promise<string[]>;
+            getDatesWithShots: (options?: {
+                folderId?: number;
+                folderIds?: number[];
+                minRating?: number;
+                colorLabel?: string;
+                keyword?: string;
+            }) => Promise<string[]>;
             getFolders: () => Promise<FolderRow[]>;
             getKeywords: () => Promise<string[]>;
             findNearDuplicates: (options?: { threshold?: number; folder_path?: string; limit?: number }) => Promise<DuplicateResponse>;

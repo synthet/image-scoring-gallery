@@ -25,6 +25,7 @@ import { SessionLogManager } from './sessionLogManager';
 import { deepMergeConfig, getConfigPath, loadAppConfig, normalizeAppConfig } from './config';
 import { resolveBackendUiStaticDir, startScoringUiServer, type ScoringUiServer } from './scoringUiServer';
 import { normalizeLensFolderName, UNKNOWN_LENS_FOLDER } from './lensFolderName';
+import { parseMediaUrlToFilePath } from './mediaUrlParse';
 import { collapseMalformedThumbnailSegments, absolutizeThumbnailPath } from './thumbnailPathNormalize';
 
 /** Verbose `media://` request logging (default off in dev — huge galleries flood the console). */
@@ -310,38 +311,6 @@ function resolveBackendWebuiWindowIcon(): string | undefined {
         }
     }
     return undefined;
-}
-
-/**
- * Map a media:// request URL to a filesystem path segment (before resolve/normalize).
- * Chromium parses `media://D:/path` as host "D" + pathname "/path"; recover the drive letter on Windows.
- * Correct `media:///D:/path` yields pathname "/D:/path".
- */
-function parseMediaUrlToFilePath(requestUrl: string): string {
-    const u = new URL(requestUrl);
-    
-    let filePath = u.searchParams.get('path');
-    if (!filePath) {
-        let pathname = u.pathname;
-        try {
-            pathname = decodeURIComponent(pathname);
-        } catch {
-            throw new Error('invalid encoding');
-        }
-
-        if (process.platform === 'win32' && /^[a-zA-Z]$/.test(u.hostname) && pathname.length > 1) {
-            return `${u.hostname.toUpperCase()}:${pathname}`;
-        }
-        filePath = pathname;
-    }
-
-    if (filePath.match(/^\/?mnt\/[a-zA-Z]\//)) {
-        filePath = filePath.replace(/^\/?mnt\/([a-zA-Z])\//, '$1:/');
-    }
-    if (process.platform === 'win32' && /^\/[a-zA-Z]:\//.test(filePath)) {
-        filePath = filePath.slice(1);
-    }
-    return filePath;
 }
 
 function getDialogWindow(): BrowserWindow | null {
@@ -1002,6 +971,10 @@ async function startFullApplication(): Promise<void> {
         return { success: true, count };
     }));
 
+    ipcMain.handle('db:get-dates-with-shots', wrapIpcHandler(async (_, options) => {
+        return db.getDatesWithShots(options ?? {});
+    }));
+
     ipcMain.handle('db:get-folders', wrapIpcHandler(async () => {
         const rawFolders = await db.getFolders() as { path: string;[key: string]: unknown }[];
 
@@ -1414,8 +1387,7 @@ async function startFullApplication(): Promise<void> {
         return s.replace(/[<>:"/\\|?*]+/g, '_').replace(/\s+/g, '_').substring(0, 60);
     }
 
-    /** Recursively collect image files from a directory. */
-    /** Sync only processes Nikon RAW files. */
+    /** Recursively collect Nikon RAW (.nef) files from a directory for sync. */
     const SYNC_EXTENSIONS = new Set(['.nef']);
 
     async function collectImageFiles(dir: string): Promise<string[]> {
@@ -1579,10 +1551,7 @@ async function startFullApplication(): Promise<void> {
         const allFiles = await collectImageFiles(sourcePath);
         const totalScanned = allFiles.length;
 
-        const candidates = allFiles;
-        const skippedByDate = 0;
-
-        if (candidates.length === 0) {
+        if (allFiles.length === 0) {
             mainWindow?.webContents.send('sync:progress', {
                 phase: 'done', current: 0, total: 0,
                 detail: dryRun ? 'Preview complete (nothing to process)' : 'Sync complete (nothing to copy)'
@@ -1593,7 +1562,7 @@ async function startFullApplication(): Promise<void> {
                     thresholdDate,
                     destinationRoot: destRoot,
                     scanned: totalScanned,
-                    skipped: skippedByDate,
+                    skipped: 0,
                     wouldCopy: 0,
                     importOnly: 0,
                     newFolders: [],
@@ -1603,7 +1572,7 @@ async function startFullApplication(): Promise<void> {
             return {
                 dryRun: false,
                 scanned: totalScanned, copied: 0, imported: 0,
-                skipped: skippedByDate, folders: 0, errors: [],
+                skipped: 0, folders: 0, errors: [],
                 thresholdDate,
             };
         }
@@ -1613,11 +1582,11 @@ async function startFullApplication(): Promise<void> {
             detail: `Found ${totalScanned} image files`
         });
 
-        const totalCandidates = candidates.length;
+        const totalCandidates = allFiles.length;
         let copied = 0;
         let wouldCopy = 0;
         let importOnly = 0;
-        let skippedCount = skippedByDate;
+        let skippedCount = 0;
         const errors: string[] = [];
         const newFolders = new Set<string>();
         const newFolderRelPaths = new Set<string>();
@@ -1626,8 +1595,8 @@ async function startFullApplication(): Promise<void> {
         let processedCount = 0;
         const concurrencyLimit = 15; // Safe parallelism for exiftool + DB queries
 
-        for (let batchStart = 0; batchStart < candidates.length; batchStart += concurrencyLimit) {
-            const batch = candidates.slice(batchStart, batchStart + concurrencyLimit);
+        for (let batchStart = 0; batchStart < allFiles.length; batchStart += concurrencyLimit) {
+            const batch = allFiles.slice(batchStart, batchStart + concurrencyLimit);
 
             await Promise.all(batch.map(async (filePath) => {
                 const fileName = path.basename(filePath);

@@ -437,7 +437,7 @@ function AppContent() {
               </select>
             </div>
 
-            <FilterPanel filters={filters} onChange={setFilters} />
+            <FilterPanel filters={filters} onChange={setFilters} folderId={selectedFolderId} />
 
             <div style={{
               flex: 1, overflow: 'hidden', borderTop: '1px solid #333', paddingTop: 10,

@@ -26,6 +26,10 @@ description: >-
   `config.api.port` (config wins).
 - **TypeScript** in `electron/` or `src/` (renderer).
 
+## Pipeline UI terminology (gallery + backend)
+
+User-visible stage names match **image-scoring-backend** Gradio/Vite: **Discovery**, **Inspection**, **Quality Analysis**, **Similarity Clustering**, **Tagging** (`docs/technical/PIPELINE_TERMINOLOGY.md` on each repo). In this app, labels live in **`src/constants/pipelineLabels.ts`** — keep them aligned when backend **`frontend/src/types/api.ts`** (`STAGE_DISPLAY`) changes. The renderer prefers **run** in copy while APIs still use **`job_id`**.
+
 ## Schema and API authority (before renaming columns or response shapes)
 
 The **image-scoring-backend** repo owns the database schema and REST contract.
@@ -33,7 +37,8 @@ The **image-scoring-backend** repo owns the database schema and REST contract.
 1. Cross-check **`modules/db_postgres.py`** (DDL and table/column names) and
    Alembic migrations under **`migrations/versions/`** when available.
 2. Use backend docs as needed: **`docs/technical/DB_SCHEMA.md`**,
-   **`docs/technical/API_CONTRACT.md`**, and gallery
+   **`docs/technical/API_CONTRACT.md`**,
+   **`docs/technical/PIPELINE_TERMINOLOGY.md`**, and gallery
    **`docs/architecture/02-database-design.md`** for how Electron connects.
 3. Do **not** rename columns, JSON shapes, or IPC payloads to “match a guess.”
    If a change requires backend DDL or API changes, **call that out explicitly**

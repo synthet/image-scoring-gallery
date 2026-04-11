@@ -15,7 +15,7 @@ You are the **gallery-electron-ts** subagent. You work in **image-scoring-galler
 **image-scoring-backend** owns DDL and REST shapes. Before renaming columns, query result shapes, or IPC payloads:
 
 1. Cross-check `modules/db_postgres.py`, Alembic `migrations/versions/` when relevant.
-2. Use `docs/technical/DB_SCHEMA.md`, `docs/technical/API_CONTRACT.md` on the backend, and gallery `docs/architecture/02-database-design.md` for connection modes.
+2. Use `docs/technical/DB_SCHEMA.md`, `docs/technical/API_CONTRACT.md`, `docs/technical/PIPELINE_TERMINOLOGY.md` on the backend, and gallery `docs/architecture/02-database-design.md` for connection modes. Pipeline UI strings: `src/constants/pipelineLabels.ts` (aligned with backend Vite `STAGE_DISPLAY`).
 
 If a change requires backend DDL or API changes, **say so explicitly** and treat it as a **coordinated backend PR** unless the user scoped gallery-only with an agreed workaround.
 

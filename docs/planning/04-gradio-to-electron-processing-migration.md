@@ -35,7 +35,7 @@ This means migration is primarily a **UI/flow orchestration** effort rather than
 2. Left panel shows existing folder tree; selecting a folder binds the right panel state.
 3. Right panel presents:
    - Quick Start strip (select folder → run pending → review results).
-   - End-to-end phase progress row (Index, Meta, Scoring, Culling, Keywords).
+   - End-to-end phase progress row (Discovery → Inspection → Quality Analysis → Similarity Clustering → Tagging; see backend [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md)).
    - Batch controls (Run All Pending / Stop All).
    - Operator metadata fields (skip reason, actor).
    - Per-phase cards with progress, state, run/skip/retry actions, and options.

@@ -16,6 +16,7 @@ Python scoring engine, FastAPI, and PostgreSQL schema (**[image-scoring-backend]
 | Embedding applications (backend plan) | [docs/plans/embedding/EMBEDDING_APPLICATIONS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/plans/embedding/EMBEDDING_APPLICATIONS.md) |
 | DB vectors / normalization | [docs/plans/database/DB_VECTORS_REFACTOR.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/plans/database/DB_VECTORS_REFACTOR.md) |
 | Agent coordination (canonical) | [docs/technical/AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) |
+| Pipeline terminology (cross-repo) | [docs/technical/PIPELINE_TERMINOLOGY.md](technical/PIPELINE_TERMINOLOGY.md) · [backend PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) |
 
 ---
 
@@ -25,6 +26,7 @@ Core system design and high-level technical overviews.
 
 - [01 - System Overview](architecture/01-system-overview.md) - High-density project context, tech stack, and entry points
 - [02 - Database Design](architecture/02-database-design.md) - Database engine overview, migration recommendations, and connection logic
+- [Pipeline terminology](technical/PIPELINE_TERMINOLOGY.md) - Stage display names vs API (`pipelineLabels.ts`, aligned with Gradio/Vite)
 
 ---
 

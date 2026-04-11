@@ -6,6 +6,7 @@ import { FolderTree } from '../Tree/FolderTree';
 import type { Folder } from '../Tree/treeUtils';
 import type { BackendJobInfo } from '../../electron.d';
 import { bridge } from '../../bridge';
+import { PIPELINE_OPERATION_LABEL, PIPELINE_OPERATION_ORDER } from '../../constants/pipelineLabels';
 
 interface RunsPageProps {
     folders: Folder[];
@@ -42,7 +43,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                 setQueueDepth(queue.queue_depth ?? 0);
             } catch { /* ignore */ }
         } catch (e) {
-            console.error('Failed to fetch recent jobs:', e);
+            console.error('Failed to fetch recent runs:', e);
         }
     }, [setQueueDepth]);
 
@@ -66,7 +67,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
             const onStarted = (data: unknown) => {
                 const d = data as { job_id: string | number; job_type?: string };
                 if (String(activeJobIdRef.current) === String(d.job_id)) {
-                    appendLogRef.current({ ts: new Date().toISOString(), level: 'info', source: 'pipeline', message: `Job started: ${d.job_type ?? 'unknown'}` });
+                    appendLogRef.current({ ts: new Date().toISOString(), level: 'info', source: 'pipeline', message: `Run started: ${d.job_type ?? 'unknown'}` });
                 }
                 fetchJobs(); // Refresh jobs list
             };
@@ -87,7 +88,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                         ts: new Date().toISOString(),
                         level: succeeded ? 'info' : 'error',
                         source: 'pipeline',
-                        message: `Job ${succeeded ? 'completed' : 'failed'}${d.error ? ` — ${d.error}` : ''}`,
+                        message: `Run ${succeeded ? 'completed' : 'failed'}${d.error ? ` — ${d.error}` : ''}`,
                     });
                 }
                 fetchJobs(); // Refresh jobs list
@@ -124,7 +125,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                     appendLog({ ts: selected.completed_at || new Date().toISOString(), level: 'info', source: 'system', message: line });
                 }
             } else if (logBuffer.length === 0 && !selected.log) {
-                 appendLog({ ts: new Date().toISOString(), level: 'warn', source: 'system', message: 'No logs available for this job.' });
+                 appendLog({ ts: new Date().toISOString(), level: 'warn', source: 'system', message: 'No logs available for this run.' });
             }
         }
     }, [activeJobId, recentJobs, logBuffer.length, appendLog, clearLog]);
@@ -149,7 +150,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                 .map(([key]) => key);
             
             if (operations.length === 0) {
-                addNotification('Select at least one phase to run.', 'warning');
+                addNotification('Select at least one pipeline stage to include.', 'warning');
                 return;
             }
 
@@ -173,7 +174,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
     };
 
     const handleStopAll = async () => {
-        if (!confirm('Are you sure you want to stop all running jobs?')) return;
+        if (!confirm('Are you sure you want to stop all active runs?')) return;
         try {
             await Promise.allSettled([
                 bridge.api.stopScoring(),
@@ -196,7 +197,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #333', background: '#141414' }}>
-                <div style={{ fontSize: '1.1em', fontWeight: 600 }}>Scoring...</div>
+                <div style={{ fontSize: '1.1em', fontWeight: 600 }}>Pipeline</div>
                 <div style={{ flex: 1 }} />
                 <div style={{ fontSize: '0.85em', color: '#888', marginRight: 15 }}>
                     Queue depth: {queueDepth}
@@ -220,12 +221,12 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                             + New Run
                         </button>
                     </div>
-                    <div style={{ padding: '0 10px', fontSize: '0.8em', color: '#666', textTransform: 'uppercase', marginBottom: 5 }}>Recent Jobs</div>
+                    <div style={{ padding: '0 10px', fontSize: '0.8em', color: '#666', textTransform: 'uppercase', marginBottom: 5 }}>Recent runs</div>
                     <div style={{ flex: 1, overflowY: 'auto' }}>
                         {jobsLoading && recentJobs.length === 0 ? (
-                            <div style={{ padding: 10, color: '#666', fontSize: '0.85em' }}>Loading jobs...</div>
+                            <div style={{ padding: 10, color: '#666', fontSize: '0.85em' }}>Loading runs…</div>
                         ) : recentJobs.length === 0 ? (
-                            <div style={{ padding: 10, color: '#666', fontSize: '0.85em' }}>No recent jobs found.</div>
+                            <div style={{ padding: 10, color: '#666', fontSize: '0.85em' }}>No recent runs found.</div>
                         ) : (
                             recentJobs.map(job => (
                                 <div
@@ -238,7 +239,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                                     }}
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                        <span style={{ fontSize: '0.9em', fontWeight: 600, color: '#ccc' }}>#{job.job_id} - {job.job_type || 'Unknown'}</span>
+                                        <span style={{ fontSize: '0.9em', fontWeight: 600, color: '#ccc' }}>Run #{job.job_id} · {job.job_type || 'Unknown'}</span>
                                         <span style={{
                                             fontSize: '0.7em', padding: '1px 4px', borderRadius: 3,
                                             background: job.status === 'completed' ? '#1b3e1d' : job.status === 'running' ? '#1b3a5a' : job.status === 'failed' ? '#4a1414' : '#333',
@@ -263,7 +264,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: '#111' }}>
                     {!activeJobId ? (
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>
-                            Select a job to view details, or create a new run.
+                            Select a run to view details, or create a new run.
                         </div>
                     ) : activeJobId === 'new' ? (
                         <>
@@ -291,17 +292,17 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
 
                                     {/* Right half: Options */}
                                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid #333', borderRadius: 4, background: '#1a1a1a' }}>
-                                        <div style={{ padding: '8px 12px', background: '#222', borderBottom: '1px solid #333', fontSize: '0.85em', fontWeight: 600 }}>2. Configure Operations</div>
+                                        <div style={{ padding: '8px 12px', background: '#222', borderBottom: '1px solid #333', fontSize: '0.85em', fontWeight: 600 }}>2. Configure pipeline stages</div>
                                         <div style={{ padding: 15, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                            {(['indexing', 'metadata', 'score', 'tag', 'cluster'] as const).map(op => (
+                                            {PIPELINE_OPERATION_ORDER.map((op) => (
                                                 <label key={op} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                                                     <input 
                                                         type="checkbox" 
                                                         checked={createOperations[op]} 
                                                         onChange={(e) => setCreateOperations({...createOperations, [op]: e.target.checked})} 
                                                     />
-                                                    <span style={{ fontSize: '0.9em', color: '#ccc', textTransform: 'capitalize' }}>
-                                                        {op === 'score' ? 'Scoring' : op === 'tag' ? 'Tagging' : op === 'cluster' ? 'Clustering' : op}
+                                                    <span style={{ fontSize: '0.9em', color: '#ccc' }}>
+                                                        {PIPELINE_OPERATION_LABEL[op]}
                                                     </span>
                                                 </label>
                                             ))}
@@ -318,7 +319,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                                                         cursor: !createTarget || createBusy ? 'not-allowed' : 'pointer',
                                                     }}
                                                 >
-                                                    {createBusy ? 'Submitting...' : 'Submit Job'}
+                                                    {createBusy ? 'Submitting…' : 'Queue run'}
                                                 </button>
                                                 {!createTarget && <div style={{ textAlign: 'center', fontSize: '0.8em', color: '#f44336', marginTop: 8 }}>Please select a target folder first.</div>}
                                             </div>
@@ -333,7 +334,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                             <div style={{ padding: '15px 20px', borderBottom: '1px solid #2a2a2a', background: '#1a1a1a' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                                     <div>
-                                        <h2 style={{ margin: 0, fontSize: '1.2em', color: '#eee' }}>Job #{activeJob.job_id} ({activeJob.job_type})</h2>
+                                        <h2 style={{ margin: 0, fontSize: '1.2em', color: '#eee' }}>Run #{activeJob.job_id} ({activeJob.job_type})</h2>
                                         <div style={{ fontSize: '0.85em', color: '#888', marginTop: 4 }}>Target: {activeJob.input_path || 'None'}</div>
                                     </div>
                                     <span style={{
@@ -369,7 +370,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                         </>
                     ) : (
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>
-                            Job details not found.
+                            Run not found.
                         </div>
                     )}
                 </div>

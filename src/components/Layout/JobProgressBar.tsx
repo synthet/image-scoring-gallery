@@ -1,17 +1,6 @@
 import React from 'react';
 import { useJobProgressStore } from '../../store/useJobProgressStore';
-
-const JOB_TYPE_LABELS: Record<string, string> = {
-    scoring: 'Scoring',
-    tagging: 'Tagging',
-    clustering: 'Clustering',
-    selection: 'Selection',
-    fix_db: 'Fix DB',
-    indexing: 'Indexing',
-    metadata: 'Metadata',
-    bird_species: 'Bird species',
-    pipeline: 'Pipeline',
-};
+import { BACKEND_JOB_TYPE_LABEL } from '../../constants/pipelineLabels';
 
 export const JobProgressBar: React.FC = () => {
     const activeJobs = useJobProgressStore((s) => s.activeJobs);
@@ -32,7 +21,7 @@ export const JobProgressBar: React.FC = () => {
         }}>
             {entries.map((job) => {
                 const pct = job.total > 0 ? Math.round((job.current / job.total) * 100) : 0;
-                const label = JOB_TYPE_LABELS[job.job_type] ?? job.job_type;
+                const label = BACKEND_JOB_TYPE_LABEL[job.job_type] ?? job.job_type;
                 return (
                     <div key={job.job_id} style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                         <span style={{ flexShrink: 0 }}>{label}</span>

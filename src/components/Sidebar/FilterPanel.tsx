@@ -14,9 +14,10 @@ export interface FilterState {
 interface FilterPanelProps {
     filters: FilterState;
     onChange: (filters: FilterState) => void;
+    folderId?: number;
 }
 
-export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange }) => {
+export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange, folderId }) => {
 
     const handleRatingChange = (r: number) => {
         onChange({ ...filters, minRating: r });
@@ -81,6 +82,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange }) =
                 <CalendarPicker
                     value={filters.capturedDate || ''}
                     onChange={handleDateChange}
+                    folderId={folderId}
+                    minRating={filters.minRating}
+                    colorLabel={filters.colorLabel}
+                    keyword={filters.keyword}
                 />
             </div>
         </div>

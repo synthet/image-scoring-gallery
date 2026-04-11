@@ -3,6 +3,7 @@ import { ChevronRight, ChevronDown, Folder, FolderOpen, Trash2 } from 'lucide-re
 import type { Folder as FolderType } from './treeUtils';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
 import { bridge } from '../../bridge';
+import { STAGE_DISPLAY } from '../../constants/pipelineLabels';
 
 const STATUS_COLOR: Record<string, string> = {
     not_started: '#555',
@@ -14,9 +15,9 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 const PHASE_LABELS: [keyof Pick<FolderType, 'indexing_status' | 'scoring_status' | 'tagging_status'>, string][] = [
-    ['indexing_status', 'Indexing'],
-    ['scoring_status', 'Scoring'],
-    ['tagging_status', 'Tagging'],
+    ['indexing_status', STAGE_DISPLAY.indexing.name],
+    ['scoring_status', STAGE_DISPLAY.scoring.name],
+    ['tagging_status', STAGE_DISPLAY.keywords.name],
 ];
 
 interface FolderTreeProps {

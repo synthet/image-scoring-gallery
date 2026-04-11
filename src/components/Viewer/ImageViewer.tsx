@@ -7,6 +7,7 @@ import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
 import { usePropagateTags } from '../../hooks/useDatabase';
 import { toMediaUrl } from '../../utils/mediaUrl';
 import { bridge } from '../../bridge';
+import { STAGE_DISPLAY } from '../../constants/pipelineLabels';
 import type { TagPropagationRequest } from '../../../electron/apiTypes';
 
 /**
@@ -1416,25 +1417,25 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 10, color: '#ddd' }}>Phases</div>
                                 <div style={{ fontSize: '0.85em', display: 'flex', flexDirection: 'column', gap: 6 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#888' }}>Metadata:</span>
+                                        <span style={{ color: '#888' }}>{STAGE_DISPLAY.metadata.name}:</span>
                                         <span style={{ color: exifData ? '#4caf50' : '#ffa726' }}>
                                             {exifData ? 'Extracted' : 'Pending'}
                                         </span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#888' }}>Scoring:</span>
+                                        <span style={{ color: '#888' }}>{STAGE_DISPLAY.scoring.name}:</span>
                                         <span style={{ color: image.score_general !== null && image.score_general !== undefined ? '#4caf50' : '#ffa726' }}>
                                             {image.score_general !== null && image.score_general !== undefined ? 'Completed' : 'Pending'}
                                         </span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#888' }}>Culling:</span>
+                                        <span style={{ color: '#888' }}>{STAGE_DISPLAY.culling.name}:</span>
                                         <span style={{ color: image.rating > 0 || (image.label && image.label !== 'None') ? '#4caf50' : '#ffa726' }}>
                                             {image.rating > 0 || (image.label && image.label !== 'None') ? 'Completed' : 'Pending'}
                                         </span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#888' }}>Keywords:</span>
+                                        <span style={{ color: '#888' }}>{STAGE_DISPLAY.keywords.name}:</span>
                                         <span style={{ color: image.keywords ? '#4caf50' : '#ffa726' }}>
                                             {image.keywords ? 'Completed' : 'Pending'}
                                         </span>

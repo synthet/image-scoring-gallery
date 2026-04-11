@@ -22,6 +22,7 @@ The backend owns DDL/schema migrations. This app connects via PostgreSQL (`pg`) 
 
 ## Key Files
 
+- `src/constants/pipelineLabels.ts` — User-facing pipeline stage names aligned with backend `frontend/src/types/api.ts` (`STAGE_DISPLAY`); see `docs/technical/PIPELINE_TERMINOLOGY.md`
 - `electron/db.ts` — Query layer over `electron/db/provider.ts` (PostgreSQL and/or `api` HTTP SQL to the backend)
 - `electron/main.ts` — Electron main process, IPC handlers
 - `electron/apiService.ts` — HTTP client to Python FastAPI backend

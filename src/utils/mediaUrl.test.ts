@@ -16,8 +16,10 @@ describe('toMediaUrl', () => {
         expect(toMediaUrl('D:\\Photos\\a.jpg')).toBe('media:///D:/Photos/a.jpg');
     });
 
-    it('electron mnt path uses media:///', () => {
+    it('electron mnt path uses media:///?path= to avoid host=mnt parse bug', () => {
         (window as unknown as { electron: Record<string, unknown> }).electron = {};
-        expect(toMediaUrl('/mnt/c/Projects/x.jpg')).toBe('media:///mnt/c/Projects/x.jpg');
+        expect(toMediaUrl('/mnt/c/Projects/x.jpg')).toBe(
+            'media:///?path=' + encodeURIComponent('/mnt/c/Projects/x.jpg'),
+        );
     });
 });

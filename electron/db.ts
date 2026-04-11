@@ -46,6 +46,21 @@ function countBigint(expr = '*'): string {
     return `COUNT(${expr})::bigint`;
 }
 
+/**
+ * Casts an expression to a calendar date for comparisons.
+ * Both local `postgres` and `api` connectors run SQL against PostgreSQL (`::date` is valid).
+ */
+function castDate(expr: string): string {
+    return `(${expr})::date`;
+}
+
+/** Shot time: embedded EXIF, then XMP sidecar (Lightroom / Bridge), then DB import time. */
+const CAPTURE_TS = 'COALESCE(ex.date_time_original, ex.create_date, xm.create_date, i.created_at)';
+const CAPTURE_TS_CEX = 'COALESCE(cex.date_time_original, cex.create_date, cxm.create_date, ci.created_at)';
+const CAPTURE_TS_EI = 'COALESCE(e.date_time_original, e.create_date, xm.create_date, i.created_at)';
+const CAPTURE_FALLBACK =
+    '(ex.date_time_original IS NULL AND ex.create_date IS NULL AND xm.create_date IS NULL)';
+
 /** Optional config: see config.example.json → paths */
 interface PathsConfig {
     /** Explicit from→to replacements for thumbnail_path (applied after win/WSL resolution) */
@@ -198,17 +213,17 @@ function syncDestinationPathLikeParams(destRootWin: string): { destLike: string;
 }
 
 /**
- * Latest calendar shoot date (YYYY-MM-DD) from indexed EXIF under the destination tree.
- * Uses COALESCE(date_time_original, create_date) per row; ignores images with no EXIF row or no dates.
+ * Latest calendar shoot date (YYYY-MM-DD) from indexed EXIF / XMP under the destination tree.
  */
 export async function getMaxIndexedCaptureDateUnderDestRoot(destRootWin: string): Promise<string | null> {
     const { destLike, wslLike } = syncDestinationPathLikeParams(destRootWin);
     const rows = await query<{ max_date: string | null }>(
-        `SELECT MAX((COALESCE(e.date_time_original, e.create_date))::date)::text AS max_date
+        `SELECT MAX(${castDate('COALESCE(e.date_time_original, e.create_date, xm.create_date)')})::text AS max_date
          FROM images i
-         INNER JOIN image_exif e ON e.image_id = i.id
+         LEFT JOIN image_exif e ON e.image_id = i.id
+         LEFT JOIN image_xmp xm ON xm.image_id = i.id
          WHERE (i.file_path LIKE ? OR i.file_path LIKE ?)
-           AND (e.date_time_original IS NOT NULL OR e.create_date IS NOT NULL)`,
+           AND COALESCE(e.date_time_original, e.create_date, xm.create_date) IS NOT NULL`,
         [destLike, wslLike]
     );
     const v = rows[0]?.max_date;
@@ -219,7 +234,7 @@ export async function getMaxIndexedCaptureDateUnderDestRoot(destRootWin: string)
 export async function getMaxIndexedCreatedDateUnderDestRoot(destRootWin: string): Promise<string | null> {
     const { destLike, wslLike } = syncDestinationPathLikeParams(destRootWin);
     const rows = await query<{ max_date: string | null }>(
-        `SELECT MAX((i.created_at)::date)::text AS max_date FROM images i
+        `SELECT MAX(${castDate('i.created_at')})::text AS max_date FROM images i
          WHERE i.file_path LIKE ? OR i.file_path LIKE ?`,
         [destLike, wslLike]
     );
@@ -270,9 +285,11 @@ export async function getImageCount(options: ImageQueryOptions = {}): Promise<nu
 
     if (capturedDate) {
         whereParts.push(`EXISTS (
-            SELECT 1 FROM image_exif ex
-            WHERE ex.image_id = images.id
-            AND (COALESCE(ex.date_time_original, ex.create_date, images.created_at))::date = ?
+            SELECT 1 FROM images ci
+            LEFT JOIN image_exif cex ON ci.id = cex.image_id
+            LEFT JOIN image_xmp cxm ON ci.id = cxm.image_id
+            WHERE ci.id = images.id
+            AND ${castDate(CAPTURE_TS_CEX)} = ?
         )`);
         params.push(capturedDate);
     }
@@ -306,7 +323,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
         minRating,
         colorLabel,
         keyword,
-        sortBy = 'capture_date',
+        sortBy = 'score_general',
         order = 'DESC',
         capturedDate
     } = options;
@@ -336,7 +353,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
     }
 
     if (capturedDate) {
-        whereParts.push('(COALESCE(ex.date_time_original, ex.create_date, i.created_at))::date = ?');
+        whereParts.push(`${castDate(CAPTURE_TS)} = ?`);
         params.push(capturedDate);
     }
 
@@ -354,7 +371,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
     const sortField = allowedSortColumns.includes(sortBy) ? sortBy : 'score_general';
 
     if (sortField === 'capture_date') {
-        sortSql = 'COALESCE(ex.date_time_original, ex.create_date, i.created_at)';
+        sortSql = CAPTURE_TS;
     } else {
         sortSql = `i.${sortField}`;
     }
@@ -379,12 +396,13 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.created_at,
             i.thumbnail_path,
             i.thumbnail_path_win,
-            COALESCE(ex.date_time_original, ex.create_date, i.created_at) as capture_date,
-            (ex.date_time_original IS NULL AND ex.create_date IS NULL) as is_capture_date_fallback
+            ${CAPTURE_TS} as capture_date,
+            ${CAPTURE_FALLBACK} as is_capture_date_fallback
         FROM images i
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
         LEFT JOIN image_exif ex ON i.id = ex.image_id
+        LEFT JOIN image_xmp xm ON i.id = xm.image_id
         ${whereClause}
         ORDER BY ${sortSql} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}
         ${paginationSql()}
@@ -729,24 +747,29 @@ export async function isImageDeleted(
     imageUuid: string | null
 ): Promise<boolean> {
     try {
-        if (imageUuid && imageUuid.trim()) {
-            const u = imageUuid.trim();
-            const byUuid = await query<{ x: number }>(
-                'SELECT 1 AS x FROM deleted_images WHERE image_uuid = ? AND file_name = ? LIMIT 1',
-                [u, fileName]
-            );
-            if (byUuid.length > 0) return true;
-        }
         const norm = normalizePathForDb(filePath);
-        const candidates = new Set<string>([norm, filePath.replace(/\\/g, '/')]);
-        for (const p of candidates) {
-            if (!p) continue;
-            const byPath = await query<{ x: number }>(
-                'SELECT 1 AS x FROM deleted_images WHERE original_path = ? LIMIT 1',
-                [p]
-            );
-            if (byPath.length > 0) return true;
+        const fwd = filePath.replace(/\\/g, '/');
+        const pathCandidates = [...new Set([norm, fwd].filter(Boolean))];
+
+        const conditions: string[] = [];
+        const params: (string | null)[] = [];
+
+        if (imageUuid && imageUuid.trim()) {
+            conditions.push('(image_uuid = ? AND file_name = ?)');
+            params.push(imageUuid.trim(), fileName);
         }
+        for (const p of pathCandidates) {
+            conditions.push('original_path = ?');
+            params.push(p);
+        }
+
+        if (conditions.length === 0) return false;
+
+        const rows = await query<{ x: number }>(
+            `SELECT 1 AS x FROM deleted_images WHERE ${conditions.join(' OR ')} LIMIT 1`,
+            params
+        );
+        return rows.length > 0;
     } catch (e) {
         console.warn('[DB] isImageDeleted failed (ensure backend migration for deleted_images):', e);
     }
@@ -1120,11 +1143,11 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
     };
 
     const cacheSortCol = sortColumn === 'capture_date'
-        ? (sortOrder === 'DESC' ? 'COALESCE(ex.date_time_original, ex.create_date, i.created_at)' : 'COALESCE(ex.date_time_original, ex.create_date, i.created_at)')
+        ? CAPTURE_TS
         : (cacheColMap[sortColumn] || (sortOrder === 'DESC' ? 'sc.max_score_general' : 'sc.min_score_general'));
 
     const nonStackSortCol = sortColumn === 'capture_date'
-        ? 'COALESCE(ex.date_time_original, ex.create_date, i.created_at)'
+        ? CAPTURE_TS
         : (allowedSortColumns.includes(sortBy) ? `i.${sortBy}` : 'i.score_general');
 
     // Params for the union query (need to push them twice, once for top half, once for bottom)
@@ -1167,12 +1190,13 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
         wherePartsCache.push(`EXISTS (
             SELECT 1 FROM images ci
             LEFT JOIN image_exif cex ON ci.id = cex.image_id
+            LEFT JOIN image_xmp cxm ON ci.id = cxm.image_id
             WHERE ci.stack_id = sc.stack_id
-            AND (COALESCE(cex.date_time_original, cex.create_date, ci.created_at))::date = ?
+            AND ${castDate(CAPTURE_TS_CEX)} = ?
         )`);
         topParams.push(capturedDate);
 
-        wherePartsNonStack.push('(COALESCE(ex.date_time_original, ex.create_date, i.created_at))::date = ?');
+        wherePartsNonStack.push(`${castDate(CAPTURE_TS)} = ?`);
         botParams.push(capturedDate);
     }
 
@@ -1203,11 +1227,12 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.created_at,
                 i.thumbnail_path,
                 i.thumbnail_path_win,
-                COALESCE(ex.date_time_original, ex.create_date, i.created_at) as capture_date,
-                (ex.date_time_original IS NULL AND ex.create_date IS NULL) as is_capture_date_fallback
+                ${CAPTURE_TS} as capture_date,
+                ${CAPTURE_FALLBACK} as is_capture_date_fallback
             FROM stack_cache sc
             JOIN images i ON i.id = sc.rep_image_id
             LEFT JOIN image_exif ex ON i.id = ex.image_id
+            LEFT JOIN image_xmp xm ON i.id = xm.image_id
             LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
                 AND POSITION('/thumbnails/' IN fp.path) = 0
             ${whereClauseCache}
@@ -1236,10 +1261,11 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.created_at,
                 i.thumbnail_path,
                 i.thumbnail_path_win,
-                COALESCE(ex.date_time_original, ex.create_date, i.created_at) as capture_date,
-                (ex.date_time_original IS NULL AND ex.create_date IS NULL) as is_capture_date_fallback
+                ${CAPTURE_TS} as capture_date,
+                ${CAPTURE_FALLBACK} as is_capture_date_fallback
             FROM images i
             LEFT JOIN image_exif ex ON i.id = ex.image_id
+            LEFT JOIN image_xmp xm ON i.id = xm.image_id
             LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
                 AND POSITION('/thumbnails/' IN fp.path) = 0
             ${whereClauseNonStack}
@@ -1288,7 +1314,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
     }
 
     if (capturedDate) {
-        whereParts.push('(COALESCE(ex.date_time_original, ex.create_date, i.created_at))::date = ?');
+        whereParts.push(`${castDate(CAPTURE_TS)} = ?`);
         params.push(capturedDate);
     }
 
@@ -1300,7 +1326,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
         'rating', 'file_name', 'capture_date'
     ];
     const sortColumn = allowedSortColumns.includes(sortBy) 
-        ? (sortBy === 'capture_date' ? 'COALESCE(ex.date_time_original, ex.create_date, i.created_at)' : `i.${sortBy}`)
+        ? (sortBy === 'capture_date' ? CAPTURE_TS : `i.${sortBy}`)
         : 'i.score_general';
     const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
 
@@ -1321,10 +1347,11 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             i.thumbnail_path,
             i.thumbnail_path_win,
             i.stack_id,
-            COALESCE(ex.date_time_original, ex.create_date, i.created_at) as capture_date,
-            (ex.date_time_original IS NULL AND ex.create_date IS NULL) as is_capture_date_fallback
+            ${CAPTURE_TS} as capture_date,
+            ${CAPTURE_FALLBACK} as is_capture_date_fallback
         FROM images i
         LEFT JOIN image_exif ex ON i.id = ex.image_id
+        LEFT JOIN image_xmp xm ON i.id = xm.image_id
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
         ${whereClause}
@@ -1361,8 +1388,9 @@ export async function getStackCount(options: StackQueryOptions = {}): Promise<nu
         whereParts.push(`EXISTS (
             SELECT 1 FROM images ci
             LEFT JOIN image_exif cex ON ci.id = cex.image_id
+            LEFT JOIN image_xmp cxm ON ci.id = cxm.image_id
             WHERE (COALESCE(i.stack_id, -i.id) = COALESCE(ci.stack_id, -ci.id))
-            AND (COALESCE(cex.date_time_original, cex.create_date, ci.created_at))::date = ?
+            AND ${castDate(CAPTURE_TS_CEX)} = ?
         )`);
         params.push(capturedDate);
     }
@@ -1466,11 +1494,12 @@ export async function getAllScoredImagesForBackup(minScore: number): Promise<Sco
             i.score_general as composite_score,
             i.image_hash,
             i.stack_id,
-            (COALESCE(e.date_time_original, e.create_date, i.created_at))::date::text as capture_date
+            ${castDate(CAPTURE_TS_EI)}::text as capture_date
         FROM images i
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
         LEFT JOIN image_exif e ON e.image_id = i.id
+        LEFT JOIN image_xmp xm ON xm.image_id = i.id
         WHERE i.score_general >= ?
         ORDER BY i.score_general DESC NULLS LAST
     `;
@@ -1515,20 +1544,55 @@ export async function getSimilarPairsInGroup(imageIds: number[], threshold: numb
 }
 
 /**
- * Get all unique dates that have images, across both stacked and non-stacked images.
- * Useful for highlighting dates in the calendar picker.
+ * Get unique dates that have images, scoped like the main gallery filters (folder, rating, label, keyword).
+ * Used for calendar dot markers so dots match the active filter set.
  */
-export async function getDatesWithShots(): Promise<string[]> {
+export async function getDatesWithShots(options: {
+    folderId?: number;
+    folderIds?: number[];
+    minRating?: number;
+    colorLabel?: string;
+    keyword?: string;
+} = {}): Promise<string[]> {
+    const { folderId, folderIds, minRating, colorLabel, keyword } = options;
+    const params: (string | number | null)[] = [];
+    const whereParts: string[] = [];
+
+    pushFolderFilter(whereParts, params, folderId, folderIds, 'i.folder_id');
+
+    if (minRating !== undefined && minRating > 0) {
+        whereParts.push('i.rating >= ?');
+        params.push(minRating);
+    }
+
+    if (colorLabel) {
+        whereParts.push('i.label = ?');
+        params.push(colorLabel);
+    }
+
+    if (keyword) {
+        whereParts.push(`EXISTS (
+            SELECT 1 FROM image_keywords ik
+            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
+            WHERE ik.image_id = i.id
+            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
+        )`);
+        params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+
+    const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
+
     const sql = `
-        SELECT DISTINCT (COALESCE(ex.date_time_original, ex.create_date, i.created_at))::date::text as capture_date
+        SELECT DISTINCT ${castDate(CAPTURE_TS)}::text as capture_date
         FROM images i
         LEFT JOIN image_exif ex ON i.id = ex.image_id
-        WHERE i.id IS NOT NULL
+        LEFT JOIN image_xmp xm ON i.id = xm.image_id
+        ${whereClause}
         ORDER BY capture_date DESC
     `;
-    
+
     try {
-        const rows = await query<{ capture_date: string }>(sql);
+        const rows = await query<{ capture_date: string }>(sql, params);
         return rows.map(r => r.capture_date);
     } catch (e) {
         console.error('[DB] getDatesWithShots failed:', e);

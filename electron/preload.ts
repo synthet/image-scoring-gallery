@@ -78,6 +78,16 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('db:delete-folder', id);
         return unwrapEnvelope<boolean>(response);
     },
+    getDatesWithShots: async (options?: {
+        folderId?: number;
+        folderIds?: number[];
+        minRating?: number;
+        colorLabel?: string;
+        keyword?: string;
+    }) => {
+        const response = await ipcRenderer.invoke('db:get-dates-with-shots', options);
+        return unwrapEnvelope<string[]>(response);
+    },
     getFolders: async () => {
         const response = await ipcRenderer.invoke('db:get-folders');
         return unwrapEnvelope<FolderRow[]>(response);

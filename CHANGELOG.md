@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.7.0] - 2026-04-11
+
+### Added
+
+- **Pipeline terminology**: **`src/constants/pipelineLabels.ts`** and **`src/types/pipelineStage.ts`** — user-facing stage names aligned with the backend React app (Discovery, Inspection, Quality Analysis, Similarity Clustering, Tagging, Bird Species ID); **`docs/technical/PIPELINE_TERMINOLOGY.md`** mirrors the shared glossary.
+- **`electron/mediaUrlParse`**: Shared media URL parsing helpers with unit tests (used with **`mediaUrl`** utilities).
+
+### Changed
+
+- **Capture date from XMP**: Gallery SQL treats **`image_xmp.create_date`** as part of the capture timestamp (with EXIF and import time); calendar-day filters and **`capture_date`** sort use the same **`COALESCE`**; sync “max capture date under tree” uses EXIF + XMP.
+- **Default gallery sort**: **`getImages`** default **`sortBy`** is **`score_general`** (was **`capture_date`**).
+- **Runs & job progress**: **`RunsPage`**, **`JobProgressBar`**, and **`useGalleryWebSocket`** show human-readable pipeline stage labels; Electron **`main`** / **`preload`** / **`bridge`** updated for IPC where needed.
+- **`electron/db.ts`**: **`castDate()`** helper; capture fallback indicator when XMP is also missing.
+
 ## [5.6.0] - 2026-04-11
 
 ### Added

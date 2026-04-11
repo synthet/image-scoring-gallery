@@ -159,9 +159,9 @@ async function startServer() {
     }));
 
     // DB: dates with shots
-    router.get('/db/dates-with-shots', wrap(async (_req, res) => {
+    router.get('/db/dates-with-shots', wrap(async (req, res) => {
         try {
-            const result = await db.getDatesWithShots();
+            const result = await db.getDatesWithShots(parseQueryOptions(req.query));
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));

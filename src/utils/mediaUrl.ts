@@ -13,10 +13,11 @@ export function toMediaUrl(filePath: string | null | undefined): string {
         if (/^[a-zA-Z]:\//.test(normalized)) {
             return `media:///${normalized}`;
         }
-        // WSL-style: /mnt/d/... or mnt/d/...
+        // WSL-style: /mnt/d/... — use ?path= so Chromium cannot normalize to media://mnt/d/...
+        // (host "mnt", pathname "/d/..."), which breaks main-process resolution.
         if (/^\/?mnt\/[a-zA-Z]\//i.test(normalized)) {
-            const rest = normalized.replace(/^\/+/, '');
-            return `media:///${rest}`;
+            const mntAbsolute = normalized.startsWith('/') ? normalized : `/${normalized}`;
+            return `media:///?path=${encodeURIComponent(mntAbsolute)}`;
         }
         // If it's a repo-relative path (e.g. ../../image-scoring-backend) or Docker root (/app/...),
         // pass it as a query parameter so Chromium's URL parser doesn't collapse `../` sequences 
