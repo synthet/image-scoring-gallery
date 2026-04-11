@@ -10,9 +10,17 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}', 'electron/**/*.{test,spec}.ts'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
+      reporter: ['text', 'text-summary', 'json-summary', 'lcov', 'html'],
+      reportsDirectory: './coverage',
+      reportOnFailure: true,
       include: ['src/**/*.ts', 'src/**/*.tsx', 'electron/**/*.ts'],
       exclude: ['**/*.d.ts', '**/*.test.*', '**/*.spec.*'],
+      thresholds: {
+        branches: 6,
+        functions: 8,
+        lines: 10,
+        statements: 10,
+      },
     },
   },
 });
