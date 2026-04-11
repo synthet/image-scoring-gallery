@@ -147,6 +147,10 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 return img.score_ava ? `${Math.round(img.score_ava * 100)}%` : '-';
             case 'score_liqe':
                 return img.score_liqe ? `${Math.round(img.score_liqe * 100)}%` : '-';
+            case 'score_koniq':
+                return img.score_koniq ? `${Math.round(img.score_koniq * 100)}%` : '-';
+            case 'score_paq2piq':
+                return img.score_paq2piq ? `${Math.round(img.score_paq2piq * 100)}%` : '-';
             default:
                 return img.score_general > 0 ? `${Math.round(img.score_general * 100)}%` : '-';
         }

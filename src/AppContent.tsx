@@ -414,6 +414,7 @@ function AppContent() {
                 onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
                 style={{ background: '#333', color: '#eee', border: '1px solid #555', padding: '6px', borderRadius: 4, width: '100%', cursor: 'pointer' }}
               >
+                <option value="score_general">General Score</option>
                 <option value="capture_date">Capture Date</option>
                 <option value="id">ID</option>
                 <option value="score_technical">Technical Score</option>
@@ -421,6 +422,8 @@ function AppContent() {
                 <option value="score_spaq">SPAQ</option>
                 <option value="score_ava">AVA</option>
                 <option value="score_liqe">LIQE</option>
+                <option value="score_koniq">KonIQ</option>
+                <option value="score_paq2piq">Paq2Piq</option>
               </select>
 
               <select

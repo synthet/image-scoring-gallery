@@ -1,7 +1,7 @@
 {
   "name": "electron-gallery",
   "private": true,
-  "version": "5.5.0",
+  "version": "5.6.0",
   "description": "A high-performance image gallery with scoring capabilities",
   "author": "Electron Image Scoring Team",
   "main": "dist-electron/main.js",

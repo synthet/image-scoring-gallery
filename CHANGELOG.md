@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.6.0] - 2026-04-11
+
+### Added
+
+- **KonIQ / Paq2Piq sorting**: Filter bar sort options and **`getImages`** / **`getStacks`** / **`getImagesByStack`** allow **`score_koniq`** and **`score_paq2piq`**; **`GalleryGrid`** overlay shows these scores when selected.
+- **General Score** sort option in the filter dropdown (explicit **`score_general`**).
+
+### Changed
+
+- **`electron/db.ts`**: Allowed sort columns and SELECT projections include **`score_koniq`** and **`score_paq2piq`** for gallery and stack image queries.
+
 ## [5.5.0] - 2026-04-10
 
 ### Added

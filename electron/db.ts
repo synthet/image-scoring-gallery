@@ -345,7 +345,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
     // Validate sort column to prevent SQL injection
     const allowedSortColumns = [
         'id', 'created_at', 'score_general', 'score_technical', 'score_aesthetic',
-        'score_spaq', 'score_ava', 'score_liqe',
+        'score_spaq', 'score_ava', 'score_liqe', 'score_koniq', 'score_paq2piq',
         'rating', 'file_name', 'capture_date'
     ];
 
@@ -372,6 +372,8 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.score_spaq,
             i.score_ava,
             i.score_liqe,
+            i.score_koniq,
+            i.score_paq2piq,
             i.rating,
             i.label,
             i.created_at,
@@ -1097,7 +1099,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
 
     const allowedSortColumns = [
         'id', 'created_at', 'score_general', 'score_technical', 'score_aesthetic',
-        'score_spaq', 'score_ava', 'score_liqe',
+        'score_spaq', 'score_ava', 'score_liqe', 'score_koniq', 'score_paq2piq',
         'rating', 'file_name', 'capture_date'
     ];
     const sortColumn = allowedSortColumns.includes(sortBy) ? sortBy : 'score_general';
@@ -1194,6 +1196,8 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.score_spaq,
                 i.score_ava,
                 i.score_liqe,
+                i.score_koniq,
+                i.score_paq2piq,
                 i.rating,
                 i.label,
                 i.created_at,
@@ -1225,6 +1229,8 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.score_spaq,
                 i.score_ava,
                 i.score_liqe,
+                i.score_koniq,
+                i.score_paq2piq,
                 i.rating,
                 i.label,
                 i.created_at,
@@ -1290,7 +1296,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
 
     const allowedSortColumns = [
         'id', 'created_at', 'score_general', 'score_technical', 'score_aesthetic',
-        'score_spaq', 'score_ava', 'score_liqe',
+        'score_spaq', 'score_ava', 'score_liqe', 'score_koniq', 'score_paq2piq',
         'rating', 'file_name', 'capture_date'
     ];
     const sortColumn = allowedSortColumns.includes(sortBy) 
