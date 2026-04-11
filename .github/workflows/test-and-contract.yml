@@ -1,0 +1,66 @@
+name: Test and Contract Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-and-contract:
+    name: Unit tests + API contract drift gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:run
+
+      # Canonical gate: contract:check fails when generated contract files drift from source API types.
+      # This blocks merges until contract artifacts are updated and committed.
+      - name: Enforce API contract sync
+        run: npm run contract:check
+
+      - name: Contract drift merge-block note
+        if: failure()
+        run: |
+          echo "::error::Contract drift detected. Run 'npm run contract:update', commit generated contract changes, and push again."
+
+  coverage:
+    name: Coverage report (non-blocking diagnostics)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: error
