@@ -38,6 +38,7 @@ interface ImageQueryOptions {
     sortBy?: string;
     order?: 'ASC' | 'DESC';
     smartCover?: boolean;
+    capturedDate?: string;
 }
 
 interface ImageRow {
@@ -54,6 +55,8 @@ interface ImageRow {
     label: string | null;
     created_at?: string;
     thumbnail_path?: string;
+    capture_date?: string;
+    is_capture_date_fallback?: boolean;
 }
 
 interface ImageDetail extends ImageRow {
@@ -194,6 +197,7 @@ interface AppConfig {
     };
     backup?: {
         minScore?: number;
+        similarityThreshold?: number;
         maxInstances?: number;
     };
     [key: string]: unknown;
@@ -279,15 +283,11 @@ declare global {
             updateImageDetails: (id: number, updates: ImageUpdates) => Promise<boolean>;
             deleteImage: (id: number) => Promise<boolean>;
             deleteFolder: (id: number) => Promise<boolean>;
+            getDatesWithShots: () => Promise<string[]>;
             getFolders: () => Promise<FolderRow[]>;
             getKeywords: () => Promise<string[]>;
             findNearDuplicates: (options?: { threshold?: number; folder_path?: string; limit?: number }) => Promise<DuplicateResponse>;
             searchSimilarImages: (options: { imageId: number; limit?: number; folderId?: number; folderPath?: string; minSimilarity?: number }) => Promise<{ query_image_id: number; results: Array<Record<string, unknown>>; count: number; error?: string }>;
-            findOutliers: (options: { folderPath: string; zThreshold?: number; k?: number; limit?: number }) => Promise<{
-                outliers: Array<{ image_id: number; file_path: string; outlier_score: number; z_score: number; nearest_neighbors: Array<{ image_id: number; file_path: string; similarity: number }> }>;
-                stats: Record<string, unknown>;
-                skipped: Array<Record<string, unknown>>;
-            }>;
             getStacks: (options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getImagesByStack: (stackId: number | null, options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getStackCount: (options?: ImageQueryOptions) => Promise<number>;

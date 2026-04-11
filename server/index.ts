@@ -158,6 +158,14 @@ async function startServer() {
         } catch (e) { fail(res, e); }
     }));
 
+    // DB: dates with shots
+    router.get('/db/dates-with-shots', wrap(async (_req, res) => {
+        try {
+            const result = await db.getDatesWithShots();
+            ok(res, result);
+        } catch (e) { fail(res, e); }
+    }));
+
     // DB: stacks
     router.get('/db/stacks', wrap(async (req, res) => {
         try {

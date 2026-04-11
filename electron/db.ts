@@ -138,6 +138,13 @@ function normalizeImageRowThumbnails(row: Record<string, unknown>): void {
 /** Normalizes thumbnail paths on a typed row and returns it — convenience wrapper over normalizeImageRowThumbnails. */
 function normalizeImageRowOutput<T extends object>(row: T): T {
     normalizeImageRowThumbnails(row as Record<string, unknown>);
+    
+    // Convert boolean flag from DB (Postgres returns boolean, SQLite might return 0/1)
+    const rawRow = row as any;
+    if (rawRow.is_capture_date_fallback !== undefined) {
+        rawRow.is_capture_date_fallback = Boolean(rawRow.is_capture_date_fallback);
+    }
+    
     return row;
 }
 
@@ -235,7 +242,7 @@ function pushFolderFilter(
 }
 
 export async function getImageCount(options: ImageQueryOptions = {}): Promise<number> {
-    const { folderId, folderIds, minRating, colorLabel, keyword } = options;
+    const { folderId, folderIds, minRating, colorLabel, keyword, capturedDate } = options;
     const params: (string | number | null)[] = [];
     const whereParts: string[] = [];
 
@@ -261,6 +268,15 @@ export async function getImageCount(options: ImageQueryOptions = {}): Promise<nu
         params.push(`%${keyword}%`, `%${keyword}%`);
     }
 
+    if (capturedDate) {
+        whereParts.push(`EXISTS (
+            SELECT 1 FROM image_exif ex
+            WHERE ex.image_id = images.id
+            AND (COALESCE(ex.date_time_original, ex.create_date, images.created_at))::date = ?
+        )`);
+        params.push(capturedDate);
+    }
+
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
 
     const rows = await query<{ count: number }>(`SELECT ${countBigint()} as "count" FROM images ${whereClause}`, params);
@@ -278,22 +294,34 @@ export interface ImageQueryOptions {
     sortBy?: string;
     order?: 'ASC' | 'DESC';
     smartCover?: boolean;
+    capturedDate?: string; // YYYY-MM-DD
 }
 
 export async function getImages(options: ImageQueryOptions = {}): Promise<unknown[]> {
-    const { limit = 50, offset = 0, folderId, folderIds, minRating, colorLabel, keyword, sortBy = 'score_general', order = 'DESC' } = options;
+    const {
+        limit = 50,
+        offset = 0,
+        folderId,
+        folderIds,
+        minRating,
+        colorLabel,
+        keyword,
+        sortBy = 'capture_date',
+        order = 'DESC',
+        capturedDate
+    } = options;
     const params: (string | number | null)[] = [];
     const whereParts: string[] = [];
 
     pushFolderFilter(whereParts, params, folderId, folderIds);
 
     if (minRating !== undefined && minRating > 0) {
-        whereParts.push('rating >= ?');
+        whereParts.push('i.rating >= ?');
         params.push(minRating);
     }
 
     if (colorLabel) {
-        whereParts.push('label = ?');
+        whereParts.push('i.label = ?');
         params.push(colorLabel);
     }
 
@@ -307,17 +335,30 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
         params.push(`%${keyword}%`, `%${keyword}%`);
     }
 
+    if (capturedDate) {
+        whereParts.push('(COALESCE(ex.date_time_original, ex.create_date, i.created_at))::date = ?');
+        params.push(capturedDate);
+    }
+
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
 
     // Validate sort column to prevent SQL injection
     const allowedSortColumns = [
         'id', 'created_at', 'score_general', 'score_technical', 'score_aesthetic',
         'score_spaq', 'score_ava', 'score_liqe',
-        'rating', 'file_name'
+        'rating', 'file_name', 'capture_date'
     ];
 
-    // Default to score_general if invalid
-    const sortColumn = allowedSortColumns.includes(sortBy) ? `i.${sortBy}` : 'i.score_general';
+    // Map capture_date to our SQL expression
+    let sortSql: string;
+    const sortField = allowedSortColumns.includes(sortBy) ? sortBy : 'score_general';
+
+    if (sortField === 'capture_date') {
+        sortSql = 'COALESCE(ex.date_time_original, ex.create_date, i.created_at)';
+    } else {
+        sortSql = `i.${sortField}`;
+    }
+
     const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
 
     const sql = `
@@ -335,12 +376,15 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.label,
             i.created_at,
             i.thumbnail_path,
-            i.thumbnail_path_win
+            i.thumbnail_path_win,
+            COALESCE(ex.date_time_original, ex.create_date, i.created_at) as capture_date,
+            (ex.date_time_original IS NULL AND ex.create_date IS NULL) as is_capture_date_fallback
         FROM images i
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
+        LEFT JOIN image_exif ex ON i.id = ex.image_id
         ${whereClause}
-        ORDER BY ${sortColumn} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}
+        ORDER BY ${sortSql} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}
         ${paginationSql()}
     `;
     const rows = await query(sql, [...params, ...pagingParams(offset, limit)]);
@@ -673,6 +717,66 @@ export async function findImageByUuid(uuid: string): Promise<number | null> {
     return rows.length > 0 ? rows[0].id : null;
 }
 
+/**
+ * True if this file was previously deleted and recorded in deleted_images (backend trigger).
+ * Used to skip Sync/Import re-registration.
+ */
+export async function isImageDeleted(
+    filePath: string,
+    fileName: string,
+    imageUuid: string | null
+): Promise<boolean> {
+    try {
+        if (imageUuid && imageUuid.trim()) {
+            const u = imageUuid.trim();
+            const byUuid = await query<{ x: number }>(
+                'SELECT 1 AS x FROM deleted_images WHERE image_uuid = ? AND file_name = ? LIMIT 1',
+                [u, fileName]
+            );
+            if (byUuid.length > 0) return true;
+        }
+        const norm = normalizePathForDb(filePath);
+        const candidates = new Set<string>([norm, filePath.replace(/\\/g, '/')]);
+        for (const p of candidates) {
+            if (!p) continue;
+            const byPath = await query<{ x: number }>(
+                'SELECT 1 AS x FROM deleted_images WHERE original_path = ? LIMIT 1',
+                [p]
+            );
+            if (byPath.length > 0) return true;
+        }
+    } catch (e) {
+        console.warn('[DB] isImageDeleted failed (ensure backend migration for deleted_images):', e);
+    }
+    return false;
+}
+
+/**
+ * Load deleted_images keys for Intelligent Backup manifest cleanup (original_id + image_hash).
+ */
+export async function getDeletedImageMatchSets(): Promise<{
+    originalIds: Set<number>;
+    hashes: Set<string>;
+}> {
+    const originalIds = new Set<number>();
+    const hashes = new Set<string>();
+    try {
+        const rows = await query<{ original_id: number | null; image_hash: string | null }>(
+            'SELECT original_id, image_hash FROM deleted_images'
+        );
+        for (const r of rows) {
+            if (r.original_id != null && !Number.isNaN(Number(r.original_id))) {
+                originalIds.add(Number(r.original_id));
+            }
+            const h = r.image_hash;
+            if (h && String(h).trim()) hashes.add(String(h).trim());
+        }
+    } catch (e) {
+        console.warn('[DB] getDeletedImageMatchSets failed:', e);
+    }
+    return { originalIds, hashes };
+}
+
 export interface InsertImageRow {
     file_path: string;
     file_name: string;
@@ -986,7 +1090,7 @@ export async function rebuildStackCache(context: { smartCover?: boolean } = {}):
 }
 
 export async function getStacks(options: StackQueryOptions = {}): Promise<unknown[]> {
-    const { limit = 50, offset = 0, folderId, folderIds, minRating, colorLabel, keyword, sortBy = 'score_general', order = 'DESC' } = options;
+    const { limit = 50, offset = 0, folderId, folderIds, minRating, colorLabel, keyword, sortBy = 'score_general', order = 'DESC', capturedDate } = options;
     // `options.smartCover` is forwarded from the UI for future representative/cover selection; not used in SQL yet.
 
     await ensureStackCacheTable();
@@ -994,7 +1098,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
     const allowedSortColumns = [
         'id', 'created_at', 'score_general', 'score_technical', 'score_aesthetic',
         'score_spaq', 'score_ava', 'score_liqe',
-        'rating', 'file_name'
+        'rating', 'file_name', 'capture_date'
     ];
     const sortColumn = allowedSortColumns.includes(sortBy) ? sortBy : 'score_general';
     const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
@@ -1013,8 +1117,13 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
         'id': 'sc.rep_image_id'
     };
 
-    const cacheSortCol = cacheColMap[sortColumn] || (sortOrder === 'DESC' ? 'sc.max_score_general' : 'sc.min_score_general');
-    const nonStackSortCol = allowedSortColumns.includes(sortBy) ? `i.${sortBy}` : 'i.score_general';
+    const cacheSortCol = sortColumn === 'capture_date'
+        ? (sortOrder === 'DESC' ? 'COALESCE(ex.date_time_original, ex.create_date, i.created_at)' : 'COALESCE(ex.date_time_original, ex.create_date, i.created_at)')
+        : (cacheColMap[sortColumn] || (sortOrder === 'DESC' ? 'sc.max_score_general' : 'sc.min_score_general'));
+
+    const nonStackSortCol = sortColumn === 'capture_date'
+        ? 'COALESCE(ex.date_time_original, ex.create_date, i.created_at)'
+        : (allowedSortColumns.includes(sortBy) ? `i.${sortBy}` : 'i.score_general');
 
     // Params for the union query (need to push them twice, once for top half, once for bottom)
     const topParams: (string | number | null)[] = [];
@@ -1051,6 +1160,20 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
         botParams.push(`%${keyword}%`);
     }
 
+    if (capturedDate) {
+        // Filter stacks where at least one member image has this capture date
+        wherePartsCache.push(`EXISTS (
+            SELECT 1 FROM images ci
+            LEFT JOIN image_exif cex ON ci.id = cex.image_id
+            WHERE ci.stack_id = sc.stack_id
+            AND (COALESCE(cex.date_time_original, cex.create_date, ci.created_at))::date = ?
+        )`);
+        topParams.push(capturedDate);
+
+        wherePartsNonStack.push('(COALESCE(ex.date_time_original, ex.create_date, i.created_at))::date = ?');
+        botParams.push(capturedDate);
+    }
+
     const whereClauseCache = wherePartsCache.length > 0 ? 'WHERE ' + wherePartsCache.join(' AND ') : '';
     const whereClauseNonStack = 'WHERE ' + wherePartsNonStack.join(' AND ');
 
@@ -1075,9 +1198,12 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.label,
                 i.created_at,
                 i.thumbnail_path,
-                i.thumbnail_path_win
+                i.thumbnail_path_win,
+                COALESCE(ex.date_time_original, ex.create_date, i.created_at) as capture_date,
+                (ex.date_time_original IS NULL AND ex.create_date IS NULL) as is_capture_date_fallback
             FROM stack_cache sc
             JOIN images i ON i.id = sc.rep_image_id
+            LEFT JOIN image_exif ex ON i.id = ex.image_id
             LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
                 AND POSITION('/thumbnails/' IN fp.path) = 0
             ${whereClauseCache}
@@ -1103,8 +1229,11 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.label,
                 i.created_at,
                 i.thumbnail_path,
-                i.thumbnail_path_win
+                i.thumbnail_path_win,
+                COALESCE(ex.date_time_original, ex.create_date, i.created_at) as capture_date,
+                (ex.date_time_original IS NULL AND ex.create_date IS NULL) as is_capture_date_fallback
             FROM images i
+            LEFT JOIN image_exif ex ON i.id = ex.image_id
             LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
                 AND POSITION('/thumbnails/' IN fp.path) = 0
             ${whereClauseNonStack}
@@ -1118,7 +1247,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
 }
 
 export async function getImagesByStack(stackId: number | null, options: ImageQueryOptions = {}): Promise<unknown[]> {
-    const { limit = 200, offset = 0, folderId, minRating, colorLabel, keyword, sortBy = 'score_general', order = 'DESC' } = options;
+    const { limit = 200, offset = 0, folderId, minRating, colorLabel, keyword, sortBy = 'score_general', order = 'DESC', capturedDate } = options;
     const params: (string | number | null)[] = [];
     const whereParts: string[] = [];
 
@@ -1152,14 +1281,21 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
         params.push(`%${keyword}%`, `%${keyword}%`);
     }
 
+    if (capturedDate) {
+        whereParts.push('(COALESCE(ex.date_time_original, ex.create_date, i.created_at))::date = ?');
+        params.push(capturedDate);
+    }
+
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
 
     const allowedSortColumns = [
         'id', 'created_at', 'score_general', 'score_technical', 'score_aesthetic',
         'score_spaq', 'score_ava', 'score_liqe',
-        'rating', 'file_name'
+        'rating', 'file_name', 'capture_date'
     ];
-    const sortColumn = allowedSortColumns.includes(sortBy) ? `i.${sortBy}` : 'i.score_general';
+    const sortColumn = allowedSortColumns.includes(sortBy) 
+        ? (sortBy === 'capture_date' ? 'COALESCE(ex.date_time_original, ex.create_date, i.created_at)' : `i.${sortBy}`)
+        : 'i.score_general';
     const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
 
     const sql = `
@@ -1178,12 +1314,15 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             i.created_at,
             i.thumbnail_path,
             i.thumbnail_path_win,
-            i.stack_id
+            i.stack_id,
+            COALESCE(ex.date_time_original, ex.create_date, i.created_at) as capture_date,
+            (ex.date_time_original IS NULL AND ex.create_date IS NULL) as is_capture_date_fallback
         FROM images i
+        LEFT JOIN image_exif ex ON i.id = ex.image_id
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
         ${whereClause}
-        ORDER BY ${sortColumn} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}
+        ORDER BY ${sortColumn} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}, i.id DESC
         ${paginationSql()}
     `;
     const rows = await query(sql, [...params, ...pagingParams(offset, limit)]);
@@ -1191,7 +1330,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
 }
 
 export async function getStackCount(options: StackQueryOptions = {}): Promise<number> {
-    const { folderId, folderIds, minRating, colorLabel, keyword } = options;
+    const { folderId, folderIds, minRating, colorLabel, keyword, capturedDate } = options;
     const params: (string | number | null)[] = [];
     const whereParts: string[] = [];
 
@@ -1210,6 +1349,16 @@ export async function getStackCount(options: StackQueryOptions = {}): Promise<nu
     if (keyword) {
         whereParts.push('i.keywords LIKE ?');
         params.push(`%${keyword}%`);
+    }
+
+    if (capturedDate) {
+        whereParts.push(`EXISTS (
+            SELECT 1 FROM images ci
+            LEFT JOIN image_exif cex ON ci.id = cex.image_id
+            WHERE (COALESCE(i.stack_id, -i.id) = COALESCE(ci.stack_id, -ci.id))
+            AND (COALESCE(cex.date_time_original, cex.create_date, ci.created_at))::date = ?
+        )`);
+        params.push(capturedDate);
     }
 
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
@@ -1310,10 +1459,12 @@ export async function getAllScoredImagesForBackup(minScore: number): Promise<Sco
             i.file_name,
             i.score_general as composite_score,
             i.image_hash,
-            i.stack_id
+            i.stack_id,
+            (COALESCE(e.date_time_original, e.create_date, i.created_at))::date::text as capture_date
         FROM images i
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
+        LEFT JOIN image_exif e ON e.image_id = i.id
         WHERE i.score_general >= ?
         ORDER BY i.score_general DESC NULLS LAST
     `;
@@ -1353,6 +1504,28 @@ export async function getSimilarPairsInGroup(imageIds: number[], threshold: numb
         return await query<{ id_a: number; id_b: number; similarity: number }>(sql, params);
     } catch (e) {
         console.error('[DB] getSimilarPairsInGroup failed:', e);
+        return [];
+    }
+}
+
+/**
+ * Get all unique dates that have images, across both stacked and non-stacked images.
+ * Useful for highlighting dates in the calendar picker.
+ */
+export async function getDatesWithShots(): Promise<string[]> {
+    const sql = `
+        SELECT DISTINCT (COALESCE(ex.date_time_original, ex.create_date, i.created_at))::date::text as capture_date
+        FROM images i
+        LEFT JOIN image_exif ex ON i.id = ex.image_id
+        WHERE i.id IS NOT NULL
+        ORDER BY capture_date DESC
+    `;
+    
+    try {
+        const rows = await query<{ capture_date: string }>(sql);
+        return rows.map(r => r.capture_date);
+    } catch (e) {
+        console.error('[DB] getDatesWithShots failed:', e);
         return [];
     }
 }

@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.5.0] - 2026-04-10
+
+### Added
+
+- **Capture-date sort & filter**: Default gallery sort is now **Capture Date** (EXIF `DateTimeOriginal` / `CreateDate`, falling back to `created_at`). Images without EXIF dates show an orange fallback indicator.
+- **CalendarPicker**: New sidebar calendar widget with dot markers on dates that have shots; queries `getDatesWithShots` endpoint.
+- **`/db/dates-with-shots`** server endpoint and `getDatesWithShots` IPC/bridge method.
+- **Deleted-image tracking**: `isImageDeleted()` checks `deleted_images` table to skip re-registration during Sync/Import; `getDeletedImageMatchSets()` provides original-ID and hash sets for Intelligent Backup manifest cleanup.
+- **Backup config defaults**: `BackupModal` loads `minScore` and `similarityThreshold` from `config.backup` on open.
+
+### Changed
+
+- **Sort dropdown**: Replaced **General Score** and **Date Added** options with a single **Capture Date** option; added `capture_date` to allowed sort columns with a dedicated SQL expression.
+- **`getImages` query**: `LEFT JOIN image_exif` to project `capture_date` and `is_capture_date_fallback`; column references qualified with `i.` alias.
+- **`getImageCount`**: Supports `capturedDate` filter via `image_exif` subquery.
+- **Types**: `ImageQueryOptions.capturedDate`, `ImageRow.capture_date` / `is_capture_date_fallback`, `AppConfig.backup.similarityThreshold`, `ScoredImageForBackup.capture_date`.
+- **TODO.md**: Updated evaluation to 2026-04-10; priority tiers aligned with backend `docs/plans/INDEX.md`.
+
+### Removed
+
+- **Outlier detection UI**: `useOutlierMarkers` hook, `GalleryGrid` outlier badge/props, `FilterPanel` outlier toggles, and associated tests.
+- **`findOutliers` IPC**: Removed from `electron.d.ts` declarations.
+
 ## [5.4.6] - 2026-04-10
 
 ### Changed

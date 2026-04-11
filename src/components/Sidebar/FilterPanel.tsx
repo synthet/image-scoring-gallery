@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from './FilterPanel.module.css';
+import { CalendarPicker } from './CalendarPicker';
 
 export interface FilterState {
     minRating: number;
@@ -7,8 +8,7 @@ export interface FilterState {
     keyword?: string;
     sortBy?: string;
     order?: 'ASC' | 'DESC';
-    highlightOutliers?: boolean;
-    onlyOutliers?: boolean;
+    capturedDate?: string;
 }
 
 interface FilterPanelProps {
@@ -26,17 +26,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange }) =
         onChange({ ...filters, colorLabel: c });
     };
 
-    const handleToggleHighlightOutliers = () => {
-        const nextHighlight = !filters.highlightOutliers;
-        onChange({
-            ...filters,
-            highlightOutliers: nextHighlight,
-            onlyOutliers: nextHighlight ? filters.onlyOutliers : false,
-        });
-    };
-
-    const handleToggleOnlyOutliers = () => {
-        onChange({ ...filters, onlyOutliers: !filters.onlyOutliers });
+    const handleDateChange = (date: string) => {
+        onChange({ ...filters, capturedDate: date || undefined });
     };
 
     return (
@@ -86,32 +77,11 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange }) =
             </div>
 
             <div className={styles.section}>
-                <div className={styles.sectionLabel}>Outliers</div>
-                <div className={styles.toggleRow}>
-                    <span>Highlight outliers</span>
-                    <button
-                        role="switch"
-                        aria-checked={!!filters.highlightOutliers}
-                        aria-label="Highlight outliers"
-                        className={styles.toggle}
-                        onClick={handleToggleHighlightOutliers}
-                    >
-                        <span className={styles.thumb} />
-                    </button>
-                </div>
-                <div className={styles.toggleRow}>
-                    <span style={{ opacity: filters.highlightOutliers ? 1 : 0.5 }}>Only outliers</span>
-                    <button
-                        role="switch"
-                        aria-checked={!!filters.onlyOutliers}
-                        aria-label="Only outliers"
-                        className={styles.toggle}
-                        onClick={handleToggleOnlyOutliers}
-                        disabled={!filters.highlightOutliers}
-                    >
-                        <span className={styles.thumb} />
-                    </button>
-                </div>
+                <div className={styles.sectionLabel}>Shot on Date</div>
+                <CalendarPicker
+                    value={filters.capturedDate || ''}
+                    onChange={handleDateChange}
+                />
             </div>
         </div>
     );

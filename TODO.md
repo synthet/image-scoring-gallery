@@ -1,6 +1,6 @@
 # TODO - Electron Image Scoring
 
-**Last evaluated:** 2026-04-02
+**Last evaluated:** 2026-04-10
 
 Project-level task list. Items marked `[Python]`, `[Gradio]`, or `[DB]` involve the Python backend or database integrations. The backend’s root [`TODO.md`](https://github.com/synthet/image-scoring-backend/blob/main/TODO.md) uses **`[Electron]`** for work in this repo — same cross-repo pairs, opposite perspective.
 
@@ -31,7 +31,7 @@ If a section had five open lines — four tagged `[Python]`/`[Gradio]` and one w
 
 ---
 
-## Unfinished Business Evaluation (2026-04-02)
+## Unfinished Business Evaluation (2026-04-10)
 
 ### Current Status Snapshot
 
@@ -41,11 +41,15 @@ If a section had five open lines — four tagged `[Python]`/`[Gradio]` and one w
 
 ### Highest-Impact Next Steps (Recommended Sequence)
 
-1. **[EIS-105](docs/planning/03-high-impact-tracked-tasks.md#eis-105---execute-embedding-feature-wave-with-backend-coordination) - Execute embedding feature wave with backend coordination** (Tag Propagation → Outlier Detection → 2D Map → Smart Stack Representative).
-2. **Consolidate styling into a unified system** (CSS Modules or Tailwind) to reduce UI churn after the `AppContent.tsx` decomposition.
-3. **Tighten backend integration hygiene** by keeping `electron/apiTypes.ts` aligned with backend contract changes and adding similarity IPC handlers as backend endpoints land.
-4. **Residual Postgres-era cleanup** — align user-facing copy, `README.md`, and `config.example.json` with PostgreSQL-only operation (remove misleading Firebird-era strings where they still appear).
-5. ~~**[EIS-104](docs/planning/03-high-impact-tracked-tasks.md#eis-104---close-local-quality-debt-prior-to-backend-expansion) - Close local quality debt**~~ — done (2026-04-01).
+Aligned with sibling **[`image-scoring-backend` / `docs/plans/INDEX.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/plans/INDEX.md)** priority tiers (P0 → P3).
+
+1. **Backend integration hygiene (P0)** — Keep `electron/apiTypes.ts` and IPC handlers aligned with [`AGENT_COORDINATION.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) and backend [`TODO.md`](https://github.com/synthet/image-scoring-backend/blob/main/TODO.md); add similarity IPC as `/api/similarity/*` stabilizes.
+2. **Normalized keywords / Phase 4d prep (P0)** — Ensure gallery queries and types match backend normalized keyword contract ahead of legacy column removal (v7.0); coordinate schema changes with the backend track.
+3. **[EIS-105](docs/planning/03-high-impact-tracked-tasks.md#eis-105---execute-embedding-feature-wave-with-backend-coordination) — Embedding feature wave (P1)** — Find Similar / duplicates navigation → Tag Propagation UI → Outlier Detection → 2D Map → Smart Stack Representative; pair with backend embedding/orchestration items.
+4. **Gradio / WebSocket bridge (P1)** — Bidirectional control channel per backend [`EMBEDDING_APP_08_GRADIO_INTEGRATION_PLAN.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/plans/embedding/EMBEDDING_APP_08_GRADIO_INTEGRATION_PLAN.md).
+5. **Consolidate styling (P2)** — CSS Modules or Tailwind to reduce churn after `AppContent.tsx` decomposition.
+6. **Residual copy cleanup (P2)** — User-facing `README.md` / `config.example.json` strings consistent with PostgreSQL-only operation where Firebird-era text remains.
+7. ~~**[EIS-104](docs/planning/03-high-impact-tracked-tasks.md#eis-104---close-local-quality-debt-prior-to-backend-expansion)**~~ — done (2026-04-01).
 
 ### Dependency Notes
 

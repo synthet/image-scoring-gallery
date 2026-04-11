@@ -15,6 +15,7 @@ interface ImageQueryOptions {
     sortBy?: string;
     order?: 'ASC' | 'DESC';
     smartCover?: boolean;
+    capturedDate?: string;
 }
 
 interface ImageRow {

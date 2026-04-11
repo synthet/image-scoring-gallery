@@ -179,7 +179,9 @@ export interface AppConfig {
     backup?: {
         /** Minimum quality score to include in backup */
         minScore?: number;
-        /** Maximum number of similar images (per stack or cluster) to include */
+        /** Similarity threshold used for embedding-based deduplication */
+        similarityThreshold?: number;
+        /** @deprecated Not used by backup pipeline (kept for backward compatibility). */
         maxInstances?: number;
     };
     [key: string]: unknown;
@@ -259,6 +261,7 @@ export interface ScoredImageForBackup {
     composite_score: number;
     image_hash: string | null;
     stack_id: number | null;
+    capture_date: string | null;
 }
 
 export interface BackupProgress {

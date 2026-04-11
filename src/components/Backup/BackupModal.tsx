@@ -29,6 +29,25 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
     const [similarityThreshold, setSimilarityThreshold] = useState(0.95);
     const runRef = useRef(false);
 
+    // Load configurable defaults when available.
+    useEffect(() => {
+        if (!isOpen || isRunning) return;
+        bridge.getConfig()
+            .then((config) => {
+                const cfgMin = Number(config?.backup?.minScore);
+                if (Number.isFinite(cfgMin)) {
+                    setMinScore(Math.max(0, Math.min(100, Math.round(cfgMin / 5) * 5)));
+                }
+                const cfgSimilarity = Number(config?.backup?.similarityThreshold);
+                if (Number.isFinite(cfgSimilarity)) {
+                    setSimilarityThreshold(Math.max(0.8, Math.min(0.99, cfgSimilarity)));
+                }
+            })
+            .catch((err) => {
+                console.warn('Failed to load backup defaults from config:', err);
+            });
+    }, [isOpen, isRunning]);
+
     // Check target info when modal opens or path changes
     useEffect(() => {
         if (isOpen && targetPath && !isRunning) {

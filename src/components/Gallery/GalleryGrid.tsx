@@ -27,11 +27,12 @@ interface Image {
     stack_id?: number | null;
     stack_key?: number;
     image_count?: number;
-    sort_value?: number;
+    capture_date?: string;
+    is_capture_date_fallback?: boolean;
 }
 
 import type { Folder } from '../Tree/treeUtils';
-import { Folder as FolderIcon, Layers } from 'lucide-react';
+import { Folder as FolderIcon, Layers, AlertCircle } from 'lucide-react';
 import { GalleryThumbnail } from './GalleryThumbnail';
 import { ThumbnailPlaceholder } from './ThumbnailPlaceholder';
 
@@ -49,15 +50,10 @@ interface GalleryGridProps {
     onSelectStack?: (stack: Image) => void;
     onStackEndReached?: () => void;
     activeStackId?: number | null;
-    highlightOutliers?: boolean;
-    outlierIds?: Set<number>;
-    outlierMetaById?: Map<number, { zScore: number; outlierScore: number; neighborSummary: string }>;
     /** Use RAW-aware thumbnails (filesystem-only mode without DB-generated JPEGs). */
     useGalleryThumbnail?: boolean;
 }
 
-const EMPTY_OUTLIER_IDS = new Set<number>();
-const EMPTY_OUTLIER_META = new Map<number, { zScore: number; outlierScore: number; neighborSummary: string }>();
 
 /** Plain media:// img with a styled fallback when the format is not browser-decodable (e.g. NEF). */
 const SimpleMediaThumb: React.FC<{ src: string; alt: string; className: string }> = ({ src, alt, className }) => {
@@ -95,8 +91,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     images, onSelect, onEndReached, subfolders, onSelectFolder,
     onNavigateToParent, viewerOpen = false, sortBy = 'score_general',
     stacksMode = false, stacks = [], onSelectStack, onStackEndReached,
-    activeStackId, highlightOutliers = false, outlierIds = EMPTY_OUTLIER_IDS, outlierMetaById = EMPTY_OUTLIER_META,
-    useGalleryThumbnail = false,
+    activeStackId, useGalleryThumbnail = false,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -128,8 +123,18 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
 
     const getScoreDisplay = useCallback((img: Image) => {
         switch (sortBy) {
-            case 'created_at':
-                return img.created_at ? new Date(img.created_at).toLocaleDateString() : '-';
+            case 'capture_date':
+                if (!img.capture_date) return '-';
+                const dateStr = new Date(img.capture_date).toLocaleDateString();
+                if (img.is_capture_date_fallback) {
+                    return (
+                        <span className={styles.fallbackDate} title="EXIF shot date missing; showing import/file date">
+                            <AlertCircle size={10} style={{ marginRight: 2, verticalAlign: 'middle', color: '#ff9800' }} />
+                            {dateStr}
+                        </span>
+                    );
+                }
+                return dateStr;
             case 'id':
                 return `#${img.id}`;
             case 'score_technical':
@@ -157,12 +162,6 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
 
     const renderImageCard = useCallback((img: Image, onClick: () => void) => {
         const labelColor = getLabelColor(img.label);
-        const isOutlier = highlightOutliers && outlierIds.has(img.id);
-        const outlierMeta = outlierMetaById.get(img.id);
-        const outlierTooltip = outlierMeta
-            ? `Outlier • z=${outlierMeta.zScore.toFixed(2)} • ${outlierMeta.neighborSummary}`
-            : 'Outlier';
-
         return (
             <div
                 onClick={onClick}
@@ -191,15 +190,6 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                     <div className={styles.ratingOverlay}>
                         <span className={styles.ratingStars}>{'★'.repeat(img.rating)}</span>
                     </div>
-                    {isOutlier && (
-                        <div
-                            className={styles.outlierBadge}
-                            title={outlierTooltip}
-                            aria-label={outlierTooltip}
-                        >
-                            Outlier
-                        </div>
-                    )}
                 </div>
 
                 <div className={styles.cardMeta} style={{ borderTop: `2px solid ${labelColor}` }}>
@@ -212,7 +202,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 </div>
             </div>
         );
-    }, [getScoreDisplay, getLabelColor, highlightOutliers, outlierIds, outlierMetaById, useGalleryThumbnail]);
+    }, [getScoreDisplay, getLabelColor, useGalleryThumbnail]);
 
     const renderStackCard = useCallback((stack: Image, onClick: () => void) => {
         const labelColor = getLabelColor(stack.label);
