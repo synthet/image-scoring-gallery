@@ -17,7 +17,7 @@
     "test:run": "cross-env VITEST=1 vitest run",
     "test:coverage": "cross-env VITEST=1 vitest run --coverage",
     "test:db": "cd ../image-scoring && python scripts/setup_test_db.py",
-    "generate:api-types": "npx openapi-typescript ../image-scoring/openapi.json -o electron/api.generated.ts",
+    "generate:api-types": "node scripts/generate-api-types.mjs",
     "contract:update": "node scripts/sync-api-contract.mjs --update",
     "contract:check": "node scripts/sync-api-contract.mjs --check",
     "contract:diff": "node scripts/sync-api-contract.mjs --diff",

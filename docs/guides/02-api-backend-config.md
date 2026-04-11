@@ -7,7 +7,7 @@ This gallery can discover the Python backend automatically, but you can also pin
 The backend base URL is resolved in this order:
 
 1. **`config.api.url`**: exact base URL, highest priority
-2. **Sibling backend lock file**: `webui.lock` / `webui-debug.lock` from `image-scoring-backend` or legacy `image-scoring`
+2. **Sibling backend lock file**: `webui.lock` / `webui-debug.lock` from `image-scoring-backend`
 3. **Fallback host/port**: `config.api.host` + `config.api.port`
 4. **Default fallback**: `http://127.0.0.1:7860`
 
@@ -52,7 +52,3 @@ Automatic lock-file discovery checks these sibling locations relative to the gal
 
 - `../image-scoring-backend/webui.lock`
 - `../image-scoring-backend/webui-debug.lock`
-- `../image-scoring/webui.lock`
-- `../image-scoring/webui-debug.lock`
-
-This supports the current `image-scoring-backend` repo name and the older `image-scoring` layout.
