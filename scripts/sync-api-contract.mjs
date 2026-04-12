@@ -3,9 +3,9 @@
  * API contract snapshot sync script.
  *
  * Usage:
- *   node scripts/sync-api-contract.mjs --update   # Fetch and save openapi.json
- *   node scripts/sync-api-contract.mjs --check    # Compare local snapshot with live backend
- *   node scripts/sync-api-contract.mjs --diff     # Copy from sibling repo (no backend needed)
+ *   node scripts/sync-api-contract.mjs --update   # Fetch and save openapi.json (fallback to ../image-scoring-backend/openapi.json)
+ *   node scripts/sync-api-contract.mjs --check    # Compare local snapshot with live backend (fallback to sibling backend file)
+ *   node scripts/sync-api-contract.mjs --diff     # Copy from ../image-scoring-backend/openapi.json (no backend needed)
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
@@ -40,18 +40,23 @@ function normalizeForComparison(obj) {
     return JSON.stringify(obj, null, 2);
 }
 
+function ensureSiblingOpenApiExists(contextMessage) {
+    if (existsSync(SIBLING_PATH)) return;
+    console.error(`[contract:${mode?.replace('--', '') ?? 'unknown'}] Missing sibling backend OpenAPI file.`);
+    console.error(`Expected: ${SIBLING_PATH}`);
+    console.error(`Action: clone/open the backend repo as ../image-scoring-backend and generate openapi.json, then retry ${contextMessage}.`);
+    process.exit(1);
+}
+
 async function main() {
     if (mode === '--diff') {
-        // Copy from sibling repo without needing the backend running
-        if (!existsSync(SIBLING_PATH)) {
-            console.error(`Sibling repo openapi.json not found at: ${SIBLING_PATH}`);
-            process.exit(1);
-        }
+        // Copy from sibling backend repo without needing the backend running
+        ensureSiblingOpenApiExists('`npm run contract:diff`');
         const source = readFileSync(SIBLING_PATH, 'utf-8');
         const current = existsSync(SNAPSHOT_PATH) ? readFileSync(SNAPSHOT_PATH, 'utf-8') : null;
 
         if (current && normalizeForComparison(JSON.parse(source)) === normalizeForComparison(JSON.parse(current))) {
-            console.log('Snapshot is up to date with sibling repo.');
+            console.log('Snapshot is up to date with sibling backend repo.');
             return;
         }
 
@@ -65,16 +70,15 @@ async function main() {
         try {
             schema = await fetchOpenApi();
         } catch {
-            // Fallback to sibling repo file
+            // Fallback to sibling backend repo file
             if (existsSync(SIBLING_PATH)) {
-                console.log('Backend not reachable, copying from sibling repo...');
+                console.log('Backend not reachable, copying from sibling backend repo...');
                 const source = readFileSync(SIBLING_PATH, 'utf-8');
                 writeFileSync(SNAPSHOT_PATH, source);
                 console.log(`Updated snapshot from ${SIBLING_PATH}`);
                 return;
             }
-            console.error('Backend not reachable and sibling repo openapi.json not found.');
-            process.exit(1);
+            ensureSiblingOpenApiExists('`npm run contract:update`');
         }
         const formatted = JSON.stringify(schema, null, 2) + '\n';
         writeFileSync(SNAPSHOT_PATH, formatted);
@@ -93,13 +97,12 @@ async function main() {
         try {
             live = await fetchOpenApi();
         } catch {
-            // Fallback: compare with sibling repo file
+            // Fallback: compare with sibling backend repo file
             if (existsSync(SIBLING_PATH)) {
                 live = JSON.parse(readFileSync(SIBLING_PATH, 'utf-8'));
-                console.log('(Comparing against sibling repo file — backend not reachable)');
+                console.log('(Comparing against sibling backend repo file — backend not reachable)');
             } else {
-                console.error('Cannot check: backend not reachable and sibling openapi.json not found.');
-                process.exit(1);
+                ensureSiblingOpenApiExists('`npm run contract:check`');
             }
         }
 
