@@ -398,28 +398,36 @@ const exportCurrentImage = async () => {
             // Wait, I can use exiftool.execute? 
             // The exiftool-vendored README says to use .write with a source file? No.
 
-            // I'll use the library to read source and write to target.
+            // Read tags from the written export first (embedded preview EXIF must match pixels),
+            // then from the source file for everything else.
+            const targetTags = await exiftool.read(targetPath);
             const sourceTags = await exiftool.read(sourcePath);
             const tagsToCopy: Record<string, unknown> = {};
 
-            // Define list of tags to preserve (standard photography tags)
             const preserveTags = [
                 'Make', 'Model', 'LensModel', 'ISO', 'ExposureTime', 'FNumber',
                 'FocalLength', 'DateTimeOriginal', 'CreateDate', 'GPSLatitude',
                 'GPSLongitude', 'GPSAltitude', 'Orientation'
-            ];
-            const tagsToRead = currentExportImageContext.exifOrientationBaked
-                ? preserveTags.filter((tag) => tag !== 'Orientation')
-                : preserveTags;
+            ] as const;
 
-            for (const tag of tagsToRead) {
+            const baked = currentExportImageContext.exifOrientationBaked === true;
+
+            for (const tag of preserveTags) {
+                if (tag === 'Orientation') {
+                    if (baked) {
+                        tagsToCopy.Orientation = 1;
+                    } else if (targetTags.Orientation !== undefined && targetTags.Orientation !== null) {
+                        // Prefer Orientation already in the exported JPEG (matches embedded preview
+                        // / renderer) over the container file (e.g. NEF), which can disagree.
+                        tagsToCopy.Orientation = targetTags.Orientation;
+                    } else if (sourceTags.Orientation !== undefined) {
+                        tagsToCopy.Orientation = sourceTags.Orientation;
+                    }
+                    continue;
+                }
                 if (sourceTags[tag as keyof typeof sourceTags] !== undefined) {
                     tagsToCopy[tag] = sourceTags[tag as keyof typeof sourceTags];
                 }
-            }
-
-            if (currentExportImageContext.exifOrientationBaked) {
-                tagsToCopy.Orientation = 1;
             }
 
             // Add our custom description

@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.7.1] - 2026-04-11
+
+### Fixed
+
+- **Export / EXIF metadata**: **`electron/main.ts`** reads tags from the written export first, then copies standard photo fields from the source; **Orientation** prefers the exported JPEG (and **`exifOrientationBaked`**) so metadata matches preview pixels when the raw container and embedded preview disagree (e.g. some **NEF** workflows).
+- **EXIF orientation bake**: **`bakeExifOrientationToBlob`** moved to **`src/utils/exportImageBake.ts`**; uses **`createImageBitmap`** with **`imageOrientation: 'from-image'`**, then falls back to **`HTMLImageElement`** so exported raster dimensions match the viewer when the bitmap path fails or returns null.
+
+### Changed
+
+- **Vitest**: Default **`maxWorkers`** to **`1`** (override with **`VITEST_MAX_WORKERS`**) to reduce OOM risk on constrained Windows hosts with parallel **`jsdom`** workers.
+
+### Added
+
+- **Tests**: Unit coverage for **`exportImageBake`** and **`useOperationStore`**.
+
 ## [5.7.0] - 2026-04-11
 
 ### Added

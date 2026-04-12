@@ -9,36 +9,7 @@ import { toMediaUrl } from '../../utils/mediaUrl';
 import { bridge } from '../../bridge';
 import { STAGE_DISPLAY } from '../../constants/pipelineLabels';
 import type { TagPropagationRequest } from '../../../electron/apiTypes';
-
-/**
- * Re-encode raster image so pixel data matches browser preview (EXIF Orientation applied).
- * Raw fetch bytes often stay sensor-oriented while <img> rotates for display.
- */
-async function bakeExifOrientationToBlob(blob: Blob, outMime: string): Promise<Blob | null> {
-    const t = blob.type || '';
-    if (!t.startsWith('image/') || t === 'image/svg+xml') {
-        return null;
-    }
-    try {
-        const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
-        try {
-            const canvas = document.createElement('canvas');
-            canvas.width = bitmap.width;
-            canvas.height = bitmap.height;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return null;
-            ctx.drawImage(bitmap, 0, 0);
-            const quality = outMime === 'image/jpeg' ? 0.92 : undefined;
-            return await new Promise<Blob | null>((resolve) => {
-                canvas.toBlob((b) => resolve(b), outMime, quality);
-            });
-        } finally {
-            bitmap.close();
-        }
-    } catch {
-        return null;
-    }
-}
+import { bakeExifOrientationToBlob } from '../../utils/exportImageBake';
 
 interface Image {
     id: number;
@@ -800,6 +771,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                             : exportMime.includes('webp')
                                 ? `${baseName}.webp`
                                 : image.file_name;
+
+                console.debug('[ImageViewer] export payload', {
+                    exifOrientationBaked,
+                    suggestedFileName,
+                });
 
                 return {
                     bytes,

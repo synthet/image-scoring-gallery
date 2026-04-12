@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   test: {
+    // Parallel forks + jsdom can OOM on constrained Windows hosts; override with VITEST_MAX_WORKERS.
+    maxWorkers: Number.parseInt(process.env.VITEST_MAX_WORKERS ?? '1', 10),
     globals: true,
     environment: 'jsdom',
     env: { VITEST: '1' },
