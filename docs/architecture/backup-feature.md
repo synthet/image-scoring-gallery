@@ -132,7 +132,7 @@ Primary grouping uses **database** dates (EXIF + fallbacks from the same query a
 For each candidate image:
 
 1. **`getImageDetails(id)`** for **`exif_model`** and **`exif_lens_model`**.
-2. **Camera**: `normalizeCameraModel(exif_model)` → e.g. Nikon Z short names; missing → **`_unknown_camera`**.
+2. **Camera**: `normalizeCameraModel(exif_model)` delegates to **`electron/cameraFolderName.ts`** (`cameraFolderFromExifModel`), which matches **`modules/camera_folder_name.py`** (`camera_folder_from_exif_model`) used by backup maintenance scripts. Missing/unknown → **`_unknown_camera`** in the app (Python scripts use the segment **`unknown`**).
 3. **Lens**: `normalizeLensFolderName(exif_lens_model)` from `electron/lensFolderName.ts`; unresolved → **`_unknown_lens`** (`UNKNOWN_LENS_FOLDER`).
 4. **Unknown camera/lens:** images are **not** skipped. They copy into **`_unknown_camera`** / **`_unknown_lens`** (or focal-derived lens folders) like Sync — **`isUnresolvedSyncLayout`** applies to **Sync** flows, not backup copy.
 5. **Date / year segments:** **`backupDateKey(img)`** for `dateStr`; **`year`** = first segment of `dateStr`, or **`unknown`** when the day key is **`unknown`**.

@@ -237,6 +237,8 @@ interface BackupResult {
     skipped: number;
     deduplicated: number;
     errors: string[];
+    staleRemoved: number;
+    droppedForSpace: number;
 }
 
 
@@ -360,7 +362,7 @@ declare global {
 
             // ── Backup ──────────────────────────────────────────────────
             backupCheckTarget: (targetPath: string) => Promise<BackupTargetInfo | null>;
-            backupRun: (targetPath: string, minScore: number, similarityThreshold: number) => Promise<BackupResult>;
+            backupRun: (targetPath: string) => Promise<BackupResult>;
             onBackupTargetSelected: (callback: (targetPath: string) => void) => () => void;
             onBackupProgress: (callback: (data: BackupProgress) => void) => () => void;
 

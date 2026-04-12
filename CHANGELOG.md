@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.0.0] - 2026-04-12
+
+### Added
+
+- **Backup space planner** (`electron/backupSpace.ts`): volume free space via `statfs`, stale manifest cleanup, proportional per-date-folder selection, and XMP sidecar sizing; **`BackupResult`** adds **`staleRemoved`** and **`droppedForSpace`**.
+- **Camera folder names** (`electron/cameraFolderName.ts`): parity with **`image-scoring-backend`** `camera_folder_name.py` for backup/sync path segments.
+- **Windows / WSL path repair** (`electron/pathWinWsl.ts`): normalizes `/mnt/<drive>/...` and hybrid `X:/mnt/...` shapes for Node **`fs`** on Windows.
+- **`prebuild-backup-manifest`** npm script (`scripts/prebuild-backup-manifest.mjs`).
+- **Tests**: unit coverage for **`backupSpace`**, **`cameraFolderName`**, and **`pathWinWsl`**.
+
+### Changed
+
+- **Intelligent Backup**: score selection and dedupe thresholds are computed in the main process from available space (see **`backupSpace.ts`**) instead of passing **`minScore`** / **`similarityThreshold`** from the UI; **`BackupModal`** invokes backup with the destination path only.
+- **`getAllScoredImagesForBackup`**: drops the **`minScore`** parameter and selects rows with **`score_general > 0`**; finer filtering happens in the planner.
+- **Docs** (`docs/architecture/backup-feature.md`): camera normalization references **`cameraFolderName.ts`** and the Python twin module.
+
+### Removed
+
+- **Breaking — IPC**: **`electron.backupRun`** is **`(targetPath: string)`** only; **`minScore`** and **`similarityThreshold`** arguments were removed from preload and typings.
+- **Breaking — Config typing**: structured **`AppConfig.backup`** score fields are replaced by a deprecated open record; runtime backup no longer relies on those config keys.
+- **Breaking — DB API**: **`getAllScoredImagesForBackup(minScore)`** → **`getAllScoredImagesForBackup()`**.
+
 ## [5.7.1] - 2026-04-11
 
 ### Fixed

@@ -323,7 +323,15 @@ function createHttpBridge(): Window['electron'] {
         syncRun: () => Promise.resolve({ scanned: 0, copied: 0, imported: 0, skipped: 0, folders: 0, errors: ['Sync not available in browser mode'], thresholdDate: null }),
 
         backupCheckTarget: () => Promise.resolve(null),
-        backupRun: () => Promise.resolve({ copied: 0, skipped: 0, deduplicated: 0, errors: ['Not available in browser mode'] }),
+        backupRun: () =>
+            Promise.resolve({
+                copied: 0,
+                skipped: 0,
+                deduplicated: 0,
+                errors: ['Not available in browser mode'],
+                staleRemoved: 0,
+                droppedForSpace: 0,
+            }),
         onBackupTargetSelected: noop,
         onBackupProgress: noop,
 

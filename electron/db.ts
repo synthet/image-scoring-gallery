@@ -1482,10 +1482,10 @@ export async function deleteImage(id: number): Promise<boolean> {
 import { ScoredImageForBackup } from './types';
 
 /**
- * Get all images with a general score >= minScore, including file path details.
- * Useful for planning backup.
+ * Get all scored images (score_general > 0) for backup planning.
+ * Selection / threshold logic is handled by the proportional algorithm in backupSpace.ts.
  */
-export async function getAllScoredImagesForBackup(minScore: number): Promise<ScoredImageForBackup[]> {
+export async function getAllScoredImagesForBackup(): Promise<ScoredImageForBackup[]> {
     const sql = `
         SELECT
             i.id,
@@ -1500,10 +1500,10 @@ export async function getAllScoredImagesForBackup(minScore: number): Promise<Sco
             AND POSITION('/thumbnails/' IN fp.path) = 0
         LEFT JOIN image_exif e ON e.image_id = i.id
         LEFT JOIN image_xmp xm ON xm.image_id = i.id
-        WHERE i.score_general >= ?
+        WHERE i.score_general > 0
         ORDER BY i.score_general DESC NULLS LAST
     `;
-    const rows = await query(sql, [minScore]) as any[];
+    const rows = await query(sql, []) as any[];
     return rows;
 }
 

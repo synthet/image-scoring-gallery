@@ -175,15 +175,8 @@ export interface AppConfig {
         /** Destination root where synced photos are stored (e.g. "D:\\Photos"). */
         destinationRoot?: string;
     };
-    /** Backup: export high-quality images to an external drive. */
-    backup?: {
-        /** Minimum quality score to include in backup */
-        minScore?: number;
-        /** Similarity threshold used for embedding-based deduplication */
-        similarityThreshold?: number;
-        /** @deprecated Not used by backup pipeline (kept for backward compatibility). */
-        maxInstances?: number;
-    };
+    /** @deprecated Backup thresholds are now computed dynamically (see backupSpace.ts). */
+    backup?: Record<string, unknown>;
     [key: string]: unknown;
 }
 
@@ -276,4 +269,8 @@ export interface BackupResult {
     skipped: number;
     deduplicated: number;
     errors: string[];
+    /** Files deleted from the backup because they are no longer in the current selection. */
+    staleRemoved: number;
+    /** Candidates removed so the highest-scored copies fit in free space (see rotation in `backupSpace.ts`). */
+    droppedForSpace: number;
 }

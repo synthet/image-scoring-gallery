@@ -25,28 +25,7 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
     const [isRunning, setIsRunning] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [minScore, setMinScore] = useState(70);
-    const [similarityThreshold, setSimilarityThreshold] = useState(0.95);
     const runRef = useRef(false);
-
-    // Load configurable defaults when available.
-    useEffect(() => {
-        if (!isOpen || isRunning) return;
-        bridge.getConfig()
-            .then((config) => {
-                const cfgMin = Number(config?.backup?.minScore);
-                if (Number.isFinite(cfgMin)) {
-                    setMinScore(Math.max(0, Math.min(100, Math.round(cfgMin / 5) * 5)));
-                }
-                const cfgSimilarity = Number(config?.backup?.similarityThreshold);
-                if (Number.isFinite(cfgSimilarity)) {
-                    setSimilarityThreshold(Math.max(0.8, Math.min(0.99, cfgSimilarity)));
-                }
-            })
-            .catch((err) => {
-                console.warn('Failed to load backup defaults from config:', err);
-            });
-    }, [isOpen, isRunning]);
 
     // Check target info when modal opens or path changes
     useEffect(() => {
@@ -54,6 +33,16 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
             bridge.backupCheckTarget(targetPath)
                 .then(info => setTargetInfo(info))
                 .catch(err => console.error('Failed to check backup target:', err));
+        }
+    }, [isOpen, targetPath, isRunning]);
+
+    // Reset state when modal opens or path changes
+    useEffect(() => {
+        if (isOpen && !isRunning) {
+            setIsComplete(false);
+            setResult(null);
+            setError(null);
+            setProgress({ phase: 'scanning', current: 0, total: 0, detail: '' });
         }
     }, [isOpen, targetPath, isRunning]);
 
@@ -73,7 +62,7 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
             }
         });
 
-        bridge.backupRun(targetPath, minScore, similarityThreshold)
+        bridge.backupRun(targetPath)
             .then((res) => {
                 if (runRef.current) {
                     setResult(res);
@@ -159,36 +148,10 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
 
                     {!isRunning && !isComplete && !error && (
                         <div style={{ marginBottom: 24, padding: '16px', background: '#252526', borderRadius: 8, border: '1px solid #333' }}>
-                            <h3 style={{ margin: '0 0 16px 0', fontSize: '1em', color: '#ddd' }}>Backup Options</h3>
-                            
-                            <div style={{ marginBottom: 16 }}>
-                                <label style={{ display: 'block', fontSize: '0.85em', color: '#888', marginBottom: 8 }}>
-                                    Minimum Quality Score: <span style={{ color: '#fff', fontWeight: 600 }}>{minScore}%</span>
-                                </label>
-                                <input 
-                                    type="range" min="0" max="100" step="5" 
-                                    value={minScore} 
-                                    onChange={(e) => setMinScore(parseInt(e.target.value))}
-                                    style={{ width: '100%', accentColor: '#0078d4' }}
-                                />
-                                <div style={{ fontSize: '0.75em', color: '#666', marginTop: 4 }}>
-                                    Only images with a general score higher than this will be included.
-                                </div>
-                            </div>
-
-                            <div style={{ marginBottom: 8 }}>
-                                <label style={{ display: 'block', fontSize: '0.85em', color: '#888', marginBottom: 8 }}>
-                                    Similarity Deduplication: <span style={{ color: '#fff', fontWeight: 600 }}>{similarityThreshold * 100}%</span>
-                                </label>
-                                <input 
-                                    type="range" min="0.80" max="0.99" step="0.01" 
-                                    value={similarityThreshold} 
-                                    onChange={(e) => setSimilarityThreshold(parseFloat(e.target.value))}
-                                    style={{ width: '100%', accentColor: '#0078d4' }}
-                                />
-                                <div style={{ fontSize: '0.75em', color: '#666', marginTop: 4 }}>
-                                    Adjust how aggressive the deduplication is. Higher means fewer images are considered "similar".
-                                </div>
+                            <div style={{ fontSize: '0.85em', color: '#aaa', lineHeight: 1.6 }}>
+                                Backup automatically selects the best images from each folder based on available disk space.
+                                Similarity deduplication and per-folder thresholds are computed dynamically.
+                                XMP sidecars are copied alongside images.
                             </div>
                         </div>
                     )}
@@ -199,8 +162,8 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                                 <div style={{ padding: '12px', background: 'rgba(0,162,255,0.05)', border: '1px solid rgba(0,162,255,0.2)', borderRadius: 6 }}>
                                     <div style={{ marginBottom: 4 }}>Found existing backup manifest.</div>
                                     <div style={{ color: '#888' }}>
-                                        Images: <strong>{targetInfo.imageCount}</strong> | 
-                                        Size: <strong>{(targetInfo.bytes / (1024 * 1024 * 1024)).toFixed(2)} GB</strong> | 
+                                        Images: <strong>{targetInfo.imageCount}</strong> |
+                                        Size: <strong>{(targetInfo.bytes / (1024 * 1024 * 1024)).toFixed(2)} GB</strong> |
                                         Last sync: <strong>{targetInfo.lastBackup ? new Date(targetInfo.lastBackup).toLocaleDateString() : 'Never'}</strong>
                                     </div>
                                 </div>
@@ -213,8 +176,8 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                     )}
 
                     {error ? (
-                        <div style={{ 
-                            color: '#ff6b6b', padding: '16px', background: 'rgba(255,107,107,0.1)', 
+                        <div style={{
+                            color: '#ff6b6b', padding: '16px', background: 'rgba(255,107,107,0.1)',
                             borderRadius: 8, border: '1px solid rgba(255,107,107,0.3)',
                             marginBottom: 20
                         }}>
@@ -247,10 +210,10 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                                             boxShadow: isRunning ? '0 0 10px rgba(0,120,212,0.5)' : 'none'
                                         }} />
                                     </div>
-                                    
+
                                     {progress.detail && isRunning && (
-                                        <div style={{ 
-                                            fontSize: '0.8em', color: '#777', marginTop: 10, 
+                                        <div style={{
+                                            fontSize: '0.8em', color: '#777', marginTop: 10,
                                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                                             fontFamily: 'monospace', background: '#161616', padding: '4px 8px', borderRadius: 4
                                         }}>
@@ -261,7 +224,7 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                             )}
 
                             {isComplete && result && (
-                                <div style={{ 
+                                <div style={{
                                     display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px',
                                     padding: '20px', background: '#252526', borderRadius: 8, border: '1px solid #333'
                                 }}>
@@ -284,11 +247,28 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                                 </div>
                             )}
 
+                            {isComplete && result && (result.staleRemoved > 0 || result.droppedForSpace > 0) && (
+                                <div style={{ marginTop: 16, fontSize: '0.85em', color: '#aaa', lineHeight: 1.5 }}>
+                                    {result.staleRemoved > 0 && (
+                                        <div>
+                                            Removed from backup (no longer in the current selection):{' '}
+                                            <strong style={{ color: '#e0e0e0' }}>{result.staleRemoved}</strong>
+                                        </div>
+                                    )}
+                                    {result.droppedForSpace > 0 && (
+                                        <div>
+                                            Not copied — insufficient free space (lowest scores omitted first):{' '}
+                                            <strong style={{ color: '#ffb74d' }}>{result.droppedForSpace}</strong>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {isComplete && result && result.errors.length > 0 && (
                                 <div style={{ marginTop: 20 }}>
                                     <div style={{ fontSize: '0.85em', color: '#ff6b6b', marginBottom: 8, fontWeight: 600 }}>Error Details:</div>
-                                    <div style={{ 
-                                        maxHeight: '120px', overflowY: 'auto', background: '#161616', 
+                                    <div style={{
+                                        maxHeight: '120px', overflowY: 'auto', background: '#161616',
                                         padding: '12px', borderRadius: 6, fontSize: '0.8em', border: '1px solid #333'
                                     }}>
                                         {result.errors.map((e, i) => (
@@ -310,7 +290,7 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                         <button
                             onClick={onClose}
                             style={{
-                                padding: '10px 20px', background: 'transparent', border: '1px solid #444', 
+                                padding: '10px 20px', background: 'transparent', border: '1px solid #444',
                                 color: '#ccc', borderRadius: 6, cursor: 'pointer', fontWeight: 500,
                                 transition: 'all 0.2s'
                             }}
@@ -326,12 +306,12 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                             Cancel
                         </button>
                     )}
-                    
+
                     {!isRunning && !isComplete && !error && (
                         <button
                             onClick={startBackup}
                             style={{
-                                padding: '10px 24px', background: '#0078d4', border: 'none', 
+                                padding: '10px 24px', background: '#0078d4', border: 'none',
                                 color: '#fff', borderRadius: 6, cursor: 'pointer', fontWeight: 600,
                                 transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,120,212,0.3)'
                             }}
@@ -346,8 +326,8 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                         <button
                             onClick={handleClose}
                             style={{
-                                padding: '10px 24px', background: isComplete ? '#4caf50' : '#444', 
-                                border: 'none', color: '#fff', borderRadius: 6, cursor: 'pointer', 
+                                padding: '10px 24px', background: isComplete ? '#4caf50' : '#444',
+                                border: 'none', color: '#fff', borderRadius: 6, cursor: 'pointer',
                                 fontWeight: 600, transition: 'all 0.2s'
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}

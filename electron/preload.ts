@@ -245,8 +245,8 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('backup:check-target', targetPath);
         return unwrapEnvelope<BackupTargetInfo | null>(response);
     },
-    backupRun: async (targetPath: string, minScore: number, similarityThreshold: number) => {
-        const response = await ipcRenderer.invoke('backup:run', { targetPath, minScore, similarityThreshold });
+    backupRun: async (targetPath: string) => {
+        const response = await ipcRenderer.invoke('backup:run', { targetPath });
         return unwrapEnvelope<BackupResult>(response);
     },
     onBackupTargetSelected: (callback: (targetPath: string) => void) => {

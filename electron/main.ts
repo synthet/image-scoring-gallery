@@ -25,8 +25,17 @@ import { SessionLogManager } from './sessionLogManager';
 import { deepMergeConfig, getConfigPath, loadAppConfig, normalizeAppConfig } from './config';
 import { resolveBackendUiStaticDir, startScoringUiServer, type ScoringUiServer } from './scoringUiServer';
 import { normalizeLensFolderName, UNKNOWN_LENS_FOLDER } from './lensFolderName';
+import { cameraFolderFromExifModel } from './cameraFolderName';
 import { parseMediaUrlToFilePath } from './mediaUrlParse';
 import { collapseMalformedThumbnailSegments, absolutizeThumbnailPath } from './thumbnailPathNormalize';
+import {
+    getVolumeFreeBytes,
+    getVolumeCapacityBytes,
+    removeStaleBackupFiles,
+    selectPlanProportional,
+    xmpSidecarPath,
+} from './backupSpace';
+import { toWindowsLocalFsPath } from './pathWinWsl';
 
 /** Verbose `media://` request logging (default off in dev — huge galleries flood the console). */
 function debugGalleryMedia(): boolean {
@@ -1059,21 +1068,14 @@ async function startFullApplication(): Promise<void> {
         }
     }));
 
-    ipcMain.handle('backup:run', wrapIpcHandler(async (_event, arg1, arg2, arg3) => {
-        const payload =
+    ipcMain.handle('backup:run', wrapIpcHandler(async (_event, arg1) => {
+        const targetPath =
             arg1 && typeof arg1 === 'object' && 'targetPath' in (arg1 as object)
-                ? (arg1 as { targetPath: string; minScore: number; similarityThreshold: number })
-                : { targetPath: arg1 as string, minScore: arg2 as number, similarityThreshold: arg3 as number };
-        const { targetPath, minScore, similarityThreshold } = payload;
+                ? (arg1 as { targetPath: string }).targetPath
+                : arg1 as string;
 
         if (!targetPath || typeof targetPath !== 'string') {
             throw new Error('Backup target path is required');
-        }
-        if (typeof minScore !== 'number' || Number.isNaN(minScore)) {
-            throw new Error('minScore is required');
-        }
-        if (typeof similarityThreshold !== 'number' || Number.isNaN(similarityThreshold)) {
-            throw new Error('similarityThreshold is required');
         }
 
         if (isBackupRunning) {
@@ -1100,27 +1102,39 @@ async function startFullApplication(): Promise<void> {
                 } catch { /* ignore corrupted manifest */ }
             }
 
-            sendProgress({ phase: 'scanning', current: 0, total: 0, detail: 'Querying rated images...' });
-            
-            // Get all scored images (above minScore)
+            sendProgress({ phase: 'scanning', current: 0, total: 0, detail: 'Querying scored images...' });
+
             let allScored: ScoredImageForBackup[] = [];
             try {
-                allScored = await db.getAllScoredImagesForBackup(minScore);
+                allScored = await db.getAllScoredImagesForBackup();
             } catch (e) {
                 console.error('[Main] Backup: failed to query images:', e);
-                return { copied: 0, skipped: 0, deduplicated: 0, errors: [String(e)] };
+                return { copied: 0, skipped: 0, deduplicated: 0, errors: [String(e)], staleRemoved: 0, droppedForSpace: 0 };
             }
 
             const totalImages = allScored.length;
             if (totalImages === 0) {
-                sendProgress({ phase: 'done', current: 0, total: 0, detail: 'No images found matching criteria' });
-                return { copied: 0, skipped: 0, deduplicated: 0, errors: [] };
+                sendProgress({ phase: 'done', current: 0, total: 0, detail: 'No scored images found' });
+                return { copied: 0, skipped: 0, deduplicated: 0, errors: [], staleRemoved: 0, droppedForSpace: 0 };
             }
 
-            // Group by date (YYYY-MM-DD) for locality in similarity checks
+            // ── Estimate space pressure for dynamic similarity thresholds ──
+            let freeBytes = await getVolumeFreeBytes(targetPath);
+            let capacityBytes = await getVolumeCapacityBytes(targetPath);
+            if (freeBytes === null || capacityBytes === null) {
+                console.warn('[Main] Backup: could not read disk space; using unlimited budget.');
+                freeBytes = freeBytes ?? Number.MAX_SAFE_INTEGER;
+                capacityBytes = capacityBytes ?? Number.MAX_SAFE_INTEGER;
+            }
+            const AVG_RAW_BYTES = 30 * 1024 * 1024;
+            const bufferBytes = capacityBytes < Number.MAX_SAFE_INTEGER ? capacityBytes * 0.02 : 0;
+            const usableEstimate = Math.max(0, freeBytes - bufferBytes);
+            const roughFillRatio = Math.min(1, usableEstimate / (totalImages * AVG_RAW_BYTES));
+
+            // ── Group by date, dynamic per-folder deduplication ──
             const groups = new Map<string, typeof allScored>();
             for (const img of allScored) {
-                const date = img.path.match(/(\d{4}-\d{2}-\d{2})/) ? img.path.match(/(\d{4}-\d{2}-\d{2})/)![1] : 'unknown';
+                const date = img.path.match(/(\d{4}-\d{2}-\d{2})/)?.[1] ?? 'unknown';
                 if (!groups.has(date)) groups.set(date, []);
                 groups.get(date)!.push(img);
             }
@@ -1135,69 +1149,70 @@ async function startFullApplication(): Promise<void> {
                 groupIdx++;
                 sendProgress({ phase: 'deduplicating', current: groupIdx, total: groups.size, detail: `Grouping ${date} (${group.length} images)...` });
 
-            const imageIds = group.map(img => img.id);
-            const similarPairs = await db.getSimilarPairsInGroup(imageIds, similarityThreshold);
+                // Dynamic similarity threshold: base from space pressure, adjusted by burst density.
+                const stackedCount = group.filter(img => img.stack_id != null).length;
+                const burstRatio = group.length > 0 ? stackedCount / group.length : 0;
+                const baseSimilarity = 0.85 + 0.13 * Math.min(1, Math.max(0, roughFillRatio));
+                const folderThreshold = Math.max(0.80, Math.min(0.99, baseSimilarity - burstRatio * 0.05));
+                console.log(`[Backup] Dedup ${date}: ${group.length} imgs, burstRatio=${burstRatio.toFixed(2)}, threshold=${folderThreshold.toFixed(3)}`);
 
-            // Build adjacency list for clusters
-            const adj = new Map<number, number[]>();
-            for (const pair of similarPairs) {
-                if (!adj.has(pair.id_a)) adj.set(pair.id_a, []);
-                if (!adj.has(pair.id_b)) adj.set(pair.id_b, []);
-                adj.get(pair.id_a)!.push(pair.id_b);
-                adj.get(pair.id_b)!.push(pair.id_a);
-            }
+                const imageIds = group.map(img => img.id);
+                const similarPairs = await db.getSimilarPairsInGroup(imageIds, folderThreshold);
 
-            const visited = new Set<number>();
-            for (const img of group) {
-                if (visited.has(img.id)) continue;
+                // Build adjacency list for clusters
+                const adj = new Map<number, number[]>();
+                for (const pair of similarPairs) {
+                    if (!adj.has(pair.id_a)) adj.set(pair.id_a, []);
+                    if (!adj.has(pair.id_b)) adj.set(pair.id_b, []);
+                    adj.get(pair.id_a)!.push(pair.id_b);
+                    adj.get(pair.id_b)!.push(pair.id_a);
+                }
 
-                // BFS to find cluster
-                const cluster = [img.id];
-                const queue = [img.id];
-                visited.add(img.id);
+                const visited = new Set<number>();
+                for (const img of group) {
+                    if (visited.has(img.id)) continue;
 
-                while (queue.length > 0) {
-                    const curr = queue.shift()!;
-                    const neighbors = adj.get(curr) || [];
-                    for (const next of neighbors) {
-                        if (!visited.has(next)) {
-                            visited.add(next);
-                            cluster.push(next);
-                            queue.push(next);
+                    const cluster = [img.id];
+                    const queue = [img.id];
+                    visited.add(img.id);
+
+                    while (queue.length > 0) {
+                        const curr = queue.shift()!;
+                        const neighbors = adj.get(curr) || [];
+                        for (const next of neighbors) {
+                            if (!visited.has(next)) {
+                                visited.add(next);
+                                cluster.push(next);
+                                queue.push(next);
+                            }
                         }
                     }
-                }
 
-                // Pick the best from cluster
-                const clusterDocs = group.filter(i => cluster.includes(i.id));
-                clusterDocs.sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0));
-                selectedImages.add(clusterDocs[0].id);
-                for (let i = 1; i < clusterDocs.length; i++) {
-                    rejectedImages.add(clusterDocs[i].id);
+                    const clusterDocs = group.filter(i => cluster.includes(i.id));
+                    clusterDocs.sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0));
+                    selectedImages.add(clusterDocs[0].id);
+                    for (let i = 1; i < clusterDocs.length; i++) {
+                        rejectedImages.add(clusterDocs[i].id);
+                    }
                 }
             }
-            }
+
+            // ── Plan layout + stat files (including XMP sidecars) ──
 
             const toBackup = allScored.filter(img => selectedImages.has(img.id));
             sendProgress({
                 phase: 'calculating',
                 current: 0,
                 total: Math.max(1, toBackup.length),
-                detail: `Preparing ${toBackup.length} files to copy...`,
+                detail: `Preparing ${toBackup.length} files (layout + disk budget)...`,
             });
 
-            sendProgress({ phase: 'copying', current: 0, total: toBackup.length, detail: 'Starting file transfer...' });
-
-            const existingRelPaths = new Set(manifest.images.map((img: BackupManifestEntry) => img.relPath));
-            let copied = 0;
-            let skipped = 0;
+            const planned: import('./backupSpace').BackupPlannedItem[] = [];
             const errors: string[] = [];
+            let skipped = 0;
 
-            for (let i = 0; i < toBackup.length; i++) {
-                const img = toBackup[i];
+            for (const img of toBackup) {
                 const fileName = path.basename(img.path);
-                
-                // Get metadata for naming
                 const details = await db.getImageDetails(img.id);
                 const camera = normalizeCameraModel(details?.exif_model);
                 const lens = normalizeLensFolderName(details?.exif_lens_model);
@@ -1215,46 +1230,144 @@ async function startFullApplication(): Promise<void> {
                 const relDir = path.join(camera, lens, year, dateStr);
                 const relPath = path.join(relDir, fileName);
                 const destPath = path.join(targetPath, relPath);
+                const sourcePath = toWindowsLocalFsPath(img.path);
 
-                sendProgress({ phase: 'copying', current: i + 1, total: toBackup.length, detail: fileName });
+                let stats;
+                try {
+                    stats = await fs.promises.stat(sourcePath);
+                } catch (e) {
+                    errors.push(`${fileName}: ${e instanceof Error ? e.message : String(e)}`);
+                    continue;
+                }
 
-                if (existingRelPaths.has(relPath) && fs.existsSync(destPath)) {
-                    const manifestEntry = manifest.images.find((m: BackupManifestEntry) => m.relPath === relPath);
-                    let skipFile = false;
-                    if (manifestEntry && manifestEntry.size > 0) {
+                // Stat XMP sidecar (best effort)
+                let sourceXmpSize = 0;
+                try {
+                    const xmpStats = await fs.promises.stat(xmpSidecarPath(sourcePath));
+                    sourceXmpSize = xmpStats.size;
+                } catch { /* no sidecar */ }
+
+                planned.push({
+                    img,
+                    sourcePath,
+                    relPath,
+                    destPath,
+                    fileName,
+                    score: img.composite_score || 0,
+                    sourceSize: stats.size,
+                    sourceXmpSize,
+                    skipCopy: false,
+                    skipCopyXmp: sourceXmpSize === 0,
+                    leafFolder: dateStr,
+                });
+            }
+
+            // ── Remove stale files (+ their sidecars) ──
+            const desiredRelPaths = new Set(planned.map((p) => p.relPath));
+            const staleRemoved = await removeStaleBackupFiles(targetPath, manifest, desiredRelPaths);
+
+            // ── Determine skip-copy for image + sidecar ──
+            for (const p of planned) {
+                const manifestEntry = manifest.images.find((m: BackupManifestEntry) => m.relPath === p.relPath);
+                if (fs.existsSync(p.destPath) && manifestEntry) {
+                    if (manifestEntry.size > 0) {
                         try {
-                            const st = await fs.promises.stat(destPath);
-                            skipFile = st.size === manifestEntry.size;
+                            const st = await fs.promises.stat(p.destPath);
+                            p.skipCopy = st.size === manifestEntry.size;
                         } catch {
-                            skipFile = false;
+                            p.skipCopy = false;
                         }
                     } else {
-                        skipFile = true;
+                        p.skipCopy = true;
                     }
-                    if (skipFile) {
-                        skipped++;
-                        continue;
+                } else {
+                    p.skipCopy = false;
+                }
+
+                // Sidecar skip-copy: compare destination sidecar size to source
+                if (p.sourceXmpSize > 0) {
+                    const destXmp = xmpSidecarPath(p.destPath);
+                    try {
+                        const st = await fs.promises.stat(destXmp);
+                        p.skipCopyXmp = st.size === p.sourceXmpSize;
+                    } catch {
+                        p.skipCopyXmp = false;
                     }
+                }
+            }
+
+            // ── Proportional per-folder selection ──
+            // Re-read free bytes after stale cleanup (may have freed space).
+            freeBytes = await getVolumeFreeBytes(targetPath) ?? freeBytes;
+
+            const { selected: finalPlan, droppedRelPaths } = selectPlanProportional(
+                planned,
+                freeBytes,
+                capacityBytes
+            );
+
+            let droppedForSpace = 0;
+            for (const rel of droppedRelPaths) {
+                const abs = path.join(targetPath, rel);
+                await fs.promises.unlink(abs).catch(() => {});
+                await fs.promises.unlink(xmpSidecarPath(abs)).catch(() => {});
+                manifest.images = manifest.images.filter((m: BackupManifestEntry) => m.relPath !== rel);
+                droppedForSpace++;
+            }
+
+            // ── Copy files + sidecars ──
+            sendProgress({ phase: 'copying', current: 0, total: finalPlan.length, detail: 'Starting file transfer...' });
+
+            let copied = 0;
+
+            for (let i = 0; i < finalPlan.length; i++) {
+                const p = finalPlan[i];
+                const { img, fileName, relPath, destPath } = p;
+                const relDir = path.dirname(relPath);
+
+                sendProgress({ phase: 'copying', current: i + 1, total: finalPlan.length, detail: fileName });
+
+                if (p.skipCopy && p.skipCopyXmp) {
+                    skipped++;
+                    continue;
                 }
 
                 try {
                     await fs.promises.mkdir(path.join(targetPath, relDir), { recursive: true });
-                    const stats = await fs.promises.stat(img.path);
-                    await fs.promises.copyFile(img.path, destPath);
-                    
-                    // Update manifest item
-                    const manifestIdx = manifest.images.findIndex((m: BackupManifestEntry) => m.relPath === relPath);
-                    const item: BackupManifestEntry = {
-                        id: img.id,
-                        relPath,
-                        score: img.composite_score || 0,
-                        size: stats.size,
-                        hash: img.image_hash || ''
-                    };
-                    if (manifestIdx >= 0) manifest.images[manifestIdx] = item;
-                    else manifest.images.push(item);
-                    
-                    copied++;
+
+                    if (!p.skipCopy) {
+                        const stats = await fs.promises.stat(p.sourcePath);
+                        await fs.promises.copyFile(p.sourcePath, destPath);
+
+                        const manifestIdx = manifest.images.findIndex((m: BackupManifestEntry) => m.relPath === relPath);
+                        const item: BackupManifestEntry = {
+                            id: img.id,
+                            relPath,
+                            score: img.composite_score || 0,
+                            size: stats.size,
+                            hash: img.image_hash || ''
+                        };
+                        if (manifestIdx >= 0) manifest.images[manifestIdx] = item;
+                        else manifest.images.push(item);
+
+                        copied++;
+                    } else {
+                        skipped++;
+                    }
+
+                    // Copy XMP sidecar if present and changed
+                    if (p.sourceXmpSize > 0 && !p.skipCopyXmp) {
+                        const srcXmp = xmpSidecarPath(p.sourcePath);
+                        const dstXmp = xmpSidecarPath(destPath);
+                        await fs.promises.copyFile(srcXmp, dstXmp).catch((e) => {
+                            console.warn(`[Backup] Could not copy sidecar ${srcXmp}: ${e}`);
+                        });
+                    }
+
+                    // Clean up orphaned destination sidecar if source sidecar is gone
+                    if (p.sourceXmpSize === 0) {
+                        await fs.promises.unlink(xmpSidecarPath(destPath)).catch(() => {});
+                    }
                 } catch (e) {
                     errors.push(`${fileName}: ${e instanceof Error ? e.message : String(e)}`);
                 }
@@ -1264,12 +1377,22 @@ async function startFullApplication(): Promise<void> {
             manifest.updatedAt = new Date().toISOString();
             await fs.promises.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
 
-            sendProgress({ phase: 'done', current: toBackup.length, total: toBackup.length, detail: `Backup complete: ${copied} copied, ${skipped} skipped.` });
-            return { 
-                copied, 
-                skipped, 
+            const detailParts = [`Backup complete: ${copied} copied, ${skipped} skipped.`];
+            if (staleRemoved > 0) detailParts.push(`${staleRemoved} removed (no longer selected).`);
+            if (droppedForSpace > 0) detailParts.push(`${droppedForSpace} dropped (proportional selection; lower scores dropped first).`);
+            sendProgress({
+                phase: 'done',
+                current: finalPlan.length,
+                total: Math.max(1, finalPlan.length),
+                detail: detailParts.join(' '),
+            });
+            return {
+                copied,
+                skipped,
                 deduplicated: rejectedImages.size,
-                errors 
+                errors,
+                staleRemoved,
+                droppedForSpace,
             };
         } finally {
             isBackupRunning = false;
@@ -1379,20 +1502,10 @@ async function startFullApplication(): Promise<void> {
 
     // ── Sync: copy new photos from external source into structured local tree, then import ──
 
-    /** Normalize camera model for folder names (e.g. "NIKON Z 8" → "Z8"). */
+    /** Maps EXIF Model to a folder segment; uses shared rules in `cameraFolderName.ts` (Python: `camera_folder_name`). */
     function normalizeCameraModel(raw: string | undefined | null): string {
-        if (!raw) return UNKNOWN_CAMERA_FOLDER;
-        const s = raw.trim();
-        // Nikon Z-series shortcuts
-        const zMatch = s.match(/Z\s*(\d+)(?:[_\s]*(II|2|III|3))?/i);
-        if (zMatch) {
-            const num = zMatch[1];
-            const gen = (zMatch[2] || '').toLowerCase();
-            const genSuffix = gen === 'ii' || gen === '2' ? 'ii' : gen === 'iii' || gen === '3' ? 'iii' : '';
-            return `Z${num}${genSuffix}`;
-        }
-        // Fallback: sanitize for filesystem
-        return s.replace(/[<>:"/\\|?*]+/g, '_').replace(/\s+/g, '_').substring(0, 60);
+        const seg = cameraFolderFromExifModel(raw ?? undefined);
+        return seg === 'unknown' ? UNKNOWN_CAMERA_FOLDER : seg;
     }
 
     /** Recursively collect Nikon RAW (.nef) files from a directory for sync. */
