@@ -29,7 +29,7 @@ export function parseMediaUrlToFilePath(requestUrl: string): string {
         }
     }
 
-    if (filePath.match(/^\/?mnt\/[a-zA-Z]\//)) {
+    if (process.platform === 'win32' && filePath.match(/^\/?mnt\/[a-zA-Z]\//)) {
         filePath = filePath.replace(/^\/?mnt\/([a-zA-Z])\//, (_, drive: string) => `${drive.toUpperCase()}:/`);
     }
     if (process.platform === 'win32' && /^\/[a-zA-Z]:\//.test(filePath)) {
