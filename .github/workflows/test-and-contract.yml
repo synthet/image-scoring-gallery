@@ -27,6 +27,10 @@ jobs:
       - name: Run unit tests
         run: npm run test:run
 
+
+      - name: Fetch backend OpenAPI snapshot source
+        run: git clone --depth 1 https://github.com/synthet/image-scoring-backend ../image-scoring-backend
+
       # Canonical gate: contract:check fails when generated contract files drift from source API types.
       # This blocks merges until contract artifacts are updated and committed.
       - name: Enforce API contract sync
