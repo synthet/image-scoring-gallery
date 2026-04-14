@@ -147,6 +147,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 }) => {
     const [image, setImage] = React.useState<Image>(initialImage);
     const [detailsLoaded, setDetailsLoaded] = React.useState(() => readOnlyFilesystemMode);
+    const [detailsError, setDetailsError] = React.useState<string | null>(null);
     const [exifData, setExifData] = React.useState<ExifData | null>(null);
     const [exifLoading, setExifLoading] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -210,23 +211,32 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     useEffect(() => {
         if (readOnlyFilesystemMode) {
             setDetailsLoaded(true);
+            setDetailsError(null);
             return;
         }
         let active = true;
         const fetchDetails = async () => {
+            setDetailsError(null);
             try {
-                console.log('[ImageViewer] Fetching details for image ID:', image.id);
+                console.log(`[ImageViewer] Fetching details for image ID: ${image.id}`);
                 const details = await bridge.getImageDetails(image.id);
-                console.log('[ImageViewer] Received details:', details);
-                if (active && details) {
+                
+                if (!active) return;
+
+                if (details) {
                     setImage(details);
-                    setDetailsLoaded(true);
                     console.log('[ImageViewer] Details loaded successfully');
                 } else {
-                    console.warn('[ImageViewer] No details returned or component unmounted');
+                    console.warn('[ImageViewer] Image details returned null');
+                    setDetailsError('Metadata not found');
                 }
             } catch (e) {
                 console.error("Failed to fetch image details:", e);
+                if (active) setDetailsError('Fetch failed');
+            } finally {
+                if (active) {
+                    setDetailsLoaded(true);
+                }
             }
         };
         fetchDetails();
@@ -1263,8 +1273,33 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 </div>
 
                 {!detailsLoaded && (
-                    <div style={{ borderTop: '1px solid #333', paddingTop: 15, color: '#888', fontSize: '0.85em', fontStyle: 'italic' }}>
+                    <div style={{ 
+                        borderTop: '1px solid #333', 
+                        paddingTop: 15, 
+                        color: '#888', 
+                        fontSize: '0.85em', 
+                        fontStyle: 'italic',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10
+                    }}>
+                        <Loader2 size={16} className="animate-spin" />
                         Loading detailed information...
+                    </div>
+                )}
+
+                {detailsLoaded && detailsError && (
+                    <div style={{ 
+                        borderTop: '1px solid #333', 
+                        paddingTop: 15, 
+                        color: '#ef9a9a', 
+                        fontSize: '0.85em', 
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8
+                    }}>
+                        <AlertTriangle size={16} />
+                        <span>{detailsError}</span>
                     </div>
                 )}
 

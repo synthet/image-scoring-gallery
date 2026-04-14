@@ -3,7 +3,7 @@
     "engine": "postgres",
     "provider": "postgres",
     "postgres": {
-      "host": "localhost",
+      "host": "127.0.0.1",
       "port": 5432,
       "database": "image_scoring",
       "user": "postgres",

@@ -57,17 +57,14 @@ export function useDatabase() {
                 (async () => {
                     const res = await bridge.ping();
                     if (res !== 'pong') {
-                        throw new Error('Main process not responding');
+                        throw new Error('Main process not responding (ping failed)');
                     }
-
-                    const dbConnected = await bridge.checkDbConnection();
-                    if (!dbConnected) {
-                        throw new Error("Database connection returned false");
-                    }
+                    // This will throw a detailed error from the main process if connection fails
+                    await bridge.checkDbConnection();
                 })(),
                 new Promise<never>((_, reject) =>
                     setTimeout(() => reject(new Error(
-                        `Connection timeout after ${CONNECT_TIMEOUT_MS / 1000}s — is Firebird running?`
+                        `Connection timeout after ${CONNECT_TIMEOUT_MS / 1000}s — verify PostgreSQL is running at 127.0.0.1:5432`
                     )), CONNECT_TIMEOUT_MS)
                 )
             ]);

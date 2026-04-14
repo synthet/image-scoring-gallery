@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.0.1] - 2026-04-13
+
+### Changed
+
+- **PostgreSQL provider** (`electron/db/provider.ts`): startup log for pool config; validate `pg.Pool`; **`pool.on('error')`** for idle client failures; **`checkConnection`** throws a detailed message (user, host, port, database) instead of returning false; stricter **`PgPoolLike`** typing.
+- **`useDatabase`**: relies on **`checkDbConnection()`** throwing from the main process; connection timeout hint points at PostgreSQL **127.0.0.1:5432** instead of Firebird.
+
+### Fixed
+
+- **`ImageViewer`**: loading state shows a spinner; **null** or failed **`getImageDetails`** surfaces a short error line instead of staying ambiguously empty.
+
+### Docs
+
+- **`docs/README`** and **planned embeddings** README: navigation and cross-links updated.
+- **Wiki tooling**: Cursor/Claude slash commands (`wiki-ingest`, `wiki-lint`, `wiki-query`), **`docs-wiki`** skill, **`documentation.mdc`** rule, and **`docs/log.md`** (aligned with backend wiki conventions).
+
 ## [7.0.0] - 2026-04-13
 
 ### Added

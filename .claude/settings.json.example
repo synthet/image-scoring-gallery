@@ -1,3 +1,15 @@
 {
-  "hooks": {}
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'if echo \"$CLAUDE_TOOL_INPUT\" | grep -q \"git commit\"; then echo \"Reminder: If this commit touches architecture, features, or API contracts, consider running /wiki-ingest to update docs/.\"; fi'"
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -97,6 +97,7 @@ type PgRow = Record<string, unknown>;
 interface PgPoolLike {
     query<T extends PgRow = PgRow>(sql: string, params?: QueryParam[]): Promise<{ rows: T[] }>;
     connect(): Promise<PgPoolClientLike>;
+    on(event: 'error', listener: (err: any) => void): void;
     end(): Promise<void>;
 }
 
@@ -177,8 +178,15 @@ export class PostgresConnector implements IDatabaseConnector {
             await this.query('SELECT 1');
             return true;
         } catch (e) {
-            console.error('[DB] Postgres check connection failed:', e);
-            return false;
+            const host = this.poolConfig.host || '127.0.0.1';
+            const port = this.poolConfig.port || 5432;
+            const user = this.poolConfig.user || 'postgres';
+            const dbName = this.poolConfig.database || 'image_scoring';
+            
+            const msg = e instanceof Error ? e.message : String(e);
+            const detailedError = `Postgres connection failed (${user}@${host}:${port}/${dbName}): ${msg}`;
+            console.error(`[DB] ${detailedError}`, e);
+            throw new Error(detailedError);
         }
     }
 
@@ -197,7 +205,13 @@ export class PostgresConnector implements IDatabaseConnector {
 
         this.poolPromise = (async () => {
             try {
+                console.log(`[DB] Initializing Postgres pool: ${this.poolConfig.host || '127.0.0.1'}:${this.poolConfig.port || 5432}`);
                 const pg = (await runtimeImport('pg')) as PgModuleLike;
+                
+                if (!pg || typeof pg.Pool !== 'function') {
+                    throw new Error('Imported "pg" module does not have a Pool constructor');
+                }
+
                 this.pool = new pg.Pool({
                     host: this.poolConfig.host || '127.0.0.1',
                     port: this.poolConfig.port || 5432,
@@ -210,9 +224,16 @@ export class PostgresConnector implements IDatabaseConnector {
                     connectionTimeoutMillis: this.poolConfig.connectionTimeoutMillis,
                     ssl: this.poolConfig.ssl,
                 });
+
+                // Listen for pool errors
+                this.pool.on('error', (err: any) => {
+                    console.error('[DB] Unexpected error on idle Postgres client:', err);
+                });
+
                 return this.pool;
             } catch (error) {
-                const cause = error instanceof Error ? error.message : String(error);
+                const cause = error instanceof Error ? error.stack || error.message : String(error);
+                console.error(`[DB] Pool creation failed: ${cause}`);
                 throw new Error(`[DB] Failed to load "pg". Install it with "npm i pg" to use Postgres provider. Cause: ${cause}`);
             } finally {
                 this.poolPromise = null;
