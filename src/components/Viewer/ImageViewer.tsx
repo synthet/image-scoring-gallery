@@ -754,10 +754,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 ? 'image/webp'
                                 : 'image/jpeg';
 
-                const baked = await bakeExifOrientationToBlob(blob, outMime);
-                const exportBlob = baked ?? blob;
-                const exifOrientationBaked = baked != null;
-                const exportMime = exifOrientationBaked ? outMime : mimeType;
+                const bakeResult = await bakeExifOrientationToBlob(blob, outMime);
+                const exportBlob = bakeResult?.blob ?? blob;
+                const pixelNormalizationApplied = bakeResult?.didNormalize ?? false;
+                const exportMime = bakeResult ? outMime : mimeType;
 
                 const buffer = await exportBlob.arrayBuffer();
                 const bytes = Array.from(new Uint8Array(buffer));
@@ -770,10 +770,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                             ? `${baseName}.png`
                             : exportMime.includes('webp')
                                 ? `${baseName}.webp`
-                                : image.file_name;
+                                : `${baseName}.jpg`;
 
                 console.debug('[ImageViewer] export payload', {
-                    exifOrientationBaked,
+                    pixelNormalizationApplied,
                     suggestedFileName,
                 });
 
@@ -784,7 +784,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     id: image.id,
                     sourcePath: image.win_path || image.file_path,
                     imageUuid: image.image_uuid || null,
-                    exifOrientationBaked
+                    pixelNormalizationApplied,
+                    previewOrientation: bakeResult?.sourceOrientation ?? undefined
                 };
             } catch (e) {
                 console.error('Failed to read displayed preview bytes:', e);
@@ -813,7 +814,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 id: payload.id as number,
                 sourcePath: payload.sourcePath as string,
                 imageUuid: payload.imageUuid as string | null,
-                exifOrientationBaked: payload.exifOrientationBaked
+                pixelNormalizationApplied: payload.pixelNormalizationApplied,
+                previewOrientation: payload.previewOrientation
             });
         };
 

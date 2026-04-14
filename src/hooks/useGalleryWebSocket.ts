@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useJobProgressStore } from '../store/useJobProgressStore';
+import { useConnectionStore } from '../store/useConnectionStore';
 import { bridge } from '../bridge';
 import { BACKEND_JOB_TYPE_LABEL } from '../constants/pipelineLabels';
 
@@ -30,6 +31,7 @@ export function useGalleryWebSocket({
   onVisibleRefresh,
 }: UseGalleryWebSocketParams) {
   const addNotification = useNotificationStore(state => state.addNotification);
+  const isBackendEnabled = useConnectionStore(state => state.isBackendEnabled);
 
   // Stable refs so WebSocket callbacks never close over stale functions
   const refreshImagesRef = useRef(refreshImages);
@@ -44,6 +46,11 @@ export function useGalleryWebSocket({
   onVisibleRefreshRef.current = onVisibleRefresh;
 
   useEffect(() => {
+    // If backend is manually disabled, do nothing.
+    if (!isBackendEnabled) {
+      return;
+    }
+
     type WebSocketClient = {
       connect: () => Promise<void> | void;
       disconnect: () => void;
@@ -187,5 +194,5 @@ export function useGalleryWebSocket({
       if (folderRefreshTimer) clearTimeout(folderRefreshTimer);
       if (ws) ws.disconnect();
     };
-  }, [addNotification]);
+  }, [addNotification, isBackendEnabled, activeStackIdRef, loadStackImagesRef, onVisibleRefreshRef, refreshFoldersRef, refreshImagesRef, refreshStacksRef, stacksModeRef]);
 }

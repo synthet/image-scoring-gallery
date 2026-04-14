@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.0.0] - 2026-04-13
+
+### Added
+
+- **Backend connection preference** (`src/store/useConnectionStore.ts`): persisted toggle (localStorage) to disable Python API/WebSocket activity; **Diagnostics** modal switch with "manually disabled" status; **`useGalleryWebSocket`** skips connecting when off; **bridge** uses folder-mode stubs when the backend is disabled.
+
+### Changed
+
+- **Export — raster bake** (`src/utils/exportImageBake.ts`): **`getJpegOrientation`** plus canvas transforms for all eight EXIF orientation values; **`bakeExifOrientationToBlob`** returns **`BakeResult`** (`blob`, **`sourceOrientation`**, **`didNormalize`**, dimensions).
+- **Export — filename**: suggested JPEG export name uses **`${baseName}.jpg`** after bake.
+- **`electron/types.ts` / `src/electron.d.ts`**: typed **`ExportImageContext`** for **`setCurrentExportImageContext`**.
+
+### Fixed
+
+- **Export metadata** (`electron/main.ts`): writes **Orientation** **`1`** after renderer bake; strips orientation-related tags that would conflict with upright pixels; diagnostic log includes preview vs raw orientation and normalization flag.
+
+### Removed
+
+- **Breaking — Export IPC**: **`exifOrientationBaked`** on **`ExportImageContext`** / **`setCurrentExportImageContext`** replaced by **`pixelNormalizationApplied`** and optional **`previewOrientation`**.
+
 ## [6.0.0] - 2026-04-12
 
 ### Added

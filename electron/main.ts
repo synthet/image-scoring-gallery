@@ -416,28 +416,40 @@ const exportCurrentImage = async () => {
             const preserveTags = [
                 'Make', 'Model', 'LensModel', 'ISO', 'ExposureTime', 'FNumber',
                 'FocalLength', 'DateTimeOriginal', 'CreateDate', 'GPSLatitude',
-                'GPSLongitude', 'GPSAltitude', 'Orientation'
+                'GPSLongitude', 'GPSAltitude'
             ] as const;
 
-            const baked = currentExportImageContext.exifOrientationBaked === true;
+            const normalized = currentExportImageContext.pixelNormalizationApplied === true;
+            const p = currentExportImageContext.previewOrientation;
+            const s = sourceTags.Orientation;
 
+            // Strict normalization logic:
+            // 1. We ALWAYS write with Orientation 1 because the binary pixels
+            //    were already normalized in the renderer's export bake.
+            tagsToCopy.Orientation = 1;
+
+            // 2. We must ensure no other conflicting rotation metadata is copied
+            //    from the source file (EXIF, XMP, specific markers).
+            const orientationTagsToStrip = [
+                'Orientation', 'Rotation', 'AutoRotate', 'CameraOrientation',
+                'ImageOrientation', 'XMP-tiff:Orientation', 'XMP-exif:Orientation'
+            ];
+
+            // Filter preserveTags and explicitly strip source orientation tags
             for (const tag of preserveTags) {
-                if (tag === 'Orientation') {
-                    if (baked) {
-                        tagsToCopy.Orientation = 1;
-                    } else if (targetTags.Orientation !== undefined && targetTags.Orientation !== null) {
-                        // Prefer Orientation already in the exported JPEG (matches embedded preview
-                        // / renderer) over the container file (e.g. NEF), which can disagree.
-                        tagsToCopy.Orientation = targetTags.Orientation;
-                    } else if (sourceTags.Orientation !== undefined) {
-                        tagsToCopy.Orientation = sourceTags.Orientation;
-                    }
-                    continue;
-                }
                 if (sourceTags[tag as keyof typeof sourceTags] !== undefined) {
                     tagsToCopy[tag] = sourceTags[tag as keyof typeof sourceTags];
                 }
             }
+
+            // Sanitization: Ensure NO orientation tags exist remaining
+            for (const tag of orientationTagsToStrip) {
+                delete (tagsToCopy as any)[tag];
+            }
+            tagsToCopy.Orientation = 1; // Explicitly set again to be sure
+
+            // Consolidated diagnostic log
+            console.log(`[Main] Export: ${path.basename(sourcePath)} | PrevOrient: ${p ?? 'None'} | RawOrient: ${s ?? 'None'} | Normalized: ${normalized} | Size: ${targetTags.ImageWidth}x${targetTags.ImageHeight} | Final: 1`);
 
             // Add our custom description
             tagsToCopy.ImageDescription = metadata;

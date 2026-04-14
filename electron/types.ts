@@ -221,8 +221,10 @@ export interface ExportImageContext {
     id: number;
     sourcePath: string;
     imageUuid: string | null;
-    /** True when pixels were re-encoded with EXIF orientation applied (matches on-screen preview). */
-    exifOrientationBaked?: boolean;
+    /** True when pixels were physically re-oriented to match preview. */
+    pixelNormalizationApplied?: boolean;
+    /** Optional: original orientation read from the preview (for diagnostic logging). */
+    previewOrientation?: number | string;
 }
 
 // -- Backup Feature Types --

@@ -35,6 +35,10 @@ The backend owns DDL/schema migrations. This app connects via PostgreSQL (`pg`) 
 - **REST API:** Electron calls the Python backend (default `http://localhost:7860`) for scoring/tagging/clustering jobs.
 - **Config:** Backend behavior is controlled by **`sibling image-scoring-backend/config.json`** (or your clone path).
 
+## Development Guidelines
+
+- **Never modify `.git/config`** — do not set `extensions.worktreeConfig`, change `core.repositoryformatversion`, or add any git extensions. Third-party tools (Gemini Code Assist / Antigravity) use embedded git libraries that choke on non-standard extensions, breaking workspace resolution. If a worktree is needed, use a temporary one and clean it up immediately — do not leave worktree config persisted in the repo.
+
 ## Commands
 
 - `npm run dev` — Start dev mode (local server + Vite + Electron; ensure backend/DB are reachable per `config.json`)

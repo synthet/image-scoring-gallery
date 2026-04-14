@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { DiagnosticsReport, ProcessMemorySnapshot } from '../../electron.d';
+import { useConnectionStore } from '../../store/useConnectionStore';
+import toggleStyles from '../../styles/toggle.module.css';
 
 interface Props {
     isOpen: boolean;
@@ -11,6 +13,8 @@ export const DiagnosticsModal: React.FC<Props> = ({ isOpen, onClose }) => {
     const [rendererMemory, setRendererMemory] = useState<ProcessMemorySnapshot | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { isBackendEnabled, toggleBackend } = useConnectionStore();
+
 
     useEffect(() => {
         if (isOpen) {
@@ -51,13 +55,14 @@ export const DiagnosticsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-    const renderStatus = (connected: boolean) => (
+    const renderStatus = (connected: boolean, disabled?: boolean) => (
         <span style={{ 
-            color: connected ? '#4caf50' : '#f44336',
+            color: disabled ? '#888' : (connected ? '#4caf50' : '#f44336'),
             fontWeight: 'bold',
-            marginLeft: '8px'
+            marginLeft: '8px',
+            fontStyle: disabled ? 'italic' : 'normal'
         }}>
-            {connected ? '● Connected' : '○ Disconnected'}
+            {disabled ? '○ Manually Disabled' : (connected ? '● Connected' : '○ Disconnected')}
         </span>
     );
 
@@ -110,7 +115,31 @@ export const DiagnosticsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                     <div style={{ color: '#888' }}>Python API:</div>
                                     <div>
                                         <code style={{ background: '#2d2d2d', padding: '2px 4px', borderRadius: '3px' }}>{diagnostics.api.url}</code>
-                                        {renderStatus(diagnostics.api.connected)}
+                                        {renderStatus(diagnostics.api.connected, !isBackendEnabled)}
+                                    </div>
+
+                                    <div style={{ color: '#888', marginTop: '12px' }}>Connection:</div>
+                                    <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <span style={{ fontSize: '0.9em', color: isBackendEnabled ? '#4caf50' : '#888' }}>
+                                            {isBackendEnabled ? 'Enabled' : 'Disabled'}
+                                        </span>
+                                        <button
+                                            role="switch"
+                                            aria-checked={isBackendEnabled}
+                                            aria-label="Toggle Python backend connection"
+                                            className={toggleStyles.toggle}
+                                            onClick={toggleBackend}
+                                            style={{
+                                                '--accent': '#0078d4',
+                                                '--focus-ring': '0 0 0 2px rgba(0, 120, 212, 0.4)',
+                                                '--focus-offset': '2px'
+                                            } as React.CSSProperties}
+                                        >
+                                            <span className={toggleStyles.thumb} />
+                                        </button>
+                                        <div style={{ fontSize: '0.8em', color: '#666', marginLeft: '8px' }}>
+                                            Turn off to prevent auto-refreshes
+                                        </div>
                                     </div>
                                 </div>
                             </section>

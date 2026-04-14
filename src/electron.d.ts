@@ -274,6 +274,20 @@ interface FileImageMetadataResult {
     detail: FileImageMetadataDetail;
 }
 
+/** Mirrors `electron/types.ts` ExportImageContext — IPC payload for File → Export. */
+interface ExportImageContext {
+    imageBytes: number[];
+    mimeType: string;
+    fileName: string;
+    id: number;
+    sourcePath: string;
+    imageUuid: string | null;
+    /** True when preview pixels were physically re-oriented to upright during export bake. */
+    pixelNormalizationApplied?: boolean;
+    /** EXIF Orientation read from the preview JPEG before bake (diagnostics). */
+    previewOrientation?: number | string;
+}
+
 declare global {
     interface Window {
         electron: {
@@ -311,7 +325,7 @@ declare global {
             getApiConfig: () => Promise<{ url: string }>;
             getConfig: () => Promise<AppConfig>;
             saveConfig: (updates: Partial<AppConfig>) => Promise<AppConfig>;
-            setCurrentExportImageContext: (context: { imageBytes: number[]; mimeType: string; fileName: string; id: number; sourcePath: string; imageUuid: string | null; exifOrientationBaked?: boolean } | null) => Promise<boolean>;
+            setCurrentExportImageContext: (context: ExportImageContext | null) => Promise<boolean>;
             readExif: (filePath: string) => Promise<Record<string, unknown>>;
             readImageMetadata: (filePath: string) => Promise<FileImageMetadataResult>;
             getLightModeRoot: () => Promise<string>;
