@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.0.2] - 2026-04-15
+
+### Changed
+
+- **Connection store**: renamed `isBackendEnabled` → `isWebSocketEnabled` across store, hooks, and components for clarity — the toggle only controls WebSocket real-time updates, not the full backend connection.
+- **Diagnostics modal**: toggle label updated to "Real-time Updates" with WebSocket-specific description.
+- **Bridge**: removed dead `isBackendEnabled` guard from folder-stub logic; removed unused `useConnectionStore` import.
+
+### Fixed
+
+- **Gallery sort**: added `i.id DESC` as tiebreaker in `getImages` query to guarantee stable pagination order when primary sort values are identical.
+- **ImageViewer navigation**: use a ref to track current image ID, preventing unnecessary `setImage` / `setDetailsLoaded` calls when `allImages` reference changes without the target ID changing.
+
 ## [7.0.1] - 2026-04-13
 
 ### Changed

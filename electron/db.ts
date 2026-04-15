@@ -404,7 +404,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
         LEFT JOIN image_exif ex ON i.id = ex.image_id
         LEFT JOIN image_xmp xm ON i.id = xm.image_id
         ${whereClause}
-        ORDER BY ${sortSql} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}
+        ORDER BY ${sortSql} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}, i.id DESC
         ${paginationSql()}
     `;
     const rows = await query(sql, [...params, ...pagingParams(offset, limit)]);

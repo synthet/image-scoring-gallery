@@ -10,7 +10,7 @@
  */
 
 import type { FileImageMetadataResult, BackupTargetInfo, BackupProgress, BackupResult } from '../electron/types';
-import { useConnectionStore } from './store/useConnectionStore';
+
 
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -438,8 +438,7 @@ export const bridge: Window['electron'] = new Proxy({} as Window['electron'], {
                 ? window.electron
                 : _httpBridge;
         
-        const isBackendEnabled = typeof window !== 'undefined' ? useConnectionStore.getState().isBackendEnabled : true;
-        const folderStubs = useFolderModeStubs() || !isBackendEnabled;
+        const folderStubs = useFolderModeStubs();
 
         if (prop === 'api') {
             return new Proxy({} as Window['electron']['api'], {

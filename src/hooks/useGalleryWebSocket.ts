@@ -31,7 +31,7 @@ export function useGalleryWebSocket({
   onVisibleRefresh,
 }: UseGalleryWebSocketParams) {
   const addNotification = useNotificationStore(state => state.addNotification);
-  const isBackendEnabled = useConnectionStore(state => state.isBackendEnabled);
+  const isWebSocketEnabled = useConnectionStore(state => state.isWebSocketEnabled);
 
   // Stable refs so WebSocket callbacks never close over stale functions
   const refreshImagesRef = useRef(refreshImages);
@@ -46,8 +46,8 @@ export function useGalleryWebSocket({
   onVisibleRefreshRef.current = onVisibleRefresh;
 
   useEffect(() => {
-    // If backend is manually disabled, do nothing.
-    if (!isBackendEnabled) {
+    // If WebSockets are manually disabled, do nothing.
+    if (!isWebSocketEnabled) {
       return;
     }
 
@@ -194,5 +194,5 @@ export function useGalleryWebSocket({
       if (folderRefreshTimer) clearTimeout(folderRefreshTimer);
       if (ws) ws.disconnect();
     };
-  }, [addNotification, isBackendEnabled, activeStackIdRef, loadStackImagesRef, onVisibleRefreshRef, refreshFoldersRef, refreshImagesRef, refreshStacksRef, stacksModeRef]);
+  }, [addNotification, isWebSocketEnabled, activeStackIdRef, loadStackImagesRef, onVisibleRefreshRef, refreshFoldersRef, refreshImagesRef, refreshStacksRef, stacksModeRef]);
 }

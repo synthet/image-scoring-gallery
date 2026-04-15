@@ -194,16 +194,24 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         return false;
     }, [onClose, onNavigate, currentIndex, allImages]), !isDeleteDialogOpen);
 
+    const currentIdRef = useRef(initialImage.id);
+
     // Update image when navigating. Only update when target image ID changes to avoid
     // infinite loops when parent passes a new allImages array reference each render.
     useEffect(() => {
         if (currentIndex >= 0 && allImages && allImages[currentIndex]) {
             const target = allImages[currentIndex];
-            setImage(prev => (prev.id === target.id ? prev : target));
-            setDetailsLoaded(false);
+            if (currentIdRef.current !== target.id) {
+                currentIdRef.current = target.id;
+                setImage(target);
+                setDetailsLoaded(false);
+            }
         } else if (currentIndex === -1) {
-            setImage(prev => (prev.id === initialImage.id ? prev : initialImage));
-            setDetailsLoaded(false);
+            if (currentIdRef.current !== initialImage.id) {
+                currentIdRef.current = initialImage.id;
+                setImage(initialImage);
+                setDetailsLoaded(false);
+            }
         }
     }, [currentIndex, allImages, initialImage]);
 

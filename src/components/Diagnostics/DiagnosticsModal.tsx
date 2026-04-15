@@ -13,7 +13,7 @@ export const DiagnosticsModal: React.FC<Props> = ({ isOpen, onClose }) => {
     const [rendererMemory, setRendererMemory] = useState<ProcessMemorySnapshot | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const { isBackendEnabled, toggleBackend } = useConnectionStore();
+    const { isWebSocketEnabled, toggleWebSocket } = useConnectionStore();
 
 
     useEffect(() => {
@@ -115,20 +115,20 @@ export const DiagnosticsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                     <div style={{ color: '#888' }}>Python API:</div>
                                     <div>
                                         <code style={{ background: '#2d2d2d', padding: '2px 4px', borderRadius: '3px' }}>{diagnostics.api.url}</code>
-                                        {renderStatus(diagnostics.api.connected, !isBackendEnabled)}
+                                        {renderStatus(diagnostics.api.connected)}
                                     </div>
 
-                                    <div style={{ color: '#888', marginTop: '12px' }}>Connection:</div>
+                                    <div style={{ color: '#888', marginTop: '12px' }}>Real-time Updates:</div>
                                     <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <span style={{ fontSize: '0.9em', color: isBackendEnabled ? '#4caf50' : '#888' }}>
-                                            {isBackendEnabled ? 'Enabled' : 'Disabled'}
+                                        <span style={{ fontSize: '0.9em', color: isWebSocketEnabled ? '#4caf50' : '#888' }}>
+                                            {isWebSocketEnabled ? 'Enabled' : 'Disabled'}
                                         </span>
                                         <button
                                             role="switch"
-                                            aria-checked={isBackendEnabled}
-                                            aria-label="Toggle Python backend connection"
+                                            aria-checked={isWebSocketEnabled}
+                                            aria-label="Toggle WebSocket connection"
                                             className={toggleStyles.toggle}
-                                            onClick={toggleBackend}
+                                            onClick={toggleWebSocket}
                                             style={{
                                                 '--accent': '#0078d4',
                                                 '--focus-ring': '0 0 0 2px rgba(0, 120, 212, 0.4)',
@@ -138,7 +138,7 @@ export const DiagnosticsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                             <span className={toggleStyles.thumb} />
                                         </button>
                                         <div style={{ fontSize: '0.8em', color: '#666', marginLeft: '8px' }}>
-                                            Turn off to prevent auto-refreshes
+                                            Uses WebSockets to refresh the gallery when backend events occur.
                                         </div>
                                     </div>
                                 </div>

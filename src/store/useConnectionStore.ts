@@ -2,21 +2,21 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface ConnectionState {
-  isBackendEnabled: boolean;
-  setBackendEnabled: (enabled: boolean) => void;
-  toggleBackend: () => void;
+  isWebSocketEnabled: boolean;
+  setWebSocketEnabled: (enabled: boolean) => void;
+  toggleWebSocket: () => void;
 }
 
 /**
- * Stores the user's preference for connecting to the Python backend/WebSockets.
+ * Stores the user's preference for connecting to WebSockets (real-time updates).
  * Persisted in localStorage so it survives app restarts.
  */
 export const useConnectionStore = create<ConnectionState>()(
   persist(
     (set) => ({
-      isBackendEnabled: true,
-      setBackendEnabled: (enabled) => set({ isBackendEnabled: enabled }),
-      toggleBackend: () => set((state) => ({ isBackendEnabled: !state.isBackendEnabled })),
+      isWebSocketEnabled: true,
+      setWebSocketEnabled: (enabled) => set({ isWebSocketEnabled: enabled }),
+      toggleWebSocket: () => set((state) => ({ isWebSocketEnabled: !state.isWebSocketEnabled })),
     }),
     {
       name: 'connection-storage',
