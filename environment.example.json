@@ -1,27 +1,22 @@
 {
-    "_comment": "Copy to environment.json and set real paths, ports, and URLs for this machine. environment.json is gitignored. Values override the same keys in config.json when both exist.",
+    "_comment": "Copy to environment.json and set machine-specific values. environment.json is gitignored and overrides matching keys from config.json.",
     "database": {
-        "host": "127.0.0.1",
-        "port": 3050,
-        "user": "sysdba",
-        "password": "masterkey",
-        "path": "../image-scoring-backend/SCORING_HISTORY.FDB",
         "postgres": {
             "host": "127.0.0.1",
             "port": 5432,
             "database": "image_scoring",
             "user": "postgres",
             "password": "postgres"
+        },
+        "api": {
+            "url": "http://127.0.0.1:7860",
+            "timeout": 10000
         }
     },
-    "dev": {
-        "url": "http://localhost:5173"
-    },
     "api": {
-        "url": "http://127.0.0.1:7860"
-    },
-    "firebird": {
-        "path": "../image-scoring-backend/Firebird"
+        "url": "http://127.0.0.1:7860",
+        "host": "127.0.0.1",
+        "port": 7860
     },
     "paths": {
         "thumbnail_base_dir": "../image-scoring-backend/thumbnails",
@@ -31,8 +26,5 @@
                 "to": "../image-scoring-backend/thumbnails"
             }
         ]
-    },
-    "browser_server": {
-        "port": 3001
     }
 }
