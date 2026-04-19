@@ -39,10 +39,13 @@ jobs:
       - name: Enforce API contract sync
         run: npm run contract:check
 
+      - name: Enforce unique exported API contract interface names
+        run: npm run contract:check-duplicates
+
       - name: Contract drift merge-block note
         if: failure()
         run: |
-          echo "::error::Contract drift detected. Run 'npm run contract:update', commit generated contract changes, and push again."
+          echo "::error::Contract checks failed. Run 'npm run contract:check' and 'npm run contract:check-duplicates', then commit required fixes."
 
   coverage:
     name: Coverage report (non-blocking diagnostics)

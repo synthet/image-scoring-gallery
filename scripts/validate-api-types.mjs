@@ -18,7 +18,9 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SNAPSHOT_PATH = resolve(__dirname, '..', 'api-contract', 'openapi.json');
 const API_TYPES_PATH = resolve(__dirname, '..', 'electron', 'apiTypes.ts');
+const API_GENERATED_TYPES_PATH = resolve(__dirname, '..', 'electron', 'api.generated.ts');
 const API_SERVICE_PATH = resolve(__dirname, '..', 'electron', 'apiService.ts');
+const API_CONTRACT_TYPE_FILES = [API_TYPES_PATH, API_GENERATED_TYPES_PATH];
 
 function loadOpenApiSpec() {
     if (!existsSync(SNAPSHOT_PATH)) {
@@ -53,6 +55,22 @@ function extractTsInterfaces(filePath) {
     return interfaces;
 }
 
+function extractDuplicateExportedInterfaces(filePath) {
+    const content = readFileSync(filePath, 'utf-8');
+    const counts = new Map();
+    const interfaceRegex = /export\s+interface\s+(\w+)/g;
+    let match;
+
+    while ((match = interfaceRegex.exec(content)) !== null) {
+        const name = match[1];
+        counts.set(name, (counts.get(name) || 0) + 1);
+    }
+
+    return [...counts.entries()]
+        .filter(([, count]) => count > 1)
+        .map(([name, count]) => ({ name, count }));
+}
+
 function extractServiceEndpoints(filePath) {
     const content = readFileSync(filePath, 'utf-8');
     const endpoints = new Set();
@@ -84,6 +102,17 @@ function main() {
 
     const issues = [];
     let checks = 0;
+
+    // 0. Check for duplicate exported interface names in contract files.
+    for (const filePath of API_CONTRACT_TYPE_FILES) {
+        checks++;
+        const duplicates = extractDuplicateExportedInterfaces(filePath);
+        for (const duplicate of duplicates) {
+            issues.push(
+                `[duplicate-interface] ${filePath} — ${duplicate.name} exported ${duplicate.count} times`,
+            );
+        }
+    }
 
     // 1. Check endpoint coverage
     const openApiPaths = Object.keys(spec.paths || {});
