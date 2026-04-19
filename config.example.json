@@ -1,13 +1,8 @@
 {
     "_example_comment_dev_url": "Keep dev.url in sync with vite.config.ts server.port (default 5173; strictPort fails if that port is busy—free it or change both places).",
     "database": {
-        "engine": "firebird",
-        "provider": "firebird",
-        "host": "127.0.0.1",
-        "port": 3050,
-        "user": "sysdba",
-        "password": "masterkey",
-        "path": "../image-scoring-backend/SCORING_HISTORY.FDB",
+        "engine": "postgres",
+        "provider": "postgres",
         "postgres": {
             "host": "127.0.0.1",
             "port": 5432,
@@ -31,9 +26,6 @@
     },
     "api": {
         "url": "http://127.0.0.1:7860"
-    },
-    "firebird": {
-        "path": "../image-scoring-backend/Firebird"
     },
     "paths": {
         "remap_legacy_image_scoring_thumbnails": true,

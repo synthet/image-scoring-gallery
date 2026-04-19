@@ -2,6 +2,10 @@
 
 This gallery can discover the Python backend automatically, but you can also pin or redirect it with `config.json`.
 
+## Migration Note
+
+Legacy Firebird-era keys (for example `database.host`, `database.path`, and top-level `firebird.path`) are kept only for historical context and are no longer first-class configuration fields. Prefer `database.engine` with `database.postgres.*` (or `database.api.*` when using API SQL mode), plus top-level `api.*` overrides documented below.
+
 ## Resolution Order
 
 The backend base URL is resolved in this order:

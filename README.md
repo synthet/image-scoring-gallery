@@ -21,6 +21,7 @@ This application provides a high-performance interface for browsing and filterin
 - **Database**: Production uses PostgreSQL and/or backend API SQL mode (see `docs/architecture/02-database-design.md`).
 - **Project layout**: For automatic API port discovery, keep **image-scoring-backend** and **image-scoring-gallery** as sibling directories. Override via `config.json` (`api.url` or `api.port`) if your layout differs.
 - **Environment overrides:** Copy `environment.example.json` to `environment.json` (gitignored) for machine-specific paths, ports, and URLs; `environment.json` overrides overlapping keys in `config.json`.
+- **Migration note:** Legacy Firebird keys (for example `database.host`, `database.path`, and `firebird.path`) are historical compatibility artifacts and are no longer first-class config fields; use `database.engine` (`postgres` or `api`) plus `database.postgres.*` / `database.api.*` instead.
 
 ## Getting Started
 
