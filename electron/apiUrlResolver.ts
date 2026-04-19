@@ -32,6 +32,7 @@ export function resolveBaseUrl(config: AppConfig, options?: ResolveOptions): str
     const locks = [
       pathMod.join(projectsDir, 'image-scoring-backend', 'webui.lock'),
       pathMod.join(projectsDir, 'image-scoring-backend', 'webui-debug.lock'),
+      // Legacy sibling repo name retained for backwards compatibility.
       pathMod.join(projectsDir, 'image-scoring', 'webui.lock'),
       pathMod.join(projectsDir, 'image-scoring', 'webui-debug.lock'),
     ];
