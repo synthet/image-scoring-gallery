@@ -41,17 +41,16 @@ const backendBaseUrl = resolveBaseUrl(appConfig);
 
 let httpServer: Server | undefined;
 
-async function startServer() {
-    keepStdinFromEndingProcess();
-    try {
-        await db.connectDB();
-        console.log('[Server] DB connected');
-    } catch (e) {
-        console.warn('[Server] DB connect failed (will retry on first request):', e);
-    }
+type ServerDeps = {
+    dbModule: typeof db;
+    apiService: ApiService;
+    configPath: string;
+    appConfig: Record<string, unknown>;
+    backendBaseUrl: string;
+};
 
-    // ── Express App ───────────────────────────────────────────────────────────
-
+export function createServerApp(deps: ServerDeps) {
+    const { dbModule, apiService, configPath, appConfig, backendBaseUrl } = deps;
     const app = express();
     app.use(express.json({ limit: '10mb' }));
 
@@ -89,7 +88,7 @@ async function startServer() {
     // DB: check connection
     router.get('/db/check-connection', wrap(async (_req, res) => {
         try {
-            const result = await db.checkConnection();
+            const result = await dbModule.checkConnection();
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -97,7 +96,7 @@ async function startServer() {
     // DB: image count
     router.get('/db/image-count', wrap(async (req, res) => {
         try {
-            const result = await db.getImageCount(parseQueryOptions(req.query));
+            const result = await dbModule.getImageCount(parseQueryOptions(req.query));
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -105,7 +104,7 @@ async function startServer() {
     // DB: images
     router.get('/db/images', wrap(async (req, res) => {
         try {
-            const result = await db.getImages(parseQueryOptions(req.query));
+            const result = await dbModule.getImages(parseQueryOptions(req.query));
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -113,7 +112,7 @@ async function startServer() {
     // DB: image details
     router.get('/db/image/:id', wrap(async (req, res) => {
         try {
-            const result = await db.getImageDetails(parseInt(req.params.id, 10));
+            const result = await dbModule.getImageDetails(parseInt(req.params.id, 10));
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -121,7 +120,7 @@ async function startServer() {
     // DB: update image
     router.post('/db/image/:id', wrap(async (req, res) => {
         try {
-            const result = await db.updateImageDetails(parseInt(req.params.id, 10), req.body as Record<string, string | number | null>);
+            const result = await dbModule.updateImageDetails(parseInt(req.params.id, 10), req.body as Record<string, string | number | null>);
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -129,7 +128,7 @@ async function startServer() {
     // DB: delete image
     router.delete('/db/image/:id', wrap(async (req, res) => {
         try {
-            const result = await db.deleteImage(parseInt(req.params.id, 10));
+            const result = await dbModule.deleteImage(parseInt(req.params.id, 10));
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -137,7 +136,7 @@ async function startServer() {
     // DB: delete folder
     router.delete('/db/folder/:id', wrap(async (req, res) => {
         try {
-            const result = await db.deleteFolder(parseInt(req.params.id, 10));
+            const result = await dbModule.deleteFolder(parseInt(req.params.id, 10));
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -145,7 +144,7 @@ async function startServer() {
     // DB: folders
     router.get('/db/folders', wrap(async (_req, res) => {
         try {
-            const result = await db.getFolders();
+            const result = await dbModule.getFolders();
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -153,7 +152,7 @@ async function startServer() {
     // DB: keywords
     router.get('/db/keywords', wrap(async (_req, res) => {
         try {
-            const result = await db.getKeywords();
+            const result = await dbModule.getKeywords();
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -161,7 +160,7 @@ async function startServer() {
     // DB: dates with shots
     router.get('/db/dates-with-shots', wrap(async (req, res) => {
         try {
-            const result = await db.getDatesWithShots(parseQueryOptions(req.query));
+            const result = await dbModule.getDatesWithShots(parseQueryOptions(req.query));
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -169,7 +168,7 @@ async function startServer() {
     // DB: stacks
     router.get('/db/stacks', wrap(async (req, res) => {
         try {
-            const result = await db.getStacks(parseQueryOptions(req.query));
+            const result = await dbModule.getStacks(parseQueryOptions(req.query));
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -178,7 +177,7 @@ async function startServer() {
     router.get('/db/stacks/:stackId/images', wrap(async (req, res) => {
         try {
             const stackId = req.params.stackId === 'null' ? null : parseInt(req.params.stackId, 10);
-            const result = await db.getImagesByStack(stackId, parseQueryOptions(req.query));
+            const result = await dbModule.getImagesByStack(stackId, parseQueryOptions(req.query));
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -186,7 +185,7 @@ async function startServer() {
     // DB: stack count
     router.get('/db/stack-count', wrap(async (req, res) => {
         try {
-            const result = await db.getStackCount(parseQueryOptions(req.query));
+            const result = await dbModule.getStackCount(parseQueryOptions(req.query));
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -194,7 +193,7 @@ async function startServer() {
     // DB: rebuild stack cache
     router.post('/db/rebuild-stack-cache', wrap(async (req, res) => {
         try {
-            const count = await db.rebuildStackCache((req.body ?? {}) as { smartCover?: boolean });
+            const count = await dbModule.rebuildStackCache((req.body ?? {}) as { smartCover?: boolean });
             ok(res, { success: true, count });
         } catch (e) { fail(res, e); }
     }));
@@ -238,7 +237,7 @@ async function startServer() {
                 folderPath?: string;
                 minSimilarity?: number;
             };
-            const resolvedFolderPath = folderPath || (folderId ? await db.getFolderPathById(folderId) : undefined) || undefined;
+            const resolvedFolderPath = folderPath || (folderId ? await dbModule.getFolderPathById(folderId) : undefined) || undefined;
             const result = await apiService.searchSimilar({
                 image_id: imageId,
                 limit,
@@ -285,7 +284,6 @@ async function startServer() {
         const suffix = (req.params as Record<string, string>).path ?? '';
         const targetUrl = new URL(`/api/${suffix}`, backendBaseUrl);
 
-        // Forward query string
         for (const [k, v] of Object.entries(req.query)) {
             if (v !== undefined) targetUrl.searchParams.append(k, String(v));
         }
@@ -314,7 +312,6 @@ async function startServer() {
     // ── Media File Endpoint ───────────────────────────────────────────────────
 
     app.get('/media/*filePath', (req, res) => {
-        // Path is the wildcard after /media/, URL-encoded
         const rawPath = (req.params as Record<string, string>).filePath ?? '';
         const filePath = decodeURIComponent(rawPath);
 
@@ -323,7 +320,6 @@ async function startServer() {
             return;
         }
 
-        // Security: only allow absolute paths on disk (no path traversal)
         const normalized = path.normalize(filePath);
         const isAbsolute = path.isAbsolute(normalized);
         const isWslPath = normalized.startsWith('/mnt/');
@@ -353,20 +349,35 @@ async function startServer() {
         fs.createReadStream(normalized).pipe(res);
     });
 
-    // ── SPA Fallback (production) ─────────────────────────────────────────────
-
     if (fs.existsSync(distDir)) {
         app.get('/*path', (_req, res) => {
             res.sendFile(path.join(distDir, 'index.html'));
         });
     }
 
-    // ── Error Handler ─────────────────────────────────────────────────────────
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
         console.error('[Server] Unhandled error:', err);
         res.status(500).json({ ok: false, error: err.message });
+    });
+
+    return app;
+}
+
+async function startServer() {
+    keepStdinFromEndingProcess();
+    try {
+        await db.connectDB();
+        console.log('[Server] DB connected');
+    } catch (e) {
+        console.warn('[Server] DB connect failed (will retry on first request):', e);
+    }
+
+    const app = createServerApp({
+        dbModule: db,
+        apiService,
+        configPath,
+        appConfig,
+        backendBaseUrl,
     });
 
     // ── Start ─────────────────────────────────────────────────────────────────
@@ -415,7 +426,9 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
     return out;
 }
 
-startServer().catch((e) => {
-    console.error('[Server] Fatal startup error:', e);
-    process.exit(1);
-});
+if (process.env.VITEST !== '1') {
+    startServer().catch((e) => {
+        console.error('[Server] Fatal startup error:', e);
+        process.exit(1);
+    });
+}
