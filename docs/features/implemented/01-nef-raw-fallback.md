@@ -1,210 +1,73 @@
-# NEF Extraction Failure Analysis
+# NEF/RAW Fallback (Normative Behavior)
 
-## Executive Summary
+## Purpose
 
-The NEF extraction system is **working correctly** despite Tier 1 failures. The multi-tier fallback ensures high-quality previews are always extracted.
+This feature defines how NEF (Nikon RAW) preview extraction must behave in the Electron gallery when rendering a preview image.
 
-## Current Status
+The goal is reliability first: the system should attempt higher-fidelity extraction paths first, then degrade gracefully if any tier fails.
 
-✅ **System Status**: Functional
-- 🟢 Electron app running
-- 🟢 `exiftool-vendored` v35.7.0 installed
-- 🟢 Multi-tier fallback working
-- 🟡 Tier 1 (ExifTool) failing → Falling back to Tier 2
-- 🟢 **Tier 2 (SubIFD Parser) delivering 12.2 MP previews**
+## Tier Sequence (Required)
 
-## Test Results Recap
+The extraction flow is a strict ordered fallback pipeline:
 
-From comprehensive quality testing:
+1. **Tier 1: ExifTool-based extraction (main process)**
+   - Attempt preview extraction through the ExifTool integration in the Electron main process.
+   - If Tier 1 returns a valid preview payload, extraction stops and that payload is used.
 
-| Tier | Success Rate | Quality | Status |
-|------|--------------|---------|--------|
-| Tier 1 (exiftool-vendored) | ❌ 0/3 (0%) | - | Failing |
-| Tier 2 (SubIFD Parser) | ✅ 3/3 (100%) | **12.2 MP** | Working |
-| Tier 3 (Marker Scan) | ✅ 3/3 (100%) | Lower | Fallback |
+2. **Tier 2: SubIFD parser (renderer/client-side)**
+   - If Tier 1 fails or returns no usable preview, the renderer must attempt SubIFD-based parsing from the NEF buffer.
+   - If Tier 2 succeeds, extraction stops and that payload is used.
 
-## Why Tier 1 is Failing
+3. **Tier 3: JPEG marker scan fallback (renderer/client-side)**
+   - If Tier 2 fails or returns no usable preview, the renderer must attempt marker-scan extraction.
+   - Tier 3 is the final fallback path.
 
-### Possible Reasons:
+If all tiers fail, the operation must surface a controlled error to the caller/UI (not an unhandled exception).
 
-1. **ExifTool binary not found**
-   - `exiftool-vendored` requires the ExifTool binary (Perl application)
-   - The npm package bundles the binary, but it may not be extracted/accessible in Electron
-   
-2. **Path issues**
-   - ExifTool may not be in PATH
-   - Binary permissions might be incorrect (especially on first run)
-   
-3. **Electron packaging issues**
-   - ExifTool binary may not be included in the Electron bundle
-   - ASAR packaging might interfere with binary extraction
+## Fallback Semantics (Required)
 
-4. **Camera format support**
-   - ExifTool might not support these specific NEF variations
-   - Less likely since ExifTool is very comprehensive
+- **Fail-open between tiers:** A failure in one tier is not terminal while lower-priority tiers remain.
+- **Single winner:** The first successful tier becomes the canonical extraction result for that request.
+- **Deterministic order:** Tiers must not run out of order.
+- **No silent total failure:** If all tiers fail, emit an explicit failure state with actionable logging.
 
-## Diagnostic Logs to Check
+## Expected Logs
 
-### In Electron DevTools Console:
+The following log progression is expected during normal fallback operation:
 
-Look for these log patterns:
-
-```
-// Tier 1 attempting
+```text
 [NefExtractor] Attempting exiftool extraction for: <path>
-
-// Tier 1 failure
-[NefExtractor] ✗ Tier 1 failed: <error message>
+[NefExtractor] ✗ Tier 1 failed: <error>
 [Main] Tier 1 failed, falling back to client-side extraction
-
-// Tier 2 success
 [NefViewer] Tier 1 failed, trying client-side fallbacks
 [NefViewer] ✓ Tier 2 succeeded (SubIFD parsing)
 ```
 
-### Expected Error Messages:
+Additional notes:
+- If Tier 1 succeeds, renderer fallback logs should not appear for that request.
+- If Tier 2 fails and Tier 3 is attempted, logs should indicate Tier 2 failure and Tier 3 attempt/success/failure explicitly.
 
-- `"exiftool not found"` → Binary path issue
-- `"ENOENT"` → File not found or  path conversion issue
-- `"Permission denied"` → Binary permissions issue
-- `"No preview available"` → Format not supported (unlikely)
+## Known Limitations
 
-## Current Behavior (What Should Happen)
+- **Tier 1 runtime sensitivity:** ExifTool-based extraction can be affected by runtime packaging/path/permission issues in some environments.
+- **Quality variability by tier:** Tier 2 and Tier 3 may return different preview quality/dimensions depending on embedded NEF data.
+- **Performance overhead on fallback:** Failed higher tiers add small latency before a lower tier succeeds.
+- **Format variance:** NEF files from different camera generations may expose different embedded preview characteristics.
 
-1. **User opens NEF file in gallery**
-   ```
-   [ImageViewer] Fetching details for image ID: <id>
-   [ImageViewer] Received details: {...}
-   [Main] NEF preview requested for: <path>
-   ```
+These limitations are expected and do not invalidate the fallback contract above.
 
-2. **Tier 1 attempt (Failing)**
-   ```
-   [NefExtractor] Attempting exiftool extraction for: <path>
-   [NefExtractor] ✗ Tier 1 failed: <error>
-   [Main] Tier 1 failed, falling back to client-side extraction
-   ```
+## Dependency/Version Policy
 
-3. **Tier 2 success (Working)**
-   ```
-   [NefViewer] Tier 1 failed, trying client-side fallbacks
-   [NefViewer] ✓ Tier 2 succeeded (SubIFD parsing)
-   ```
+This document is intentionally **version-agnostic**:
+- Do not hardcode dependency patch versions in normative behavior docs.
+- If exact versions are needed for incident/debug context, record them in dated reports under `docs/reports/`.
 
-4. **Preview displays**
-   - 12.2 MP resolution (4288×2848)
-   - ~1 MB file size
-   - High quality JPEG
+## Verification References
 
-## Impact Assessment
+Behavior is verified by unit tests in:
+- [`electron/nefExtractor.test.ts`](../../../electron/nefExtractor.test.ts)
+- [`src/utils/nefViewer.test.ts`](../../../src/utils/nefViewer.test.ts)
 
-### ✅ No User-Facing Issues
+## Related Historical Context
 
-Despite Tier 1 failing:
-- ✅ Previews still load correctly
-- ✅ **12.2 MP high-quality previews** via Tier 2
-- ✅ Fast extraction (~0.1s)
-- ✅ All tested NEF files work
-
-### 🟡 Minor Performance Impact
-
-- Extra IPC round-trip for Tier 1 attempt (~5-10ms)
-- File buffer sent to renderer for Tier 2 (~10MB transferred)
-- Total overhead: ~50-100ms per NEF file
-
-## Recommendations
-
-### Option 1: Accept Current Behavior (Recommended)
-
-**Pros**:
-- ✅ Already working perfectly
-- ✅ Tier 2 provides excellent quality (12.2 MP)
-- ✅ No changes needed
-- ✅ Simple, reliable
-
-**Cons**:
-- ❌ Minor performance overhead
-- ❌ Tier 1 code unused
-
-**Action**: None required. Document that Tier 2 is the primary method.
-
----
-
-### Option 2: Fix Tier 1 (ExifTool)
-
-**Investigation needed**:
-
-1. Check if exiftool binary is accessible:
-   ```typescript
-   // In nefExtractor.ts
-   const version = await exiftool.version();
-   console.log('ExifTool version:', version);
-   ```
-
-2. Check for errors:
-   ```typescript
-   // Add more detailed logging
-   catch (e: any) {
-       console.error('[NefExtractor] Full error:', e);
-       console.error('[NefExtractor] Error code:', e.code);
-       console.error('[NefExtractor] Error message:', e.message);
-       console.error('[NefExtractor] Stack:', e.stack);
-   }
-   ```
-
-3. Test ExifTool directly:
-   ```bash
-   # In electron-gallery directory
-   node -e "const {exiftool} = require('exiftool-vendored'); exiftool.version().then(v => console.log(v)).then(() => exiftool.end())"
-   ```
-
-**Pros**:
-- ✅ Potentially fastest method
-- ✅ Most format compatibility
-- ✅ Proper implementation
-
-**Cons**:
-- ❌ Debugging time required
-- ❌ May have Electron-specific issues
-- ❌ Not needed (Tier 2 works great)
-
----
-
-### Option 3: Remove Tier 1 Entirely
-
-**Simplify to 2-tier system**:
-1. Tier 1: SubIFD Parser (primary)
-2. Tier 2: Marker Scan (fallback)
-
-**Pros**:
-- ✅ Simpler code
-- ✅ No IPC overhead
-- ✅ All client-side
-- ✅ Faster (no failed Tier 1 attempt)
-
-**Cons**:
-- ❌ Removes future expansion possibility
-- ❌ Less format coverage vs ExifTool
-
-**Action**: Remove `nefExtractor.ts`, `nef:extract-preview` IPC handler, and Tier 1 logic from `nefViewer.ts`.
-
-## Conclusion
-
-**The system is working as designed.** Tier 1 failures are gracefully handled by the fallback system, and **Tier 2 delivers excellent 12.2 MP previews**.
-
-### Immediate Next Steps:
-
-1. ✅ **Accept current behavior** - No action needed
-2. 🔍 **Optional**: Add enhanced logging to understand Tier 1 failures better
-3. 📋 **Optional**: Test with Z9/Z8 HE files to see if Tier 2 handles them equally well
-
-### If User Reports Issues:
-
-1. Check browser console for extraction logs
-2. Verify which tier succeeded
-3. Check preview quality (resolution, file size)
-4. Compare against expected 12.2 MP baseline
-
----
-
-**Status**: The NEF extraction feature is **production-ready** despite Tier 1 not working. The fallback system ensures reliability and quality.
+- Incident snapshot moved to: [`docs/reports/05-nef-raw-fallback-incident-2026-04-19.md`](../../reports/05-nef-raw-fallback-incident-2026-04-19.md)
