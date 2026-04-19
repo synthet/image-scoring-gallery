@@ -9,7 +9,7 @@ The backend base URL is resolved in this order:
 1. **`config.api.url`**: exact base URL, highest priority
 2. **Sibling backend lock file**: `webui.lock` / `webui-debug.lock` from `image-scoring-backend`
 3. **Fallback host/port**: `config.api.host` + `config.api.port`
-4. **Default fallback**: `http://127.0.0.1:7860`
+4. **Default fallback**: `http://127.0.0.1:7860` (derived from `electron/constants/network.ts` via `DEFAULT_BACKEND_BASE_URL`)
 
 ## When To Use Which Setting
 

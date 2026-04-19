@@ -1,5 +1,6 @@
 
 import type { ApiDatabaseConfig, DatabaseConfig, PostgresConfig as AppPostgresConfig } from '../types';
+import { DEFAULT_BACKEND_BASE_URL } from '../constants/network';
 
 export type QueryParam = string | number | null;
 export type TxQuery = <R = unknown>(sql: string, params?: QueryParam[]) => Promise<R[]>;
@@ -333,7 +334,7 @@ export function createDatabaseConnector(config: {
 
     if (kind === 'api') {
         const apiCfg = (config.dbConfig as ApiDatabaseConfig).api || {};
-        const url = apiCfg.url || 'http://localhost:7860';
+        const url = apiCfg.url || DEFAULT_BACKEND_BASE_URL;
         const timeout = apiCfg.timeout ?? 10000;
         console.log(`[DB] Using API connector at ${url}`);
         return new ApiConnector(url, timeout);
