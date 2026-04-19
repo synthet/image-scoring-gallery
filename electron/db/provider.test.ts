@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import type { DatabaseConfig } from '../types';
+import { loadAppConfig } from '../config';
 import {
     createDatabaseConnector,
     ApiConnector,
@@ -47,7 +51,7 @@ describe('Database Connector Abstraction', () => {
             expect(connector.type).toBe('api');
         });
 
-        it('should throw error for decommissioned "firebird" engine', () => {
+        it('provider rejects raw "firebird" engine (no normalization at provider layer)', () => {
             const config = {
                 dbConfig: {
                     engine: 'firebird',
@@ -68,6 +72,31 @@ describe('Database Connector Abstraction', () => {
             );
             expect(connector).toBeInstanceOf(PostgresConnector);
             expect(connector.type).toBe('postgres');
+        });
+
+        it('normalizer maps firebird->postgres before provider: config load to connector creation', () => {
+            const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gallery-db-config-'));
+            const configPath = path.join(tempDir, 'config.json');
+            try {
+                fs.writeFileSync(configPath, JSON.stringify({
+                    database: {
+                        provider: 'firebird',
+                        postgres: { host: 'localhost', port: 5432, database: 'test', user: 'user' },
+                    }
+                }));
+
+                const appConfig = loadAppConfig(configPath);
+                expect(appConfig.database?.engine).toBe('postgres');
+
+                const connector = createDatabaseConnector({
+                    dbConfig: appConfig.database as DatabaseConfig
+                });
+
+                expect(connector).toBeInstanceOf(PostgresConnector);
+                expect(connector.type).toBe('postgres');
+            } finally {
+                fs.rmSync(tempDir, { recursive: true, force: true });
+            }
         });
     });
 

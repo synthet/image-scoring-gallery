@@ -14,7 +14,7 @@ Migrate to **PostgreSQL + pgvector** as a coordinated platform move across both 
 ## What was done
 
 1. **Backend (Phase 3)**: Python scoring pipeline switched to PostgreSQL. All ~60 DB functions route to PG. SQL auto-translation layer handles legacy Firebird syntax.
-2. **Electron (Phase 4)**: `electron/db/provider.ts` provides a connector abstraction. `node-firebird` dependency removed; `pg` is the production driver. Legacy `engine: "firebird"` config values automatically map to the Postgres connector.
+2. **Electron (Phase 4)**: `electron/db/provider.ts` provides a connector abstraction. `node-firebird` dependency removed; `pg` is the production driver. Legacy `engine: "firebird"` / `provider: "firebird"` values are mapped to Postgres **only in config normalization** (`normalizeAppConfig` in `electron/config.ts`). The provider layer (`createDatabaseConnector` in `electron/db/provider.ts`) intentionally accepts only normalized engines (`postgres`/`api`) and rejects raw `firebird` values.
 3. **Data migration**: Bulk migration script (`scripts/python/migrate_firebird_to_postgres.py`) migrated all data including embeddings (Firebird BLOB → `vector(1280)` with HNSW cosine index).
 
 ## Current stack
