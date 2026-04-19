@@ -22,7 +22,7 @@ import {
     type ScoredImageForBackup,
 } from './types';
 import { SessionLogManager } from './sessionLogManager';
-import { deepMergeConfig, getConfigPath, loadAppConfig, normalizeAppConfig } from './config';
+import { getConfigPath, loadAppConfig } from './config';
 import { resolveBackendUiStaticDir, startScoringUiServer, type ScoringUiServer } from './scoringUiServer';
 import { normalizeLensFolderName, UNKNOWN_LENS_FOLDER } from './lensFolderName';
 import { cameraFolderFromExifModel } from './cameraFolderName';
@@ -36,6 +36,15 @@ import {
     xmpSidecarPath,
 } from './backupSpace';
 import { toWindowsLocalFsPath } from './pathWinWsl';
+import {
+    assertSyncPreviewAllowed,
+    assertSyncRunAllowed,
+    createSyncGuards,
+    extractNefPreviewEnvelope,
+    loadSystemConfig,
+    mainHandlerFs,
+    saveSystemConfig,
+} from './main.handlers';
 
 /** Verbose `media://` request logging (default off in dev — huge galleries flood the console). */
 function debugGalleryMedia(): boolean {
@@ -211,10 +220,7 @@ let sessionLogManager: SessionLogManager | null = null;
 
 let appGalleryMode: 'db' | 'folder' = 'db';
 let isBackupRunning = false;
-/** True while `sync:run` (copy/import) is executing. */
-let isSyncRunInProgress = false;
-/** Number of in-flight `sync:preview` IPC calls (StrictMode can overlap two). */
-let activeSyncPreviewCount = 0;
+const syncGuards = createSyncGuards(() => isBackupRunning);
 
 const FS_IMAGE_EXTENSIONS = new Set([
     '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.tif', '.tiff', '.heic', '.heif',
@@ -511,7 +517,7 @@ const rebuildApplicationMenu = () => {
                 },
                 {
                     label: 'Sync',
-                    enabled: !folderMode && !isSyncRunInProgress && activeSyncPreviewCount === 0 && !isBackupRunning,
+                    enabled: !folderMode && !syncGuards.isSyncRunInProgress() && syncGuards.activeSyncPreviewCount() === 0 && !isBackupRunning,
                     click: async () => {
                         const win = getDialogWindow();
                         const result = await dialog.showOpenDialog(win || mainWindow!, {
@@ -525,7 +531,7 @@ const rebuildApplicationMenu = () => {
                 },
                 {
                     label: 'Backup',
-                    enabled: !folderMode && !isBackupRunning && !isSyncRunInProgress && activeSyncPreviewCount === 0,
+                    enabled: !folderMode && !isBackupRunning && !syncGuards.isSyncRunInProgress() && syncGuards.activeSyncPreviewCount() === 0,
                     click: async () => {
                         const win = getDialogWindow();
                         const result = await dialog.showOpenDialog(win || mainWindow!, {
@@ -1093,7 +1099,7 @@ async function startFullApplication(): Promise<void> {
         if (isBackupRunning) {
             throw new Error('Another backup is already in progress.');
         }
-        if (isSyncRunInProgress || activeSyncPreviewCount > 0) {
+        if (syncGuards.isSyncRunInProgress() || syncGuards.activeSyncPreviewCount() > 0) {
             throw new Error('A sync operation is in progress. Finish sync before running backup.');
         }
 
@@ -1949,13 +1955,8 @@ async function startFullApplication(): Promise<void> {
         if (!stat || !stat.isDirectory()) {
             throw new Error(`Path is not a directory: ${sourcePath}`);
         }
-        if (isBackupRunning) {
-            throw new Error('Backup is running. Finish backup before sync.');
-        }
-        if (isSyncRunInProgress) {
-            throw new Error('A full sync is already in progress. Finish it before previewing.');
-        }
-        activeSyncPreviewCount++;
+        assertSyncPreviewAllowed(syncGuards);
+        syncGuards.incrementPreviewCount();
         rebuildApplicationMenu();
         try {
             console.log(`[Main] Sync preview: source=${sourcePath}`);
@@ -1974,7 +1975,7 @@ async function startFullApplication(): Promise<void> {
                 errors: out.errors,
             };
         } finally {
-            activeSyncPreviewCount--;
+            syncGuards.decrementPreviewCount();
             rebuildApplicationMenu();
         }
     }));
@@ -1987,16 +1988,8 @@ async function startFullApplication(): Promise<void> {
         if (!stat || !stat.isDirectory()) {
             throw new Error(`Path is not a directory: ${sourcePath}`);
         }
-        if (isBackupRunning) {
-            throw new Error('Backup is running. Finish backup before sync.');
-        }
-        if (isSyncRunInProgress) {
-            throw new Error('Another sync operation is already in progress.');
-        }
-        if (activeSyncPreviewCount > 0) {
-            throw new Error('Sync preview is still running. Wait for it to finish before starting sync.');
-        }
-        isSyncRunInProgress = true;
+        assertSyncRunAllowed(syncGuards);
+        syncGuards.setSyncRunInProgress(true);
         rebuildApplicationMenu();
         try {
             const out = await runSyncFromSource(sourcePath, false);
@@ -2013,47 +2006,18 @@ async function startFullApplication(): Promise<void> {
                 thresholdDate: out.thresholdDate,
             };
         } finally {
-            isSyncRunInProgress = false;
+            syncGuards.setSyncRunInProgress(false);
             rebuildApplicationMenu();
         }
     }));
 
     ipcMain.handle('nef:extract-preview', wrapIpcHandler(async (_, filePath: string) => {
         console.log(`[Main] NEF preview requested for: ${filePath}`);
-
-        let convertedPath = filePath;
-        if (process.platform === 'win32' && filePath.match(/^\/mnt\/[a-zA-Z]\//)) {
-            convertedPath = filePath.replace(/^\/mnt\/([a-zA-Z])\//, '$1:/');
-            console.log(`[Main] Converted WSL path: ${filePath} -> ${convertedPath}`);
-        }
-
-        const ext = path.extname(convertedPath).toLowerCase();
-        if (ext !== '.nef') {
-            console.log(`[Main] Skipping non-NEF file (${ext}), returning fallback`);
-            const fileBuffer = await fs.promises.readFile(convertedPath);
-            return {
-                success: false,
-                fallback: true,
-                buffer: fileBuffer
-            };
-        }
-
-        const buffer = await nefExtractor.extractPreview(convertedPath);
-
-        if (buffer) {
-            return {
-                success: true,
-                buffer: buffer
-            };
-        }
-
-        console.log('[Main] Tier 1 failed, falling back to client-side extraction');
-        const fileBuffer = await fs.promises.readFile(convertedPath);
-        return {
-            success: false,
-            fallback: true,
-            buffer: fileBuffer
-        };
+        return await extractNefPreviewEnvelope(filePath, {
+            platform: process.platform,
+            readFile: mainHandlerFs.readFile,
+            extractPreview: (p) => nefExtractor.extractPreview(p),
+        });
     }));
 
     ipcMain.handle('nef:read-exif', wrapIpcHandler(async (_, filePath: string) => {
@@ -2247,9 +2211,7 @@ async function startFullApplication(): Promise<void> {
         return (await findActiveWebuiPort()) || 7860;
     });
 
-    ipcMain.handle('system:get-config', wrapIpcHandler(async () => {
-        return loadConfig();
-    }));
+    ipcMain.handle('system:get-config', wrapIpcHandler(async () => loadSystemConfig(loadConfig)));
 
     ipcMain.handle('system:get-diagnostics', wrapIpcHandler(async () => {
         const os = await import('os');
@@ -2281,31 +2243,15 @@ async function startFullApplication(): Promise<void> {
         };
     }));
 
-    ipcMain.handle('system:save-config', wrapIpcHandler(async (_, updates) => {
-        const configPath = getConfigPath(__dirname);
-        let currentConfig: Record<string, unknown> = {};
-        try {
-            if (fs.existsSync(configPath)) {
-                currentConfig = JSON.parse(await fs.promises.readFile(configPath, 'utf8'));
-            }
-        } catch (e) {
-            console.error('[Main] Error reading config for save:', e);
-        }
-
-        const updatesObj = typeof updates === 'object' && updates !== null
-            ? updates as Record<string, unknown>
-            : {};
-        const mergedConfig = deepMergeConfig(currentConfig, updatesObj);
-        const newConfig = normalizeAppConfig(mergedConfig);
-
-        try {
-            await fs.promises.writeFile(configPath, JSON.stringify(newConfig, null, 2));
-            return newConfig;
-        } catch (e) {
-            console.error('[Main] Error writing config:', e);
-            throw e;
-        }
-    }));
+    ipcMain.handle('system:save-config', wrapIpcHandler(async (_, updates) =>
+        saveSystemConfig({
+            configPath: getConfigPath(__dirname),
+            updates,
+            readFile: fs.promises.readFile,
+            writeFile: (p, d) => fs.promises.writeFile(p, d),
+            existsSync: fs.existsSync,
+        }),
+    ));
 
     // ── Backend API handlers (via ApiService) ─────────────────────────────
     ipcMain.handle('api:health', wrapIpcHandler(async () => {
