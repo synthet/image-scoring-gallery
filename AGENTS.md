@@ -60,13 +60,15 @@ The `.cursor/mcp.json` file uses the **`imgscore-el-*`** prefix so server names 
 
 ### Running the Electron app on Linux (Cloud VM)
 
-- The `npm run dev` script includes `db:start` which calls a **PowerShell script** (`scripts/start_db.ps1`) — this is Windows-only and will fail on Linux. Instead, run the components separately:
-  1. `npm run dev:web` — starts the Vite dev server
-  2. `npx tsc -p electron/tsconfig.json` — compiles Electron main process TypeScript
-  3. `ELECTRON_IS_DEV=1 npx electron .` — launches Electron (set env var directly; `cross-env` may not be on PATH as a global binary)
-- The app may show a connection error at startup if PostgreSQL or the backend API URL is unreachable in the VM. The UI can still load for layout and static testing.
-- `cross-env` is installed as a devDependency but not globally, so use `ELECTRON_IS_DEV=1` env prefix directly instead of `cross-env ELECTRON_IS_DEV=1`.
+- Current dev composition is already Linux-friendly via npm scripts:
+  1. `npm run server` — starts the backend/API process expected by the gallery
+  2. `vite` — starts the Vite dev server on `http://localhost:5173`
+  3. `npm run dev:electron` — waits for Vite, compiles Electron TS, and launches Electron in dev mode
+- `npm run dev` runs those three commands concurrently (`server`, `vite`, `dev:electron`) and is the easiest default for local Linux/Cloud VM use.
+- If you need renderer-only work, use `npm run dev:web` (server + Vite) without launching Electron.
+- The app may still show a connection error at startup if PostgreSQL or the backend API URL is unreachable in the VM. The UI can still load for layout and static testing.
 - dbus errors in Electron logs (e.g. `Failed to connect to the bus`) are harmless in a headless/container Linux environment.
+- _Verified against `package.json` scripts on 2026-04-19._
 
 ### Lockfile
 
