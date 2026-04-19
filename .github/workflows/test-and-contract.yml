@@ -31,19 +31,30 @@ jobs:
         run: npm run check:type-sync
 
 
+      - name: Check docs guides index completeness (non-blocking)
+        id: docs_guides_index
+        continue-on-error: true
+        run: node scripts/check-guides-index.mjs
+
+      - name: Docs guides index warning
+        if: steps.docs_guides_index.outcome == 'failure'
+        run: |
+          echo "::warning::docs/guides/README.md is out of sync with docs/guides/*.md. Run 'node scripts/check-guides-index.mjs' and update the index links."
+
       - name: Fetch backend OpenAPI snapshot source
         run: git clone --depth 1 https://github.com/synthet/image-scoring-backend ../image-scoring-backend
 
       # Canonical gate: contract:check fails when generated contract files drift from source API types.
       # This blocks merges until contract artifacts are updated and committed.
       - name: Enforce API contract sync
+        id: contract_check
         run: npm run contract:check
 
       - name: Enforce unique exported API contract interface names
         run: npm run contract:check-duplicates
 
       - name: Contract drift merge-block note
-        if: failure()
+        if: steps.contract_check.outcome == 'failure'
         run: |
           echo "::error::Contract checks failed. Run 'npm run contract:check' and 'npm run contract:check-duplicates', then commit required fixes."
 
