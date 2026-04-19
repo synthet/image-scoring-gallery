@@ -7,6 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { AppConfig } from './types';
+import { DEFAULT_BACKEND_HOST, DEFAULT_BACKEND_PORT } from './constants/network';
 
 export interface ResolveOptions {
   projectRoot?: string;
@@ -23,8 +24,8 @@ export function resolveBaseUrl(config: AppConfig, options?: ResolveOptions): str
     return config.api.url.replace(/\/$/, '');
   }
 
-  let port = config.api?.port ?? 7860;
-  const host = config.api?.host ?? '127.0.0.1';
+  let port = config.api?.port ?? DEFAULT_BACKEND_PORT;
+  const host = config.api?.host ?? DEFAULT_BACKEND_HOST;
 
   try {
     const projectsDir = pathMod.resolve(projectRoot, '..');

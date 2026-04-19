@@ -37,8 +37,10 @@ The `config.json` file should specify the `database.engine`:
   "database": {
     "engine": "api",
     "api": {
-      "url": "http://localhost:7860"
+      "url": "http://127.0.0.1:7860"
     }
   }
 }
 ```
+
+If `database.api.url` is omitted, `createDatabaseConnector` falls back to `DEFAULT_BACKEND_BASE_URL` from `electron/constants/network.ts`.
