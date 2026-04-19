@@ -22,6 +22,7 @@
     "contract:update": "node scripts/sync-api-contract.mjs --update",
     "contract:check": "node scripts/sync-api-contract.mjs --check",
     "contract:diff": "node scripts/sync-api-contract.mjs --diff",
+    "contract:check-duplicates": "node scripts/check-contract-duplicate-interfaces.mjs",
     "contract:validate": "node scripts/validate-api-types.mjs",
     "dev:browser": "npm run dev:web",
     "server": "npx tsx server/index.ts",
