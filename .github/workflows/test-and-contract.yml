@@ -44,10 +44,11 @@ jobs:
       # Canonical gate: contract:check fails when generated contract files drift from source API types.
       # This blocks merges until contract artifacts are updated and committed.
       - name: Enforce API contract sync
+        id: contract_check
         run: npm run contract:check
 
       - name: Contract drift merge-block note
-        if: failure()
+        if: steps.contract_check.outcome == 'failure'
         run: |
           echo "::error::Contract drift detected. Run 'npm run contract:update', commit generated contract changes, and push again."
 
