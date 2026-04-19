@@ -27,6 +27,9 @@ jobs:
       - name: Run unit tests
         run: npm run test:run
 
+      - name: Check renderer/electron type sync
+        run: npm run check:type-sync
+
 
       - name: Fetch backend OpenAPI snapshot source
         run: git clone --depth 1 https://github.com/synthet/image-scoring-backend ../image-scoring-backend
