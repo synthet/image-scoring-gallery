@@ -27,266 +27,37 @@ export interface ProcessMemorySnapshot {
     sharedBytes?: number;
 }
 
-interface ImageQueryOptions {
-    limit?: number;
-    offset?: number;
-    folderId?: number;
-    folderIds?: number[];
-    minRating?: number;
-    colorLabel?: string;
-    keyword?: string;
-    sortBy?: string;
-    order?: 'ASC' | 'DESC';
-    smartCover?: boolean;
-    capturedDate?: string;
-}
+import type {
+    AppConfig,
+    BackupProgress,
+    BackupResult,
+    BackupTargetInfo,
+    DuplicateResponse,
+    ExportImageContext,
+    FileImageMetadataResult,
+    FolderRow,
+    FsReadDirResult,
+    ImageDetail,
+    ImageQueryOptions,
+    ImageRow,
+    ImageUpdates,
+} from '../electron/types';
 
-interface ImageRow {
-    id: number;
-    file_path: string;
-    file_name: string;
-    score_general: number;
-    score_technical: number;
-    score_aesthetic: number;
-    score_spaq: number;
-    score_ava: number;
-    score_liqe: number;
-    rating: number;
-    label: string | null;
-    created_at?: string;
-    thumbnail_path?: string;
-    capture_date?: string;
-    is_capture_date_fallback?: boolean;
-}
-
-interface ImageDetail extends ImageRow {
-    job_id?: string;
-    file_type?: string;
-    score?: number;
-    score_koniq?: number;
-    score_paq2piq?: number;
-    title?: string;
-    description?: string;
-    keywords?: string;
-    metadata?: string;
-    scores_json?: string;
-    model_version?: string;
-    image_hash?: string;
-    folder_id?: number;
-    stack_id?: number;
-    burst_uuid?: string;
-    win_path?: string;
-    file_exists?: boolean;
-    image_uuid?: string;
-}
-
-interface ImageUpdates {
-    title?: string;
-    description?: string;
-    rating?: number;
-    label?: string;
-    keywords?: string;
-}
-
-interface FolderRow {
-    id: number;
-    path: string;
-    parent_id: number | null;
-    is_fully_scored: number;
-    image_count: number;
-}
-
-interface DuplicatePair {
-    image_id_a: number;
-    image_id_b: number;
-    similarity: number;
-    file_path_a: string;
-    file_path_b: string;
-}
-
-interface DuplicateResponse {
-    success: boolean;
-    data?: {
-        duplicates: DuplicatePair[];
-    };
-    message?: string;
-}
-
-type DatabaseEngine = 'firebird' | 'postgres' | 'api';
-// NOTE: Keep the database config types below in sync with electron/types.ts.
-
-interface PostgresSslConfig {
-    enabled?: boolean;
-    rejectUnauthorized?: boolean;
-    ca?: string;
-    cert?: string;
-    key?: string;
-}
-
-interface PostgresPoolConfig {
-    min?: number;
-    max?: number;
-    idleTimeoutMillis?: number;
-    connectionTimeoutMillis?: number;
-}
-
-interface PostgresConfig {
-    host: string;
-    port: number;
-    database: string;
-    user: string;
-    password?: string;
-    ssl?: boolean | PostgresSslConfig;
-    pool?: PostgresPoolConfig;
-}
-
-interface FirebirdDatabaseConfig {
-    engine?: Extract<DatabaseEngine, 'firebird'>;
-    /** @deprecated Prefer `engine`. Kept for backward compatibility with older configs/branches. */
-    provider?: 'firebird';
-    host?: string;
-    port?: number;
-    path?: string;
-    user?: string;
-    password?: string;
-}
-
-interface PostgresDatabaseConfig {
-    engine: Extract<DatabaseEngine, 'postgres'>;
-    /** @deprecated Prefer `engine`. Kept for backward compatibility with older configs/branches. */
-    provider?: 'postgres';
-    postgres: PostgresConfig;
-}
-
-interface ApiDatabaseConfig {
-    engine: Extract<DatabaseEngine, 'api'>;
-    /** @deprecated Prefer `engine`. Kept for backward compatibility with older configs/branches. */
-    provider?: 'api';
-    api: {
-        url?: string;
-        timeout?: number;
-        dialect?: 'firebird' | 'postgres';
-        sqlDialect?: 'firebird' | 'postgres';
-    };
-}
-
-type DatabaseConfig = FirebirdDatabaseConfig | PostgresDatabaseConfig | ApiDatabaseConfig;
-
-interface AppConfig {
-    database?: DatabaseConfig;
-    dev?: {
-        url?: string;
-    };
-    api?: {
-        url?: string;
-        port?: number;
-        host?: string;
-    };
-    firebird?: {
-        path?: string;
-    };
-    selection?: Record<string, unknown>;
-    paths?: {
-        thumbnail_path_remap?: Array<{ from: string; to: string }>;
-        remap_legacy_image_scoring_thumbnails?: boolean;
-        thumbnail_base_dir?: string;
-    };
-    lightModeRootFolder?: string;
-    sync?: {
-        destinationRoot?: string;
-    };
-    backup?: {
-        minScore?: number;
-        similarityThreshold?: number;
-        maxInstances?: number;
-    };
-    [key: string]: unknown;
-}
-
-// -- Backup Feature Types --
-
-interface BackupTargetInfo {
-    exists: boolean;
-    imageCount: number;
-    lastBackup: string | null;
-    bytes: number;
-}
-
-interface BackupManifestEntry {
-    id: number;
-    relPath: string;
-    score: number;
-    size: number;
-    hash: string;
-}
-
-interface BackupManifest {
-    updatedAt: string;
-    images: BackupManifestEntry[];
-}
-
-interface BackupProgress {
-    phase: 'scanning' | 'deduplicating' | 'calculating' | 'copying' | 'cleaning' | 'done';
-    current: number;
-    total: number;
-    detail?: string;
-}
-
-interface BackupResult {
-    copied: number;
-    skipped: number;
-    deduplicated: number;
-    errors: string[];
-    staleRemoved: number;
-    droppedForSpace: number;
-}
-
-
-interface FsDirEntry {
-    name: string;
-    path: string;
-}
-
-interface FsReadDirResult {
-    dirPath: string;
-    directories: FsDirEntry[];
-    images: FsDirEntry[];
-    totalImageCount: number;
-    rootPath: string;
-}
-
-interface FileImageMetadataDetail {
-    title?: string;
-    description?: string;
-    keywords?: string;
-    rating: number;
-    label: string | null;
-    exif_iso?: number | null;
-    exif_shutter?: string | null;
-    exif_aperture?: string | null;
-    exif_focal_length?: string | null;
-    exif_model?: string | null;
-    exif_lens_model?: string | null;
-}
-
-interface FileImageMetadataResult {
-    tags: Record<string, unknown>;
-    detail: FileImageMetadataDetail;
-}
-
-/** Mirrors `electron/types.ts` ExportImageContext — IPC payload for File → Export. */
-interface ExportImageContext {
-    imageBytes: number[];
-    mimeType: string;
-    fileName: string;
-    id: number;
-    sourcePath: string;
-    imageUuid: string | null;
-    /** True when preview pixels were physically re-oriented to upright during export bake. */
-    pixelNormalizationApplied?: boolean;
-    /** EXIF Orientation read from the preview JPEG before bake (diagnostics). */
-    previewOrientation?: number | string;
-}
+export type {
+    AppConfig,
+    BackupProgress,
+    BackupResult,
+    BackupTargetInfo,
+    DuplicateResponse,
+    ExportImageContext,
+    FileImageMetadataResult,
+    FolderRow,
+    FsReadDirResult,
+    ImageDetail,
+    ImageQueryOptions,
+    ImageRow,
+    ImageUpdates,
+} from '../electron/types';
 
 declare global {
     interface Window {
