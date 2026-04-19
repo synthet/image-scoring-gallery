@@ -175,14 +175,6 @@ export interface PhaseDecisionResponse {
     stored_executor_version?: string | null;
 }
 
-/** Request model for skip/retry controls on a pipeline phase. */
-export interface PipelinePhaseControlRequest {
-    input_path: string;
-    phase_code: string;
-    reason?: string | null;
-    actor?: string | null;
-}
-
 // ── Import ───────────────────────────────────────────────────────────────────
 
 export interface ImportRegisterRequest {
