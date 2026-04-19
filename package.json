@@ -25,8 +25,7 @@
     "contract:validate": "node scripts/validate-api-types.mjs",
     "dev:browser": "npm run dev:web",
     "server": "npx tsx server/index.ts",
-    "start:browser": "npm run build && node dist-server/index.js",
-    "docs:check-guides-index": "node scripts/check-guides-index.mjs"
+    "start:browser": "npm run build && node dist-server/index.js"
   },
   "build": {
     "forceCodeSigning": false,
