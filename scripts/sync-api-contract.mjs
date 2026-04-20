@@ -37,7 +37,20 @@ function readSnapshot() {
 }
 
 function normalizeForComparison(obj) {
-    return JSON.stringify(obj, null, 2);
+    const sortObjectKeysDeep = (value) => {
+        if (Array.isArray(value)) {
+            return value.map(sortObjectKeysDeep);
+        }
+        if (value && typeof value === 'object') {
+            const sorted = {};
+            for (const key of Object.keys(value).sort()) {
+                sorted[key] = sortObjectKeysDeep(value[key]);
+            }
+            return sorted;
+        }
+        return value;
+    };
+    return JSON.stringify(sortObjectKeysDeep(obj), null, 2);
 }
 
 function ensureSiblingOpenApiExists(contextMessage) {
