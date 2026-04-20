@@ -10,6 +10,7 @@ import { ExifTool } from 'exiftool-vendored';
 import { ApiService } from './apiService';
 import {
     ExportImageContext,
+    type AppConfig,
     type FileImageMetadataDetail,
     type FileImageMetadataResult,
     type FsDirEntry,
@@ -650,7 +651,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 // Load configuration
-function loadConfig() {
+function loadConfig(): AppConfig {
     const configPath = getConfigPath(__dirname);
     return loadAppConfig(configPath);
 }
