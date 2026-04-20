@@ -14,34 +14,44 @@ describe('config examples', () => {
 
   it('normalizes config.example.json to postgres defaults with nested postgres config', () => {
     const normalized = loadExample('config.example.json');
-    const database = normalized.database as PostgresDatabaseConfig;
 
-    expect(database.engine).toBe('postgres');
-    expect(database.provider).toBe('postgres');
-    expect(database.postgres).toMatchObject({
-      host: '127.0.0.1',
-      port: 5432,
-      database: 'image_scoring',
-      user: 'postgres',
-      password: 'postgres',
-    });
-    expect(database).not.toHaveProperty('api');
+    expect(normalized.database).toBeDefined();
+    expect(normalized.database?.engine).toBe('postgres');
+
+    if (normalized.database?.engine === 'postgres') {
+      const database = normalized.database as PostgresDatabaseConfig;
+
+      expect(database.provider).toBe('postgres');
+      expect(database.postgres).toMatchObject({
+        host: '127.0.0.1',
+        port: 5432,
+        database: 'image_scoring',
+        user: 'postgres',
+        password: 'postgres',
+      });
+      expect(database).not.toHaveProperty('api');
+    }
   });
 
   it('normalizes environment.example.json with postgres shape and defaults', () => {
     const normalized = loadExample('environment.example.json');
-    const database = normalized.database as PostgresDatabaseConfig;
 
-    expect(database.engine).toBe('postgres');
-    expect(database.provider).toBe('postgres');
-    expect(database.postgres).toMatchObject({
-      host: '127.0.0.1',
-      port: 5432,
-      database: 'image_scoring',
-      user: 'postgres',
-      password: 'postgres',
-    });
-    expect(database).not.toHaveProperty('api');
+    expect(normalized.database).toBeDefined();
+    expect(normalized.database?.engine).toBe('postgres');
+
+    if (normalized.database?.engine === 'postgres') {
+      const database = normalized.database as PostgresDatabaseConfig;
+
+      expect(database.provider).toBe('postgres');
+      expect(database.postgres).toMatchObject({
+        host: '127.0.0.1',
+        port: 5432,
+        database: 'image_scoring',
+        user: 'postgres',
+        password: 'postgres',
+      });
+      expect(database).not.toHaveProperty('api');
+    }
   });
 
   it('normalizes api mode without exposing postgres fields', () => {
@@ -54,16 +64,21 @@ describe('config examples', () => {
         },
       },
     });
-    const database = normalized.database as ApiDatabaseConfig;
 
-    expect(database.engine).toBe('api');
-    expect(database.provider).toBe('api');
-    expect(database.api).toMatchObject({
-      url: 'http://127.0.0.1:7860',
-      timeout: 5000,
-      dialect: 'postgres',
-      sqlDialect: 'postgres',
-    });
-    expect(database).not.toHaveProperty('postgres');
+    expect(normalized.database).toBeDefined();
+    expect(normalized.database?.engine).toBe('api');
+
+    if (normalized.database?.engine === 'api') {
+      const database = normalized.database as ApiDatabaseConfig;
+
+      expect(database.provider).toBe('api');
+      expect(database.api).toMatchObject({
+        url: 'http://127.0.0.1:7860',
+        timeout: 5000,
+        dialect: 'postgres',
+        sqlDialect: 'postgres',
+      });
+      expect(database).not.toHaveProperty('postgres');
+    }
   });
 });
