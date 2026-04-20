@@ -5,7 +5,7 @@ import { bridge } from '../bridge';
 /**
  * Registers Electron IPC menu listeners and exposes the modal/view state they control.
  *
- * Handles: Settings, Duplicates view, Embeddings view, Import folder, Notifications.
+ * Handles: Settings, Import folder, Notifications.
  */
 export function useElectronListeners() {
   const addNotification = useNotificationStore(state => state.addNotification);
@@ -18,7 +18,7 @@ export function useElectronListeners() {
   const [syncSourcePath, setSyncSourcePath] = useState('');
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [backupTargetPath, setBackupTargetPath] = useState('');
-  const [currentView, setCurrentView] = useState<'gallery' | 'duplicates' | 'embeddings'>('gallery');
+  const [currentView, setCurrentView] = useState<'gallery'>('gallery');
 
   useEffect(() => {
     const cleanupSettings = bridge.onOpenSettings(() => {
@@ -27,14 +27,6 @@ export function useElectronListeners() {
 
     const cleanupDiagnostics = bridge.onOpenDiagnostics(() => {
       setIsDiagnosticsOpen(true);
-    });
-
-    const cleanupDuplicates = bridge.onOpenDuplicates(() => {
-      setCurrentView('duplicates');
-    });
-
-    const cleanupEmbeddings = bridge.onOpenEmbeddings(() => {
-      setCurrentView('embeddings');
     });
 
     const cleanupImport = bridge.onImportFolderSelected((path) => {
@@ -59,8 +51,6 @@ export function useElectronListeners() {
     return () => {
       cleanupSettings();
       cleanupDiagnostics();
-      cleanupDuplicates();
-      cleanupEmbeddings();
       cleanupImport();
       cleanupSync();
       cleanupBackup();
