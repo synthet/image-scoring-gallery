@@ -2115,6 +2115,51 @@
           }
         }
       }
+    },
+    "/source-image": {
+      "get": {
+        "tags": [
+          "Image Scoring API"
+        ],
+        "summary": "Get Source Image",
+        "operationId": "source_image_source_image_get",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Path"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input parameters"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "description": "Service Unavailable - Runner not initialized"
+          }
+        }
+      }
     }
   },
   "components": {
