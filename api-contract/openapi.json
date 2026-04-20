@@ -2121,7 +2121,7 @@
         "tags": [
           "Image Scoring API"
         ],
-        "summary": "Get Source Image",
+        "summary": "Source Image",
         "operationId": "source_image_source_image_get",
         "parameters": [
           {
@@ -2138,11 +2138,8 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
+              "application/json": {
+                "schema": {}
               }
             }
           },
@@ -2157,6 +2154,16 @@
           },
           "503": {
             "description": "Service Unavailable - Runner not initialized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
