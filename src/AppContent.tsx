@@ -12,7 +12,6 @@ import { NotificationTray } from './components/Layout/NotificationTray';
 import { SettingsModal } from './components/Settings/SettingsModal';
 import { DiagnosticsModal } from './components/Diagnostics/DiagnosticsModal';
 import { DuplicateFinder } from './components/Duplicates/DuplicateFinder';
-import { RunsPage } from './components/Runs/RunsPage';
 import { ImportModal } from './components/Import/ImportModal';
 import { SyncModal } from './components/Sync/SyncModal';
 import { BackupModal } from './components/Backup/BackupModal';
@@ -453,13 +452,7 @@ function AppContent() {
         }
         content={
           <div style={{ height: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            {currentView === 'runs' ? (
-              <RunsPage
-                folders={folders}
-                foldersLoading={foldersLoading}
-                onRefreshFolders={refreshFolders}
-              />
-            ) : currentView === 'duplicates' ? (
+            {currentView === 'duplicates' ? (
               <DuplicateFinder currentFolder={currentFolder} />
             ) : currentView === 'embeddings' ? (
               <EmbeddingMap

@@ -355,6 +355,10 @@ export class ApiService {
         return this.get<unknown>('/api/raw-preview', { path: filePath });
     }
 
+    getSourceImage(filePath: string) {
+        return this.get<unknown>('/source-image', { path: filePath }, LONG_TIMEOUT);
+    }
+
     // ── Scope Tree ──────────────────────────────────────────────────────────
 
     getScopeTree() {

@@ -578,13 +578,6 @@ const rebuildApplicationMenu = () => {
                 },
                 { type: 'separator' },
                 {
-                    label: 'Runs',
-                    enabled: !folderMode,
-                    click: () => {
-                        mainWindow?.webContents.send('open-runs');
-                    }
-                },
-                {
                     label: 'Duplicates',
                     enabled: !folderMode,
                     click: () => {
