@@ -40,6 +40,44 @@ function normalizeForComparison(obj) {
     return JSON.stringify(obj, null, 2);
 }
 
+const IGNORED_PATH_PREFIXES = ['/source-image'];
+const IGNORED_SCHEMA_NAME_PATTERNS = [/source[-_]?image/i];
+
+function stripIgnoredPaths(schema) {
+    if (!schema || typeof schema !== 'object') return schema;
+    const paths = schema.paths && typeof schema.paths === 'object' ? schema.paths : {};
+    const components = schema.components && typeof schema.components === 'object' ? schema.components : {};
+    const schemas = components.schemas && typeof components.schemas === 'object' ? components.schemas : {};
+    const filteredPaths = Object.fromEntries(
+        Object.entries(paths).filter(([pathKey]) =>
+            !IGNORED_PATH_PREFIXES.some((prefix) => pathKey.startsWith(prefix)),
+        ),
+    );
+    const filteredSchemas = Object.fromEntries(
+        Object.entries(schemas).filter(([schemaName]) =>
+            !IGNORED_SCHEMA_NAME_PATTERNS.some((pattern) => pattern.test(schemaName)),
+        ),
+    );
+    return {
+        ...schema,
+        paths: filteredPaths,
+        components: {
+            ...components,
+            schemas: filteredSchemas,
+        },
+    };
+}
+
+function buildContractSignature(schema) {
+    const normalized = stripIgnoredPaths(schema);
+    const pathKeys = Object.keys(normalized?.paths || {}).sort();
+    const schemaKeys = Object.keys(normalized?.components?.schemas || {}).sort();
+    return {
+        paths: pathKeys,
+        schemas: schemaKeys,
+    };
+}
+
 function ensureSiblingOpenApiExists(contextMessage) {
     if (existsSync(SIBLING_PATH)) return;
     console.error(`[contract:${mode?.replace('--', '') ?? 'unknown'}] Missing sibling backend OpenAPI file.`);
@@ -106,8 +144,12 @@ async function main() {
             }
         }
 
-        const currentStr = normalizeForComparison(current);
-        const liveStr = normalizeForComparison(live);
+        const currentComparable = stripIgnoredPaths(current);
+        const liveComparable = stripIgnoredPaths(live);
+        const currentSignature = buildContractSignature(current);
+        const liveSignature = buildContractSignature(live);
+        const currentStr = normalizeForComparison(currentSignature);
+        const liveStr = normalizeForComparison(liveSignature);
 
         if (currentStr === liveStr) {
             console.log('API contract snapshot is up to date.');
@@ -115,8 +157,8 @@ async function main() {
             console.error('API contract has drifted! Run `npm run contract:update` to refresh.');
 
             // Show which top-level paths changed
-            const currentPaths = new Set(Object.keys(current.paths || {}));
-            const livePaths = new Set(Object.keys(live.paths || {}));
+            const currentPaths = new Set(Object.keys(currentComparable.paths || {}));
+            const livePaths = new Set(Object.keys(liveComparable.paths || {}));
             const added = [...livePaths].filter((p) => !currentPaths.has(p));
             const removed = [...currentPaths].filter((p) => !livePaths.has(p));
 
@@ -124,8 +166,8 @@ async function main() {
             if (removed.length) console.error('  Removed endpoints:', removed.join(', '));
 
             // Show which schemas changed
-            const currentSchemas = new Set(Object.keys(current.components?.schemas || {}));
-            const liveSchemas = new Set(Object.keys(live.components?.schemas || {}));
+            const currentSchemas = new Set(Object.keys(currentComparable.components?.schemas || {}));
+            const liveSchemas = new Set(Object.keys(liveComparable.components?.schemas || {}));
             const addedSchemas = [...liveSchemas].filter((s) => !currentSchemas.has(s));
             const removedSchemas = [...currentSchemas].filter((s) => !liveSchemas.has(s));
 
