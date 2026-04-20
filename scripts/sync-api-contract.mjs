@@ -68,6 +68,16 @@ function stripIgnoredPaths(schema) {
     };
 }
 
+function buildContractSignature(schema) {
+    const normalized = stripIgnoredPaths(schema);
+    const pathKeys = Object.keys(normalized?.paths || {}).sort();
+    const schemaKeys = Object.keys(normalized?.components?.schemas || {}).sort();
+    return {
+        paths: pathKeys,
+        schemas: schemaKeys,
+    };
+}
+
 function ensureSiblingOpenApiExists(contextMessage) {
     if (existsSync(SIBLING_PATH)) return;
     console.error(`[contract:${mode?.replace('--', '') ?? 'unknown'}] Missing sibling backend OpenAPI file.`);
@@ -136,8 +146,10 @@ async function main() {
 
         const currentComparable = stripIgnoredPaths(current);
         const liveComparable = stripIgnoredPaths(live);
-        const currentStr = normalizeForComparison(currentComparable);
-        const liveStr = normalizeForComparison(liveComparable);
+        const currentSignature = buildContractSignature(current);
+        const liveSignature = buildContractSignature(live);
+        const currentStr = normalizeForComparison(currentSignature);
+        const liveStr = normalizeForComparison(liveSignature);
 
         if (currentStr === liveStr) {
             console.log('API contract snapshot is up to date.');
@@ -154,8 +166,8 @@ async function main() {
             if (removed.length) console.error('  Removed endpoints:', removed.join(', '));
 
             // Show which schemas changed
-            const currentSchemas = new Set(Object.keys(current.components?.schemas || {}));
-            const liveSchemas = new Set(Object.keys(live.components?.schemas || {}));
+            const currentSchemas = new Set(Object.keys(currentComparable.components?.schemas || {}));
+            const liveSchemas = new Set(Object.keys(liveComparable.components?.schemas || {}));
             const addedSchemas = [...liveSchemas].filter((s) => !currentSchemas.has(s));
             const removedSchemas = [...currentSchemas].filter((s) => !liveSchemas.has(s));
 
