@@ -18,8 +18,6 @@ export function useElectronListeners() {
   const [syncSourcePath, setSyncSourcePath] = useState('');
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [backupTargetPath, setBackupTargetPath] = useState('');
-  const [currentView, setCurrentView] = useState<'gallery'>('gallery');
-
   useEffect(() => {
     const cleanupSettings = bridge.onOpenSettings(() => {
       setIsSettingsOpen(true);
@@ -75,7 +73,5 @@ export function useElectronListeners() {
     setIsBackupModalOpen,
     backupTargetPath,
     setBackupTargetPath,
-    currentView,
-    setCurrentView,
   };
 }

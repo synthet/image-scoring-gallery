@@ -70,7 +70,6 @@ function AppContent() {
     syncSourcePath, setSyncSourcePath,
     isBackupModalOpen, setIsBackupModalOpen,
     backupTargetPath, setBackupTargetPath,
-    currentView,
   } = useElectronListeners();
 
   const stacksModeRef = useRef(false);
@@ -426,63 +425,61 @@ function AppContent() {
         }
         content={
           <div style={{ height: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            {currentView === 'gallery' && (
-              <>
-                {isInitialGridLoading && (
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
-                    <div style={{ color: '#aaa' }}>Loading images...</div>
-                  </div>
-                )}
-                {(stackImagesLoading || imagesLoading || stacksLoading) && !isInitialGridLoading && (
-                  <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', background: 'rgba(0, 0, 0, 0.7)', color: 'white', borderRadius: 20, fontSize: '0.85em', fontWeight: 500 }}>
-                    <Loader2 size={14} className="app-spinner" />
-                    Loading...
-                  </div>
-                )}
-                <GalleryGrid
-                  key={`${selectedFolderId ?? 'all'}-${activeStackId ?? 'none'}-${stacksMode ? 'stacks' : 'images'}`}
-                  images={currentImages}
-                  onSelect={handleImageClick}
-                  onEndReached={activeStackId ? undefined : loadMore}
-                  onNavigateToParent={handleNavigateToParent}
-                  viewerOpen={!!openingImage}
-                  subfolders={folders.flatMap(f => {
-                    const find = (nodes: Folder[]): Folder | undefined => {
-                      for (const node of nodes) {
-                        if (node.id === selectedFolderId) return node;
-                        if (node.children) {
-                          const found = find(node.children);
-                          if (found) return found;
-                        }
+            <>
+              {isInitialGridLoading && (
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
+                  <div style={{ color: '#aaa' }}>Loading images...</div>
+                </div>
+              )}
+              {(stackImagesLoading || imagesLoading || stacksLoading) && !isInitialGridLoading && (
+                <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', background: 'rgba(0, 0, 0, 0.7)', color: 'white', borderRadius: 20, fontSize: '0.85em', fontWeight: 500 }}>
+                  <Loader2 size={14} className="app-spinner" />
+                  Loading...
+                </div>
+              )}
+              <GalleryGrid
+                key={`${selectedFolderId ?? 'all'}-${activeStackId ?? 'none'}-${stacksMode ? 'stacks' : 'images'}`}
+                images={currentImages}
+                onSelect={handleImageClick}
+                onEndReached={activeStackId ? undefined : loadMore}
+                onNavigateToParent={handleNavigateToParent}
+                viewerOpen={!!openingImage}
+                subfolders={folders.flatMap(f => {
+                  const find = (nodes: Folder[]): Folder | undefined => {
+                    for (const node of nodes) {
+                      if (node.id === selectedFolderId) return node;
+                      if (node.children) {
+                        const found = find(node.children);
+                        if (found) return found;
                       }
-                    };
-                    return find([f])?.children || [];
-                  })}
-                  onSelectFolder={handleSelectFolder}
-                  sortBy={filters.sortBy}
-                  stacksMode={stacksMode}
-                  stacks={stacks}
-                  onSelectStack={handleSelectStack}
-                  onStackEndReached={loadMoreStacks}
-                  activeStackId={activeStackId}
+                    }
+                  };
+                  return find([f])?.children || [];
+                })}
+                onSelectFolder={handleSelectFolder}
+                sortBy={filters.sortBy}
+                stacksMode={stacksMode}
+                stacks={stacks}
+                onSelectStack={handleSelectStack}
+                onStackEndReached={loadMoreStacks}
+                activeStackId={activeStackId}
+              />
+              {openingImage && (
+                <ImageViewer
+                  image={openingImage}
+                  onClose={closeViewer}
+                  allImages={currentImages}
+                  currentIndex={currentImageIndex}
+                  onNavigate={handleNavigateImage}
+                  onDelete={handleImageDelete}
+                  onOpenImageById={openImageById}
+                  onOpenFolder={(folderId) => {
+                    handleNavigateToFolder(folderId);
+                    closeViewer();
+                  }}
                 />
-                {openingImage && (
-                  <ImageViewer
-                    image={openingImage}
-                    onClose={closeViewer}
-                    allImages={currentImages}
-                    currentIndex={currentImageIndex}
-                    onNavigate={handleNavigateImage}
-                    onDelete={handleImageDelete}
-                    onOpenImageById={openImageById}
-                    onOpenFolder={(folderId) => {
-                      handleNavigateToFolder(folderId);
-                      closeViewer();
-                    }}
-                  />
-                )}
-              </>
-            )}
+              )}
+            </>
           </div>
         }
       />
