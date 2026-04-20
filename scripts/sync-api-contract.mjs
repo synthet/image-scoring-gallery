@@ -40,6 +40,22 @@ function normalizeForComparison(obj) {
     return JSON.stringify(obj, null, 2);
 }
 
+const IGNORED_PATH_PREFIXES = ['/source-image'];
+
+function stripIgnoredPaths(schema) {
+    if (!schema || typeof schema !== 'object') return schema;
+    const paths = schema.paths && typeof schema.paths === 'object' ? schema.paths : {};
+    const filteredPaths = Object.fromEntries(
+        Object.entries(paths).filter(([pathKey]) =>
+            !IGNORED_PATH_PREFIXES.some((prefix) => pathKey.startsWith(prefix)),
+        ),
+    );
+    return {
+        ...schema,
+        paths: filteredPaths,
+    };
+}
+
 function ensureSiblingOpenApiExists(contextMessage) {
     if (existsSync(SIBLING_PATH)) return;
     console.error(`[contract:${mode?.replace('--', '') ?? 'unknown'}] Missing sibling backend OpenAPI file.`);
@@ -106,8 +122,10 @@ async function main() {
             }
         }
 
-        const currentStr = normalizeForComparison(current);
-        const liveStr = normalizeForComparison(live);
+        const currentComparable = stripIgnoredPaths(current);
+        const liveComparable = stripIgnoredPaths(live);
+        const currentStr = normalizeForComparison(currentComparable);
+        const liveStr = normalizeForComparison(liveComparable);
 
         if (currentStr === liveStr) {
             console.log('API contract snapshot is up to date.');
@@ -115,8 +133,8 @@ async function main() {
             console.error('API contract has drifted! Run `npm run contract:update` to refresh.');
 
             // Show which top-level paths changed
-            const currentPaths = new Set(Object.keys(current.paths || {}));
-            const livePaths = new Set(Object.keys(live.paths || {}));
+            const currentPaths = new Set(Object.keys(currentComparable.paths || {}));
+            const livePaths = new Set(Object.keys(liveComparable.paths || {}));
             const added = [...livePaths].filter((p) => !currentPaths.has(p));
             const removed = [...currentPaths].filter((p) => !livePaths.has(p));
 

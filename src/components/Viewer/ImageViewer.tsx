@@ -87,6 +87,7 @@ interface SuggestedKeywordRow {
 
 const LOCAL_REJECTION_KEY = 'image-viewer-tag-rejections-v1';
 const HIGH_CONFIDENCE_THRESHOLD = 0.85;
+const SIMILAR_SEARCH_ENABLED = false;
 
 const parseKeywordText = (keywords?: string | null): string[] => (
     (keywords || '')
@@ -557,6 +558,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     }, [addNotification, editForm.keywords, persistKeywords, suggestionRows]);
 
     useEffect(() => {
+        if (!SIMILAR_SEARCH_ENABLED) {
+            return;
+        }
         if (initialSimilarSearchImageId != null) {
             setSimilarSearchImageId(initialSimilarSearchImageId);
             setIsSimilarDrawerOpen(true);
@@ -1529,29 +1533,32 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
                             <button
                                 type="button"
+                                disabled
                                 onClick={() => {
+                                    if (!SIMILAR_SEARCH_ENABLED) {
+                                        return;
+                                    }
                                     setSimilarSearchImageId(image.id);
                                     setIsSimilarDrawerOpen(true);
                                 }}
+                                title="Similar image search is currently disabled."
                                 style={{
                                     width: '100%',
                                     padding: '8px',
-                                    background: '#333',
-                                    color: 'white',
-                                    border: '1px solid #555',
+                                    background: '#2a2a2a',
+                                    color: '#9e9e9e',
+                                    border: '1px solid #444',
                                     borderRadius: 4,
-                                    cursor: 'pointer',
+                                    cursor: 'not-allowed',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     gap: 8,
-                                    transition: 'background-color 0.2s',
-                                    fontWeight: 500
+                                    fontWeight: 500,
+                                    opacity: 0.8
                                 }}
-                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#444'; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#333'; }}
                             >
-                                <Search size={16} /> Find Similar Images
+                                <Search size={16} /> Find Similar Images (temporarily disabled)
                             </button>
 
                         </>
@@ -1559,7 +1566,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 </div>
             </div>
 
-            {!readOnlyFilesystemMode && (
+            {SIMILAR_SEARCH_ENABLED && !readOnlyFilesystemMode && (
                 <SimilarSearchDrawer
                     open={isSimilarDrawerOpen}
                     onClose={() => setIsSimilarDrawerOpen(false)}
