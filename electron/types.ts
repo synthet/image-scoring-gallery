@@ -149,6 +149,11 @@ export interface ApiDatabaseConfig {
 
 export type DatabaseConfig = PostgresDatabaseConfig | ApiDatabaseConfig;
 
+/** Normalized config returned by config loaders/normalizers. */
+export type NormalizedAppConfig = Omit<AppConfig, 'database'> & {
+    database: DatabaseConfig;
+};
+
 export interface AppConfig {
     database?: DatabaseConfig;
     dev?: {
