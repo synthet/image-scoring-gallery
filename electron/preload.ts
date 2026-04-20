@@ -214,10 +214,11 @@ contextBridge.exposeInMainWorld('electron', {
         };
     },
     onOpenRuns: (callback: () => void) => {
-        const handler = () => callback();
-        ipcRenderer.on('open-runs', handler);
+        // Deprecated: "Runs" navigation has been removed from the UI/menu.
+        // Keep this shim for backward compatibility with existing renderer callers.
+        void callback;
         return () => {
-            ipcRenderer.removeListener('open-runs', handler);
+            // no-op cleanup
         };
     },
     onOpenEmbeddings: (callback: () => void) => {

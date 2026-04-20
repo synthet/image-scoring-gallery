@@ -300,6 +300,7 @@ function createHttpBridge(): Window['electron'] {
         // Event listeners are Electron menu/dialog-driven; no-ops in browser mode.
         onOpenSettings: noop,
         onOpenDuplicates: noop,
+        // Deprecated: "Runs" view/menu removed; retained as a no-op for compatibility.
         onOpenRuns: noop,
         onOpenEmbeddings: noop,
         onOpenDiagnostics: noop,
