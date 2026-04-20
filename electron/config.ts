@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import type {
     AppConfig,
+    NormalizedAppConfig,
     DatabaseEngine,
     PostgresDatabaseConfig,
     PostgresPoolConfig,
@@ -80,7 +81,7 @@ export function validatePostgresConfig(databaseConfig: JsonRecord): PostgresConf
     return normalized;
 }
 
-export function normalizeAppConfig(rawConfig: unknown): AppConfig {
+export function normalizeAppConfig(rawConfig: unknown): NormalizedAppConfig {
     const cfg = isRecord(rawConfig) ? { ...rawConfig } : {};
     const rawDatabase = isRecord(cfg.database) ? { ...cfg.database } : {};
     const engine = getEngineFromDatabaseConfig(rawDatabase);
@@ -118,7 +119,7 @@ export function getEnvironmentPath(fromDirname: string): string {
     return path.resolve(path.join(fromDirname, '../environment.json'));
 }
 
-export function loadAppConfig(configPath: string): AppConfig {
+export function loadAppConfig(configPath: string): NormalizedAppConfig {
     try {
         const baseRaw = fs.existsSync(configPath)
             ? JSON.parse(fs.readFileSync(configPath, 'utf8'))
