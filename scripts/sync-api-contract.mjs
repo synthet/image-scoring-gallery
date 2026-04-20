@@ -41,18 +41,30 @@ function normalizeForComparison(obj) {
 }
 
 const IGNORED_PATH_PREFIXES = ['/source-image'];
+const IGNORED_SCHEMA_NAME_PATTERNS = [/source[-_]?image/i];
 
 function stripIgnoredPaths(schema) {
     if (!schema || typeof schema !== 'object') return schema;
     const paths = schema.paths && typeof schema.paths === 'object' ? schema.paths : {};
+    const components = schema.components && typeof schema.components === 'object' ? schema.components : {};
+    const schemas = components.schemas && typeof components.schemas === 'object' ? components.schemas : {};
     const filteredPaths = Object.fromEntries(
         Object.entries(paths).filter(([pathKey]) =>
             !IGNORED_PATH_PREFIXES.some((prefix) => pathKey.startsWith(prefix)),
         ),
     );
+    const filteredSchemas = Object.fromEntries(
+        Object.entries(schemas).filter(([schemaName]) =>
+            !IGNORED_SCHEMA_NAME_PATTERNS.some((pattern) => pattern.test(schemaName)),
+        ),
+    );
     return {
         ...schema,
         paths: filteredPaths,
+        components: {
+            ...components,
+            schemas: filteredSchemas,
+        },
     };
 }
 
