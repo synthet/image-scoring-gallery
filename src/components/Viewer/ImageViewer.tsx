@@ -180,6 +180,17 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             setFixMetadataBusy(false);
         }
     }, [addNotification, image.file_path, image.id]);
+    
+    const handleOpenBackend = useCallback(async () => {
+        try {
+            const config = await bridge.getApiConfig();
+            const url = `${config.url}/ui/images/${image.id}`;
+            await bridge.openExternalUrl(url);
+        } catch (err) {
+            console.error('[ImageViewer] Failed to open backend URL:', err);
+            addNotification('Failed to open backend detail view', 'error');
+        }
+    }, [bridge, image.id, addNotification]);
 
     useKeyboardLayer('drawer', useCallback((e: KeyboardEvent) => {
         if (e.key === 'Escape') {
@@ -1355,8 +1366,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     {onOpenImageById ? (
                                         <button
                                             type="button"
-                                            title="Focus this image in the gallery list"
-                                            onClick={() => void onOpenImageById(image.id)}
+                                            title="Open image details in Python backend"
+                                            onClick={() => { void handleOpenBackend(); }}
                                             style={{
                                                 fontFamily: 'monospace',
                                                 background: 'none',

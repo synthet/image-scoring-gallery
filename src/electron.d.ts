@@ -110,6 +110,7 @@ declare global {
             getGalleryMode: () => Promise<'db' | 'folder'>;
             onAppModeChanged: (callback: (mode: 'db' | 'folder') => void) => () => void;
             selectDirectory: () => Promise<string | null>;
+            openExternalUrl: (url: string) => Promise<void>;
             getDiagnostics: () => Promise<DiagnosticsReport>;
             getProcessMemoryInfo: () => Promise<ProcessMemorySnapshot | null>;
             onOpenSettings: (callback: () => void) => () => void;

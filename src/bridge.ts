@@ -274,6 +274,11 @@ function createHttpBridge(): Window['electron'] {
                 : Promise.resolve('db'),
 
         getGalleryMode: () => Promise.resolve('db'),
+        
+        openExternalUrl: (url) => {
+            window.open(url, '_blank');
+            return Promise.resolve();
+        },
 
         onAppModeChanged: noop,
 

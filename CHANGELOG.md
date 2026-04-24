@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.1.0] - 2026-04-24
+
+### Added
+
+- **Backend detail deep-link**: Image viewer action now opens the Python backend’s image details page (`/ui/images/<id>`), using a new `openExternalUrl()` bridge function (IPC when running in Electron; `window.open` fallback in browser mode).
+
+### Changed
+
+- **Menu**: Disabled **Duplicates** and **Embeddings** entries (temporarily) to avoid presenting non-functional routes.
+- **Export raster bake**: `bakeExifOrientationToBlob()` now relies on Chromium’s default EXIF auto-orientation during `<img>` decode, then writes an upright raster with Orientation set to 1.
+
+### Fixed
+
+- **Scoring UI window reuse**: Opening backend URLs now reuses an existing scoring/webui shell window when available, instead of always spawning a new one.
+
 ## [7.0.2] - 2026-04-15
 
 ### Changed

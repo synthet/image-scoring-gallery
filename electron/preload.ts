@@ -199,6 +199,9 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('fs:select-directory');
         return unwrapEnvelope<string | null>(response);
     },
+    openExternalUrl: async (url: string) => {
+        await ipcRenderer.invoke('system:open-external-url', url);
+    },
     onOpenSettings: (callback: () => void) => {
         const handler = () => callback();
         ipcRenderer.on('open-settings', handler);

@@ -580,14 +580,14 @@ const rebuildApplicationMenu = () => {
                 { type: 'separator' },
                 {
                     label: 'Duplicates',
-                    enabled: !folderMode,
+                    enabled: false,
                     click: () => {
                         mainWindow?.webContents.send('open-duplicates');
                     }
                 },
                 {
                     label: 'Embeddings',
-                    enabled: !folderMode,
+                    enabled: false,
                     click: () => {
                         mainWindow?.webContents.send('open-embeddings');
                     }
@@ -735,22 +735,28 @@ async function ensureScoringUiServer(): Promise<ScoringUiServer | null> {
 function openScoringWindow(): void {
     void (async () => {
         const backendIcon = resolveBackendWebuiWindowIcon();
-        const win = new BrowserWindow({
+        scoringWindow = new BrowserWindow({
             width: 1280,
             height: 900,
             title: 'Image Scoring',
             ...(backendIcon ? { icon: backendIcon } : {}),
             webPreferences: { contextIsolation: true },
         });
-        win.setMenu(null);
+        scoringWindow.setMenu(null);
+        scoringWindow.on('closed', () => {
+            scoringWindow = null;
+        });
+
         try {
             const local = await ensureScoringUiServer();
             const url = local ? `${local.baseUrl}/ui/runs` : `${apiService.getBaseUrl()}/ui/runs`;
-            await win.loadURL(url);
+            await scoringWindow.loadURL(url);
         } catch (e) {
             console.error('[Main] Failed to load Scoring UI:', e);
             try {
-                await win.loadURL(`${apiService.getBaseUrl()}/ui/runs`);
+                if (scoringWindow && !scoringWindow.isDestroyed()) {
+                    await scoringWindow.loadURL(`${apiService.getBaseUrl()}/ui/runs`);
+                }
             } catch {
                 /* ignore */
             }
@@ -2204,6 +2210,24 @@ async function startFullApplication(): Promise<void> {
         }
         return (await findActiveWebuiPort()) || 7860;
     });
+
+    ipcMain.handle('system:open-external-url', wrapIpcHandler(async (_, url: string) => {
+        const { shell } = await import('electron');
+        
+        // Re-use existing scoring or webui shell window if available
+        const targetWin = (scoringWindow && !scoringWindow.isDestroyed()) ? scoringWindow : 
+                         (webuiShellWindow && !webuiShellWindow.isDestroyed()) ? webuiShellWindow : null;
+
+        if (targetWin) {
+            console.log(`[Main] Navigating existing window to: ${url}`);
+            await targetWin.loadURL(url);
+            targetWin.focus();
+            return;
+        }
+
+        console.log(`[Main] Opening external URL: ${url}`);
+        await shell.openExternal(url);
+    }));
 
     ipcMain.handle('system:get-config', wrapIpcHandler(async () => loadSystemConfig(loadConfig)));
 

@@ -1,9 +1,8 @@
 /**
- * Re-encode raster image so pixel data matches browser preview (EXIF Orientation applied).
- * Raw fetch bytes often stay sensor-oriented while <img> rotates for display.
- *
- * Tries createImageBitmap({ imageOrientation: 'from-image' }) first; falls back to
- * decoding via HTMLImageElement + drawImage (same oriented pixels as <img> in Chromium).
+ * Re-encode via canvas so the on-disk pixels match what <img> displays.
+ * Chromium auto-applies EXIF orientation during decode (image-orientation: from-image
+ * is the spec default since Chrome 81), so drawImage yields upright pixels with no
+ * manual transform. The output is then saved with Orientation=1.
  */
 
 function canvasToBlob(
@@ -101,29 +100,12 @@ export async function bakeExifOrientationToBlob(blob: Blob, outMime: string): Pr
         const ctx = canvas.getContext('2d');
         if (!ctx) return null;
 
-        let { naturalWidth: width, naturalHeight: height } = img;
+        const { naturalWidth: width, naturalHeight: height } = img;
+        canvas.width = width;
+        canvas.height = height;
 
-        // Swap dimensions for 90-degree rotations (5, 6, 7, 8)
-        if (orientation && orientation >= 5 && orientation <= 8) {
-            canvas.width = height;
-            canvas.height = width;
-        } else {
-            canvas.width = width;
-            canvas.height = height;
-        }
-
-        // Apply EXIF transformation matrix
         if (orientation && orientation > 1) {
-            console.debug(`[ImageViewer] export bake: applying manual rotation for orientation ${orientation}`);
-            switch (orientation) {
-                case 2: ctx.transform(-1, 0, 0, 1, width, 0); break;
-                case 3: ctx.transform(-1, 0, 0, -1, width, height); break;
-                case 4: ctx.transform(1, 0, 0, -1, 0, height); break;
-                case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
-                case 6: ctx.transform(0, 1, -1, 0, height, 0); break;
-                case 7: ctx.transform(0, -1, -1, 0, height, width); break;
-                case 8: ctx.transform(0, -1, 1, 0, 0, width); break;
-            }
+            console.debug(`[ImageViewer] export bake: source orientation ${orientation}, relying on <img> auto-orient`);
         }
 
         ctx.drawImage(img, 0, 0);

@@ -55,7 +55,7 @@ The `.cursor/mcp.json` file uses the **`imgscore-el-*`** prefix so server names 
 | Vite dev server | `npm run dev:web` | Serves React UI on `http://localhost:5173` |
 | Electron app | `ELECTRON_IS_DEV=1 npx electron .` | Requires Vite running first; compile TS with `npx tsc -p electron/tsconfig.json` before launching |
 | Lint | `npm run lint` | Pre-existing errors in codebase (30 errors, 7 warnings); these are not regressions |
-| Tests | `npm run test:run` | Vitest, 84 tests across 12 files |
+| Tests | `npm run test:run` | Vitest, 195 tests across 31 files |
 | Type-check | `npx tsc --noEmit` | Checks renderer TS; electron TS uses `npx tsc -p electron/tsconfig.json` |
 
 ### Running the Electron app on Linux (Cloud VM)
