@@ -64,6 +64,36 @@ function isUnresolvedSyncLayout(camera: string, lens: string): boolean {
 
 const exiftool = new ExifTool({ maxProcs: 6 });
 
+/**
+ * Re-encoded export JPEGs often still carry EXIF Orientation from the embedded preview
+ * (Chromium canvas may copy it). Pixels are already upright after the renderer bake, so
+ * Orientation must be 1 or viewers (e.g. Windows Photos) rotate again.
+ */
+async function resetExportedJpegExifOrientation(targetPath: string, mimeType: string): Promise<void> {
+    const lower = targetPath.toLowerCase();
+    const isJpeg =
+        mimeType.includes('jpeg') ||
+        mimeType.includes('jpg') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg');
+    if (!isJpeg) {
+        return;
+    }
+    try {
+        await exiftool.write(
+            targetPath,
+            { Orientation: 1 },
+            {
+                writeArgs: ['-overwrite_original', '-n'],
+                useMWG: false,
+                ignoreMinorErrors: true,
+            },
+        );
+    } catch (err) {
+        console.warn('[Main] Export: could not reset EXIF Orientation to 1 (non-fatal)', err);
+    }
+}
+
 function convertFsImagePathForExif(filePath: string): string {
     let convertedPath = filePath;
     if (process.platform === 'win32' && filePath.match(/^\/mnt\/[a-zA-Z]\//)) {
@@ -388,6 +418,7 @@ const exportCurrentImage = async () => {
 
     const targetPath = saveResult.filePath;
     await fs.promises.writeFile(targetPath, Buffer.from(currentExportImageContext.imageBytes));
+    await resetExportedJpegExifOrientation(targetPath, currentExportImageContext.mimeType);
 
     // Enrich with metadata
     try {
@@ -465,15 +496,28 @@ const exportCurrentImage = async () => {
             tagsToCopy.UserComment = metadata;
 
             console.log(`[Main] Writing enriched metadata to ${targetPath}`);
-            await exiftool.write(targetPath, tagsToCopy, ['-overwrite_original']);
+            await exiftool.write(targetPath, tagsToCopy, {
+                writeArgs: ['-overwrite_original', '-n'],
+                useMWG: false,
+                ignoreMinorErrors: true,
+            });
         } else {
             // Just write our metadata if source is missing
-            await exiftool.write(targetPath, {
-                ImageDescription: metadata,
-                Description: metadata,
-                XPComment: metadata,
-                UserComment: metadata
-            }, ['-overwrite_original']);
+            await exiftool.write(
+                targetPath,
+                {
+                    ImageDescription: metadata,
+                    Description: metadata,
+                    XPComment: metadata,
+                    UserComment: metadata,
+                    Orientation: 1,
+                },
+                {
+                    writeArgs: ['-overwrite_original', '-n'],
+                    useMWG: false,
+                    ignoreMinorErrors: true,
+                },
+            );
         }
     } catch (exifErr) {
         console.error('[Main] Metadata enrichment failed:', exifErr);
@@ -957,12 +1001,12 @@ async function startFullApplication(): Promise<void> {
         return await db.getKeywords();
     }));
 
-    ipcMain.handle('mcp-find-duplicates', wrapIpcHandler(async (_, options) => {
+    ipcMain.handle('api:similarity:find-duplicates', wrapIpcHandler(async (_, options) => {
         console.log(`[Main] Finding near duplicates via backend API`, options);
         return await apiService.findDuplicates(options);
     }));
 
-    ipcMain.handle('mcp:search-similar', wrapIpcHandler(async (_, options) => {
+    ipcMain.handle('api:similarity:search', wrapIpcHandler(async (_, options) => {
         console.log(`[Main] Finding similar images via backend API`, options);
         const { imageId, limit, folderId, folderPath, minSimilarity } = options;
         if (!imageId) throw new Error("image_id is required");
@@ -977,7 +1021,7 @@ async function startFullApplication(): Promise<void> {
         });
     }));
 
-    ipcMain.handle('api:outliers', wrapIpcHandler(async (_, options) => {
+    ipcMain.handle('api:similarity:outliers', wrapIpcHandler(async (_, options) => {
         console.log(`[Main] Finding outliers via backend API`, options);
         const { folderPath, zThreshold, k, limit } = options;
         if (!folderPath) throw new Error("folder_path is required");

@@ -87,7 +87,7 @@ interface SuggestedKeywordRow {
 
 const LOCAL_REJECTION_KEY = 'image-viewer-tag-rejections-v1';
 const HIGH_CONFIDENCE_THRESHOLD = 0.85;
-const SIMILAR_SEARCH_ENABLED = false;
+const SIMILAR_SEARCH_ENABLED = true;
 
 const parseKeywordText = (keywords?: string | null): string[] => (
     (keywords || '')
@@ -1552,24 +1552,23 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     setSimilarSearchImageId(image.id);
                                     setIsSimilarDrawerOpen(true);
                                 }}
-                                title="Similar image search is currently disabled."
+                                title="Find visually similar images in the library"
                                 style={{
                                     width: '100%',
                                     padding: '8px',
-                                    background: '#2a2a2a',
-                                    color: '#9e9e9e',
+                                    background: '#3a3d41',
+                                    color: '#e6e6e6',
                                     border: '1px solid #444',
                                     borderRadius: 4,
-                                    cursor: 'not-allowed',
+                                    cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     gap: 8,
                                     fontWeight: 500,
-                                    opacity: 0.8
                                 }}
                             >
-                                <Search size={16} /> Find Similar Images (temporarily disabled)
+                                <Search size={16} /> Find Similar Images
                             </button>
 
                         </>

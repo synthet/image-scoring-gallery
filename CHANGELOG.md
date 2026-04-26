@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.2.0] - 2026-04-25
+
+### Added
+
+- **Find similar images**: Right-click a grid or stack card to open **Find Similar Images** (`SimilarSearchDrawer`); jump to a result or its folder from the drawer.
+- **Export bake tests**: Coverage for **`getJpegOrientation`**, **`applyOrientationTransform`**, and JPEG fixtures under **`src/utils/fixtures/`**.
+- **`npm run doctor`**: Local diagnostics entry point (`scripts/doctor.mjs`).
+
+### Changed
+
+- **`test:db` script**: `../image-scoring` → **`../image-scoring-backend`** for the shared test DB helper path.
+
+### Fixed
+
+- **JPEG export orientation**: Renderer bake uses storage-order pixels (`createImageBitmap` + manual EXIF transform) with safer fallbacks so previews are not double-rotated. **Main process** runs a dedicated **ExifTool** pass to set **Orientation = 1** (`useMWG: false`, numeric tags) right after writing the file so apps like **Windows Photos** do not apply the old preview tag on top of baked pixels.
+
 ## [7.1.0] - 2026-04-24
 
 ### Added
@@ -144,7 +160,7 @@ All notable changes to this project will be documented in this file.
 - **`getImages` query**: `LEFT JOIN image_exif` to project `capture_date` and `is_capture_date_fallback`; column references qualified with `i.` alias.
 - **`getImageCount`**: Supports `capturedDate` filter via `image_exif` subquery.
 - **Types**: `ImageQueryOptions.capturedDate`, `ImageRow.capture_date` / `is_capture_date_fallback`, `AppConfig.backup.similarityThreshold`, `ScoredImageForBackup.capture_date`.
-- **TODO.md**: Updated evaluation to 2026-04-10; priority tiers aligned with backend `docs/plans/INDEX.md`.
+- **TODO.md**: Updated evaluation to 2026-04-10; priority tiers aligned with backend `docs/planning/INDEX.md`.
 
 ### Removed
 

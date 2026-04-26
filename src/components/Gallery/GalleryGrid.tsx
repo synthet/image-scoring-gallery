@@ -52,6 +52,8 @@ interface GalleryGridProps {
     activeStackId?: number | null;
     /** Use RAW-aware thumbnails (filesystem-only mode without DB-generated JPEGs). */
     useGalleryThumbnail?: boolean;
+    /** Triggered from context menu for a specific image. */
+    onFindSimilar?: (image: Image) => void;
 }
 
 
@@ -91,9 +93,10 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     images, onSelect, onEndReached, subfolders, onSelectFolder,
     onNavigateToParent, viewerOpen = false, sortBy = 'score_general',
     stacksMode = false, stacks = [], onSelectStack, onStackEndReached,
-    activeStackId, useGalleryThumbnail = false,
+    activeStackId, useGalleryThumbnail = false, onFindSimilar,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number, y: number, image: Image } | null>(null);
 
     // Escape key handler for parent navigation (only when viewer is closed)
     useKeyboardLayer('page', useCallback((e: KeyboardEvent) => {
@@ -115,6 +118,22 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
             containerHeight: el.clientHeight
         });
     }, [images.length, images]);
+
+    // Close context menu on click elsewhere
+    useEffect(() => {
+        const handleClick = () => setContextMenu(null);
+        window.addEventListener('click', handleClick);
+        return () => window.removeEventListener('click', handleClick);
+    }, []);
+
+    const handleContextMenu = useCallback((e: React.MouseEvent, img: Image) => {
+        e.preventDefault();
+        setContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            image: img
+        });
+    }, []);
 
     const gridComponents = useMemo(() => ({
         List: ItemContainer,
@@ -169,6 +188,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         return (
             <div
                 onClick={onClick}
+                onContextMenu={(e) => handleContextMenu(e, img)}
                 className={styles.cardInner}
             >
                 <div className={styles.imageArea}>
@@ -213,7 +233,11 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         const count = stack.image_count || 1;
 
         return (
-            <div onClick={onClick} className={styles.cardInnerStack}>
+            <div
+                onClick={onClick}
+                onContextMenu={(e) => handleContextMenu(e, stack)}
+                className={styles.cardInnerStack}
+            >
                 {count > 1 && (
                     <>
                         <div className={styles.stackLayer1} />
@@ -344,6 +368,38 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 components={gridComponents}
                 itemContent={itemContent}
             />
+
+            {contextMenu && (
+                <div
+                    className={styles.contextMenu}
+                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <button
+                        className={styles.contextMenuItem}
+                        onClick={() => {
+                            if (onFindSimilar) onFindSimilar(contextMenu.image);
+                            setContextMenu(null);
+                        }}
+                    >
+                        Find Similar Images
+                    </button>
+                    {contextMenu.image.stack_id && (
+                        <button
+                            className={styles.contextMenuItem}
+                            onClick={() => {
+                                if (onSelectStack) {
+                                    // Construct a fake stack object if needed, or just use the image
+                                    onSelectStack(contextMenu.image);
+                                }
+                                setContextMenu(null);
+                            }}
+                        >
+                            Open Stack
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

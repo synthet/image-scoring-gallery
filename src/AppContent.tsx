@@ -15,6 +15,7 @@ import { DuplicateFinder } from './components/Duplicates/DuplicateFinder';
 import { ImportModal } from './components/Import/ImportModal';
 import { SyncModal } from './components/Sync/SyncModal';
 import { BackupModal } from './components/Backup/BackupModal';
+import { SimilarSearchDrawer } from './components/Viewer/SimilarSearchDrawer';
 import { Loader2, ChevronRight, RefreshCw } from 'lucide-react';
 import { useOperationStore } from './store/useOperationStore';
 import { useState } from 'react';
@@ -74,6 +75,9 @@ function AppContent() {
     backupTargetPath, setBackupTargetPath,
     currentView, setCurrentView,
   } = useElectronListeners();
+
+  const [isSimilarDrawerOpen, setIsSimilarDrawerOpen] = useState(false);
+  const [similarSearchImageId, setSimilarSearchImageId] = useState<number | null>(null);
 
   const stacksModeRef = useRef(false);
   const activeStackIdRef = useRef<number | null>(null);
@@ -502,6 +506,22 @@ function AppContent() {
                   onSelectStack={handleSelectStack}
                   onStackEndReached={loadMoreStacks}
                   activeStackId={activeStackId}
+                  onFindSimilar={(img) => {
+                    setSimilarSearchImageId(img.id);
+                    setIsSimilarDrawerOpen(true);
+                  }}
+                />
+                <SimilarSearchDrawer
+                  open={isSimilarDrawerOpen}
+                  onClose={() => setIsSimilarDrawerOpen(false)}
+                  queryImageId={similarSearchImageId}
+                  onSelectImage={(id) => {
+                    void openImageById(id);
+                    setIsSimilarDrawerOpen(false);
+                  }}
+                  onJumpToImageFolder={(id) => {
+                    void openImageById(id);
+                  }}
                 />
                 {openingImage && (
                   <ImageViewer
