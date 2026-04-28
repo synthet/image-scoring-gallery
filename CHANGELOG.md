@@ -1,6 +1,18 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
+
+## [7.3.0] - 2026-04-27
+
+### Added
+
+- **Runs UI surfaces**: New and expanded Runs pages and console components for run monitoring and diagnostics.
+- **Notification tray**: In-app notification surface for background activity and operator feedback.
+
+### Changed
+
+- **API contract refresh**: Updated `api-contract/openapi.json` and related docs to reflect current backend APIs.
+- **Styling tokens and layout**: Updated shared CSS tokens/layout for improved spacing and consistency.
 
 ## [7.2.0] - 2026-04-25
 

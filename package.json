@@ -1,9 +1,9 @@
 {
   "name": "electron-gallery",
   "private": true,
-  "version": "7.2.0",
-  "description": "A high-performance image gallery with scoring capabilities",
-  "author": "Electron Image Scoring Team",
+  "version": "7.3.0",
+  "description": "Driftara Gallery — desktop app for Vexlum Scoring libraries",
+  "author": "Driftara Gallery",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "concurrently --kill-others --success command-electron -n server,vite,electron \"npm run server\" \"vite\" \"npm run dev:electron\"",
@@ -33,7 +33,7 @@
   "build": {
     "forceCodeSigning": false,
     "appId": "com.electron.gallery",
-    "productName": "Electron Image Gallery",
+    "productName": "Driftara Gallery",
     "win": {
       "icon": "public/icon.png",
       "target": "nsis",
