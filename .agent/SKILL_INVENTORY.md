@@ -17,10 +17,17 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 
 | Skill `name` | Path | Purpose (short) | Risk | Claude mirror | Last reviewed |
 |--------------|------|-----------------|------|---------------|---------------|
+| backlog-queue | `.cursor/skills/backlog-queue/SKILL.md` | Cross-repo GitHub Project board contract (claim, transition, file) | L1 | Yes | 2026-04-28 |
 | changelog-commit-push | `.cursor/skills/changelog-commit-push/SKILL.md` | CHANGELOG, commit, push | L2 | — | 2026-04-25 |
 | commit-conventions | `.cursor/skills/commit-conventions/SKILL.md` | Conventional Commits / PR titles | L1 | — | 2026-04-25 |
 | docs-wiki | `.cursor/skills/docs-wiki/SKILL.md` | `docs/` wiki conventions | L1 | — | 2026-04-25 |
 | gallery-electron-ts | `.cursor/skills/gallery-electron-ts/SKILL.md` | Electron / TS / db contract | L1 | — | 2026-04-25 |
 | security-review | `.cursor/skills/security-review/SKILL.md` | Pre-merge security sanity | L1 | — | 2026-04-25 |
 
-**Note:** This repo does not mirror skills under `.claude/skills/` today; **`.cursor/skills/`** is the single copy (AST10 drift risk is lower than backend, which maintains Cursor + Claude pairs).
+**Note:** Most skills here are Cursor-only. **`backlog-queue`** is mirrored under `.claude/skills/` and `.agent/skills/` because it gates every task — agent harnesses must see it regardless of which loader they use.
+
+## `.agent/skills/` (third-party-agent mirror)
+
+| Skill `name` | Path | Purpose (short) | Risk | Last reviewed |
+|--------------|------|-----------------|------|---------------|
+| backlog-queue | `.agent/skills/backlog-queue/SKILL.md` | Project board contract (Antigravity / generic agent mirror of canonical Cursor skill) | L1 | 2026-04-28 |

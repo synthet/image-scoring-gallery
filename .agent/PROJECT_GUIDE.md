@@ -2,6 +2,16 @@
 
 This guide provides instructions for AI agents on how to navigate, maintain, and execute **Driftara Gallery** (`image-scoring-gallery`).
 
+## Backlog & queue (read first)
+
+The canonical task queue is the **GitHub Project board** — not `TODO.md`:
+
+**→ https://github.com/users/synthet/projects/1**
+
+It spans `image-scoring-gallery` and `image-scoring-backend`. Every agent must follow the **five-step contract** in [`skills/backlog-queue/SKILL.md`](skills/backlog-queue/SKILL.md): pick from `Stage = Ready` → `/task-claim <N>` → `In Progress` on first commit → `Blocked` (with comment) if stuck → PR with `Closes #<N>` → `Review` → `Done`.
+
+`TODO.md` is a pointer only — never add tasks there.
+
 ## Documentation authority
 
 Before changing IPC contracts, stage labels, or backend integration: read **[`docs/CANONICAL_SOURCES.md`](../docs/CANONICAL_SOURCES.md)**. For wiki structure and `docs/log.md` rules, read **[`docs/WIKI_SCHEMA.md`](../docs/WIKI_SCHEMA.md)**. Shipped features are indexed under **[`docs/features/implemented/INDEX.md`](../docs/features/implemented/INDEX.md)**.

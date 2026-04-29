@@ -1,3 +1,17 @@
+## Issue
+
+<!-- REQUIRED. Link the backlog issue this PR closes. Format must trigger PR-close automation: -->
+Closes #
+
+> If this PR has no associated issue, stop and open one first — the canonical queue is the
+> [Project board](https://github.com/users/synthet/projects/1). See
+> [`docs/project/00-backlog-workflow.md`](../docs/project/00-backlog-workflow.md).
+
+## Backlog hygiene
+
+- [ ] Card moved to `Stage = Review` on the [Project board](https://github.com/users/synthet/projects/1)
+- [ ] If cross-repo, the counterpart issue in `image-scoring-backend` is linked above
+
 ## Summary
 
 **What changed:**

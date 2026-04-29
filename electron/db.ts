@@ -944,11 +944,12 @@ export async function syncImageKeywords(imageId: number, keywordsStr: string | n
             if (kwId !== null) {
                 // Postgres: INSERT ... ON CONFLICT DO UPDATE
                 await query(`
-                    INSERT INTO image_keywords (image_id, keyword_id, source, confidence)
-                    VALUES (?, ?, ?, ?)
+                    INSERT INTO image_keywords (image_id, keyword_id, source, confidence, relevance_weight)
+                    VALUES (?, ?, ?, ?, ?)
                     ON CONFLICT (image_id, keyword_id) DO UPDATE
-                        SET source = EXCLUDED.source, confidence = EXCLUDED.confidence
-                `, [imageId, kwId, 'electron_ui', 1.0]);
+                        SET source = EXCLUDED.source, confidence = EXCLUDED.confidence,
+                            relevance_weight = EXCLUDED.relevance_weight
+                `, [imageId, kwId, 'electron_ui', 1.0, 1.0]);
             }
         }
     } catch (e) {

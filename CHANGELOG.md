@@ -2,6 +2,13 @@
 
 All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
 
+## [7.4.1] - 2026-04-28
+
+### Changed
+
+- **`electron/db.ts`** — **`syncImageKeywords`** (PostgreSQL): upserts **`image_keywords`** with **`relevance_weight`** alongside **`confidence`** (defaults to `1.0`), aligned with PostgreSQL **`image_keywords.relevance_weight`** introduced in **Vexlum Scoring** v7.8.0 migration **`0017`**.
+- **Project pointers & governance**: backlog workflow documentation, **`CLAUDE.md`**, **`TODO.md`**, and related **`docs/**/*.md`** pointer updates (`00-backlog-workflow`, **`BACKLOG_GOVERNANCE`**, roadmap/integration TODO stubs); **`PROJECT_GUIDE`**, **`SKILL_INVENTORY`**, and PR template clarifications.
+
 ## [7.4.0] - 2026-04-28
 
 ### Added

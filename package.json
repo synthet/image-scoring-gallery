@@ -1,7 +1,7 @@
 {
   "name": "electron-gallery",
   "private": true,
-  "version": "7.4.0",
+  "version": "7.4.1",
   "description": "Driftara Gallery — desktop app for Vexlum Scoring libraries",
   "author": "Driftara Gallery",
   "main": "dist-electron/main.js",
