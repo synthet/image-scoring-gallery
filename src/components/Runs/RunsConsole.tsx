@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { WorkerLogEntry } from '../../store/useRunsStore';
+import { LogMessageWithGalleryImageLinks } from '../../utils/logMessageLinks';
 
 interface RunsConsoleProps {
     entries: WorkerLogEntry[];
@@ -7,9 +8,9 @@ interface RunsConsoleProps {
 }
 
 const COLORS = {
-    info: '#8bc34a',
-    warn: '#ff9800',
-    error: '#f44336',
+    info: 'var(--color-info)',
+    warn: 'var(--color-warning)',
+    error: 'var(--color-danger)',
 };
 
 export function RunsConsole({ entries, onClear }: RunsConsoleProps) {
@@ -52,7 +53,9 @@ export function RunsConsole({ entries, onClear }: RunsConsoleProps) {
                             <span style={{ color: '#999', marginRight: 8, display: 'inline-block', width: 60 }}>
                                 [{req.source}]
                             </span>
-                            <span style={{ color }}>{req.message}</span>
+                            <span style={{ color }}>
+                                <LogMessageWithGalleryImageLinks message={req.message} />
+                            </span>
                         </div>
                     );
                 })}

@@ -1,9 +1,13 @@
-# Agent Project Guide: Electron Image Scoring Gallery
+# Agent Project Guide: Driftara Gallery
 
-This guide provides instructions for AI agents on how to navigate, maintain, and execute the Electron-based Image Scoring Gallery.
+This guide provides instructions for AI agents on how to navigate, maintain, and execute **Driftara Gallery** (`image-scoring-gallery`).
+
+## Documentation authority
+
+Before changing IPC contracts, stage labels, or backend integration: read **[`docs/CANONICAL_SOURCES.md`](../docs/CANONICAL_SOURCES.md)**. For wiki structure and `docs/log.md` rules, read **[`docs/WIKI_SCHEMA.md`](../docs/WIKI_SCHEMA.md)**. Shipped features are indexed under **[`docs/features/implemented/INDEX.md`](../docs/features/implemented/INDEX.md)**.
 
 ## Project Context
-`image-scoring-gallery` is the frontend viewer for the Image Scoring ecosystem. It is built with Electron and React and connects to a shared PostgreSQL database (with pgvector) populated by the core scoring engine.
+**Driftara Gallery** (`image-scoring-gallery`) is the desktop viewer for libraries managed by **Vexlum Scoring** (`image-scoring-backend`). It is built with Electron and React and connects to PostgreSQL (with pgvector) and/or the backend API.
 
 ## Core Agentic Skills (Commands)
 

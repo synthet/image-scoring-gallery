@@ -113,7 +113,7 @@ const getFolderPathFromFilePath = (filePath?: string): string | null => {
     return normalized.slice(0, lastSeparator);
 };
 
-const ScoreBar = ({ label, value, color = '#ff9800' }: { label: string, value: number, color?: string }) => (
+const ScoreBar = ({ label, value, color = 'var(--color-warning)' }: { label: string, value: number, color?: string }) => (
     <div style={{ marginBottom: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8em', color: '#888', textTransform: 'uppercase', marginBottom: 2 }}>
             <span>{label}</span>
@@ -864,11 +864,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const dateStr = image.created_at ? new Date(image.created_at).toLocaleString() : 'Unknown';
 
     // Label color
-    const labelColor = image.label === 'Red' ? '#e53935' :
-        image.label === 'Yellow' ? '#fdd835' :
-            image.label === 'Green' ? '#43a047' :
-                image.label === 'Blue' ? '#1e88e5' :
-                    image.label === 'Purple' ? '#8e24aa' : 'None';
+    const labelColor = image.label === 'Red' ? 'var(--label-red)' :
+        image.label === 'Yellow' ? 'var(--label-yellow)' :
+            image.label === 'Green' ? 'var(--label-green)' :
+                image.label === 'Blue' ? 'var(--label-blue)' :
+                    image.label === 'Purple' ? 'var(--label-purple)' : 'None';
     const normalizedEditKeywords = normalizeKeywords(editForm.keywords);
     const keywordSource = effectiveEditing ? editForm.keywords : image.keywords || '';
     const keywordItems = keywordSource
@@ -1228,8 +1228,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '0.8em', color: '#888', marginBottom: 4 }}>RATING</div>
                         {!effectiveEditing ? (
-                            <div style={{ color: '#ffd700', fontSize: '1.1em', display: 'flex', alignItems: 'center' }}>
-                                <Star fill="#ffd700" size={16} style={{ marginRight: 4 }} />
+                            <div style={{ color: 'var(--score-gold)', fontSize: '1.1em', display: 'flex', alignItems: 'center' }}>
+                                <Star fill="var(--score-gold)" size={16} style={{ marginRight: 4 }} />
                                 {image.rating}
                             </div>
                         ) : (
@@ -1334,7 +1334,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 <div style={{ borderTop: '1px solid #333', paddingTop: 15 }}>
                                     <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 15, color: '#ddd' }}>Model Scores</div>
 
-                                    <ScoreBar label="General" value={image.score_general} color="#ff5722" />
+                                    <ScoreBar label="General" value={image.score_general} color="var(--color-danger)" />
                                     <ScoreBar label="Technical" value={image.score_technical ?? 0} />
                                     <ScoreBar label="Aesthetic" value={image.score_aesthetic ?? 0} />
 

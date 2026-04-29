@@ -1,6 +1,6 @@
-# MCP Tools Quick Reference (Image Scoring)
+# MCP Tools Quick Reference (Driftara Gallery / Vexlum Scoring)
 
-This project interacts with the Image Scoring MCP server for database debugging and system health checks.
+This project interacts with the **Vexlum Scoring** MCP server (`image-scoring-backend`) for database debugging and system health checks.
 
 ## Key Diagnostic Tools
 

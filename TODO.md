@@ -1,4 +1,4 @@
-# TODO - Electron Image Scoring
+# TODO — Driftara Gallery
 
 **Last evaluated:** 2026-04-10
 
@@ -41,12 +41,12 @@ If a section had five open lines — four tagged `[Python]`/`[Gradio]` and one w
 
 ### Highest-Impact Next Steps (Recommended Sequence)
 
-Aligned with sibling **[`image-scoring-backend` / `docs/plans/INDEX.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/plans/INDEX.md)** priority tiers (P0 → P3).
+Aligned with sibling **[`image-scoring-backend` / `docs/planning/INDEX.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/planning/INDEX.md)** priority tiers (P0 → P3).
 
 1. **Backend integration hygiene (P0)** — Keep `electron/apiTypes.ts` and IPC handlers aligned with [`AGENT_COORDINATION.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) and backend [`TODO.md`](https://github.com/synthet/image-scoring-backend/blob/main/TODO.md); add similarity IPC as `/api/similarity/*` stabilizes.
 2. **Normalized keywords / Phase 4d prep (P0)** — Ensure gallery queries and types match backend normalized keyword contract ahead of legacy column removal (v7.0); coordinate schema changes with the backend track.
 3. **[EIS-105](docs/planning/03-high-impact-tracked-tasks.md#eis-105---execute-embedding-feature-wave-with-backend-coordination) — Embedding feature wave (P1)** — Find Similar / duplicates navigation → Tag Propagation UI → Outlier Detection → 2D Map → Smart Stack Representative; pair with backend embedding/orchestration items.
-4. **Gradio / WebSocket bridge (P1)** — Bidirectional control channel per backend [`EMBEDDING_APP_08_GRADIO_INTEGRATION_PLAN.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/plans/embedding/EMBEDDING_APP_08_GRADIO_INTEGRATION_PLAN.md).
+4. **Gradio / WebSocket bridge (P1)** — Bidirectional control channel per backend [`EMBEDDING_APP_08_GRADIO_INTEGRATION_PLAN.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/planned/embeddings/EMBEDDING_APP_08_GRADIO_INTEGRATION_PLAN.md).
 5. **Consolidate styling (P2)** — CSS Modules or Tailwind to reduce churn after `AppContent.tsx` decomposition.
 6. **Residual copy cleanup (P2)** — User-facing `README.md` / `config.example.json` strings consistent with PostgreSQL-only operation where Firebird-era text remains.
 7. ~~**[EIS-104](docs/planning/03-high-impact-tracked-tasks.md#eis-104---close-local-quality-debt-prior-to-backend-expansion)**~~ — done (2026-04-01).

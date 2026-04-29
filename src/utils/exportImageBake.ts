@@ -4,6 +4,9 @@
  * - If we detect EXIF Orientation > 1: decode with `createImageBitmap(..., { imageOrientation: 'none' })`
  *   so pixels are **storage** layout, then apply `applyOrientationTransform`.
  * - Otherwise: standard decode, then `drawImage` directly.
+ *
+ * Do not combine `from-image` decode with manual orientation transforms. Main process must still
+ * force EXIF Orientation=1 after save — see docs/features/implemented/05-jpeg-export-exif-orientation.md
  */
 
 function canvasToBlob(

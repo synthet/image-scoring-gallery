@@ -1,7 +1,7 @@
 {
     "name": "image-scoring-gallery-mcp",
     "version": "2.1.0",
-    "description": "Consolidated stdio MCP for image-scoring-gallery (local tools, optional FastAPI + Electron CDP)",
+    "description": "Consolidated stdio MCP for Driftara Gallery (image-scoring-gallery): local tools, optional FastAPI + Electron CDP",
     "main": "dist/index.js",
     "type": "module",
     "scripts": {

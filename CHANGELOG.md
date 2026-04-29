@@ -2,6 +2,23 @@
 
 All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
 
+## [7.4.0] - 2026-04-28
+
+### Added
+
+- **Log message image links**: `[[img:<id>]]` tokens in pipeline log lines are rendered as links that open the backend image inspector (`logMessageLinks.tsx`).
+
+### Changed
+
+- **API contract**: Large refresh of `api-contract/openapi.json` against the current FastAPI surface.
+- **Runs & shell**: Further tweaks to Runs console/page, notification tray, filter panel, gallery grid, and image viewer for layout and behavior.
+- **Styling**: Continued token and layout updates (`tokens.css`, `layout.css`, calendar picker).
+- **Documentation**: Added **CANONICAL_SOURCES**, **DEVELOPMENT**, **WIKI_SCHEMA**, design-system stub, and **implemented** feature hub pages (desktop shell, DB engine modes, backend API jobs, JPEG export/orientation).
+
+### Removed
+
+- **Legacy global `App.css` / placeholder asset**: Removed in favor of token-driven styles and streamlined `App.tsx` boot.
+
 ## [7.3.0] - 2026-04-27
 
 ### Added

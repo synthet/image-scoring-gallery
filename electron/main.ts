@@ -68,6 +68,8 @@ const exiftool = new ExifTool({ maxProcs: 6 });
  * Re-encoded export JPEGs often still carry EXIF Orientation from the embedded preview
  * (Chromium canvas may copy it). Pixels are already upright after the renderer bake, so
  * Orientation must be 1 or viewers (e.g. Windows Photos) rotate again.
+ *
+ * @see docs/features/implemented/05-jpeg-export-exif-orientation.md
  */
 async function resetExportedJpegExifOrientation(targetPath: string, mimeType: string): Promise<void> {
     const lower = targetPath.toLowerCase();
@@ -782,7 +784,7 @@ function openScoringWindow(): void {
         scoringWindow = new BrowserWindow({
             width: 1280,
             height: 900,
-            title: 'Image Scoring',
+            title: 'Vexlum Scoring',
             ...(backendIcon ? { icon: backendIcon } : {}),
             webPreferences: { contextIsolation: true },
         });
@@ -864,7 +866,7 @@ function createWebuiShellWindow(targetUrl: string): void {
     webuiShellWindow = new BrowserWindow({
         width: 1400,
         height: 900,
-        title: 'Image Scoring WebUI',
+        title: 'Vexlum Scoring WebUI',
         ...(backendIcon ? { icon: backendIcon } : {}),
         webPreferences: {
             contextIsolation: true,

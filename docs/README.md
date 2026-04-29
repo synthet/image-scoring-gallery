@@ -1,8 +1,10 @@
 # Documentation Index
 
-Welcome to the **Electron Image Scoring** documentation. This index provides a structured overview of the project's architecture, features, and planning.
+Welcome to the **Driftara Gallery** documentation. This index provides a structured overview of the desktop app’s architecture, features, and planning.
 
 **Backlog:** The canonical task list is repo-root [`TODO.md`](../TODO.md). **Workflow** (same pattern as **image-scoring-backend**) — [`project/00-backlog-workflow.md`](project/00-backlog-workflow.md) ([`BACKLOG_GOVERNANCE.md`](project/BACKLOG_GOVERNANCE.md) is an alias). Reconcile roadmap/TODO docs at least weekly and immediately after any task is marked complete or reopened.
+
+**Wiki governance:** **[`CANONICAL_SOURCES.md`](CANONICAL_SOURCES.md)** (integration authority + backend links) · **[`WIKI_SCHEMA.md`](WIKI_SCHEMA.md)** (folder taxonomy, log rules) · **[`features/implemented/INDEX.md`](features/implemented/INDEX.md)** (shipped features hub) · **[`log.md`](log.md)** (activity log)
 
 ## Related repository: image-scoring-backend
 
@@ -12,10 +14,10 @@ Python scoring engine, FastAPI, and PostgreSQL schema (**[image-scoring-backend]
 |--------|-------------------------|
 | Full docs index | [docs/INDEX.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/INDEX.md) |
 | API contract | [docs/technical/API_CONTRACT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/API_CONTRACT.md) |
-| Firebird → PostgreSQL migration | [docs/plans/database/FIREBIRD_POSTGRES_MIGRATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/plans/database/FIREBIRD_POSTGRES_MIGRATION.md) |
-| Phase 4 keywords (hub + archive) | [PHASE4_KEYWORDS_HUB.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/plans/database/PHASE4_KEYWORDS_HUB.md) |
-| Embedding applications (backend plan) | [docs/plans/embedding/EMBEDDING_APPLICATIONS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/plans/embedding/EMBEDDING_APPLICATIONS.md) |
-| DB vectors / normalization | [docs/plans/database/DB_VECTORS_REFACTOR.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/plans/database/DB_VECTORS_REFACTOR.md) |
+| Firebird → PostgreSQL migration | [docs/planning/database/FIREBIRD_POSTGRES_MIGRATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/planning/database/FIREBIRD_POSTGRES_MIGRATION.md) |
+| Phase 4 keywords (hub + archive) | [PHASE4_KEYWORDS_HUB.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/planning/database/PHASE4_KEYWORDS_HUB.md) |
+| Embedding applications (backend plan) | [docs/features/planned/embeddings/EMBEDDING_APPLICATIONS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/planned/embeddings/EMBEDDING_APPLICATIONS.md) |
+| DB vectors / normalization | [docs/planning/database/DB_VECTORS_REFACTOR.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/planning/database/DB_VECTORS_REFACTOR.md) |
 | Agent coordination (canonical) | [docs/technical/AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) |
 | Pipeline terminology (cross-repo) | [docs/technical/PIPELINE_TERMINOLOGY.md](technical/PIPELINE_TERMINOLOGY.md) · [backend PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) |
 
@@ -40,7 +42,16 @@ Documentation for implemented and planned features.
 
 ### Implemented
 
-- [01 - NEF/RAW Fallback](features/implemented/01-nef-raw-fallback.md) - Multi-tier preview extraction system for Nikon RAW files
+→ **[features/implemented/INDEX.md](features/implemented/INDEX.md)** — hub for shipped capability pages (cross-links to **image-scoring-backend**).
+
+| Page | Description |
+|------|-------------|
+| [01-nef-raw-fallback.md](features/implemented/01-nef-raw-fallback.md) | Multi-tier RAW/NEF preview (IPC + `/api/raw-preview`) |
+| [02-desktop-shell-and-navigation.md](features/implemented/02-desktop-shell-and-navigation.md) | Electron shell, gallery modes, main UI areas |
+| [03-database-engine-modes.md](features/implemented/03-database-engine-modes.md) | `pg` vs `api` engines, `db:*` IPC |
+| [04-backend-api-jobs.md](features/implemented/04-backend-api-jobs.md) | `apiService.ts` + `api:*` IPC ↔ FastAPI |
+
+Canonical shipped API/pipeline catalog (Python repo): [image-scoring-backend `docs/features/implemented/INDEX.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/implemented/INDEX.md).
 
 ### Planned
 

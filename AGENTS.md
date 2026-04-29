@@ -1,6 +1,6 @@
 # AI Agents Configuration: Electron Gallery
 
-This document describes the AI agent integration for the Electron Image Scoring Gallery.
+This document describes the AI agent integration for **Driftara Gallery** (`image-scoring-gallery`).
 
 ## Overview
 This project is optimized for AI-assisted development using Cursor IDE and Antigravity. It leverages MCP (Model Context Protocol) to provide agents with deep visibility into the shared scoring database.
@@ -8,6 +8,10 @@ This project is optimized for AI-assisted development using Cursor IDE and Antig
 ## SDLC / agent-sdlc
 
 This repo vendors **[agent-sdlc](https://github.com/synthet/agent-sdlc)**-style Cursor rules (`.cursor/rules/`), slash commands (`.cursor/commands/`), and project skills (`.cursor/skills/`). **This `AGENTS.md` file** remains the source of truth for canonical commands, repository layout, and boundaries.
+
+### Agent skills inventory (AST09 / AST10)
+
+Project skills live only under [`.cursor/skills/`](.cursor/skills/) (no `.claude/skills/` mirror in this repo). **Inventory:** [.agent/SKILL_INVENTORY.md](.agent/SKILL_INVENTORY.md). **PR review prompts** for `SKILL.md` changes: sibling [image-scoring-backend/.agent/SKILL_CHANGE_AST10_REVIEW.md](https://github.com/synthet/image-scoring-backend/blob/main/.agent/SKILL_CHANGE_AST10_REVIEW.md) (use the same checklist locally if you have a sibling clone: `../image-scoring-backend/.agent/SKILL_CHANGE_AST10_REVIEW.md`).
 
 **Cursor slash commands** (type `/` in chat): **`/spec`**, **`/plan`**, **`/implement`**, **`/test-and-fix`**, **`/pr-ready`**, **`/release-notes`**. **Claude Code** mirrors these under `.claude/commands/`.
 
@@ -39,6 +43,9 @@ The `.cursor/mcp.json` file uses the **`imgscore-el-*`** prefix so server names 
 **Never modify `.git/config`** — do not set `extensions.worktreeConfig`, change `core.repositoryformatversion`, or add any git extensions. Third-party tools (Gemini Code Assist / Antigravity) use embedded git libraries that fail on non-standard extensions, breaking workspace resolution. If a worktree is needed, use a temporary one and clean it up immediately — do not leave worktree config persisted in the repo.
 
 ## Documentation References
+- **[CANONICAL_SOURCES.md](docs/CANONICAL_SOURCES.md)** — Local vs backend authority (API, schema, coordination)
+- **[WIKI_SCHEMA.md](docs/WIKI_SCHEMA.md)** — `docs/` layout, naming, and `docs/log.md` maintenance
+- **[features/implemented/INDEX.md](docs/features/implemented/INDEX.md)** — Shipped feature pages hub
 - **[Backlog workflow](docs/project/00-backlog-workflow.md)** — Root `TODO.md`, mirror sync order (**image-scoring-backend** twin: [`00-backlog-workflow.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/project/00-backlog-workflow.md); [`BACKLOG_GOVERNANCE.md`](docs/project/BACKLOG_GOVERNANCE.md) here is an alias)
 - **[Pipeline terminology](docs/technical/PIPELINE_TERMINOLOGY.md)** — Stage labels vs API (`pipelineLabels.ts`); canonical table: **[backend PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md)**
 - **[Agent Coordination](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md)** — Cross-project integration (canonical; local stub: [`docs/technical/AGENT_COORDINATION.md`](docs/technical/AGENT_COORDINATION.md))

@@ -1,6 +1,6 @@
 ---
 description: Spec-first planning, acceptance criteria, and design notes
-globs: "**/specs/**"
+globs: "**/specs/**,docs/planning/**,docs/features/planned/**,docs/CANONICAL_SOURCES.md"
 alwaysApply: false
 ---
 
@@ -9,7 +9,7 @@ alwaysApply: false
 ## Spec-first
 
 - Capture **problem**, **users / consumers**, **non-goals**, and **acceptance criteria** before large implementation.
-- Prefer checkable criteria (“when X, then Y”) over vague goals (“make it better”).
+- Prefer checkable criteria ("when X, then Y") over vague goals ("make it better").
 
 ## Plans
 

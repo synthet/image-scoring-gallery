@@ -1,6 +1,6 @@
-# Electron Image Scoring (electron-gallery)
+# Driftara Gallery (`image-scoring-gallery`)
 
-High-performance Electron desktop gallery app with image scoring, browsing, and management.
+High-performance Electron desktop gallery for browsing and managing libraries scored by **Vexlum Scoring** (`image-scoring-backend`).
 
 ## Related Projects
 
@@ -20,9 +20,14 @@ The backend owns DDL/schema migrations. This app connects via PostgreSQL (`pg`) 
 - Register this repo with `kanban_register_project` using **your local clone path** to this repo as `projectFolder`.
 - Use **your local clone path** to **image-scoring-backend** as `projectFolder` for backend-only tasks.
 
+## Documentation
+
+Start with **[`docs/CANONICAL_SOURCES.md`](docs/CANONICAL_SOURCES.md)** (what is canonical in this repo vs **image-scoring-backend**) and **[`docs/WIKI_SCHEMA.md`](docs/WIKI_SCHEMA.md)** when adding or moving wiki pages. Shipped feature hub: **[`docs/features/implemented/INDEX.md`](docs/features/implemented/INDEX.md)**.
+
 ## Key Files
 
 - `src/constants/pipelineLabels.ts` — User-facing pipeline stage names aligned with backend `frontend/src/types/api.ts` (`STAGE_DISPLAY`); see `docs/technical/PIPELINE_TERMINOLOGY.md`
+- `src/utils/exportImageBake.ts` — **File → Export** raster bake and EXIF orientation handling; pitfalls and main-process follow-up in [`docs/features/implemented/05-jpeg-export-exif-orientation.md`](docs/features/implemented/05-jpeg-export-exif-orientation.md)
 - `electron/db.ts` — Query layer over `electron/db/provider.ts` (PostgreSQL and/or `api` HTTP SQL to the backend)
 - `electron/main.ts` — Electron main process, IPC handlers
 - `electron/apiService.ts` — HTTP client to Python FastAPI backend

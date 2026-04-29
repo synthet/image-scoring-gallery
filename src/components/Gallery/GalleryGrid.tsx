@@ -32,7 +32,7 @@ interface Image {
 }
 
 import type { Folder } from '../Tree/treeUtils';
-import { Folder as FolderIcon, Layers, AlertCircle } from 'lucide-react';
+import { Folder as FolderIcon, Layers, AlertTriangle } from 'lucide-react';
 import { GalleryThumbnail } from './GalleryThumbnail';
 import { ThumbnailPlaceholder } from './ThumbnailPlaceholder';
 
@@ -148,7 +148,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 if (img.is_capture_date_fallback) {
                     return (
                         <span className={styles.fallbackDate} title="EXIF shot date missing; showing import/file date">
-                            <AlertCircle size={10} style={{ marginRight: 2, verticalAlign: 'middle', color: '#ff9800' }} />
+                            <AlertTriangle size={10} style={{ marginRight: 2, verticalAlign: 'middle', color: 'var(--color-warning)' }} />
                             {dateStr}
                         </span>
                     );
@@ -176,11 +176,11 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     }, [sortBy]);
 
     const getLabelColor = useCallback((label: string | null) => {
-        return label === 'Red' ? '#e53935' :
-            label === 'Yellow' ? '#fdd835' :
-                label === 'Green' ? '#43a047' :
-                    label === 'Blue' ? '#1e88e5' :
-                        label === 'Purple' ? '#8e24aa' : 'transparent';
+        return label === 'Red' ? 'var(--label-red)' :
+            label === 'Yellow' ? 'var(--label-yellow)' :
+                label === 'Green' ? 'var(--label-green)' :
+                    label === 'Blue' ? 'var(--label-blue)' :
+                        label === 'Purple' ? 'var(--label-purple)' : 'transparent';
     }, []);
 
     const renderImageCard = useCallback((img: Image, onClick: () => void) => {

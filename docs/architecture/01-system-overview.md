@@ -1,8 +1,8 @@
-# Electron Image Scoring - LLM Context Guide
+# Driftara Gallery — LLM context guide
 
 ## Project Overview
 
-Electron-based image gallery viewer for the Image Scoring ecosystem. Connects to a shared PostgreSQL database (with pgvector) populated by the core scoring engine (`image-scoring-backend`).
+Electron-based gallery for libraries managed by **Vexlum Scoring** (`image-scoring-backend`). Connects to a shared PostgreSQL database (with pgvector) populated by the scoring engine.
 
 Primary goals:
 

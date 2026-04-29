@@ -1,4 +1,4 @@
-# TODO - Electron Image Scoring
+# TODO — Driftara Gallery
 
 Consolidated list of unfinished work items. Last Updated: 2026-04-02.
 

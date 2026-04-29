@@ -54,16 +54,16 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange, fol
                     <button
                         onClick={() => handleColorChange(undefined)}
                         className={styles.colorAllButton}
-                        style={{ background: !filters.colorLabel ? '#555' : '#333' }}
+                        style={{ background: !filters.colorLabel ? 'var(--input-border)' : 'var(--input-bg)' }}
                     >
                         All
                     </button>
                     {[
-                        { id: 'Red', color: '#e53935', tooltip: 'Red: Reject (technical failure)' },
-                        { id: 'Yellow', color: '#fdd835', tooltip: 'Yellow: Maybe (the middle)' },
-                        { id: 'Green', color: '#43a047', tooltip: 'Green: Reference shot (high technical)' },
-                        { id: 'Blue', color: '#1e88e5', tooltip: 'Blue: Portfolio shot (high aesthetic & sharp)' },
-                        { id: 'Purple', color: '#8e24aa', tooltip: 'Purple: Creative/moody (aesthetic beats technical)' },
+                        { id: 'Red', color: 'var(--label-red)', tooltip: 'Red: Reject (technical failure)' },
+                        { id: 'Yellow', color: 'var(--label-yellow)', tooltip: 'Yellow: Maybe (the middle)' },
+                        { id: 'Green', color: 'var(--label-green)', tooltip: 'Green: Reference shot (high technical)' },
+                        { id: 'Blue', color: 'var(--label-blue)', tooltip: 'Blue: Portfolio shot (high aesthetic & sharp)' },
+                        { id: 'Purple', color: 'var(--label-purple)', tooltip: 'Purple: Creative/moody (aesthetic beats technical)' },
                     ].map(({ id, color, tooltip }) => (
                         <button
                             key={id}

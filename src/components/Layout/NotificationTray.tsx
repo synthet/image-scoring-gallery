@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNotificationStore } from '../../store/useNotificationStore';
-import { Info, CheckCircle, AlertTriangle, XCircle, X } from 'lucide-react';
+import { Info, CheckCircle2, AlertTriangle, XCircle, X } from 'lucide-react';
 import styles from './NotificationTray.module.css';
 
 export const NotificationTray: React.FC = () => {
@@ -38,16 +38,16 @@ export const NotificationTray: React.FC = () => {
 
 function getColor(type: string) {
     switch (type) {
-        case 'success': return '#4caf50';
-        case 'warning': return '#ff9800';
-        case 'error': return '#f44336';
-        default: return '#2196f3';
+        case 'success': return 'var(--color-success)';
+        case 'warning': return 'var(--color-warning)';
+        case 'error': return 'var(--color-danger)';
+        default: return 'var(--color-info)';
     }
 }
 
 function getIcon(type: string) {
     switch (type) {
-        case 'success': return <CheckCircle size={18} />;
+        case 'success': return <CheckCircle2 size={18} />;
         case 'warning': return <AlertTriangle size={18} />;
         case 'error': return <XCircle size={18} />;
         default: return <Info size={18} />;

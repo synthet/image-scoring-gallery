@@ -1,7 +1,3 @@
-## Cross-repo / backlog
-
-- [ ] If **image-scoring-backend** is affected: note in PR body + sync per [`docs/project/00-backlog-workflow.md`](docs/project/00-backlog-workflow.md)
-
 ## Summary
 
 **What changed:**
@@ -14,16 +10,14 @@
 
 <!-- Commands or steps; match AGENTS.md and CLAUDE.md -->
 
-**Risk / testing notes:**
+## Checklist
 
-## Risk / rollout
-
-<!-- Breaking changes, migrations, feature flags, downtime -->
-
-## SDLC checklist (agent-sdlc)
-
-- [ ] Tests added or updated as needed
-- [ ] Lint / typecheck pass
-- [ ] If API contract files changed, ran `npm run contract:validate` and documented output in "How to test"
 - [ ] No secrets or credentials in code
-- [ ] Docs updated if behavior is user-visible
+- [ ] Typecheck / tests as appropriate (`npm run test:run`, `npx tsc --noEmit`, …)
+
+## Skill files (`SKILL.md`) — only if this PR adds or materially changes agent skills
+
+Use the same first-party review list as the backend: [SKILL_CHANGE_AST10_REVIEW.md](https://github.com/synthet/image-scoring-backend/blob/main/.agent/SKILL_CHANGE_AST10_REVIEW.md) (local sibling: `../image-scoring-backend/.agent/SKILL_CHANGE_AST10_REVIEW.md`). Update [.agent/SKILL_INVENTORY.md](../.agent/SKILL_INVENTORY.md).
+
+- [ ] **Inventory:** `.agent/SKILL_INVENTORY.md` updated (new row or **Last reviewed**)
+- [ ] **Content review:** Full file read for prose + commands; description matches scope ([OWASP AST10 checklist](https://github.com/kenhuangus/agentic-skills-top-10/blob/main/checklist.md))
