@@ -1179,11 +1179,22 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
 
     if (keyword) {
         // Filter stacks where at least one member image has this keyword
-        wherePartsCache.push('EXISTS (SELECT 1 FROM images ci WHERE ci.stack_id = sc.stack_id AND ci.keywords LIKE ?)');
-        topParams.push(`%${keyword}%`);
+        wherePartsCache.push(`EXISTS (
+            SELECT 1 FROM images ci
+            JOIN image_keywords ik ON ik.image_id = ci.id
+            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
+            WHERE ci.stack_id = sc.stack_id
+            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
+        )`);
+        topParams.push(`%${keyword}%`, `%${keyword}%`);
 
-        wherePartsNonStack.push('i.keywords LIKE ?');
-        botParams.push(`%${keyword}%`);
+        wherePartsNonStack.push(`EXISTS (
+            SELECT 1 FROM image_keywords ik
+            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
+            WHERE ik.image_id = i.id
+            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
+        )`);
+        botParams.push(`%${keyword}%`, `%${keyword}%`);
     }
 
     if (capturedDate) {
@@ -1381,8 +1392,13 @@ export async function getStackCount(options: StackQueryOptions = {}): Promise<nu
     }
 
     if (keyword) {
-        whereParts.push('i.keywords LIKE ?');
-        params.push(`%${keyword}%`);
+        whereParts.push(`EXISTS (
+            SELECT 1 FROM image_keywords ik
+            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
+            WHERE ik.image_id = i.id
+            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
+        )`);
+        params.push(`%${keyword}%`, `%${keyword}%`);
     }
 
     if (capturedDate) {
