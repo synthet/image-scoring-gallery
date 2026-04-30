@@ -528,7 +528,7 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
                                         Skipped: <strong>{result.skipped}</strong> (already synced / in DB)
                                     </div>
                                     <div>
-                                        Folders: <strong>{result.folders}</strong> date-folders processed
+                                        Folders: <strong>{result.folders}</strong> destination date-folder(s) with imports
                                     </div>
                                 </div>
                             )}

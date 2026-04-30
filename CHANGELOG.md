@@ -2,6 +2,16 @@
 
 All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
 
+## [7.4.2] - 2026-04-29
+
+### Fixed
+
+- **Card / folder sync — import phase**: After copy, **import** now runs only for destination files recorded during the copy pass (no second full-folder `readdir` scan). Progress reports per file; folder count reflects destination date-folders that received imports (**`electron/main.ts`**).
+
+### Changed
+
+- **Sync results copy**: Clarified the “Folders” summary line in **`SyncModal`** (“destination date-folder(s) with imports”).
+
 ## [7.4.1] - 2026-04-28
 
 ### Changed

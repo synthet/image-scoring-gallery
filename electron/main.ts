@@ -1688,7 +1688,8 @@ async function startFullApplication(): Promise<void> {
     /**
      * Core sync: threshold, scan, EXIF/DB per file, copy (+ import when not dryRun).
      * Preview (dryRun) uses the same EXIF/DB passes without mkdir/copy/import; a follow-up full sync
-     * repeats that work (acceptable for typical card sizes; cache not implemented).
+     * repeats copy/EXIF for source files (phase 1). Import (phase 2) only touches destination paths
+     * recorded during phase 1 as pending DB rows — no second full-folder scan.
      */
     type SyncFromSourceResult =
         | {
@@ -1773,7 +1774,8 @@ async function startFullApplication(): Promise<void> {
         let importOnly = 0;
         let skippedCount = 0;
         const errors: string[] = [];
-        const newFolders = new Set<string>();
+        /** Full sync only: dest file paths that still need `insertImage` after copy (dedup by path). */
+        const pendingImports = new Map<string, { imageUuid: string | null }>();
         const newFolderRelPaths = new Set<string>();
 
         const processPhase = dryRun ? 'preview' : 'copying';
@@ -1867,6 +1869,8 @@ async function startFullApplication(): Promise<void> {
                         }
                         if (dryRun) {
                             importOnly++;
+                        } else {
+                            pendingImports.set(destFile, { imageUuid });
                         }
                     } else {
                         if (dryRun) {
@@ -1879,11 +1883,8 @@ async function startFullApplication(): Promise<void> {
                             await fs.promises.mkdir(destDir, { recursive: true });
                             await fs.promises.copyFile(filePath, destFile);
                             copied++;
+                            pendingImports.set(destFile, { imageUuid });
                         }
-                    }
-
-                    if (!dryRun) {
-                        newFolders.add(destDir);
                     }
                 } catch (e) {
                     const msg = e instanceof Error ? e.message : String(e);
@@ -1917,61 +1918,63 @@ async function startFullApplication(): Promise<void> {
             };
         }
 
-        const foldersToImport = Array.from(newFolders);
+        const pendingEntries = Array.from(pendingImports.entries());
+        const foldersTouched = new Set(pendingEntries.map(([fp]) => path.dirname(fp)));
         let imported = 0;
         const importErrors: string[] = [];
+        const folderIdCache = new Map<string, number>();
 
-        for (let i = 0; i < foldersToImport.length; i++) {
-            const folderPath = foldersToImport[i];
+        for (let i = 0; i < pendingEntries.length; i++) {
+            const [destFileAbs, meta] = pendingEntries[i];
+            const folderPath = path.dirname(destFileAbs);
+
             mainWindow?.webContents.send('sync:progress', {
-                phase: 'importing', current: i + 1, total: foldersToImport.length,
-                detail: path.relative(destRoot, folderPath)
+                phase: 'importing',
+                current: i + 1,
+                total: pendingEntries.length,
+                detail: path.relative(destRoot, destFileAbs),
             });
 
+            const fn = path.basename(destFileAbs);
+            const ft = path.extname(destFileAbs).toLowerCase().replace(/^\./, '') || 'unknown';
+
             try {
-                const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });
-                const files = entries
-                    .filter(e => e.isFile())
-                    .map(e => path.join(folderPath, e.name))
-                    .filter(p => SYNC_EXTENSIONS.has(path.extname(p).toLowerCase()));
+                const existsByPath = await db.findImageByFilePath(destFileAbs);
+                if (existsByPath) continue;
 
-                const folderId = await db.getOrCreateFolder(folderPath);
-
-                for (const fp of files) {
-                    const fn = path.basename(fp);
-                    const ft = path.extname(fp).toLowerCase().replace(/^\./, '') || 'unknown';
-
+                let uuid: string | null = meta.imageUuid;
+                if (uuid) {
+                    const existsByUuid = await db.findImageByUuid(uuid);
+                    if (existsByUuid) continue;
+                } else {
                     try {
-                        const existsByPath = await db.findImageByFilePath(fp);
-                        if (existsByPath) continue;
-
-                        let uuid: string | null = null;
-                        try {
-                            const tags = await exiftool.read(fp);
-                            const uid = tags.ImageUniqueID ?? tags.DocumentID ?? null;
-                            if (uid && typeof uid === 'string') {
-                                uuid = uid;
-                                const existsByUuid = await db.findImageByUuid(uuid);
-                                if (existsByUuid) continue;
-                            }
-                        } catch { /* proceed without UUID */ }
-
-                        await db.insertImage({
-                            file_path: fp,
-                            file_name: fn,
-                            file_type: ft,
-                            folder_id: folderId,
-                            image_uuid: uuid,
-                        });
-                        imported++;
-                    } catch (e) {
-                        const msg = e instanceof Error ? e.message : String(e);
-                        importErrors.push(`${fn}: ${msg}`);
-                    }
+                        const tags = await exiftool.read(destFileAbs);
+                        const uid = tags.ImageUniqueID ?? tags.DocumentID ?? null;
+                        if (uid && typeof uid === 'string') {
+                            uuid = uid;
+                            const existsByUuid = await db.findImageByUuid(uuid);
+                            if (existsByUuid) continue;
+                        }
+                    } catch { /* proceed without UUID */ }
                 }
+
+                let folderId = folderIdCache.get(folderPath);
+                if (folderId === undefined) {
+                    folderId = await db.getOrCreateFolder(folderPath);
+                    folderIdCache.set(folderPath, folderId);
+                }
+
+                await db.insertImage({
+                    file_path: destFileAbs,
+                    file_name: fn,
+                    file_type: ft,
+                    folder_id: folderId,
+                    image_uuid: uuid,
+                });
+                imported++;
             } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e);
-                importErrors.push(`folder ${folderPath}: ${msg}`);
+                importErrors.push(`${fn}: ${msg}`);
             }
         }
 
@@ -1987,7 +1990,7 @@ async function startFullApplication(): Promise<void> {
             copied,
             imported,
             skipped: skippedCount,
-            folders: foldersToImport.length,
+            folders: foldersTouched.size,
             errors,
             thresholdDate,
         };
