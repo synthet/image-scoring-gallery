@@ -15,6 +15,8 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+      # Container defaults (paths.thumbnail_base_dir → /backend/thumbnails; see compose backend mount)
+      - ./config.docker.json:/app/config.json:ro
       # Use our docker-specific environment config
       - ./environment.docker.json:/app/environment.json
       # Mount the sibling backend folder to access thumbnails directly

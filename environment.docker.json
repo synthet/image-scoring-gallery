@@ -10,8 +10,5 @@
     },
     "api": {
         "url": "http://image-scoring-webui:7860"
-    },
-    "paths": {
-        "thumbnail_base_dir": "/backend/thumbnails"
     }
 }
