@@ -3,6 +3,7 @@ import fs from 'fs';
 
 import { getConfigPath, loadAppConfig } from './config';
 import { absolutizeThumbnailPath } from './thumbnailPathNormalize';
+import { applyThumbnailPathRemaps } from './pathsRemap';
 import type { AppConfig, DatabaseConfig } from './types';
 import { createDatabaseConnector, IDatabaseConnector, QueryParam, TxQuery } from './db/provider';
 
@@ -112,23 +113,6 @@ function thumbPathStringToWin(wslPath: string | null | undefined): string | unde
     return wslPath;
 }
 
-/** After repo rename image-scoring → image-scoring-backend; optional user remaps from config */
-function applyThumbnailPathRemaps(p: string): string {
-    let out = p;
-    const pathsCfg = getPathsConfig();
-    for (const pair of pathsCfg.thumbnail_path_remap || []) {
-        const from = pair?.from;
-        const to = pair?.to;
-        if (from && to && out.includes(from)) {
-            out = out.split(from).join(to);
-        }
-    }
-    if (pathsCfg.remap_legacy_image_scoring_thumbnails !== false) {
-        out = out.replace(/([/\\])image-scoring([/\\]thumbnails[/\\])/gi, '$1image-scoring-backend$2');
-    }
-    return out;
-}
-
 /** Resolve repo-relative thumbnail paths against thumbnail_base_dir or default sibling backend thumbnails/. */
 function absolutizeThumbnailIfRelative(p: string): string {
     const cfgBase = getPathsConfig().thumbnail_base_dir?.trim();
@@ -152,7 +136,7 @@ export function resolveThumbnailPathForDisplay(
         raw = wsl || win;
     }
     if (!raw) return undefined;
-    const remapped = applyThumbnailPathRemaps(raw);
+    const remapped = applyThumbnailPathRemaps(raw, getPathsConfig());
     return absolutizeThumbnailIfRelative(remapped);
 }
 

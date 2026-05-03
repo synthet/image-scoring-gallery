@@ -30,6 +30,8 @@ import { loadAppConfig, getConfigPath } from '../electron/config';
 import { ApiService } from '../electron/apiService';
 import { resolveBaseUrl } from '../electron/apiUrlResolver';
 
+import { buildMediaPathCandidates } from './buildMediaPathCandidates';
+
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const configPath = getConfigPath(path.resolve(__dirname, '../electron'));
@@ -51,6 +53,7 @@ type ServerDeps = {
 
 export function createServerApp(deps: ServerDeps) {
     const { dbModule, apiService, configPath, appConfig, backendBaseUrl } = deps;
+    const galleryProjectRoot = path.resolve(__dirname, '..');
     const app = express();
     app.use(express.json({ limit: '10mb' }));
 
@@ -320,15 +323,24 @@ export function createServerApp(deps: ServerDeps) {
             return;
         }
 
-        const normalized = path.normalize(filePath);
-        const isAbsolute = path.isAbsolute(normalized);
-        const isWslPath = normalized.startsWith('/mnt/');
-        if (!isAbsolute && !isWslPath) {
-            res.status(400).send('Only absolute file paths are supported');
-            return;
+        const pathsCfg = (appConfig as { paths?: Record<string, unknown> }).paths;
+        const candidates = buildMediaPathCandidates(filePath, galleryProjectRoot, pathsCfg);
+
+        let normalized: string | undefined;
+        for (const candidate of candidates) {
+            const n = path.normalize(candidate);
+            const isAbsolute = path.isAbsolute(n);
+            const isWslPath = n.startsWith('/mnt/');
+            if (!isAbsolute && !isWslPath) {
+                continue;
+            }
+            if (fs.existsSync(n)) {
+                normalized = n;
+                break;
+            }
         }
 
-        if (!fs.existsSync(normalized)) {
+        if (!normalized) {
             res.status(404).send('File not found');
             return;
         }
