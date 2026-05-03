@@ -41,6 +41,10 @@ import type {
     ImageQueryOptions,
     ImageRow,
     ImageUpdates,
+
+    SyncCandidate,
+    SyncPreviewResult,
+    SyncRunResult,
 } from '../electron/types';
 
 export type {
@@ -57,6 +61,9 @@ export type {
     ImageQueryOptions,
     ImageRow,
     ImageUpdates,
+    SyncCandidate,
+    SyncPreviewResult,
+    SyncRunResult,
 } from '../electron/types';
 
 declare global {
@@ -119,31 +126,25 @@ declare global {
             onOpenEmbeddings: (callback: () => void) => () => void;
             onOpenDiagnostics: (callback: () => void) => () => void;
             onImportFolderSelected: (callback: (folderPath: string) => void) => () => void;
-            importRun: (folderPath: string) => Promise<{ added: number; skipped: number; errors: string[] }>;
+            importRun: (folderPath: string) => Promise<{
+                added: number;
+                skipped: number;
+                errors: string[];
+                processing?: {
+                    method: 'api' | 'queue' | 'none';
+                    jobId?: string | number;
+                    queuedCount?: number;
+                    reason?: 'api-unavailable' | 'api-error';
+                    error?: string;
+                };
+            }>;
             onImportProgress: (callback: (data: { current: number; total: number; path?: string }) => void) => () => void;
             onShowNotification: (callback: (data: { message: string; type: 'info' | 'success' | 'warning' | 'error' }) => void) => () => void;
 
             // ── Sync ────────────────────────────────────────────────────
             onSyncSourceSelected: (callback: (sourcePath: string) => void) => () => void;
-            syncPreview: (sourcePath: string) => Promise<{
-                thresholdDate: string | null;
-                destinationRoot: string;
-                scanned: number;
-                skipped: number;
-                wouldCopy: number;
-                importOnly: number;
-                newFolders: string[];
-                errors: string[];
-            }>;
-            syncRun: (sourcePath: string) => Promise<{
-                scanned: number;
-                copied: number;
-                imported: number;
-                skipped: number;
-                folders: number;
-                errors: string[];
-                thresholdDate: string | null;
-            }>;
+            syncPreview: (sourcePath: string) => Promise<SyncPreviewResult>;
+            syncRun: (sourcePath: string, pickedCandidates?: SyncCandidate[]) => Promise<SyncRunResult>;
             onSyncProgress: (callback: (data: { phase: string; current: number; total: number; detail: string }) => void) => () => void;
 
             // ── Backup ──────────────────────────────────────────────────
@@ -284,6 +285,7 @@ declare global {
 
     interface BackendPipelineSubmitRequest {
         input_path: string;
+        image_ids?: number[];
         operations?: string[];
         skip_existing?: boolean;
         custom_keywords?: string[] | null;

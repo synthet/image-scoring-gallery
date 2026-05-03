@@ -6,6 +6,7 @@ import { useNotificationStore } from '../../store/useNotificationStore';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
 import { usePropagateTags } from '../../hooks/useDatabase';
 import { toMediaUrl } from '../../utils/mediaUrl';
+import { formatShutterSpeedDisplay } from '../../utils/formatShutterSpeed';
 import { bridge } from '../../bridge';
 import { STAGE_DISPLAY } from '../../constants/pipelineLabels';
 import type { TagPropagationRequest } from '../../../electron/apiTypes';
@@ -1420,7 +1421,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ color: '#888' }}>Shutter:</span>
-                                        <span>{exifData.ShutterSpeed ? `${exifData.ShutterSpeed}s` : 'Unknown'}</span>
+                                        <span>{formatShutterSpeedDisplay(exifData.ShutterSpeed)}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ color: '#888' }}>Aperture:</span>

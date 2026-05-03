@@ -265,7 +265,18 @@ contextBridge.exposeInMainWorld('electron', {
     },
     importRun: async (folderPath: string) => {
         const response = await ipcRenderer.invoke('import:run', folderPath);
-        return unwrapEnvelope<{ added: number; skipped: number; errors: string[] }>(response);
+        return unwrapEnvelope<{
+            added: number;
+            skipped: number;
+            errors: string[];
+            processing?: {
+                method: 'api' | 'queue' | 'none';
+                jobId?: string | number;
+                queuedCount?: number;
+                reason?: 'api-unavailable' | 'api-error';
+                error?: string;
+            };
+        }>(response);
     },
     onImportProgress: (callback: (data: { current: number; total: number; path?: string }) => void) => {
         const handler = (_: unknown, data: { current: number; total: number; path?: string }) => callback(data);
@@ -303,8 +314,8 @@ contextBridge.exposeInMainWorld('electron', {
             errors: string[];
         }>(response);
     },
-    syncRun: async (sourcePath: string) => {
-        const response = await ipcRenderer.invoke('sync:run', sourcePath);
+    syncRun: async (sourcePath: string, pickedCandidates?: SyncCandidate[]) => {
+        const response = await ipcRenderer.invoke('sync:run', sourcePath, pickedCandidates);
         return unwrapEnvelope<{
             scanned: number;
             copied: number;
@@ -313,6 +324,13 @@ contextBridge.exposeInMainWorld('electron', {
             folders: number;
             errors: string[];
             thresholdDate: string | null;
+            processing?: Array<{
+                method: 'api' | 'queue' | 'none';
+                jobId?: string | number;
+                queuedCount?: number;
+                reason?: 'api-unavailable' | 'api-error';
+                error?: string;
+            }>;
         }>(response);
     },
     onSyncProgress: (callback: (data: { phase: string; current: number; total: number; detail: string }) => void) => {

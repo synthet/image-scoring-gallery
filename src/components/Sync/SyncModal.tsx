@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import type { SyncCandidate } from '../../../electron/types';
 import { bridge } from '../../bridge';
 import { useOperationStore } from '../../store/useOperationStore';
 import { Logger } from '../../services/Logger';
+import { formatScheduleResultsSummary, type ScheduleResult } from '../../utils/scheduleProcessingOutcome';
 
 interface SyncResult {
     scanned: number;
@@ -11,6 +13,7 @@ interface SyncResult {
     folders: number;
     errors: string[];
     thresholdDate: string | null;
+    processing?: ScheduleResult[];
 }
 
 interface SyncPreviewData {
@@ -22,6 +25,7 @@ interface SyncPreviewData {
     importOnly: number;
     newFolders: string[];
     errors: string[];
+    candidates: SyncCandidate[];
 }
 
 interface SyncProgress {
@@ -173,7 +177,7 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
         });
 
         bridge
-            .syncRun(sourcePath)
+            .syncRun(sourcePath, preview?.candidates)
             .then((res) => {
                 if (runRef.current) {
                     setResult(res);
@@ -230,6 +234,11 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
 
     const nothingToDo =
         preview && preview.wouldCopy === 0 && preview.importOnly === 0 && preview.errors.length === 0;
+
+    const processingSummary =
+        isComplete && result?.processing && result.processing.length > 0
+            ? formatScheduleResultsSummary(result.processing)
+            : null;
 
     if (!isOpen) return null;
 
@@ -530,6 +539,9 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
                                     <div>
                                         Folders: <strong>{result.folders}</strong> destination date-folder(s) with imports
                                     </div>
+                                    {processingSummary && (
+                                        <div style={{ marginTop: 8, color: '#9cdcfe' }}>{processingSummary}</div>
+                                    )}
                                 </div>
                             )}
 

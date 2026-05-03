@@ -2,6 +2,24 @@
 
 All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
 
+## [7.5.0] - 2026-05-03
+
+### Added
+
+- **Post-import pipeline scheduling**: **`electron/scheduleProcessing.ts`** submits **`submitPipeline`** (metadata → score → tag → cluster) for copied/imported **`image_ids`**, or marks **`image_phase_status`** pending when the API is down — used from **`electron/main.ts`** sync/import paths (**`scheduleProcessingOutcome`** + **`scheduleProcessingOutcome.test.ts`** in **`src/utils/`**).
+- **Shutter-speed formatting**: **`src/utils/formatShutterSpeed.ts`** (with **`formatShutterSpeed.test.ts`**) for human-readable shutter display.
+- **`pick_status` in DB layer**: PostgreSQL helpers / types aligned with **Vexlum Scoring** **`images.pick_status`** (**`electron/db.ts`**, **`types.ts`**, **`apiTypes.ts`**).
+- **Optional Docker dev**: **`Dockerfile`**, **`docker-compose.yml`**, **`environment.docker.json`**, **`docker_refresh_gallery.bat`** for containerized setups.
+
+### Changed
+
+- **Electron IPC & bridge**: **`electron/preload.ts`**, **`src/bridge.ts`**, **`src/electron.d.ts`** — narrower surface alignment for new scheduling and DB behavior.
+- **Import / sync UX**: **`ImportModal`** and **`SyncModal`** updated for pipeline outcomes and messaging; **`ImageViewer`** small refresh; **`vite.config.ts`** tweak.
+
+### Tests
+
+- **`electron/qualityTiebreakSql.test.ts`** — SQL tie-break expectations against selection ordering.
+
 ## [7.4.2] - 2026-04-29
 
 ### Fixed

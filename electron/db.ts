@@ -61,6 +61,23 @@ const CAPTURE_TS_EI = 'COALESCE(e.date_time_original, e.create_date, xm.create_d
 const CAPTURE_FALLBACK =
     '(ex.date_time_original IS NULL AND ex.create_date IS NULL AND xm.create_date IS NULL)';
 
+/**
+ * ORDER BY suffix after primary score (aliases ``ex`` = image_exif, ``i`` = images).
+ * Must stay aligned with Postgres ``quality_tiebreak_order_sql(..., dialect='postgres')``
+ * in sibling repo image-scoring-backend ``modules/quality_ranking.py``.
+ */
+export const QUALITY_TIEBREAK_ORDER_SQL_EX_I = `
+, ex.iso ASC NULLS LAST
+, CASE
+    WHEN ex.exposure_time IS NULL THEN NULL
+    WHEN POSITION('/' IN ex.exposure_time) > 0
+      THEN CAST(SPLIT_PART(ex.exposure_time, '/', 1) AS DOUBLE PRECISION)
+         / NULLIF(CAST(SPLIT_PART(ex.exposure_time, '/', 2) AS DOUBLE PRECISION), 0)
+    ELSE CAST(ex.exposure_time AS DOUBLE PRECISION)
+  END ASC NULLS LAST
+, ex.date_time_original ASC NULLS LAST
+, i.id ASC`;
+
 /** Optional config: see config.example.json → paths */
 interface PathsConfig {
     /** Explicit from→to replacements for thumbnail_path (applied after win/WSL resolution) */
@@ -621,8 +638,43 @@ export async function getFolderPathById(id: number): Promise<string | null> {
 
 export async function deleteFolder(id: number): Promise<boolean> {
     try {
-        await query('DELETE FROM folders WHERE id = ?', [id]);
-        return true;
+        return await runTransaction(async (tx) => {
+            const cnt = await tx<{ c: string | number }>(
+                `WITH RECURSIVE sub AS (
+                    SELECT id FROM folders WHERE id = ?
+                    UNION ALL
+                    SELECT f.id FROM folders f INNER JOIN sub s ON f.parent_id = s.id
+                )
+                SELECT COUNT(*)::bigint AS c FROM images WHERE folder_id IN (SELECT id FROM sub)`,
+                [id]
+            );
+            const imagesInSubtree = Number(cnt[0]?.c ?? 0);
+            if (imagesInSubtree > 0) {
+                return false;
+            }
+
+            const pathRows = await tx<{ path: string }>(
+                `WITH RECURSIVE sub AS (
+                    SELECT id, path FROM folders WHERE id = ?
+                    UNION ALL
+                    SELECT f.id, f.path FROM folders f INNER JOIN sub s ON f.parent_id = s.id
+                )
+                SELECT path FROM sub`,
+                [id]
+            );
+            const paths = pathRows.map((r) => String(r.path || '')).filter(Boolean);
+            try {
+                if (paths.length > 0) {
+                    const ph = paths.map(() => '?').join(', ');
+                    await tx(`DELETE FROM cluster_progress WHERE folder_path IN (${ph})`, paths);
+                }
+            } catch {
+                /* cluster_progress may be absent in older schemas */
+            }
+
+            await tx('DELETE FROM folders WHERE id = ?', [id]);
+            return true;
+        });
     } catch (e) {
         console.error('[DB] Failed to delete folder:', e);
         return false;
@@ -883,6 +935,107 @@ export async function markImageIndexingPhaseDone(imageId: number): Promise<void>
     await invalidateFolderPhaseAggregatesForImage(imageId);
 }
 
+/** `pipeline_phases.code` values for post-import processing (matches API score/tag/cluster phases). */
+export const SCHEDULE_PENDING_PHASE_CODES = ['metadata', 'scoring', 'culling', 'keywords'] as const;
+export type SchedulePendingPhaseCode = (typeof SCHEDULE_PENDING_PHASE_CODES)[number];
+
+async function invalidateFolderAggregatesForImageIds(imageIds: number[]): Promise<void> {
+    if (imageIds.length === 0) {
+        return;
+    }
+    const unique = [...new Set(imageIds)];
+    const ph = unique.map(() => '?').join(', ');
+    const rows = await query<{ folder_id: number | null }>(
+        `SELECT DISTINCT folder_id FROM images WHERE id IN (${ph})`,
+        unique
+    );
+    const allAncestorIds = new Set<number>();
+    for (const r of rows) {
+        let folderId: number | null = r.folder_id;
+        const seen = new Set<number>();
+        while (folderId != null && !seen.has(folderId)) {
+            seen.add(folderId);
+            allAncestorIds.add(folderId);
+            const parentRows = await query<{ parent_id: number | null }>(
+                'SELECT parent_id FROM folders WHERE id = ?',
+                [folderId]
+            );
+            folderId = parentRows[0]?.parent_id ?? null;
+        }
+    }
+    if (allAncestorIds.size === 0) {
+        return;
+    }
+    const ids = [...allAncestorIds];
+    const ph2 = ids.map(() => '?').join(', ');
+    await query(`UPDATE folders SET phase_agg_dirty = 1 WHERE id IN (${ph2})`, ids);
+}
+
+/**
+ * Insert `not_started` rows for the given phases so the backend can pick them up later.
+ * Uses ON CONFLICT DO NOTHING so existing done/running rows are preserved.
+ */
+export async function markImagePhasesPending(
+    imageIds: number[],
+    phaseCodes: readonly SchedulePendingPhaseCode[] = SCHEDULE_PENDING_PHASE_CODES
+): Promise<void> {
+    if (imageIds.length === 0 || phaseCodes.length === 0) {
+        return;
+    }
+    const codePlaceholders = phaseCodes.map(() => '?').join(', ');
+    const phaseRows = await query<{ id: number; code: string }>(
+        `SELECT id, code FROM pipeline_phases WHERE code IN (${codePlaceholders})`,
+        [...phaseCodes]
+    );
+    const phaseIds = phaseRows.map((r) => r.id);
+    if (phaseIds.length === 0) {
+        console.warn('[DB] markImagePhasesPending: no pipeline_phases rows for codes', phaseCodes);
+        return;
+    }
+
+    const CHUNK_IMAGES = 40;
+    for (let i = 0; i < imageIds.length; i += CHUNK_IMAGES) {
+        const chunk = imageIds.slice(i, i + CHUNK_IMAGES);
+        const valueParts: string[] = [];
+        const params: QueryParam[] = [];
+        for (const imageId of chunk) {
+            for (const phaseId of phaseIds) {
+                valueParts.push('(?, ?, \'not_started\', NULL, NULL, 0, NULL, NULL, NULL, CURRENT_TIMESTAMP, NULL, NULL)');
+                params.push(imageId, phaseId);
+            }
+        }
+        if (valueParts.length === 0) {
+            continue;
+        }
+        await query(
+            `INSERT INTO image_phase_status (
+                image_id, phase_id, status, app_version, executor_version,
+                attempt_count, last_error, started_at, finished_at, updated_at, skip_reason, skipped_by
+            ) VALUES ${valueParts.join(', ')}
+            ON CONFLICT (image_id, phase_id) DO NOTHING`,
+            params
+        );
+    }
+    await invalidateFolderAggregatesForImageIds(imageIds);
+}
+
+/**
+ * Mark post-import phases `not_started` for every image in a folder (by `folders.path`).
+ * Used when the API registered imports but we have no per-image id list for fallback.
+ */
+export async function markFolderImagePhasesPending(folderPath: string): Promise<number> {
+    const normalized = normalizePathForDb(folderPath);
+    const folderRows = await query<{ id: number }>('SELECT id FROM folders WHERE path = ?', [normalized]);
+    if (folderRows.length === 0) {
+        return 0;
+    }
+    const folderId = folderRows[0].id;
+    const imageRows = await query<{ id: number }>('SELECT id FROM images WHERE folder_id = ?', [folderId]);
+    const ids = imageRows.map((r) => r.id);
+    await markImagePhasesPending(ids);
+    return ids.length;
+}
+
 export async function updateImageDetails(id: number, updates: Record<string, string | number | null>): Promise<boolean> {
     const allowedFields = ['title', 'description', 'rating', 'label', 'keywords'];
     const setParts: string[] = [];
@@ -1078,19 +1231,18 @@ export async function rebuildStackCache(context: { smartCover?: boolean } = {}):
 
                 await txQuery(sql);
 
-                // Update rep_image_id to be the image with the highest general score in each stack.
-                // Postgres uses INSERT ... ON CONFLICT DO UPDATE.
+                // rep_image_id: best score_general per stack, then EXIF tie-break (see QUALITY_TIEBREAK_ORDER_SQL_EX_I).
                 await txQuery(`
                     INSERT INTO stack_cache (stack_id, rep_image_id)
-                    SELECT src.stack_id, src.best_id FROM (
-                        SELECT i.stack_id, MIN(i.id) as best_id
-                        FROM images i
-                        WHERE i.stack_id IS NOT NULL
-                          AND i.score_general = (
-                              SELECT MAX(i2.score_general) FROM images i2 WHERE i2.stack_id = i.stack_id
-                          )
-                        GROUP BY i.stack_id
-                    ) src
+                    SELECT DISTINCT ON (i.stack_id)
+                        i.stack_id,
+                        i.id
+                    FROM images i
+                    LEFT JOIN image_exif ex ON ex.image_id = i.id
+                    WHERE i.stack_id IS NOT NULL
+                    ORDER BY i.stack_id,
+                             i.score_general DESC NULLS LAST
+                             ${QUALITY_TIEBREAK_ORDER_SQL_EX_I}
                     ON CONFLICT (stack_id) DO UPDATE SET rep_image_id = EXCLUDED.rep_image_id
                 `);
 
@@ -1367,7 +1519,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
         ${whereClause}
-        ORDER BY ${sortColumn} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}, i.id DESC
+        ORDER BY ${sortColumn} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}${QUALITY_TIEBREAK_ORDER_SQL_EX_I}
         ${paginationSql()}
     `;
     const rows = await query(sql, [...params, ...pagingParams(offset, limit)]);

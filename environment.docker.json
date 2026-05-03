@@ -1,0 +1,17 @@
+{
+    "database": {
+        "postgres": {
+            "host": "image-scoring-postgres",
+            "port": 5432,
+            "database": "image_scoring",
+            "user": "postgres",
+            "password": "postgres"
+        }
+    },
+    "api": {
+        "url": "http://image-scoring-webui:7860"
+    },
+    "paths": {
+        "thumbnail_base_dir": "/backend/thumbnails"
+    }
+}

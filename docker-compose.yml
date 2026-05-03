@@ -1,0 +1,33 @@
+services:
+  gallery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: driftara-gallery:latest
+    container_name: driftara-gallery
+    ports:
+      - "5173:5173"
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      # Photos bind source for the container
+      - PHOTOS_BIND_SOURCE=${PHOTOS_BIND_SOURCE:-/mnt/d/Photos}
+    volumes:
+      - .:/app
+      - /app/node_modules
+      # Use our docker-specific environment config
+      - ./environment.docker.json:/app/environment.json
+      # Mount the sibling backend folder to access thumbnails directly
+      - ../image-scoring-backend:/backend
+      # Mount photos to the same path as expected by the backend
+      - ${PHOTOS_BIND_SOURCE:-/mnt/d/Photos}:/mnt/d/Photos:rw
+    # Join the network created by the backend compose
+    networks:
+      - image-scoring-network
+    restart: unless-stopped
+
+networks:
+  image-scoring-network:
+    # This is the default network name created by 'docker compose up' in the backend repo
+    name: image-scoring-backend_default
+    external: true

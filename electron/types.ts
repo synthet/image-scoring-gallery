@@ -281,3 +281,43 @@ export interface BackupResult {
     /** Candidates removed so the highest-scored copies fit in free space (see rotation in `backupSpace.ts`). */
     droppedForSpace: number;
 }
+
+// -- Sync Feature Types --
+
+export interface SyncCandidate {
+    sourcePath: string;
+    fileName: string;
+    dateStr: string;
+    camera: string;
+    lens: string;
+    imageUuid: string | null;
+}
+
+export interface SyncPreviewResult {
+    thresholdDate: string | null;
+    destinationRoot: string;
+    scanned: number;
+    skipped: number;
+    wouldCopy: number;
+    importOnly: number;
+    newFolders: string[];
+    errors: string[];
+    candidates: SyncCandidate[];
+}
+
+export interface SyncRunResult {
+    scanned: number;
+    copied: number;
+    imported: number;
+    skipped: number;
+    folders: number;
+    errors: string[];
+    thresholdDate: string | null;
+    processing?: Array<{
+        method: 'api' | 'queue' | 'none';
+        jobId?: string | number;
+        queuedCount?: number;
+        reason?: 'api-unavailable' | 'api-error';
+        error?: string;
+    }>;
+}
