@@ -21,4 +21,13 @@ describe('buildMediaPathCandidates', () => {
         const list = buildMediaPathCandidates(win, projectRoot, { thumbnail_base_dir: base });
         expect(list).toContain(path.join(base, '14', '1426624c84f38186dd00a02aa53d1700.jpg'));
     });
+
+    it('adds nested shard path when DB has legacy flat thumbnails/32hex.jpg', () => {
+        const flat =
+            '/mnt/d/Projects/image-scoring-backend/thumbnails/8a6ba057d19e8cca4f6869be55.jpg';
+        const base = '/backend/thumbnails';
+        const list = buildMediaPathCandidates(flat, projectRoot, { thumbnail_base_dir: base });
+        expect(list).toContain(path.join(base, '8a6ba057d19e8cca4f6869be55.jpg'));
+        expect(list).toContain(path.join(base, '8a', '8a6ba057d19e8cca4f6869be55.jpg'));
+    });
 });

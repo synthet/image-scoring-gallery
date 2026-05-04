@@ -20,6 +20,21 @@ function resolveThumbnailBase(projectRoot: string, pathsCfg: PathsConfigSlice): 
     return path.isAbsolute(raw) ? path.normalize(raw) : path.resolve(projectRoot, raw);
 }
 
+/** DB may store legacy flat `thumbnails/{hash}.jpg` while files use nested `thumbnails/{aa}/{hash}.jpg`. */
+function pushThumbnailUnderBase(base: string, tail: string, push: (p: string) => void): void {
+    push(path.join(base, tail));
+    const normTail = tail.replace(/\\/g, '/');
+    if (normTail.includes('/')) return;
+    const baseName = normTail.split('/').pop() ?? normTail;
+    const m = /^([0-9a-f]+)\.(jpg|jpeg|png|webp)$/i.exec(baseName);
+    if (!m) return;
+    const stem = m[1];
+    // Long hex stems only (thumbnail content hashes); avoids junk like ab.jpg → ab/ab.jpg
+    if (stem.length < 16) return;
+    const shard = stem.slice(0, 2).toLowerCase();
+    push(path.join(base, shard, baseName));
+}
+
 /**
  * Ordered filesystem paths to try for a decoded /media/* URL. Host/WSL paths from the DB often
  * do not exist inside Linux Docker; the `…/thumbnails/xx/hash.jpg` tail plus `paths.thumbnail_base_dir`
@@ -57,10 +72,10 @@ export function buildMediaPathCandidates(
         const tail = extractThumbnailTail(source);
         if (!tail) continue;
         if (configuredBase) {
-            push(path.join(configuredBase, tail));
+            pushThumbnailUnderBase(configuredBase, tail, push);
         }
         if (defaultBase !== configuredBase) {
-            push(path.join(defaultBase, tail));
+            pushThumbnailUnderBase(defaultBase, tail, push);
         }
     }
 
