@@ -3,6 +3,7 @@ import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Searc
 import { SimilarSearchDrawer } from './SimilarSearchDrawer';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
 import { useNotificationStore } from '../../store/useNotificationStore';
+import { apiBaseUrlForExternalOpen } from '../../utils/apiBaseUrlForBrowser';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
 import { usePropagateTags } from '../../hooks/useDatabase';
 import { toMediaUrl } from '../../utils/mediaUrl';
@@ -11,6 +12,7 @@ import { bridge } from '../../bridge';
 import { STAGE_DISPLAY } from '../../constants/pipelineLabels';
 import type { TagPropagationRequest } from '../../../electron/apiTypes';
 import { bakeExifOrientationToBlob } from '../../utils/exportImageBake';
+import { pickServerFilesystemPath } from '../../utils/pickServerFilesystemPath';
 
 interface Image {
     id: number;
@@ -156,6 +158,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [fixMetadataBusy, setFixMetadataBusy] = React.useState(false);
     const addNotification = useNotificationStore(state => state.addNotification);
 
+    const serverFsPath = React.useMemo(
+        () => pickServerFilesystemPath(image.file_path, image.win_path),
+        [image.file_path, image.win_path],
+    );
+
     const handleFixImageMetadata = useCallback(async () => {
         const path = image.file_path?.trim();
         if (!path) {
@@ -185,7 +192,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const handleOpenBackend = useCallback(async () => {
         try {
             const config = await bridge.getApiConfig();
-            const url = `${config.url}/ui/images/${image.id}`;
+            const url = `${apiBaseUrlForExternalOpen(config)}/ui/images/${image.id}`;
             await bridge.openExternalUrl(url);
         } catch (err) {
             console.error('[ImageViewer] Failed to open backend URL:', err);
@@ -270,7 +277,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             return;
         }
         let active = true;
-        const pathSchema = image.win_path || image.file_path;
+        const pathSchema = serverFsPath;
         setExifData(null);
         setExifLoading(true);
         if (!pathSchema) {
@@ -311,7 +318,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             }
         })();
         return () => { active = false; };
-    }, [readOnlyFilesystemMode, image.id, image.win_path, image.file_path]);
+    }, [readOnlyFilesystemMode, image.id, serverFsPath]);
 
     // Lazy load or use DB EXIF data
     useEffect(() => {
@@ -345,7 +352,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         }
 
         const fetchExif = async () => {
-            const pathSchema = image.win_path || image.file_path;
+            const pathSchema = serverFsPath;
             if (!pathSchema) {
                 console.warn('[ImageViewer] No path for EXIF fetch', image.id);
                 return;
@@ -383,7 +390,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         fetchExif();
         return () => { active = false; };
     }, [
-        image.id, image.win_path, image.file_path, image.exif_iso, image.exif_shutter,
+        image.id, serverFsPath, image.exif_iso, image.exif_shutter,
         image.exif_aperture, image.exif_focal_length, image.exif_model, image.exif_lens_model
     ]);
 
@@ -472,7 +479,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     }, [image.id]);
 
     const loadSuggestedKeywords = useCallback(async () => {
-        const folderPath = getFolderPathFromFilePath(image.win_path || image.file_path);
+        const folderPath = getFolderPathFromFilePath(serverFsPath);
         if (!folderPath) return;
 
         setSuggestionsLoading(true);
@@ -509,7 +516,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         } finally {
             setSuggestionsLoading(false);
         }
-    }, [addNotification, extractSuggestedKeywords, image.file_path, image.id, image.win_path, suppressedByImage]);
+    }, [addNotification, extractSuggestedKeywords, image.id, serverFsPath, suppressedByImage]);
 
     const persistKeywords = useCallback(async (keywords: string[]): Promise<boolean> => {
         const normalized = normalizeKeywords(keywords.join(', '));
@@ -655,7 +662,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const handlePropagateTags = useCallback(async () => {
         const normalizedKeywords = normalizeKeywords(editForm.keywords);
         const currentKeywords = normalizeKeywords(image.keywords || '');
-        const folderPath = getFolderPathFromFilePath(image.win_path || image.file_path);
+        const folderPath = getFolderPathFromFilePath(serverFsPath);
 
         if (!folderPath) {
             addNotification('Cannot determine the current folder for tag propagation', 'warning');
@@ -695,7 +702,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             addNotification('Propagation failed', 'error');
             console.error('Propagation failed:', e);
         }
-    }, [addNotification, editForm.keywords, image.file_path, image.id, image.keywords, image.win_path, propagate]);
+    }, [addNotification, editForm.keywords, image.id, image.keywords, propagate, serverFsPath]);
 
     const [previewSrc, setPreviewSrc] = React.useState<string>('');
     const [loading, setLoading] = React.useState(false);
@@ -712,8 +719,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             setPreviewSrc('');
 
             try {
-                // Use win_path if available (from detailed fetch), else fallback to file_path
-                const pathSchema = image.win_path || image.file_path;
+                const pathSchema = serverFsPath;
 
                 // Case 1: Web safe image - use direct path
                 if (isWebSafe(image.file_name)) {
@@ -763,7 +769,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             active = false;
             if (objectUrl) URL.revokeObjectURL(objectUrl);
         };
-    }, [image]);
+    }, [image, serverFsPath]);
 
     const src = previewSrc;
 
@@ -816,7 +822,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     mimeType: exportMime,
                     suggestedFileName,
                     id: image.id,
-                    sourcePath: image.win_path || image.file_path,
+                    sourcePath: serverFsPath,
                     imageUuid: image.image_uuid || null,
                     pixelNormalizationApplied,
                     previewOrientation: bakeResult?.sourceOrientation ?? undefined
@@ -859,7 +865,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             active = false;
             void bridge.setCurrentExportImageContext(null);
         };
-    }, [src, image.file_name, image.file_path, image.id, image.image_uuid, image.win_path]);
+    }, [src, image.file_name, image.file_path, image.id, image.image_uuid, image.win_path, serverFsPath]);
 
     // Format date
     const dateStr = image.created_at ? new Date(image.created_at).toLocaleString() : 'Unknown';
@@ -876,7 +882,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         .split(',')
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0);
-    const propagationFolderPath = getFolderPathFromFilePath(image.win_path || image.file_path);
+    const propagationFolderPath = getFolderPathFromFilePath(serverFsPath);
 
     return (
         <div style={{
