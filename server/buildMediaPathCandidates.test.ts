@@ -30,4 +30,14 @@ describe('buildMediaPathCandidates', () => {
         expect(list).toContain(path.join(base, '8a6ba057d19e8cca4f6869be55.jpg'));
         expect(list).toContain(path.join(base, '8a', '8a6ba057d19e8cca4f6869be55.jpg'));
     });
+
+    it('adds Windows drive path when host is win32 and DB stores /mnt/...', () => {
+        const mnt = '/mnt/d/Photos/Z8/180-600mm/2024/2024-04-21/DSC_1382.NEF';
+        const list = buildMediaPathCandidates(mnt, projectRoot, undefined, {
+            hostPlatform: 'win32',
+        });
+        expect(list.some((c) => c.replace(/\\/g, '/') === 'D:/Photos/Z8/180-600mm/2024/2024-04-21/DSC_1382.NEF')).toBe(
+            true,
+        );
+    });
 });

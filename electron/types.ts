@@ -161,6 +161,8 @@ export interface AppConfig {
     };
     api?: {
         url?: string;
+        /** Host-reachable base URL for “open in browser” links when `url` is Docker-internal only. */
+        browserUrl?: string;
         port?: number;
         host?: string;
     };

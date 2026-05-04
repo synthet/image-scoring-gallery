@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { toWindowsLocalFsPath } from './pathWinWsl';
+import {
+    crossOsFilePathCandidates,
+    toWindowsLocalFsPath,
+    windowsDriveToWslMountPath,
+} from './pathWinWsl';
 
 const win = { forPlatform: 'win32' as const };
 
@@ -28,5 +32,33 @@ describe('toWindowsLocalFsPath', () => {
         expect(toWindowsLocalFsPath('/mnt/d/Photos/a.NEF', { forPlatform: 'linux' })).toBe(
             '/mnt/d/Photos/a.NEF',
         );
+    });
+});
+
+describe('windowsDriveToWslMountPath', () => {
+    it('maps D:/... to /mnt/d/...', () => {
+        expect(windowsDriveToWslMountPath('D:/Photos/a.NEF')).toBe('/mnt/d/Photos/a.NEF');
+    });
+
+    it('maps backslashes', () => {
+        expect(windowsDriveToWslMountPath(String.raw`D:\Photos\a.NEF`)).toBe('/mnt/d/Photos/a.NEF');
+    });
+
+    it('leaves /mnt paths unchanged', () => {
+        expect(windowsDriveToWslMountPath('/mnt/d/Photos/a.NEF')).toBe('/mnt/d/Photos/a.NEF');
+    });
+});
+
+describe('crossOsFilePathCandidates', () => {
+    it('on win32 includes D: form for /mnt/d DB paths', () => {
+        const list = crossOsFilePathCandidates('/mnt/d/Photos/Z8/a.NEF', { forPlatform: 'win32' });
+        expect(list).toContain('/mnt/d/Photos/Z8/a.NEF');
+        expect(list).toContain('D:/Photos/Z8/a.NEF');
+    });
+
+    it('on linux includes /mnt form for Windows DB paths', () => {
+        const list = crossOsFilePathCandidates(String.raw`D:\Photos\a.NEF`, { forPlatform: 'linux' });
+        expect(list).toContain(String.raw`D:\Photos\a.NEF`);
+        expect(list).toContain('/mnt/d/Photos/a.NEF');
     });
 });

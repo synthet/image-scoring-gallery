@@ -2,6 +2,26 @@
 
 All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
 
+## [7.6.0] - 2026-05-03
+
+### Added
+
+- **`config.api.browserUrl`**: optional host-reachable backend base for **open in browser** / **`/ui/`** links when **`api.url`** is container-only; wired through **`environment.docker.json`** (host **`browserUrl`** alongside internal service URL).
+- **Browser gallery session persistence**: **`src/utils/galleryBrowserPersistence.ts`** (with tests) restores filters, folder, stacks mode, and view in **`AppContent.tsx`** when running the Vite **`dev:browser`** path.
+- **`apiBaseUrlForExternalOpen`**: **`src/utils/apiBaseUrlForBrowser.ts`** (with tests) picks **`browserUrl`** vs **`api.url`** for external links.
+- **Windows ↔ WSL path helpers**: expanded **`electron/pathWinWsl.ts`** and coverage in **`electron/pathWinWsl.test.ts`**.
+
+### Changed
+
+- **Docker refresh script**: **`docker_refresh_webui.bat`** replaces **`docker_refresh_gallery.bat`** (compose refresh targets the WebUI service).
+- **Static file server**: **`server/buildMediaPathCandidates.ts`** / **`server/index.ts`** — additional media path resolution cases and tests.
+- **Electron main/preload/types**: small IPC and typing updates for browser URL and shell behavior (**`electron/main.ts`**, **`electron/preload.ts`**, **`electron/types.ts`**).
+- **Docs**: **`docs/guides/02-api-backend-config.md`** — **`browserUrl`** and API base guidance.
+
+### Fixed
+
+- **Log image links**: **`src/utils/logMessageLinks.tsx`** — align inspector URLs with host-reachable API base when **`browserUrl`** is set.
+
 ## [7.5.0] - 2026-05-03
 
 ### Added

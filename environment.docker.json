@@ -9,6 +9,7 @@
         }
     },
     "api": {
-        "url": "http://image-scoring-webui:7860"
+        "url": "http://image-scoring-webui:7860",
+        "browserUrl": "http://127.0.0.1:7860"
     }
 }

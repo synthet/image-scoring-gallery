@@ -1,4 +1,5 @@
 import path from 'path';
+import { crossOsFilePathCandidates } from '../electron/pathWinWsl';
 import { absolutizeThumbnailPath, extractThumbnailTail } from '../electron/thumbnailPathNormalize';
 import { applyThumbnailPathRemaps, type PathsConfigSlice } from '../electron/pathsRemap';
 
@@ -40,22 +41,33 @@ function pushThumbnailUnderBase(base: string, tail: string, push: (p: string) =>
  * do not exist inside Linux Docker; the `…/thumbnails/xx/hash.jpg` tail plus `paths.thumbnail_base_dir`
  * (or the default sibling backend folder) fixes that without changing stored rows.
  */
+export type BuildMediaPathCandidatesOptions = {
+    /** Override host OS (tests: assert WSL↔Windows variants on Linux CI). */
+    hostPlatform?: NodeJS.Platform;
+};
+
 export function buildMediaPathCandidates(
     rawDecodedPath: string,
     projectRoot: string,
     paths: PathsConfigSlice | undefined,
+    opts?: BuildMediaPathCandidatesOptions,
 ): string[] {
     const seen = new Set<string>();
     const out: string[] = [];
     const pathsCfg = paths || {};
+    const platformOpt = opts?.hostPlatform ? { forPlatform: opts.hostPlatform } : undefined;
 
     const push = (p: string) => pushUnique(seen, out, p);
 
-    push(rawDecodedPath);
+    for (const v of crossOsFilePathCandidates(rawDecodedPath, platformOpt)) {
+        push(v);
+    }
 
     const remapped = applyThumbnailPathRemaps(rawDecodedPath, pathsCfg);
     if (remapped !== rawDecodedPath) {
-        push(remapped);
+        for (const v of crossOsFilePathCandidates(remapped, platformOpt)) {
+            push(v);
+        }
     }
 
     const absolutized = absolutizeThumbnailPath(

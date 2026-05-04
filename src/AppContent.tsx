@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MainLayout } from './components/Layout/MainLayout';
 import { useImages, useKeywords, useStacks } from './hooks/useDatabase';
 import { useFolders } from './hooks/useFolders';
@@ -18,7 +18,6 @@ import { BackupModal } from './components/Backup/BackupModal';
 import { SimilarSearchDrawer } from './components/Viewer/SimilarSearchDrawer';
 import { Loader2, ChevronRight, RefreshCw } from 'lucide-react';
 import { useOperationStore } from './store/useOperationStore';
-import { useState } from 'react';
 import { bridge } from './bridge';
 import { useElectronListeners } from './hooks/useElectronListeners';
 import { useGalleryNavigation } from './hooks/useGalleryNavigation';
@@ -28,10 +27,18 @@ import { useGalleryWebSocket } from './hooks/useGalleryWebSocket';
 import breadcrumbStyles from './styles/breadcrumbs.module.css';
 import toggleStyles from './styles/toggle.module.css';
 import { EmbeddingMap, type ProjectedEmbeddingPoint } from './components/Embeddings/EmbeddingMap';
+import {
+  folderIdExistsInTree,
+  isBrowserPersistenceEnabled,
+  readGalleryBrowserSnapshot,
+  writeGalleryBrowserSnapshot,
+} from './utils/galleryBrowserPersistence';
 
 function AppContent() {
   const [filters, setFilters] = useState<FilterState>({ minRating: 0, sortBy: 'capture_date', order: 'DESC' });
   const [smartCoverEnabled, setSmartCoverEnabled] = useState(false);
+  /** After first folder load in browser, restore session once so the next persist sees hydrated state. */
+  const [browserSessionReady, setBrowserSessionReady] = useState(() => !isBrowserPersistenceEnabled());
   const activeOps = useOperationStore((s) => s.activeOps);
 
   useEffect(() => {
@@ -123,7 +130,7 @@ function AppContent() {
   } = useStacks(50, selectedFolderId, stackFilters);
 
   const {
-    stacksMode, enableStacksMode,
+    stacksMode, setStacksMode, enableStacksMode,
     activeStackId, setActiveStackId,
     activeStackInfo, setActiveStackInfo,
     stackImages, setStackImages,
@@ -153,6 +160,54 @@ function AppContent() {
     activeStackIdRef,
   });
 
+  useEffect(() => {
+    if (!isBrowserPersistenceEnabled()) return;
+    if (foldersLoading || browserSessionReady) return;
+    const snap = readGalleryBrowserSnapshot();
+    if (snap) {
+      setFilters(snap.filters);
+      setSmartCoverEnabled(snap.smartCoverEnabled);
+      setCurrentView(snap.currentView);
+      if (
+        snap.selectedFolderId !== undefined &&
+        folderIdExistsInTree(folders, snap.selectedFolderId)
+      ) {
+        setSelectedFolderId(snap.selectedFolderId);
+        setIncludeSubfolders(snap.includeSubfolders);
+      }
+      if (snap.stacksMode) {
+        setStacksMode(true);
+        if (snap.activeStackId !== null) {
+          setActiveStackId(snap.activeStackId);
+          setActiveStackInfo({ stackId: snap.activeStackId, imageCount: 0 });
+        }
+      }
+    }
+    setBrowserSessionReady(true);
+  }, [foldersLoading, folders, browserSessionReady, setCurrentView, setActiveStackInfo, setStacksMode]);
+
+  useEffect(() => {
+    if (!isBrowserPersistenceEnabled() || !browserSessionReady) return;
+    writeGalleryBrowserSnapshot({
+      v: 1,
+      selectedFolderId,
+      includeSubfolders,
+      stacksMode,
+      activeStackId,
+      currentView,
+      filters,
+      smartCoverEnabled,
+    });
+  }, [
+    browserSessionReady,
+    selectedFolderId,
+    includeSubfolders,
+    stacksMode,
+    activeStackId,
+    currentView,
+    filters,
+    smartCoverEnabled,
+  ]);
 
   const handleNavigateToFolder = (folderId: number) => {
     setSelectedFolderId(folderId);

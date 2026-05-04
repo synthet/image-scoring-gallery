@@ -1,4 +1,5 @@
 import { bridge } from '../bridge';
+import { apiBaseUrlForExternalOpen } from './apiBaseUrlForBrowser';
 
 const IMG_LINK_RE = /\[\[img:(\d+)\]\]/g;
 
@@ -34,7 +35,7 @@ export function splitLogMessageWithImageLinks(message: string): ImageLinkSegment
 
 async function openBackendImageInspector(id: number): Promise<void> {
     const config = await bridge.getApiConfig();
-    const url = `${config.url}/ui/images/${id}`;
+    const url = `${apiBaseUrlForExternalOpen(config)}/ui/images/${id}`;
     await bridge.openExternalUrl(url);
 }
 

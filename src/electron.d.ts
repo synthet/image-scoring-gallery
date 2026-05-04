@@ -100,7 +100,7 @@ declare global {
                 error?: string;
             }>;
             getApiPort: () => Promise<number>;
-            getApiConfig: () => Promise<{ url: string }>;
+            getApiConfig: () => Promise<{ url: string; browserUrl?: string }>;
             getConfig: () => Promise<AppConfig>;
             saveConfig: (updates: Partial<AppConfig>) => Promise<AppConfig>;
             setCurrentExportImageContext: (context: ExportImageContext | null) => Promise<boolean>;

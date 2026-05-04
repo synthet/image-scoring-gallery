@@ -13,6 +13,7 @@ import type {
     BackupTargetInfo,
     BackupProgress,
     BackupResult,
+    SyncCandidate,
 } from './types';
 import type {
     ApiResponse as BackendApiResponse,

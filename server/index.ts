@@ -219,7 +219,10 @@ export function createServerApp(deps: ServerDeps) {
 
     // Config: API config (for WebSocket / Python backend URL)
     router.get('/api-config', (_req, res) => {
-        res.json({ url: backendBaseUrl });
+        const api = appConfig.api as { browserUrl?: string } | undefined;
+        const browserRaw = api?.browserUrl?.trim();
+        const browserUrl = browserRaw ? browserRaw.replace(/\/$/, '') : undefined;
+        res.json(browserUrl ? { url: backendBaseUrl, browserUrl } : { url: backendBaseUrl });
     });
 
     // Near duplicates (via Python backend)
@@ -331,7 +334,8 @@ export function createServerApp(deps: ServerDeps) {
             const n = path.normalize(candidate);
             const isAbsolute = path.isAbsolute(n);
             const isWslPath = n.startsWith('/mnt/');
-            if (!isAbsolute && !isWslPath) {
+            const isWinDrivePath = /^[A-Za-z]:[\\/]/.test(n);
+            if (!isAbsolute && !isWslPath && !isWinDrivePath) {
                 continue;
             }
             if (fs.existsSync(n)) {

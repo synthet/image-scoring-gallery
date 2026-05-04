@@ -21,6 +21,9 @@ import {
     BackupManifest,
     BackupManifestEntry,
     type ScoredImageForBackup,
+    type SyncCandidate,
+    type SyncPreviewResult,
+    type SyncRunResult,
 } from './types';
 import { SessionLogManager } from './sessionLogManager';
 import { getConfigPath, loadAppConfig } from './config';
@@ -1767,6 +1770,7 @@ async function startFullApplication(): Promise<void> {
                     importOnly: 0,
                     newFolders: [],
                     errors: [],
+                    candidates: [],
                 };
             }
             return {
@@ -1883,6 +1887,11 @@ async function startFullApplication(): Promise<void> {
                                 return;
                             }
                         }
+                    }
+
+                    if (!dateStr) {
+                        skippedCount++;
+                        return;
                     }
 
                     const year = dateStr.substring(0, 4);
@@ -2299,7 +2308,12 @@ async function startFullApplication(): Promise<void> {
         let host = '127.0.0.1';
 
         if (config.api) {
-            if (config.api.url) return { url: config.api.url };
+            if (config.api.url) {
+                const url = config.api.url.replace(/\/$/, '');
+                const browserRaw = config.api.browserUrl?.trim();
+                const browserUrl = browserRaw ? browserRaw.replace(/\/$/, '') : undefined;
+                return browserUrl ? { url, browserUrl } : { url };
+            }
             if (config.api.port) port = config.api.port;
             if (config.api.host) host = config.api.host;
         }
