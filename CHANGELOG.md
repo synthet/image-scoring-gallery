@@ -2,6 +2,13 @@
 
 All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
 
+## [7.6.1] - 2026-05-06
+
+### Fixed
+
+- **Windows/WSL path normalization**: `toWindowsLocalFsPath()` now handles decoded URL shapes like `/D:/...`, `/D/...`, and double-slash WSL paths (`electron/pathWinWsl.ts`, tests).
+- **Browser-mode media resolution**: Media candidate generation now includes Docker backend thumbnail roots and logs candidate resolution details for 404 investigations (`server/buildMediaPathCandidates.ts`, `server/index.ts`).
+
 ## [7.6.0] - 2026-05-03
 
 ### Added

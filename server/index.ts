@@ -329,22 +329,31 @@ export function createServerApp(deps: ServerDeps) {
         const pathsCfg = (appConfig as { paths?: Record<string, unknown> }).paths;
         const candidates = buildMediaPathCandidates(filePath, galleryProjectRoot, pathsCfg);
 
+        console.log(`[Media] Request: ${filePath} -> candidates:`, candidates);
+
         let normalized: string | undefined;
         for (const candidate of candidates) {
             const n = path.normalize(candidate);
             const isAbsolute = path.isAbsolute(n);
-            const isWslPath = n.startsWith('/mnt/');
+            const isWslPath = n.toLowerCase().startsWith('/mnt/') || n.toLowerCase().startsWith('\\mnt\\');
             const isWinDrivePath = /^[A-Za-z]:[\\/]/.test(n);
+            
             if (!isAbsolute && !isWslPath && !isWinDrivePath) {
+                console.log(`[Media]   Skip invalid: ${n}`);
                 continue;
             }
+            
             if (fs.existsSync(n)) {
+                console.log(`[Media]   Found: ${n}`);
                 normalized = n;
                 break;
+            } else {
+                console.log(`[Media]   Not found: ${n}`);
             }
         }
 
         if (!normalized) {
+            console.error(`[Media] 404: No candidates exist for ${filePath}`);
             res.status(404).send('File not found');
             return;
         }

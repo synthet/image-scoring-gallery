@@ -79,6 +79,7 @@ export function buildMediaPathCandidates(
 
     const configuredBase = resolveThumbnailBase(projectRoot, pathsCfg);
     const defaultBase = path.resolve(projectRoot, '../image-scoring-backend/thumbnails');
+    const dockerBackendBase = '/backend/thumbnails';
 
     for (const source of [rawDecodedPath, remapped]) {
         const tail = extractThumbnailTail(source);
@@ -88,6 +89,9 @@ export function buildMediaPathCandidates(
         }
         if (defaultBase !== configuredBase) {
             pushThumbnailUnderBase(defaultBase, tail, push);
+        }
+        if (dockerBackendBase !== defaultBase && dockerBackendBase !== configuredBase) {
+            pushThumbnailUnderBase(dockerBackendBase, tail, push);
         }
     }
 
