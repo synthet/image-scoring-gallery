@@ -33,6 +33,18 @@ describe('toWindowsLocalFsPath', () => {
             '/mnt/d/Photos/a.NEF',
         );
     });
+
+    it('handles leading slash for Windows paths /D:/...', () => {
+        expect(toWindowsLocalFsPath('/D:/Photos/a.jpg', win)).toBe('D:/Photos/a.jpg');
+    });
+
+    it('handles leading slash for Windows paths /D/...', () => {
+        expect(toWindowsLocalFsPath('/D/Photos/a.jpg', win)).toBe('D:/Photos/a.jpg');
+    });
+
+    it('handles double slashes in WSL paths', () => {
+        expect(toWindowsLocalFsPath('//mnt/d/Photos/a.jpg', win)).toBe('D:/Photos/a.jpg');
+    });
 });
 
 describe('windowsDriveToWslMountPath', () => {

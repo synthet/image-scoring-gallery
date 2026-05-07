@@ -25,7 +25,15 @@ export function toWindowsLocalFsPath(
         return p;
     }
 
-    const norm = p.replace(/\\/g, '/');
+    const norm = p.replace(/\\/g, '/').replace(/\/+/g, '/');
+
+    // Handle /D:/... or /D/... (common in browser/decoded URLs)
+    const leadingDrive = norm.match(/^\/([A-Za-z]):?\/(.*)$/);
+    if (leadingDrive) {
+        const drive = leadingDrive[1].toUpperCase();
+        const rest = leadingDrive[2];
+        return `${drive}:/${rest}`;
+    }
 
     const hybrid = norm.match(/^([A-Za-z]):\/?mnt\/([A-Za-z])(?:\/(.*))?$/);
     if (hybrid) {
