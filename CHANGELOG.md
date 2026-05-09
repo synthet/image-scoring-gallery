@@ -2,6 +2,12 @@
 
 All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
 
+## [7.6.2] - 2026-05-09
+
+### Added
+
+- **Claude Code / backlog workflow**: **`/task-claim`** slash command (**`.claude/commands/task-claim.md`**) and **`.claude/skills/backlog-queue/SKILL.md`** mirror (GitHub Project claim flow aligned with **`docs/project/00-backlog-workflow.md`**).
+
 ## [7.6.1] - 2026-05-06
 
 ### Fixed
