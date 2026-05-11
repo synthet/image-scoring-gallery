@@ -2,6 +2,20 @@
 
 All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
 
+## [7.7.0] - 2026-05-10
+
+### Added
+
+- **Image pipeline phase panel**: **`ImageViewer`** shows every pipeline stage (**indexing** → **keywords**) with authoritative **`image_phase_status`** rows when available, and heuristic fallback so the sidebar never goes blank (**`src/components/Viewer/ImageViewer.tsx`**).
+- **`getImagePhaseStatuses`**: PostgreSQL helper returns one row per known phase in display order, with defaults for missing IPS rows (**`electron/db.ts`**); types and IPC surface in **`electron/types.ts`**, **`electron/preload.ts`**, **`electron/main.ts`**, **`src/bridge.ts`**, **`src/electron.d.ts`**.
+- **Post-import scheduling**: small extensions in **`electron/scheduleProcessing.ts`** aligned with backend phase semantics.
+- **Docs**: **`docs/features/implemented/06-sync-from-device-workflow.md`** (sync-from-device workflow) plus index and terminology cross-links.
+
+### Changed
+
+- **Static server**: minor media / logging tweaks (**`server/index.ts`**).
+- **Docs**: **`docs/CANONICAL_SOURCES.md`**, **`docs/README.md`**, **`docs/log.md`**, **`docs/technical/PIPELINE_TERMINOLOGY.md`**.
+
 ## [7.6.2] - 2026-05-09
 
 ### Added

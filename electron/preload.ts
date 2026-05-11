@@ -14,6 +14,7 @@ import type {
     BackupProgress,
     BackupResult,
     SyncCandidate,
+    ImagePhaseStatus,
 } from './types';
 import type {
     ApiResponse as BackendApiResponse,
@@ -66,6 +67,10 @@ contextBridge.exposeInMainWorld('electron', {
     getImageDetails: async (id: number) => {
         const response = await ipcRenderer.invoke('db:get-image-details', id);
         return unwrapEnvelope<ImageDetail | null>(response);
+    },
+    getImagePhaseStatuses: async (id: number) => {
+        const response = await ipcRenderer.invoke('db:get-image-phase-statuses', id);
+        return unwrapEnvelope<ImagePhaseStatus[]>(response);
     },
     updateImageDetails: async (id: number, updates: ImageUpdates) => {
         const response = await ipcRenderer.invoke('db:update-image-details', { id, updates });
@@ -313,6 +318,7 @@ contextBridge.exposeInMainWorld('electron', {
             importOnly: number;
             newFolders: string[];
             errors: string[];
+            candidates: SyncCandidate[];
         }>(response);
     },
     syncRun: async (sourcePath: string, pickedCandidates?: SyncCandidate[]) => {

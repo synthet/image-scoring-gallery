@@ -923,6 +923,81 @@ export async function markImageIndexingPhaseDone(imageId: number): Promise<void>
 export const SCHEDULE_PENDING_PHASE_CODES = ['metadata', 'scoring', 'culling', 'keywords'] as const;
 export type SchedulePendingPhaseCode = (typeof SCHEDULE_PENDING_PHASE_CODES)[number];
 
+/** Phase codes surfaced in `getImagePhaseStatuses`, ordered for UI display. */
+export const ALL_PIPELINE_PHASE_CODES = ['indexing', 'metadata', 'scoring', 'culling', 'keywords'] as const;
+export type PipelinePhaseCode = (typeof ALL_PIPELINE_PHASE_CODES)[number];
+export type PipelinePhaseStatus =
+    | 'not_started'
+    | 'running'
+    | 'done'
+    | 'skipped'
+    | 'failed';
+
+export interface ImagePhaseStatusRow {
+    code: PipelinePhaseCode;
+    status: PipelinePhaseStatus;
+    started_at: string | null;
+    finished_at: string | null;
+    updated_at: string | null;
+    last_error: string | null;
+    attempt_count: number;
+}
+
+/**
+ * Return one row per known pipeline phase for `imageId`. Phases without an
+ * `image_phase_status` row default to `not_started` so the UI can render the
+ * full pipeline regardless of whether the backend has touched the image yet.
+ */
+export async function getImagePhaseStatuses(imageId: number): Promise<ImagePhaseStatusRow[]> {
+    const codePlaceholders = ALL_PIPELINE_PHASE_CODES.map(() => '?').join(', ');
+    const rows = await query<{
+        code: string;
+        status: string | null;
+        started_at: string | null;
+        finished_at: string | null;
+        updated_at: string | null;
+        last_error: string | null;
+        attempt_count: number | null;
+    }>(
+        `SELECT
+            pp.code,
+            ips.status,
+            ips.started_at,
+            ips.finished_at,
+            ips.updated_at,
+            ips.last_error,
+            ips.attempt_count
+        FROM pipeline_phases pp
+        LEFT JOIN image_phase_status ips
+            ON ips.phase_id = pp.id AND ips.image_id = ?
+        WHERE pp.code IN (${codePlaceholders})`,
+        [imageId, ...ALL_PIPELINE_PHASE_CODES]
+    );
+    const byCode = new Map<string, ImagePhaseStatusRow>();
+    for (const r of rows) {
+        byCode.set(r.code, {
+            code: r.code as PipelinePhaseCode,
+            status: (r.status ?? 'not_started') as PipelinePhaseStatus,
+            started_at: r.started_at,
+            finished_at: r.finished_at,
+            updated_at: r.updated_at,
+            last_error: r.last_error,
+            attempt_count: r.attempt_count ?? 0,
+        });
+    }
+    return ALL_PIPELINE_PHASE_CODES.map((code) =>
+        byCode.get(code) ?? {
+            code,
+            status: 'not_started',
+            started_at: null,
+            finished_at: null,
+            updated_at: null,
+            last_error: null,
+            attempt_count: 0,
+        }
+    );
+}
+
 async function invalidateFolderAggregatesForImageIds(imageIds: number[]): Promise<void> {
     if (imageIds.length === 0) {
         return;

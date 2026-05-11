@@ -38,6 +38,7 @@ import type {
     FolderRow,
     FsReadDirResult,
     ImageDetail,
+    ImagePhaseStatus,
     ImageQueryOptions,
     ImageRow,
     ImageUpdates,
@@ -58,6 +59,7 @@ export type {
     FolderRow,
     FsReadDirResult,
     ImageDetail,
+    ImagePhaseStatus,
     ImageQueryOptions,
     ImageRow,
     ImageUpdates,
@@ -74,6 +76,7 @@ declare global {
             getImageCount: (options?: ImageQueryOptions) => Promise<number>;
             getImages: (options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getImageDetails: (id: number) => Promise<ImageDetail | null>;
+            getImagePhaseStatuses: (id: number) => Promise<ImagePhaseStatus[]>;
             updateImageDetails: (id: number, updates: ImageUpdates) => Promise<boolean>;
             deleteImage: (id: number) => Promise<boolean>;
             deleteFolder: (id: number) => Promise<boolean>;

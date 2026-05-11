@@ -284,6 +284,21 @@ export interface BackupResult {
     droppedForSpace: number;
 }
 
+// -- Pipeline phase types --
+
+export type PipelinePhaseCode = 'indexing' | 'metadata' | 'scoring' | 'culling' | 'keywords';
+export type PipelinePhaseStatusValue = 'not_started' | 'running' | 'done' | 'skipped' | 'failed';
+
+export interface ImagePhaseStatus {
+    code: PipelinePhaseCode;
+    status: PipelinePhaseStatusValue;
+    started_at: string | null;
+    finished_at: string | null;
+    updated_at: string | null;
+    last_error: string | null;
+    attempt_count: number;
+}
+
 // -- Sync Feature Types --
 
 export interface SyncCandidate {

@@ -10,6 +10,7 @@ import { toMediaUrl } from '../../utils/mediaUrl';
 import { formatShutterSpeedDisplay } from '../../utils/formatShutterSpeed';
 import { bridge } from '../../bridge';
 import { STAGE_DISPLAY } from '../../constants/pipelineLabels';
+import type { ImagePhaseStatus } from '../../../electron/types';
 import type { TagPropagationRequest } from '../../../electron/apiTypes';
 import { bakeExifOrientationToBlob } from '../../utils/exportImageBake';
 import { pickServerFilesystemPath } from '../../utils/pickServerFilesystemPath';
@@ -61,6 +62,100 @@ interface ImageViewerProps {
     /** Read-only: no DB fetch, no edits, no similar search (filesystem-only / light mode). */
     readOnlyFilesystemMode?: boolean;
 }
+
+const PHASE_DISPLAY_ORDER: Array<{ code: ImagePhaseStatus['code']; label: string }> = [
+    { code: 'indexing', label: STAGE_DISPLAY.indexing.name },
+    { code: 'metadata', label: STAGE_DISPLAY.metadata.name },
+    { code: 'scoring', label: STAGE_DISPLAY.scoring.name },
+    { code: 'culling', label: STAGE_DISPLAY.culling.name },
+    { code: 'keywords', label: STAGE_DISPLAY.keywords.name },
+];
+
+const PHASE_STATUS_LABEL: Record<ImagePhaseStatus['status'], string> = {
+    not_started: 'Pending',
+    running: 'Running',
+    done: 'Completed',
+    skipped: 'Skipped',
+    failed: 'Failed',
+};
+
+const PHASE_STATUS_COLOR: Record<ImagePhaseStatus['status'], string> = {
+    not_started: '#ffa726',
+    running: '#42a5f5',
+    done: '#4caf50',
+    skipped: '#9e9e9e',
+    failed: '#ef5350',
+};
+
+interface PhaseHeuristicImage {
+    score_general?: number | null;
+    rating?: number;
+    label?: string | null;
+    keywords?: string;
+}
+
+/**
+ * Renders the Phases sidebar. Prefers authoritative `image_phase_status` rows;
+ * while those are loading (or missing), falls back to legacy heuristics so the
+ * panel never goes blank.
+ */
+const renderPhaseRows = (
+    phaseStatuses: ImagePhaseStatus[] | null,
+    exifData: object | null | undefined,
+    image: PhaseHeuristicImage,
+): React.ReactElement[] => {
+    if (phaseStatuses && phaseStatuses.length > 0) {
+        const byCode = new Map(phaseStatuses.map((r) => [r.code, r]));
+        return PHASE_DISPLAY_ORDER.map(({ code, label }) => {
+            const row = byCode.get(code);
+            const status = row?.status ?? 'not_started';
+            return (
+                <div key={code} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#888' }}>{label}:</span>
+                    <span
+                        style={{ color: PHASE_STATUS_COLOR[status] }}
+                        title={row?.last_error ?? undefined}
+                    >
+                        {PHASE_STATUS_LABEL[status]}
+                    </span>
+                </div>
+            );
+        });
+    }
+    // Fallback heuristics (until phase_statuses arrives or when DB lookup failed)
+    const heuristic = {
+        metadata: !!exifData,
+        scoring: image.score_general !== null && image.score_general !== undefined,
+        culling: (image.rating ?? 0) > 0 || (!!image.label && image.label !== 'None'),
+        keywords: !!image.keywords,
+    };
+    return [
+        <div key="metadata" style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#888' }}>{STAGE_DISPLAY.metadata.name}:</span>
+            <span style={{ color: heuristic.metadata ? '#4caf50' : '#ffa726' }}>
+                {heuristic.metadata ? 'Extracted' : 'Pending'}
+            </span>
+        </div>,
+        <div key="scoring" style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#888' }}>{STAGE_DISPLAY.scoring.name}:</span>
+            <span style={{ color: heuristic.scoring ? '#4caf50' : '#ffa726' }}>
+                {heuristic.scoring ? 'Completed' : 'Pending'}
+            </span>
+        </div>,
+        <div key="culling" style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#888' }}>{STAGE_DISPLAY.culling.name}:</span>
+            <span style={{ color: heuristic.culling ? '#4caf50' : '#ffa726' }}>
+                {heuristic.culling ? 'Completed' : 'Pending'}
+            </span>
+        </div>,
+        <div key="keywords" style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#888' }}>{STAGE_DISPLAY.keywords.name}:</span>
+            <span style={{ color: heuristic.keywords ? '#4caf50' : '#ffa726' }}>
+                {heuristic.keywords ? 'Completed' : 'Pending'}
+            </span>
+        </div>,
+    ];
+};
 
 const isWebSafe = (filename: string) => {
     const ext = filename.split('.').pop()?.toLowerCase() || '';
@@ -707,6 +802,23 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [previewSrc, setPreviewSrc] = React.useState<string>('');
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
+    const [phaseStatuses, setPhaseStatuses] = React.useState<ImagePhaseStatus[] | null>(null);
+
+    useEffect(() => {
+        let active = true;
+        setPhaseStatuses(null);
+        bridge
+            .getImagePhaseStatuses(image.id)
+            .then((rows) => {
+                if (active) setPhaseStatuses(rows);
+            })
+            .catch(() => {
+                if (active) setPhaseStatuses([]);
+            });
+        return () => {
+            active = false;
+        };
+    }, [image.id]);
 
     // Load image effect
     useEffect(() => {
@@ -1459,30 +1571,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                             <div style={{ borderTop: '1px solid #333', paddingTop: 15 }}>
                                 <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 10, color: '#ddd' }}>Phases</div>
                                 <div style={{ fontSize: '0.85em', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#888' }}>{STAGE_DISPLAY.metadata.name}:</span>
-                                        <span style={{ color: exifData ? '#4caf50' : '#ffa726' }}>
-                                            {exifData ? 'Extracted' : 'Pending'}
-                                        </span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#888' }}>{STAGE_DISPLAY.scoring.name}:</span>
-                                        <span style={{ color: image.score_general !== null && image.score_general !== undefined ? '#4caf50' : '#ffa726' }}>
-                                            {image.score_general !== null && image.score_general !== undefined ? 'Completed' : 'Pending'}
-                                        </span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#888' }}>{STAGE_DISPLAY.culling.name}:</span>
-                                        <span style={{ color: image.rating > 0 || (image.label && image.label !== 'None') ? '#4caf50' : '#ffa726' }}>
-                                            {image.rating > 0 || (image.label && image.label !== 'None') ? 'Completed' : 'Pending'}
-                                        </span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#888' }}>{STAGE_DISPLAY.keywords.name}:</span>
-                                        <span style={{ color: image.keywords ? '#4caf50' : '#ffa726' }}>
-                                            {image.keywords ? 'Completed' : 'Pending'}
-                                        </span>
-                                    </div>
+                                    {renderPhaseRows(phaseStatuses, exifData, image)}
                                     {image.file_path && (
                                         <div style={{ marginTop: 12 }}>
                                             <p style={{ margin: '0 0 8px', fontSize: '0.8em', color: '#888', lineHeight: 1.4 }}>

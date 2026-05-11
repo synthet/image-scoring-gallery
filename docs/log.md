@@ -2,6 +2,10 @@
 
 Chronological record of wiki maintenance activities. Newest entries first.
 
+## 2026-05
+
+- 2026-05-10: created — [features/implemented/06-sync-from-device-workflow.md](features/implemented/06-sync-from-device-workflow.md): Sync IPC phases, DB touchpoints, progress semantics, logs, ImageViewer Phases heuristics; row in [features/implemented/INDEX.md](features/implemented/INDEX.md) and [README.md](README.md).
+
 ## 2026-04
 
 - 2026-04-26: created — [features/implemented/05-jpeg-export-exif-orientation.md](features/implemented/05-jpeg-export-exif-orientation.md): documents renderer vs main-process invariants for **File → Export** (avoid double EXIF rotation, `resetExportedJpegExifOrientation`, `useMWG: false`); catalog row in [features/implemented/INDEX.md](features/implemented/INDEX.md).
