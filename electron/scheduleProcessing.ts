@@ -48,6 +48,11 @@ export async function scheduleProcessingForImages(
             skip_existing: true,
         });
         if (res?.success) {
+            try {
+                await db.markImagePhasesPending(imageIds);
+            } catch {
+                /* best-effort: backend will create rows when it processes each phase */
+            }
             return { method: 'api', jobId: extractJobId(res.data) };
         }
         const msg = res?.message ?? 'Pipeline submit rejected';
@@ -98,6 +103,11 @@ export async function scheduleProcessingForImportedFolder(
             skip_existing: true,
         });
         if (res?.success) {
+            try {
+                await db.markFolderImagePhasesPending(folderPath);
+            } catch {
+                /* best-effort: backend will create rows when it processes each phase */
+            }
             return { method: 'api', jobId: extractJobId(res.data) };
         }
         const msg = res?.message ?? 'Pipeline submit rejected';

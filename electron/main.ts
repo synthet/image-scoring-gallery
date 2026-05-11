@@ -997,6 +997,10 @@ async function startFullApplication(): Promise<void> {
         return result;
     }));
 
+    ipcMain.handle('db:get-image-phase-statuses', wrapIpcHandler(async (_, id) => {
+        return await db.getImagePhaseStatuses(id);
+    }));
+
     ipcMain.handle('db:update-image-details', wrapIpcHandler(async (_, { id, updates }) => {
         console.log(`[Main] Updating image details for ID: ${id}`, updates);
         return await db.updateImageDetails(id, updates);
@@ -1906,6 +1910,15 @@ async function startFullApplication(): Promise<void> {
                         }
                         if (dryRun) {
                             importOnly++;
+                            // Track for the follow-up run so the import phase can `pendingImports.set` it.
+                            candidates.push({
+                                sourcePath: filePath,
+                                fileName,
+                                dateStr: dateStr!,
+                                camera,
+                                lens,
+                                imageUuid,
+                            });
                         } else {
                             pendingImports.set(destFile, { imageUuid });
                         }
@@ -2087,6 +2100,7 @@ async function startFullApplication(): Promise<void> {
                 importOnly: out.importOnly,
                 newFolders: out.newFolders,
                 errors: out.errors,
+                candidates: out.candidates,
             };
         } finally {
             syncGuards.decrementPreviewCount();

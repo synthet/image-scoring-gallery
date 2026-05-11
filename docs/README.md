@@ -50,6 +50,8 @@ Documentation for implemented and planned features.
 | [02-desktop-shell-and-navigation.md](features/implemented/02-desktop-shell-and-navigation.md) | Electron shell, gallery modes, main UI areas |
 | [03-database-engine-modes.md](features/implemented/03-database-engine-modes.md) | `pg` vs `api` engines, `db:*` IPC |
 | [04-backend-api-jobs.md](features/implemented/04-backend-api-jobs.md) | `apiService.ts` + `api:*` IPC ↔ FastAPI |
+| [05-jpeg-export-exif-orientation.md](features/implemented/05-jpeg-export-exif-orientation.md) | **File → Export** raster bake, EXIF orientation |
+| [06-sync-from-device-workflow.md](features/implemented/06-sync-from-device-workflow.md) | **Sync from device** — scan, copy, DB import, pipeline submit |
 
 Canonical shipped API/pipeline catalog (Python repo): [image-scoring-backend `docs/features/implemented/INDEX.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/implemented/INDEX.md).
 

@@ -11,6 +11,7 @@ Use this page before changing integration contracts, stage naming, or data acces
 | Electron query layer and IPC | `electron/db.ts`, `electron/db/provider.ts`, `electron/main.ts`, `preload` / IPC definitions |
 | HTTP client to the Python WebUI | `electron/apiService.ts` |
 | Runtime wiring (backend URL, lock file) | [`guides/02-api-backend-config.md`](guides/02-api-backend-config.md), repo-root `config.json` |
+| **Sync from device** (workflow, IPS after import) | [`features/implemented/06-sync-from-device-workflow.md`](features/implemented/06-sync-from-device-workflow.md) · **Backend:** [`ELECTRON_SYNC_IMPORT_AND_PHASES.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/ELECTRON_SYNC_IMPORT_AND_PHASES.md) |
 | Backend local health (`python scripts/doctor.py`), support bundles, MCP triage | **Backend:** [DIAGNOSTICS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DIAGNOSTICS.md), [DEVELOPMENT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DEVELOPMENT.md); gallery: [`DEVELOPMENT.md`](DEVELOPMENT.md) (`npm run doctor`) |
 | Backlog and mirror sync | [`project/00-backlog-workflow.md`](project/00-backlog-workflow.md), root [`../TODO.md`](../TODO.md) |
 | Wiki structure | [`WIKI_SCHEMA.md`](WIKI_SCHEMA.md), [`log.md`](log.md) |

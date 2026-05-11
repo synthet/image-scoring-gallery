@@ -200,6 +200,8 @@ function createHttpBridge(): Window['electron'] {
 
         getImageDetails: (id) => get(`/db/image/${id}`),
 
+        getImagePhaseStatuses: (id) => get(`/db/image/${id}/phase-statuses`),
+
         updateImageDetails: (id, updates) => post(`/db/image/${id}`, updates),
 
         deleteImage: (id) => del(`/db/image/${id}`),
@@ -393,6 +395,7 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
     getStackCount: () => Promise.resolve(0),
     getImagesByStack: () => Promise.resolve([]),
     getImageDetails: () => Promise.resolve(null),
+    getImagePhaseStatuses: () => Promise.resolve([]),
     updateImageDetails: () => Promise.resolve(false),
     deleteImage: () => Promise.resolve(false),
     deleteFolder: () => Promise.resolve(false),

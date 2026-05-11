@@ -120,6 +120,14 @@ export function createServerApp(deps: ServerDeps) {
         } catch (e) { fail(res, e); }
     }));
 
+    // DB: image phase statuses (all 5 phases; missing rows default to not_started)
+    router.get('/db/image/:id/phase-statuses', wrap(async (req, res) => {
+        try {
+            const result = await dbModule.getImagePhaseStatuses(parseInt(req.params.id, 10));
+            ok(res, result);
+        } catch (e) { fail(res, e); }
+    }));
+
     // DB: update image
     router.post('/db/image/:id', wrap(async (req, res) => {
         try {
