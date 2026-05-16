@@ -6,7 +6,7 @@ import { AppModeProvider, useAppMode } from './context/AppModeContext';
 import { FsGallery } from './components/FsMode/FsGallery';
 import { bridge } from './bridge';
 import styles from './components/FsMode/FsGallery.module.css';
-import { AlertCircle } from 'lucide-react';
+import { XCircle } from 'lucide-react';
 import { Logger } from './services/Logger';
 
 function AppShell() {
@@ -54,7 +54,7 @@ function AppShell() {
     if (error) return (
       <div className={styles.errorScreen}>
         <div className={styles.errorIcon}>
-          <AlertCircle size={28} color="#ef5350" />
+          <XCircle size={28} color="var(--color-danger)" />
         </div>
         <div className={styles.errorTitle}>Connection Error</div>
         <div className={styles.errorMessage}>{error}</div>

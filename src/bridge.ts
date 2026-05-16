@@ -9,7 +9,7 @@
  * `import { bridge } from '../bridge'` and call `bridge.xxx()` instead.
  */
 
-import type { FileImageMetadataResult, BackupTargetInfo, BackupProgress, BackupResult } from '../electron/types';
+import type { FileImageMetadataResult, BackupTargetInfo, BackupProgress, BackupResult, SyncCandidate, SyncPreviewResult, SyncRunResult } from '../electron/types';
 
 
 
@@ -200,6 +200,8 @@ function createHttpBridge(): Window['electron'] {
 
         getImageDetails: (id) => get(`/db/image/${id}`),
 
+        getImagePhaseStatuses: (id) => get(`/db/image/${id}/phase-statuses`),
+
         updateImageDetails: (id, updates) => post(`/db/image/${id}`, updates),
 
         deleteImage: (id) => del(`/db/image/${id}`),
@@ -274,6 +276,11 @@ function createHttpBridge(): Window['electron'] {
                 : Promise.resolve('db'),
 
         getGalleryMode: () => Promise.resolve('db'),
+        
+        openExternalUrl: (url) => {
+            window.open(url, '_blank');
+            return Promise.resolve();
+        },
 
         onAppModeChanged: noop,
 
@@ -312,18 +319,8 @@ function createHttpBridge(): Window['electron'] {
 
         importRun: (folderPath) => post('/import/run', { folderPath }),
 
-        syncPreview: () =>
-            Promise.resolve({
-                thresholdDate: null,
-                destinationRoot: '',
-                scanned: 0,
-                skipped: 0,
-                wouldCopy: 0,
-                importOnly: 0,
-                newFolders: [] as string[],
-                errors: ['Sync not available in browser mode'],
-            }),
-        syncRun: () => Promise.resolve({ scanned: 0, copied: 0, imported: 0, skipped: 0, folders: 0, errors: ['Sync not available in browser mode'], thresholdDate: null }),
+        syncPreview: (sourcePath) => get<SyncPreviewResult>('/sync/preview', { sourcePath }),
+        syncRun: (sourcePath, pickedCandidates) => post<SyncRunResult>('/sync/run', { sourcePath, pickedCandidates }),
 
         backupCheckTarget: () => Promise.resolve(null),
         backupRun: () =>
@@ -398,6 +395,7 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
     getStackCount: () => Promise.resolve(0),
     getImagesByStack: () => Promise.resolve([]),
     getImageDetails: () => Promise.resolve(null),
+    getImagePhaseStatuses: () => Promise.resolve([]),
     updateImageDetails: () => Promise.resolve(false),
     deleteImage: () => Promise.resolve(false),
     deleteFolder: () => Promise.resolve(false),
@@ -417,7 +415,7 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
             skipped: [],
         }),
     rebuildStackCache: () => Promise.resolve({ success: false, count: 0 }),
-    importRun: () => Promise.resolve({ added: 0, skipped: 0, errors: [] }),
+    importRun: () => Promise.resolve({ added: 0, skipped: 0, errors: [], processing: { method: 'none' as const } }),
     syncPreview: () =>
         Promise.resolve({
             thresholdDate: null,
@@ -428,8 +426,19 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
             importOnly: 0,
             newFolders: [] as string[],
             errors: [],
+            candidates: [],
         }),
-    syncRun: () => Promise.resolve({ scanned: 0, copied: 0, imported: 0, skipped: 0, folders: 0, errors: [], thresholdDate: null }),
+    syncRun: () =>
+        Promise.resolve({
+            scanned: 0,
+            copied: 0,
+            imported: 0,
+            skipped: 0,
+            folders: 0,
+            errors: [],
+            thresholdDate: null,
+            processing: [],
+        }),
 };
 
 export const bridge: Window['electron'] = new Proxy({} as Window['electron'], {

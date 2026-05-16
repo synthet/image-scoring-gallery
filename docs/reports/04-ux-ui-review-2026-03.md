@@ -1,4 +1,4 @@
-# UX/UI Review — Electron Image Scoring Gallery (2026-03)
+# UX/UI Review — Driftara Gallery (2026-03)
 
 ## Scope
 This review covers the primary desktop workflow:

@@ -1,28 +1,42 @@
-# Database Engine — Decision Record
+# Database Design
 
-Date: 2026-03-07 (original), updated 2026-03-30
-Status: **Completed — migrated to PostgreSQL + pgvector**
+PostgreSQL + pgvector is the primary database architecture. The backend owns schema and migrations; the gallery consumes that schema from the Electron main process.
 
-## Question
+## Authority
 
-Current DB engine was Firebird. Is there a better DB for this project?
+- Backend schema authority: [image-scoring-backend DB_SCHEMA.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/DB_SCHEMA.md).
+- Backend database hub: [image-scoring-backend DATABASE.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DATABASE.md).
+- Cross-repo protocol: [image-scoring-backend AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md).
 
-## Decision
+## Provider Modes
 
-Migrate to **PostgreSQL + pgvector** as a coordinated platform move across both the Python backend (`image-scoring-backend`) and this Electron gallery.
+[electron/db/provider.ts](../../electron/db/provider.ts) creates one provider from normalized config:
 
-## What was done
+| Mode | Behavior |
+|---|---|
+| `postgres` / `postgresql` | Uses the `pg` driver (`node-postgres`) in the Electron main process. |
+| `api` | Sends database-style queries to the backend API and checks backend health through HTTP. |
 
-1. **Backend (Phase 3)**: Python scoring pipeline switched to PostgreSQL. All ~60 DB functions route to PG. SQL auto-translation layer handles legacy Firebird syntax.
-2. **Electron (Phase 4)**: `electron/db/provider.ts` provides a connector abstraction. `node-firebird` dependency removed; `pg` is the production driver. Legacy `engine: "firebird"` / `provider: "firebird"` values are mapped to Postgres **only in config normalization** (`normalizeAppConfig` in `electron/config.ts`). The provider layer (`createDatabaseConnector` in `electron/db/provider.ts`) intentionally accepts only normalized engines (`postgres`/`api`) and rejects raw `firebird` values.
-3. **Data migration**: Bulk migration script (`scripts/python/migrate_firebird_to_postgres.py`) migrated all data including embeddings (Firebird BLOB → `vector(1280)` with HNSW cosine index).
+The renderer never opens database connections directly. Renderer code calls preload/contextBridge functions, which invoke main-process `db:*` IPC handlers.
 
-## Current stack
+## API Mode
 
-- **Database**: PostgreSQL 17 + pgvector, running in Docker (`docker-compose.yml` in backend repo)
-- **Electron driver**: `pg` (node-postgres) via pool in `electron/db/provider.ts`
-- **Backend driver**: psycopg2 via `ThreadedConnectionPool` in `modules/db_postgres.py`
+API mode is useful when the backend should own database connectivity or when direct PostgreSQL access is not available to the desktop app. The connector calls backend HTTP endpoints; exact endpoint behavior is backend-owned and must be checked against [API_CONTRACT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/API_CONTRACT.md) and [openapi.yaml](https://github.com/synthet/image-scoring-backend/blob/main/docs/reference/api/openapi.yaml).
 
-## Historical context
+## Legacy Firebird
 
-The original recommendation (March 2026) was to stay on Firebird and improve the client layer first. The migration to PostgreSQL was completed later that month as a coordinated cross-project effort. See [migration plan](../planning/02-firebird-postgresql-migration.md) for full details.
+Firebird is historical for this gallery. Existing config normalization may handle legacy `firebird` values, but [electron/db/provider.ts](../../electron/db/provider.ts) accepts normalized supported engines and rejects unsupported raw engines. Do not document Firebird as an active primary path unless current code changes prove it.
+
+Historical context:
+
+- [planning/02-firebird-postgresql-migration.md](../planning/02-firebird-postgresql-migration.md)
+- Backend [FIREBIRD_POSTGRES_MIGRATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/planning/database/FIREBIRD_POSTGRES_MIGRATION.md)
+
+## Change Discipline
+
+For schema changes:
+
+1. Update backend migration/initializer and backend canonical docs first.
+2. Update gallery SQL/query code in [electron/db.ts](../../electron/db.ts) or provider behavior as needed.
+3. Update gallery docs and append [../log.md](../log.md).
+4. Run backend and gallery checks listed in the handoff.

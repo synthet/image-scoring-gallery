@@ -25,7 +25,15 @@ export function toWindowsLocalFsPath(
         return p;
     }
 
-    const norm = p.replace(/\\/g, '/');
+    const norm = p.replace(/\\/g, '/').replace(/\/+/g, '/');
+
+    // Handle /D:/... or /D/... (common in browser/decoded URLs)
+    const leadingDrive = norm.match(/^\/([A-Za-z]):?\/(.*)$/);
+    if (leadingDrive) {
+        const drive = leadingDrive[1].toUpperCase();
+        const rest = leadingDrive[2];
+        return `${drive}:/${rest}`;
+    }
 
     const hybrid = norm.match(/^([A-Za-z]):\/?mnt\/([A-Za-z])(?:\/(.*))?$/);
     if (hybrid) {
@@ -42,4 +50,51 @@ export function toWindowsLocalFsPath(
     }
 
     return p;
+}
+
+/**
+ * If `p` is a Windows drive-letter absolute path (`D:\\...` or `D:/...`),
+ * returns the typical WSL mount (`/mnt/d/...`). Otherwise returns `p` unchanged.
+ */
+export function windowsDriveToWslMountPath(p: string): string {
+    if (!p) {
+        return p;
+    }
+    const norm = p.replace(/\\/g, '/');
+    const m = norm.match(/^([A-Za-z]):(?:\/(.*))?$/);
+    if (!m) {
+        return p;
+    }
+    const drive = m[1].toLowerCase();
+    const rest = m[2] ?? '';
+    return rest.length > 0 ? `/mnt/${drive}/${rest}` : `/mnt/${drive}/`;
+}
+
+/**
+ * Paths to try for `fs.existsSync` when the DB may store WSL (`/mnt/...`) or Windows
+ * (`D:/...`) shapes and the gallery Node process may run on Windows or under WSL.
+ */
+export function crossOsFilePathCandidates(
+    p: string,
+    opts?: ToWindowsLocalFsPathOptions,
+): string[] {
+    if (!p) {
+        return [];
+    }
+    const out: string[] = [];
+    const seen = new Set<string>();
+    const add = (x: string) => {
+        if (!x || seen.has(x)) {
+            return;
+        }
+        seen.add(x);
+        out.push(x);
+    };
+
+    add(p);
+    add(toWindowsLocalFsPath(p, opts));
+    const wsl = windowsDriveToWslMountPath(p);
+    add(wsl);
+
+    return out;
 }

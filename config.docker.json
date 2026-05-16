@@ -1,0 +1,6 @@
+{
+    "_comment": "Docker Compose mounts this file as /app/config.json. Thumbnails come from the sibling backend bind mount (../image-scoring-backend:/backend).",
+    "paths": {
+        "thumbnail_base_dir": "/backend/thumbnails"
+    }
+}

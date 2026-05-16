@@ -1,6 +1,6 @@
-# Electron Image Scoring Frontend Overview
+# Driftara Gallery — frontend overview
 
-This repository (`image-scoring-gallery`) is the dedicated frontend application for the Image Scoring system.
+This repository (`image-scoring-gallery`, **Driftara Gallery**) is the desktop frontend for **Vexlum Scoring** (`image-scoring-backend`).
 
 ## Key Technologies
 - **Electron**: For cross-platform desktop application capabilities.

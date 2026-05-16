@@ -1,9 +1,9 @@
 {
   "name": "electron-gallery",
   "private": true,
-  "version": "7.0.2",
-  "description": "A high-performance image gallery with scoring capabilities",
-  "author": "Electron Image Scoring Team",
+  "version": "7.7.1",
+  "description": "Driftara Gallery — desktop app for Vexlum Scoring libraries",
+  "author": "Driftara Gallery",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "concurrently --kill-others --success command-electron -n server,vite,electron \"npm run server\" \"vite\" \"npm run dev:electron\"",
@@ -16,7 +16,7 @@
     "test": "cross-env VITEST=1 vitest",
     "test:run": "cross-env VITEST=1 vitest run",
     "test:coverage": "cross-env VITEST=1 vitest run --coverage",
-    "test:db": "cd ../image-scoring && python scripts/setup_test_db.py",
+    "test:db": "cd ../image-scoring-backend && python scripts/setup_test_db.py",
     "generate:api-types": "node scripts/generate-api-types.mjs",
     "prebuild-backup-manifest": "node scripts/prebuild-backup-manifest.mjs",
     "contract:update": "node scripts/sync-api-contract.mjs --update",
@@ -27,12 +27,13 @@
     "dev:browser": "npm run dev:web",
     "server": "npx tsx server/index.ts",
     "start:browser": "npm run build && node dist-server/index.js",
-    "check:type-sync": "node scripts/check-type-sync.mjs"
+    "check:type-sync": "node scripts/check-type-sync.mjs",
+    "doctor": "node scripts/doctor.mjs"
   },
   "build": {
     "forceCodeSigning": false,
     "appId": "com.electron.gallery",
-    "productName": "Electron Image Gallery",
+    "productName": "Driftara Gallery",
     "win": {
       "icon": "public/icon.png",
       "target": "nsis",

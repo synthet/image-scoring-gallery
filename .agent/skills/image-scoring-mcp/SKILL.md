@@ -3,7 +3,7 @@ name: image-scoring-mcp
 description: How to use the gallery MCP server plus the optional backend DB MCP for diagnostics, API probing, and renderer inspection.
 ---
 
-# Image Scoring MCP Server
+# Vexlum Scoring MCP server (optional from Driftara Gallery)
 
 The gallery workspace now has two distinct MCP paths:
 

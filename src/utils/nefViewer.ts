@@ -1,4 +1,5 @@
 import { bridge } from '../bridge';
+import { toMediaUrl } from './mediaUrl';
 
 /**
  * LibRaw Viewer - NEF/RAW file preview utility
@@ -67,7 +68,37 @@ export class NefViewer {
                 console.error('[NefViewer] Extraction error:', e);
             }
         } else {
-            console.warn('[NefViewer] ✗ No Electron API - cannot extract NEF');
+            console.log('[NefViewer] Browser mode: fetch RAW via /media, then client-side parse');
+            try {
+                const url = toMediaUrl(filePath);
+                if (!url) {
+                    console.warn('[NefViewer] Empty media URL');
+                    return null;
+                }
+                const res = await fetch(url);
+                if (!res.ok) {
+                    console.warn('[NefViewer] /media fetch failed', res.status, url.slice(0, 120));
+                    return null;
+                }
+                const arrayBuffer = await res.arrayBuffer();
+                if (arrayBuffer.byteLength < 64) {
+                    console.warn('[NefViewer] /media response too small');
+                    return null;
+                }
+                let blob = this.extractFromSubIFD(arrayBuffer);
+                if (blob) {
+                    console.log('[NefViewer] ✓ Browser Tier 2 (SubIFD) succeeded');
+                    return blob;
+                }
+                blob = await this.extractEmbeddedJpeg(arrayBuffer);
+                if (blob) {
+                    console.log('[NefViewer] ✓ Browser Tier 3 (JPEG markers) succeeded');
+                    return blob;
+                }
+                console.warn('[NefViewer] Browser client-side parse found no embedded JPEG');
+            } catch (e) {
+                console.error('[NefViewer] Browser /media fetch or parse error:', e);
+            }
         }
 
         console.warn('[NefViewer] ✗ Returning null - will fallback to thumbnail');

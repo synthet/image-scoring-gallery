@@ -1,6 +1,7 @@
 {
     "_comment": "Copy to environment.json and set machine-specific values. environment.json is gitignored and overrides matching keys from config.json.",
     "database": {
+        "engine": "postgres",
         "postgres": {
             "host": "127.0.0.1",
             "port": 5432,

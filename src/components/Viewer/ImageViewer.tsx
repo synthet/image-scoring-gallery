@@ -3,13 +3,17 @@ import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Searc
 import { SimilarSearchDrawer } from './SimilarSearchDrawer';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
 import { useNotificationStore } from '../../store/useNotificationStore';
+import { apiBaseUrlForExternalOpen } from '../../utils/apiBaseUrlForBrowser';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
 import { usePropagateTags } from '../../hooks/useDatabase';
 import { toMediaUrl } from '../../utils/mediaUrl';
+import { formatShutterSpeedDisplay } from '../../utils/formatShutterSpeed';
 import { bridge } from '../../bridge';
 import { STAGE_DISPLAY } from '../../constants/pipelineLabels';
+import type { ImagePhaseStatus } from '../../../electron/types';
 import type { TagPropagationRequest } from '../../../electron/apiTypes';
 import { bakeExifOrientationToBlob } from '../../utils/exportImageBake';
+import { pickServerFilesystemPath } from '../../utils/pickServerFilesystemPath';
 
 interface Image {
     id: number;
@@ -59,6 +63,100 @@ interface ImageViewerProps {
     readOnlyFilesystemMode?: boolean;
 }
 
+const PHASE_DISPLAY_ORDER: Array<{ code: ImagePhaseStatus['code']; label: string }> = [
+    { code: 'indexing', label: STAGE_DISPLAY.indexing.name },
+    { code: 'metadata', label: STAGE_DISPLAY.metadata.name },
+    { code: 'scoring', label: STAGE_DISPLAY.scoring.name },
+    { code: 'culling', label: STAGE_DISPLAY.culling.name },
+    { code: 'keywords', label: STAGE_DISPLAY.keywords.name },
+];
+
+const PHASE_STATUS_LABEL: Record<ImagePhaseStatus['status'], string> = {
+    not_started: 'Pending',
+    running: 'Running',
+    done: 'Completed',
+    skipped: 'Skipped',
+    failed: 'Failed',
+};
+
+const PHASE_STATUS_COLOR: Record<ImagePhaseStatus['status'], string> = {
+    not_started: '#ffa726',
+    running: '#42a5f5',
+    done: '#4caf50',
+    skipped: '#9e9e9e',
+    failed: '#ef5350',
+};
+
+interface PhaseHeuristicImage {
+    score_general?: number | null;
+    rating?: number;
+    label?: string | null;
+    keywords?: string;
+}
+
+/**
+ * Renders the Phases sidebar. Prefers authoritative `image_phase_status` rows;
+ * while those are loading (or missing), falls back to legacy heuristics so the
+ * panel never goes blank.
+ */
+const renderPhaseRows = (
+    phaseStatuses: ImagePhaseStatus[] | null,
+    exifData: object | null | undefined,
+    image: PhaseHeuristicImage,
+): React.ReactElement[] => {
+    if (phaseStatuses && phaseStatuses.length > 0) {
+        const byCode = new Map(phaseStatuses.map((r) => [r.code, r]));
+        return PHASE_DISPLAY_ORDER.map(({ code, label }) => {
+            const row = byCode.get(code);
+            const status = row?.status ?? 'not_started';
+            return (
+                <div key={code} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#888' }}>{label}:</span>
+                    <span
+                        style={{ color: PHASE_STATUS_COLOR[status] }}
+                        title={row?.last_error ?? undefined}
+                    >
+                        {PHASE_STATUS_LABEL[status]}
+                    </span>
+                </div>
+            );
+        });
+    }
+    // Fallback heuristics (until phase_statuses arrives or when DB lookup failed)
+    const heuristic = {
+        metadata: !!exifData,
+        scoring: image.score_general !== null && image.score_general !== undefined,
+        culling: (image.rating ?? 0) > 0 || (!!image.label && image.label !== 'None'),
+        keywords: !!image.keywords,
+    };
+    return [
+        <div key="metadata" style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#888' }}>{STAGE_DISPLAY.metadata.name}:</span>
+            <span style={{ color: heuristic.metadata ? '#4caf50' : '#ffa726' }}>
+                {heuristic.metadata ? 'Extracted' : 'Pending'}
+            </span>
+        </div>,
+        <div key="scoring" style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#888' }}>{STAGE_DISPLAY.scoring.name}:</span>
+            <span style={{ color: heuristic.scoring ? '#4caf50' : '#ffa726' }}>
+                {heuristic.scoring ? 'Completed' : 'Pending'}
+            </span>
+        </div>,
+        <div key="culling" style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#888' }}>{STAGE_DISPLAY.culling.name}:</span>
+            <span style={{ color: heuristic.culling ? '#4caf50' : '#ffa726' }}>
+                {heuristic.culling ? 'Completed' : 'Pending'}
+            </span>
+        </div>,
+        <div key="keywords" style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#888' }}>{STAGE_DISPLAY.keywords.name}:</span>
+            <span style={{ color: heuristic.keywords ? '#4caf50' : '#ffa726' }}>
+                {heuristic.keywords ? 'Completed' : 'Pending'}
+            </span>
+        </div>,
+    ];
+};
+
 const isWebSafe = (filename: string) => {
     const ext = filename.split('.').pop()?.toLowerCase() || '';
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
@@ -87,7 +185,7 @@ interface SuggestedKeywordRow {
 
 const LOCAL_REJECTION_KEY = 'image-viewer-tag-rejections-v1';
 const HIGH_CONFIDENCE_THRESHOLD = 0.85;
-const SIMILAR_SEARCH_ENABLED = false;
+const SIMILAR_SEARCH_ENABLED = true;
 
 const parseKeywordText = (keywords?: string | null): string[] => (
     (keywords || '')
@@ -113,7 +211,7 @@ const getFolderPathFromFilePath = (filePath?: string): string | null => {
     return normalized.slice(0, lastSeparator);
 };
 
-const ScoreBar = ({ label, value, color = '#ff9800' }: { label: string, value: number, color?: string }) => (
+const ScoreBar = ({ label, value, color = 'var(--color-warning)' }: { label: string, value: number, color?: string }) => (
     <div style={{ marginBottom: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8em', color: '#888', textTransform: 'uppercase', marginBottom: 2 }}>
             <span>{label}</span>
@@ -155,6 +253,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [fixMetadataBusy, setFixMetadataBusy] = React.useState(false);
     const addNotification = useNotificationStore(state => state.addNotification);
 
+    const serverFsPath = React.useMemo(
+        () => pickServerFilesystemPath(image.file_path, image.win_path),
+        [image.file_path, image.win_path],
+    );
+
     const handleFixImageMetadata = useCallback(async () => {
         const path = image.file_path?.trim();
         if (!path) {
@@ -180,6 +283,17 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             setFixMetadataBusy(false);
         }
     }, [addNotification, image.file_path, image.id]);
+    
+    const handleOpenBackend = useCallback(async () => {
+        try {
+            const config = await bridge.getApiConfig();
+            const url = `${apiBaseUrlForExternalOpen(config)}/ui/images/${image.id}`;
+            await bridge.openExternalUrl(url);
+        } catch (err) {
+            console.error('[ImageViewer] Failed to open backend URL:', err);
+            addNotification('Failed to open backend detail view', 'error');
+        }
+    }, [bridge, image.id, addNotification]);
 
     useKeyboardLayer('drawer', useCallback((e: KeyboardEvent) => {
         if (e.key === 'Escape') {
@@ -258,7 +372,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             return;
         }
         let active = true;
-        const pathSchema = image.win_path || image.file_path;
+        const pathSchema = serverFsPath;
         setExifData(null);
         setExifLoading(true);
         if (!pathSchema) {
@@ -299,7 +413,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             }
         })();
         return () => { active = false; };
-    }, [readOnlyFilesystemMode, image.id, image.win_path, image.file_path]);
+    }, [readOnlyFilesystemMode, image.id, serverFsPath]);
 
     // Lazy load or use DB EXIF data
     useEffect(() => {
@@ -333,7 +447,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         }
 
         const fetchExif = async () => {
-            const pathSchema = image.win_path || image.file_path;
+            const pathSchema = serverFsPath;
             if (!pathSchema) {
                 console.warn('[ImageViewer] No path for EXIF fetch', image.id);
                 return;
@@ -371,7 +485,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         fetchExif();
         return () => { active = false; };
     }, [
-        image.id, image.win_path, image.file_path, image.exif_iso, image.exif_shutter,
+        image.id, serverFsPath, image.exif_iso, image.exif_shutter,
         image.exif_aperture, image.exif_focal_length, image.exif_model, image.exif_lens_model
     ]);
 
@@ -460,7 +574,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     }, [image.id]);
 
     const loadSuggestedKeywords = useCallback(async () => {
-        const folderPath = getFolderPathFromFilePath(image.win_path || image.file_path);
+        const folderPath = getFolderPathFromFilePath(serverFsPath);
         if (!folderPath) return;
 
         setSuggestionsLoading(true);
@@ -497,7 +611,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         } finally {
             setSuggestionsLoading(false);
         }
-    }, [addNotification, extractSuggestedKeywords, image.file_path, image.id, image.win_path, suppressedByImage]);
+    }, [addNotification, extractSuggestedKeywords, image.id, serverFsPath, suppressedByImage]);
 
     const persistKeywords = useCallback(async (keywords: string[]): Promise<boolean> => {
         const normalized = normalizeKeywords(keywords.join(', '));
@@ -643,7 +757,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const handlePropagateTags = useCallback(async () => {
         const normalizedKeywords = normalizeKeywords(editForm.keywords);
         const currentKeywords = normalizeKeywords(image.keywords || '');
-        const folderPath = getFolderPathFromFilePath(image.win_path || image.file_path);
+        const folderPath = getFolderPathFromFilePath(serverFsPath);
 
         if (!folderPath) {
             addNotification('Cannot determine the current folder for tag propagation', 'warning');
@@ -683,11 +797,28 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             addNotification('Propagation failed', 'error');
             console.error('Propagation failed:', e);
         }
-    }, [addNotification, editForm.keywords, image.file_path, image.id, image.keywords, image.win_path, propagate]);
+    }, [addNotification, editForm.keywords, image.id, image.keywords, propagate, serverFsPath]);
 
     const [previewSrc, setPreviewSrc] = React.useState<string>('');
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
+    const [phaseStatuses, setPhaseStatuses] = React.useState<ImagePhaseStatus[] | null>(null);
+
+    useEffect(() => {
+        let active = true;
+        setPhaseStatuses(null);
+        bridge
+            .getImagePhaseStatuses(image.id)
+            .then((rows) => {
+                if (active) setPhaseStatuses(rows);
+            })
+            .catch(() => {
+                if (active) setPhaseStatuses([]);
+            });
+        return () => {
+            active = false;
+        };
+    }, [image.id]);
 
     // Load image effect
     useEffect(() => {
@@ -700,8 +831,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             setPreviewSrc('');
 
             try {
-                // Use win_path if available (from detailed fetch), else fallback to file_path
-                const pathSchema = image.win_path || image.file_path;
+                const pathSchema = serverFsPath;
 
                 // Case 1: Web safe image - use direct path
                 if (isWebSafe(image.file_name)) {
@@ -751,7 +881,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             active = false;
             if (objectUrl) URL.revokeObjectURL(objectUrl);
         };
-    }, [image]);
+    }, [image, serverFsPath]);
 
     const src = previewSrc;
 
@@ -804,7 +934,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     mimeType: exportMime,
                     suggestedFileName,
                     id: image.id,
-                    sourcePath: image.win_path || image.file_path,
+                    sourcePath: serverFsPath,
                     imageUuid: image.image_uuid || null,
                     pixelNormalizationApplied,
                     previewOrientation: bakeResult?.sourceOrientation ?? undefined
@@ -847,24 +977,24 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             active = false;
             void bridge.setCurrentExportImageContext(null);
         };
-    }, [src, image.file_name, image.file_path, image.id, image.image_uuid, image.win_path]);
+    }, [src, image.file_name, image.file_path, image.id, image.image_uuid, image.win_path, serverFsPath]);
 
     // Format date
     const dateStr = image.created_at ? new Date(image.created_at).toLocaleString() : 'Unknown';
 
     // Label color
-    const labelColor = image.label === 'Red' ? '#e53935' :
-        image.label === 'Yellow' ? '#fdd835' :
-            image.label === 'Green' ? '#43a047' :
-                image.label === 'Blue' ? '#1e88e5' :
-                    image.label === 'Purple' ? '#8e24aa' : 'None';
+    const labelColor = image.label === 'Red' ? 'var(--label-red)' :
+        image.label === 'Yellow' ? 'var(--label-yellow)' :
+            image.label === 'Green' ? 'var(--label-green)' :
+                image.label === 'Blue' ? 'var(--label-blue)' :
+                    image.label === 'Purple' ? 'var(--label-purple)' : 'None';
     const normalizedEditKeywords = normalizeKeywords(editForm.keywords);
     const keywordSource = effectiveEditing ? editForm.keywords : image.keywords || '';
     const keywordItems = keywordSource
         .split(',')
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0);
-    const propagationFolderPath = getFolderPathFromFilePath(image.win_path || image.file_path);
+    const propagationFolderPath = getFolderPathFromFilePath(serverFsPath);
 
     return (
         <div style={{
@@ -1217,8 +1347,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '0.8em', color: '#888', marginBottom: 4 }}>RATING</div>
                         {!effectiveEditing ? (
-                            <div style={{ color: '#ffd700', fontSize: '1.1em', display: 'flex', alignItems: 'center' }}>
-                                <Star fill="#ffd700" size={16} style={{ marginRight: 4 }} />
+                            <div style={{ color: 'var(--score-gold)', fontSize: '1.1em', display: 'flex', alignItems: 'center' }}>
+                                <Star fill="var(--score-gold)" size={16} style={{ marginRight: 4 }} />
                                 {image.rating}
                             </div>
                         ) : (
@@ -1323,7 +1453,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 <div style={{ borderTop: '1px solid #333', paddingTop: 15 }}>
                                     <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 15, color: '#ddd' }}>Model Scores</div>
 
-                                    <ScoreBar label="General" value={image.score_general} color="#ff5722" />
+                                    <ScoreBar label="General" value={image.score_general} color="var(--color-danger)" />
                                     <ScoreBar label="Technical" value={image.score_technical ?? 0} />
                                     <ScoreBar label="Aesthetic" value={image.score_aesthetic ?? 0} />
 
@@ -1355,8 +1485,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     {onOpenImageById ? (
                                         <button
                                             type="button"
-                                            title="Focus this image in the gallery list"
-                                            onClick={() => void onOpenImageById(image.id)}
+                                            title="Open image details in Python backend"
+                                            onClick={() => { void handleOpenBackend(); }}
                                             style={{
                                                 fontFamily: 'monospace',
                                                 background: 'none',
@@ -1409,7 +1539,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ color: '#888' }}>Shutter:</span>
-                                        <span>{exifData.ShutterSpeed ? `${exifData.ShutterSpeed}s` : 'Unknown'}</span>
+                                        <span>{formatShutterSpeedDisplay(exifData.ShutterSpeed)}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ color: '#888' }}>Aperture:</span>
@@ -1441,30 +1571,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                             <div style={{ borderTop: '1px solid #333', paddingTop: 15 }}>
                                 <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 10, color: '#ddd' }}>Phases</div>
                                 <div style={{ fontSize: '0.85em', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#888' }}>{STAGE_DISPLAY.metadata.name}:</span>
-                                        <span style={{ color: exifData ? '#4caf50' : '#ffa726' }}>
-                                            {exifData ? 'Extracted' : 'Pending'}
-                                        </span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#888' }}>{STAGE_DISPLAY.scoring.name}:</span>
-                                        <span style={{ color: image.score_general !== null && image.score_general !== undefined ? '#4caf50' : '#ffa726' }}>
-                                            {image.score_general !== null && image.score_general !== undefined ? 'Completed' : 'Pending'}
-                                        </span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#888' }}>{STAGE_DISPLAY.culling.name}:</span>
-                                        <span style={{ color: image.rating > 0 || (image.label && image.label !== 'None') ? '#4caf50' : '#ffa726' }}>
-                                            {image.rating > 0 || (image.label && image.label !== 'None') ? 'Completed' : 'Pending'}
-                                        </span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#888' }}>{STAGE_DISPLAY.keywords.name}:</span>
-                                        <span style={{ color: image.keywords ? '#4caf50' : '#ffa726' }}>
-                                            {image.keywords ? 'Completed' : 'Pending'}
-                                        </span>
-                                    </div>
+                                    {renderPhaseRows(phaseStatuses, exifData, image)}
                                     {image.file_path && (
                                         <div style={{ marginTop: 12 }}>
                                             <p style={{ margin: '0 0 8px', fontSize: '0.8em', color: '#888', lineHeight: 1.4 }}>
@@ -1541,24 +1648,23 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     setSimilarSearchImageId(image.id);
                                     setIsSimilarDrawerOpen(true);
                                 }}
-                                title="Similar image search is currently disabled."
+                                title="Find visually similar images in the library"
                                 style={{
                                     width: '100%',
                                     padding: '8px',
-                                    background: '#2a2a2a',
-                                    color: '#9e9e9e',
+                                    background: '#3a3d41',
+                                    color: '#e6e6e6',
                                     border: '1px solid #444',
                                     borderRadius: 4,
-                                    cursor: 'not-allowed',
+                                    cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     gap: 8,
                                     fontWeight: 500,
-                                    opacity: 0.8
                                 }}
                             >
-                                <Search size={16} /> Find Similar Images (temporarily disabled)
+                                <Search size={16} /> Find Similar Images
                             </button>
 
                         </>

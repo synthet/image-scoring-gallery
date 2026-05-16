@@ -1,15 +1,9 @@
 @import './tokens.css';
 
-:root {
-  --sidebar-width: 250px;
-  --bg-dark: #1e1e1e;
-  --bg-darker: #121212;
-  --bg-light: #252526;
-  --text-primary: #e0e0e0;
-  --text-secondary: #aaaaaa;
-  --accent: #007acc;
-  --border: #333333;
-}
+/*
+ * Layout primitives only. All color / spacing / typography tokens live in
+ * tokens.css (single source of truth). See docs/design/DESIGN_SYSTEM.md.
+ */
 
 body {
   margin: 0;
@@ -73,7 +67,7 @@ body {
 }
 
 .breadcrumbs-bar::-webkit-scrollbar-thumb {
-  background-color: #555;
+  background-color: var(--input-border);
   border-radius: 4px;
 }
 

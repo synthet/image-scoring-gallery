@@ -30,6 +30,8 @@ import { loadAppConfig, getConfigPath } from '../electron/config';
 import { ApiService } from '../electron/apiService';
 import { resolveBaseUrl } from '../electron/apiUrlResolver';
 
+import { buildMediaPathCandidates } from './buildMediaPathCandidates';
+
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const configPath = getConfigPath(path.resolve(__dirname, '../electron'));
@@ -51,6 +53,7 @@ type ServerDeps = {
 
 export function createServerApp(deps: ServerDeps) {
     const { dbModule, apiService, configPath, appConfig, backendBaseUrl } = deps;
+    const galleryProjectRoot = path.resolve(__dirname, '..');
     const app = express();
     app.use(express.json({ limit: '10mb' }));
 
@@ -113,6 +116,14 @@ export function createServerApp(deps: ServerDeps) {
     router.get('/db/image/:id', wrap(async (req, res) => {
         try {
             const result = await dbModule.getImageDetails(parseInt(req.params.id, 10));
+            ok(res, result);
+        } catch (e) { fail(res, e); }
+    }));
+
+    // DB: image phase statuses (all 5 phases; missing rows default to not_started)
+    router.get('/db/image/:id/phase-statuses', wrap(async (req, res) => {
+        try {
+            const result = await dbModule.getImagePhaseStatuses(parseInt(req.params.id, 10));
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
@@ -216,7 +227,10 @@ export function createServerApp(deps: ServerDeps) {
 
     // Config: API config (for WebSocket / Python backend URL)
     router.get('/api-config', (_req, res) => {
-        res.json({ url: backendBaseUrl });
+        const api = appConfig.api as { browserUrl?: string } | undefined;
+        const browserRaw = api?.browserUrl?.trim();
+        const browserUrl = browserRaw ? browserRaw.replace(/\/$/, '') : undefined;
+        res.json(browserUrl ? { url: backendBaseUrl, browserUrl } : { url: backendBaseUrl });
     });
 
     // Near duplicates (via Python backend)
@@ -320,15 +334,34 @@ export function createServerApp(deps: ServerDeps) {
             return;
         }
 
-        const normalized = path.normalize(filePath);
-        const isAbsolute = path.isAbsolute(normalized);
-        const isWslPath = normalized.startsWith('/mnt/');
-        if (!isAbsolute && !isWslPath) {
-            res.status(400).send('Only absolute file paths are supported');
-            return;
+        const pathsCfg = (appConfig as { paths?: Record<string, unknown> }).paths;
+        const candidates = buildMediaPathCandidates(filePath, galleryProjectRoot, pathsCfg);
+
+        console.log(`[Media] Request: ${filePath} -> candidates:`, candidates);
+
+        let normalized: string | undefined;
+        for (const candidate of candidates) {
+            const n = path.normalize(candidate);
+            const isAbsolute = path.isAbsolute(n);
+            const isWslPath = n.toLowerCase().startsWith('/mnt/') || n.toLowerCase().startsWith('\\mnt\\');
+            const isWinDrivePath = /^[A-Za-z]:[\\/]/.test(n);
+            
+            if (!isAbsolute && !isWslPath && !isWinDrivePath) {
+                console.log(`[Media]   Skip invalid: ${n}`);
+                continue;
+            }
+            
+            if (fs.existsSync(n)) {
+                console.log(`[Media]   Found: ${n}`);
+                normalized = n;
+                break;
+            } else {
+                console.log(`[Media]   Not found: ${n}`);
+            }
         }
 
-        if (!fs.existsSync(normalized)) {
+        if (!normalized) {
+            console.error(`[Media] 404: No candidates exist for ${filePath}`);
             res.status(404).send('File not found');
             return;
         }

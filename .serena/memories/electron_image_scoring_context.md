@@ -1,7 +1,7 @@
-# Electron Image Scoring Context
+# Driftara Gallery — context
 
 ## Overview
-The `image-scoring-gallery` project is the frontend application for the image scoring system.
+**Driftara Gallery** (`image-scoring-gallery`) is the desktop frontend for libraries managed by **Vexlum Scoring**.
 It provides a rich desktop interface for browsing, filtering, and organizing images.
 
 ## Key Technologies

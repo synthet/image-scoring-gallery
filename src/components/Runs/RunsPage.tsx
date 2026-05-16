@@ -235,15 +235,15 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                                     style={{
                                         padding: '10px', cursor: 'pointer', borderBottom: '1px solid #222',
                                         background: String(activeJobId) === String(job.job_id) ? '#1f1f1f' : 'transparent',
-                                        borderLeft: String(activeJobId) === String(job.job_id) ? '3px solid #4caf50' : '3px solid transparent',
+                                        borderLeft: String(activeJobId) === String(job.job_id) ? '3px solid var(--color-success)' : '3px solid transparent',
                                     }}
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                         <span style={{ fontSize: '0.9em', fontWeight: 600, color: '#ccc' }}>Run #{job.job_id} · {job.job_type || 'Unknown'}</span>
                                         <span style={{
                                             fontSize: '0.7em', padding: '1px 4px', borderRadius: 3,
-                                            background: job.status === 'completed' ? '#1b3e1d' : job.status === 'running' ? '#1b3a5a' : job.status === 'failed' ? '#4a1414' : '#333',
-                                            color: job.status === 'completed' ? '#a5d6a7' : job.status === 'running' ? '#90caf9' : job.status === 'failed' ? '#ef9a9a' : '#aaa'
+                                            background: job.status === 'completed' ? 'var(--color-success-bg)' : job.status === 'running' ? 'var(--color-accent-dim)' : job.status === 'failed' ? 'var(--color-danger-bg)' : 'var(--color-bg-elevated)',
+                                            color: job.status === 'completed' ? 'var(--color-success)' : job.status === 'running' ? 'var(--color-accent-bright)' : job.status === 'failed' ? 'var(--color-danger)' : 'var(--color-text-secondary)'
                                         }}>
                                             {job.status}
                                         </span>
@@ -313,15 +313,15 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                                                     disabled={!createTarget || createBusy}
                                                     style={{
                                                         width: '100%', padding: '10px',
-                                                        background: !createTarget || createBusy ? '#333' : '#4caf50',
-                                                        color: !createTarget || createBusy ? '#777' : '#fff',
+                                                        background: !createTarget || createBusy ? 'var(--color-bg-elevated)' : 'var(--color-success)',
+                                                        color: !createTarget || createBusy ? 'var(--color-text-muted)' : '#fff',
                                                         border: 'none', borderRadius: 4, fontWeight: 'bold',
                                                         cursor: !createTarget || createBusy ? 'not-allowed' : 'pointer',
                                                     }}
                                                 >
                                                     {createBusy ? 'Submitting…' : 'Queue run'}
                                                 </button>
-                                                {!createTarget && <div style={{ textAlign: 'center', fontSize: '0.8em', color: '#f44336', marginTop: 8 }}>Please select a target folder first.</div>}
+                                                {!createTarget && <div style={{ textAlign: 'center', fontSize: '0.8em', color: 'var(--color-danger)', marginTop: 8 }}>Please select a target folder first.</div>}
                                             </div>
                                         </div>
                                     </div>
@@ -339,8 +339,8 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                                     </div>
                                     <span style={{
                                         fontSize: '0.85em', padding: '4px 8px', borderRadius: 4, fontWeight: 600,
-                                        background: activeJob.status === 'completed' ? '#1b3e1d' : activeJob.status === 'running' ? '#1b3a5a' : activeJob.status === 'failed' ? '#4a1414' : '#333',
-                                        color: activeJob.status === 'completed' ? '#a5d6a7' : activeJob.status === 'running' ? '#90caf9' : activeJob.status === 'failed' ? '#ef9a9a' : '#aaa'
+                                        background: activeJob.status === 'completed' ? 'var(--color-success-bg)' : activeJob.status === 'running' ? 'var(--color-accent-dim)' : activeJob.status === 'failed' ? 'var(--color-danger-bg)' : 'var(--color-bg-elevated)',
+                                        color: activeJob.status === 'completed' ? 'var(--color-success)' : activeJob.status === 'running' ? 'var(--color-accent-bright)' : activeJob.status === 'failed' ? 'var(--color-danger)' : 'var(--color-text-secondary)'
                                     }}>
                                         {activeJob.status.toUpperCase()}
                                     </span>
@@ -349,7 +349,7 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
                                 {activeJob.progress && (
                                     <div style={{ background: '#222', borderRadius: 4, height: 6, overflow: 'hidden', marginTop: 15, marginBottom: 5 }}>
                                         <div style={{ 
-                                            background: activeJob.status === 'failed' ? '#f44336' : '#2196f3', 
+                                            background: activeJob.status === 'failed' ? 'var(--color-danger)' : 'var(--color-accent)', 
                                             height: '100%', 
                                             width: `${Math.min(100, (activeJob.progress.current / (activeJob.progress.total || 1)) * 100)}%`,
                                             transition: 'width 0.3s ease'

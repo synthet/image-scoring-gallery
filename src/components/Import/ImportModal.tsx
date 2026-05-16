@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { bridge } from '../../bridge';
 import { useOperationStore } from '../../store/useOperationStore';
 import { Logger } from '../../services/Logger';
+import { formatScheduleResultLine, type ScheduleResult } from '../../utils/scheduleProcessingOutcome';
 
 interface Props {
     isOpen: boolean;
@@ -17,6 +18,7 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
     const [added, setAdded] = useState(0);
     const [skipped, setSkipped] = useState(0);
     const [errors, setErrors] = useState<string[]>([]);
+    const [processing, setProcessing] = useState<ScheduleResult | null>(null);
     const [isRunning, setIsRunning] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -39,6 +41,7 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
         setAdded(0);
         setSkipped(0);
         setErrors([]);
+        setProcessing(null);
         startOp(opId, 'import', 'Importing…');
         Logger.info('[ImportModal] Import started', { opId, folderPath });
 
@@ -70,6 +73,7 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
                     setAdded(result.added);
                     setSkipped(result.skipped);
                     setErrors(result.errors);
+                    setProcessing(result.processing ?? null);
                     setIsComplete(true);
                     Logger.info('[ImportModal] Import completed', {
                         opId, added: result.added, skipped: result.skipped, errorCount: result.errors.length,
@@ -113,6 +117,7 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
 
     const truncatedPath = folderPath.length > 60 ? folderPath.slice(0, 57) + '...' : folderPath;
     const currentFileName = currentPath ? currentPath.split(/[/\\]/).pop() ?? '' : '';
+    const processingLine = processing ? formatScheduleResultLine(processing) : null;
 
     if (!isOpen) return null;
 
@@ -187,6 +192,9 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
                             {isComplete && (
                                 <div style={{ fontSize: '0.9em', color: '#aaa' }}>
                                     Added: {added} &middot; Skipped: {skipped}
+                                    {processingLine && (
+                                        <div style={{ marginTop: 8, color: '#9cdcfe' }}>{processingLine}</div>
+                                    )}
                                 </div>
                             )}
 

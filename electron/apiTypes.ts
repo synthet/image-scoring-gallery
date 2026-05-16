@@ -199,6 +199,8 @@ export interface PipelinePhaseControlRequest {
 
 export interface PipelineSubmitRequest {
     input_path: string;
+    /** When set (e.g. after local DB import/sync), backend resolves pipeline scope without relying on API host filesystem. */
+    image_ids?: number[];
     operations?: string[];
     skip_existing?: boolean;
     custom_keywords?: string[] | null;

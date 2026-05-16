@@ -1,6 +1,6 @@
 # Release (gallery)
 
-Run a **semver release** for **this repo** (`image-scoring-gallery` / Image Scoring Gallery): bump version from the **majority** of change types, update `CHANGELOG.md`, commit, and push.
+Run a **semver release** for **this repo** (`image-scoring-gallery` / **Driftara Gallery**): bump version from the **majority** of change types, update `CHANGELOG.md`, commit, and push.
 
 ## Before you start
 

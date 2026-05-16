@@ -10,6 +10,7 @@ import { ExifTool } from 'exiftool-vendored';
 import { ApiService } from './apiService';
 import {
     ExportImageContext,
+    type AppConfig,
     type FileImageMetadataDetail,
     type FileImageMetadataResult,
     type FsDirEntry,
@@ -20,6 +21,9 @@ import {
     BackupManifest,
     BackupManifestEntry,
     type ScoredImageForBackup,
+    type SyncCandidate,
+    type SyncPreviewResult,
+    type SyncRunResult,
 } from './types';
 import { SessionLogManager } from './sessionLogManager';
 import { getConfigPath, loadAppConfig } from './config';
@@ -45,6 +49,11 @@ import {
     mainHandlerFs,
     saveSystemConfig,
 } from './main.handlers';
+import {
+    scheduleProcessingForImages,
+    scheduleProcessingForImportedFolder,
+    type ScheduleResult,
+} from './scheduleProcessing';
 
 /** Verbose `media://` request logging (default off in dev — huge galleries flood the console). */
 function debugGalleryMedia(): boolean {
@@ -62,6 +71,38 @@ function isUnresolvedSyncLayout(camera: string, lens: string): boolean {
 }
 
 const exiftool = new ExifTool({ maxProcs: 6 });
+
+/**
+ * Re-encoded export JPEGs often still carry EXIF Orientation from the embedded preview
+ * (Chromium canvas may copy it). Pixels are already upright after the renderer bake, so
+ * Orientation must be 1 or viewers (e.g. Windows Photos) rotate again.
+ *
+ * @see docs/features/implemented/05-jpeg-export-exif-orientation.md
+ */
+async function resetExportedJpegExifOrientation(targetPath: string, mimeType: string): Promise<void> {
+    const lower = targetPath.toLowerCase();
+    const isJpeg =
+        mimeType.includes('jpeg') ||
+        mimeType.includes('jpg') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg');
+    if (!isJpeg) {
+        return;
+    }
+    try {
+        await exiftool.write(
+            targetPath,
+            { Orientation: 1 },
+            {
+                writeArgs: ['-overwrite_original', '-n'],
+                useMWG: false,
+                ignoreMinorErrors: true,
+            },
+        );
+    } catch (err) {
+        console.warn('[Main] Export: could not reset EXIF Orientation to 1 (non-fatal)', err);
+    }
+}
 
 function convertFsImagePathForExif(filePath: string): string {
     let convertedPath = filePath;
@@ -387,6 +428,7 @@ const exportCurrentImage = async () => {
 
     const targetPath = saveResult.filePath;
     await fs.promises.writeFile(targetPath, Buffer.from(currentExportImageContext.imageBytes));
+    await resetExportedJpegExifOrientation(targetPath, currentExportImageContext.mimeType);
 
     // Enrich with metadata
     try {
@@ -464,15 +506,28 @@ const exportCurrentImage = async () => {
             tagsToCopy.UserComment = metadata;
 
             console.log(`[Main] Writing enriched metadata to ${targetPath}`);
-            await exiftool.write(targetPath, tagsToCopy, ['-overwrite_original']);
+            await exiftool.write(targetPath, tagsToCopy, {
+                writeArgs: ['-overwrite_original', '-n'],
+                useMWG: false,
+                ignoreMinorErrors: true,
+            });
         } else {
             // Just write our metadata if source is missing
-            await exiftool.write(targetPath, {
-                ImageDescription: metadata,
-                Description: metadata,
-                XPComment: metadata,
-                UserComment: metadata
-            }, ['-overwrite_original']);
+            await exiftool.write(
+                targetPath,
+                {
+                    ImageDescription: metadata,
+                    Description: metadata,
+                    XPComment: metadata,
+                    UserComment: metadata,
+                    Orientation: 1,
+                },
+                {
+                    writeArgs: ['-overwrite_original', '-n'],
+                    useMWG: false,
+                    ignoreMinorErrors: true,
+                },
+            );
         }
     } catch (exifErr) {
         console.error('[Main] Metadata enrichment failed:', exifErr);
@@ -580,16 +635,10 @@ const rebuildApplicationMenu = () => {
                 {
                     label: 'Duplicates (Coming soon)',
                     enabled: false,
-                    click: () => {
-                        mainWindow?.webContents.send('open-duplicates');
-                    }
                 },
                 {
                     label: 'Embeddings (Coming soon)',
                     enabled: false,
-                    click: () => {
-                        mainWindow?.webContents.send('open-embeddings');
-                    }
                 },
                 { type: 'separator' },
                 {
@@ -650,7 +699,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 // Load configuration
-function loadConfig() {
+function loadConfig(): AppConfig {
     const configPath = getConfigPath(__dirname);
     return loadAppConfig(configPath);
 }
@@ -734,22 +783,28 @@ async function ensureScoringUiServer(): Promise<ScoringUiServer | null> {
 function openScoringWindow(): void {
     void (async () => {
         const backendIcon = resolveBackendWebuiWindowIcon();
-        const win = new BrowserWindow({
+        scoringWindow = new BrowserWindow({
             width: 1280,
             height: 900,
-            title: 'Image Scoring',
+            title: 'Vexlum Scoring',
             ...(backendIcon ? { icon: backendIcon } : {}),
             webPreferences: { contextIsolation: true },
         });
-        win.setMenu(null);
+        scoringWindow.setMenu(null);
+        scoringWindow.on('closed', () => {
+            scoringWindow = null;
+        });
+
         try {
             const local = await ensureScoringUiServer();
             const url = local ? `${local.baseUrl}/ui/runs` : `${apiService.getBaseUrl()}/ui/runs`;
-            await win.loadURL(url);
+            await scoringWindow.loadURL(url);
         } catch (e) {
             console.error('[Main] Failed to load Scoring UI:', e);
             try {
-                await win.loadURL(`${apiService.getBaseUrl()}/ui/runs`);
+                if (scoringWindow && !scoringWindow.isDestroyed()) {
+                    await scoringWindow.loadURL(`${apiService.getBaseUrl()}/ui/runs`);
+                }
             } catch {
                 /* ignore */
             }
@@ -813,7 +868,7 @@ function createWebuiShellWindow(targetUrl: string): void {
     webuiShellWindow = new BrowserWindow({
         width: 1400,
         height: 900,
-        title: 'Image Scoring WebUI',
+        title: 'Vexlum Scoring WebUI',
         ...(backendIcon ? { icon: backendIcon } : {}),
         webPreferences: {
             contextIsolation: true,
@@ -936,6 +991,10 @@ async function startFullApplication(): Promise<void> {
         return result;
     }));
 
+    ipcMain.handle('db:get-image-phase-statuses', wrapIpcHandler(async (_, id) => {
+        return await db.getImagePhaseStatuses(id);
+    }));
+
     ipcMain.handle('db:update-image-details', wrapIpcHandler(async (_, { id, updates }) => {
         console.log(`[Main] Updating image details for ID: ${id}`, updates);
         return await db.updateImageDetails(id, updates);
@@ -950,12 +1009,12 @@ async function startFullApplication(): Promise<void> {
         return await db.getKeywords();
     }));
 
-    ipcMain.handle('mcp-find-duplicates', wrapIpcHandler(async (_, options) => {
+    ipcMain.handle('api:similarity:find-duplicates', wrapIpcHandler(async (_, options) => {
         console.log(`[Main] Finding near duplicates via backend API`, options);
         return await apiService.findDuplicates(options);
     }));
 
-    ipcMain.handle('mcp:search-similar', wrapIpcHandler(async (_, options) => {
+    ipcMain.handle('api:similarity:search', wrapIpcHandler(async (_, options) => {
         console.log(`[Main] Finding similar images via backend API`, options);
         const { imageId, limit, folderId, folderPath, minSimilarity } = options;
         if (!imageId) throw new Error("image_id is required");
@@ -970,7 +1029,7 @@ async function startFullApplication(): Promise<void> {
         });
     }));
 
-    ipcMain.handle('api:outliers', wrapIpcHandler(async (_, options) => {
+    ipcMain.handle('api:similarity:outliers', wrapIpcHandler(async (_, options) => {
         console.log(`[Main] Finding outliers via backend API`, options);
         const { folderPath, zThreshold, k, limit } = options;
         if (!folderPath) throw new Error("folder_path is required");
@@ -1437,7 +1496,11 @@ async function startFullApplication(): Promise<void> {
                 if (total > 0) {
                     mainWindow?.webContents.send('import:progress', { current: total, total, path: '' });
                 }
-                return { added, skipped, errors: errs };
+                const processing = await scheduleProcessingForImportedFolder(apiService, folderPath, added);
+                if (processing.method !== 'none') {
+                    console.log('[Main] Import (API) schedule:', folderPath, processing);
+                }
+                return { added, skipped, errors: errs, processing };
             } catch (e) {
                 console.warn('[Main] Import via API failed, falling back to direct DB:', e);
             }
@@ -1458,6 +1521,7 @@ async function startFullApplication(): Promise<void> {
         const errors: string[] = [];
 
         const folderId = await db.getOrCreateFolder(folderPath);
+        const newImageIds: number[] = [];
 
         for (let i = 0; i < files.length; i++) {
             const filePath = files[i];
@@ -1501,6 +1565,7 @@ async function startFullApplication(): Promise<void> {
                 } catch (phaseErr) {
                     console.warn('[Main] Import: markImageIndexingPhaseDone failed:', phaseErr);
                 }
+                newImageIds.push(newImageId);
                 added++;
             } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e);
@@ -1508,7 +1573,14 @@ async function startFullApplication(): Promise<void> {
             }
         }
 
-        return { added, skipped, errors };
+        const processing = await scheduleProcessingForImages(apiService, {
+            folderPath,
+            imageIds: newImageIds,
+        });
+        if (processing.method !== 'none') {
+            console.log('[Main] Import (direct DB) schedule:', folderPath, newImageIds.length, processing);
+        }
+        return { added, skipped, errors, processing };
     }));
 
     // ── Sync: copy new photos from external source into structured local tree, then import ──
@@ -1635,52 +1707,49 @@ async function startFullApplication(): Promise<void> {
     /**
      * Core sync: threshold, scan, EXIF/DB per file, copy (+ import when not dryRun).
      * Preview (dryRun) uses the same EXIF/DB passes without mkdir/copy/import; a follow-up full sync
-     * repeats that work (acceptable for typical card sizes; cache not implemented).
+     * repeats copy/EXIF for source files (phase 1). Import (phase 2) only touches destination paths
+     * recorded during phase 1 as pending DB rows — no second full-folder scan.
      */
     type SyncFromSourceResult =
-        | {
-              dryRun: true;
-              thresholdDate: string | null;
-              destinationRoot: string;
-              scanned: number;
-              skipped: number;
-              wouldCopy: number;
-              importOnly: number;
-              newFolders: string[];
-              errors: string[];
-          }
-        | {
-              dryRun: false;
-              scanned: number;
-              copied: number;
-              imported: number;
-              skipped: number;
-              folders: number;
-              errors: string[];
-              thresholdDate: string | null;
-          };
+        | (SyncPreviewResult & { dryRun: true })
+        | (SyncRunResult & { dryRun: false });
 
-    async function runSyncFromSource(sourcePath: string, dryRun: boolean): Promise<SyncFromSourceResult> {
+    async function runSyncFromSource(
+        sourcePath: string,
+        dryRun: boolean,
+        pickedCandidates?: SyncCandidate[]
+    ): Promise<SyncFromSourceResult> {
         const currentConfig = loadConfig();
         const destRoot = (currentConfig?.sync?.destinationRoot || 'D:\\Photos').replace(/\//g, '\\');
         if (!dryRun) {
-            console.log(`[Main] Sync: source=${sourcePath}, dest=${destRoot}`);
+            console.log(
+                `[Main] Sync: source=${sourcePath}, dest=${destRoot}, pickedCount=${pickedCandidates?.length ?? 'all'}`
+            );
         }
 
         mainWindow?.webContents.send('sync:progress', {
-            phase: 'detecting', current: 0, total: 0, detail: 'Detecting last sync date...'
+            phase: 'detecting',
+            current: 0,
+            total: 0,
+            detail: 'Detecting last sync date...',
         });
 
         const thresholdDate = await detectSyncThresholdDate(destRoot);
 
-        mainWindow?.webContents.send('sync:progress', {
-            phase: 'scanning', current: 0, total: 0,
-            detail: thresholdDate
-                ? `Scanning source (skipping files on or before ${thresholdDate})...`
-                : 'Scanning source for images...'
-        });
-
-        const allFiles = await collectImageFiles(sourcePath);
+        let allFiles: string[];
+        if (pickedCandidates) {
+            allFiles = pickedCandidates.map((c) => c.sourcePath);
+        } else {
+            mainWindow?.webContents.send('sync:progress', {
+                phase: 'scanning',
+                current: 0,
+                total: 0,
+                detail: thresholdDate
+                    ? `Scanning source (skipping files on or before ${thresholdDate})...`
+                    : 'Scanning source for images...',
+            });
+            allFiles = await collectImageFiles(sourcePath);
+        }
         const totalScanned = allFiles.length;
 
         if (allFiles.length === 0) {
@@ -1699,6 +1768,7 @@ async function startFullApplication(): Promise<void> {
                     importOnly: 0,
                     newFolders: [],
                     errors: [],
+                    candidates: [],
                 };
             }
             return {
@@ -1706,6 +1776,7 @@ async function startFullApplication(): Promise<void> {
                 scanned: totalScanned, copied: 0, imported: 0,
                 skipped: 0, folders: 0, errors: [],
                 thresholdDate,
+                processing: [],
             };
         }
 
@@ -1720,8 +1791,10 @@ async function startFullApplication(): Promise<void> {
         let importOnly = 0;
         let skippedCount = 0;
         const errors: string[] = [];
-        const newFolders = new Set<string>();
+        /** Full sync only: dest file paths that still need `insertImage` after copy (dedup by path). */
+        const pendingImports = new Map<string, { imageUuid: string | null }>();
         const newFolderRelPaths = new Set<string>();
+        const candidates: SyncCandidate[] = [];
 
         const processPhase = dryRun ? 'preview' : 'copying';
         let processedCount = 0;
@@ -1730,7 +1803,8 @@ async function startFullApplication(): Promise<void> {
         for (let batchStart = 0; batchStart < allFiles.length; batchStart += concurrencyLimit) {
             const batch = allFiles.slice(batchStart, batchStart + concurrencyLimit);
 
-            await Promise.all(batch.map(async (filePath) => {
+            await Promise.all(batch.map(async (filePath, idxInBatch) => {
+                const absIdx = batchStart + idxInBatch;
                 const fileName = path.basename(filePath);
 
                 try {
@@ -1738,47 +1812,72 @@ async function startFullApplication(): Promise<void> {
                     let cameraModel: string | null = null;
                     let lensModel: string | null = null;
                     let imageUuid: string | null = null;
+                    let camera = '';
+                    let lens = '';
 
-                    try {
-                        const tags = await exiftool.read(filePath);
+                    if (pickedCandidates) {
+                        const c = pickedCandidates[absIdx];
+                        dateStr = c.dateStr;
+                        camera = c.camera;
+                        lens = c.lens;
+                        imageUuid = c.imageUuid;
+                    } else {
+                        try {
+                            const tags = await exiftool.read(filePath);
 
-                        const dto = tags.DateTimeOriginal ?? tags.CreateDate ?? tags.ModifyDate;
-                        if (dto) {
-                            const raw = typeof dto === 'string' ? dto : String(dto);
-                            const match = raw.match(/(\d{4})[:\-](\d{2})[:\-](\d{2})/);
-                            if (match) {
-                                dateStr = `${match[1]}-${match[2]}-${match[3]}`;
+                            const dto = tags.DateTimeOriginal ?? tags.CreateDate ?? tags.ModifyDate;
+                            if (dto) {
+                                const raw = typeof dto === 'string' ? dto : String(dto);
+                                const match = raw.match(/(\d{4})[:\-](\d{2})[:\-](\d{2})/);
+                                if (match) {
+                                    dateStr = `${match[1]}-${match[2]}-${match[3]}`;
+                                }
+                            }
+
+                            cameraModel = (tags.Model as string) ?? null;
+                            lensModel = (tags.LensModel as string) ?? (tags.Lens as string) ?? null;
+
+                            const uid = tags.ImageUniqueID ?? tags.DocumentID ?? null;
+                            if (uid && typeof uid === 'string') {
+                                imageUuid = uid;
+                            }
+                        } catch {
+                            // EXIF read failed; use file date fallback
+                        }
+
+                        if (!dateStr) {
+                            const fstat = await fs.promises.stat(filePath);
+                            const d = fstat.mtime;
+                            dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                        }
+
+                        camera = normalizeCameraModel(cameraModel);
+                        lens = normalizeLensFolderName(lensModel);
+
+                        if (isUnresolvedSyncLayout(camera, lens)) {
+                            console.warn(
+                                `[Sync] Skip (missing camera/lens for layout): ${filePath} exif_model=${cameraModel ?? '—'} exif_lens=${lensModel ?? '—'}`
+                            );
+                            skippedCount++;
+                            return;
+                        }
+
+                        if (thresholdDate && dateStr <= thresholdDate) {
+                            if (imageUuid) {
+                                const existsByUuid = await db.findImageByUuid(imageUuid);
+                                if (existsByUuid) {
+                                    skippedCount++;
+                                    return;
+                                }
+                            }
+                            const year = dateStr.substring(0, 4);
+                            const destFileEarly = path.join(destRoot, camera, lens, year, dateStr, fileName);
+                            if (await fs.promises.stat(destFileEarly).then(() => true, () => false)) {
+                                skippedCount++;
+                                return;
                             }
                         }
 
-                        cameraModel = (tags.Model as string) ?? null;
-                        lensModel = (tags.LensModel as string) ?? (tags.Lens as string) ?? null;
-
-                        const uid = tags.ImageUniqueID ?? tags.DocumentID ?? null;
-                        if (uid && typeof uid === 'string') {
-                            imageUuid = uid;
-                        }
-                    } catch {
-                        // EXIF read failed; use file date fallback
-                    }
-
-                    if (!dateStr) {
-                        const fstat = await fs.promises.stat(filePath);
-                        const d = fstat.mtime;
-                        dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                    }
-
-                    const camera = normalizeCameraModel(cameraModel);
-                    const lens = normalizeLensFolderName(lensModel);
-                    if (isUnresolvedSyncLayout(camera, lens)) {
-                        console.warn(
-                            `[Sync] Skip (missing camera/lens for layout): ${filePath} exif_model=${cameraModel ?? '—'} exif_lens=${lensModel ?? '—'}`
-                        );
-                        skippedCount++;
-                        return;
-                    }
-
-                    if (thresholdDate && dateStr <= thresholdDate) {
                         if (imageUuid) {
                             const existsByUuid = await db.findImageByUuid(imageUuid);
                             if (existsByUuid) {
@@ -1786,20 +1885,11 @@ async function startFullApplication(): Promise<void> {
                                 return;
                             }
                         }
-                        const year = dateStr.substring(0, 4);
-                        const destFileEarly = path.join(destRoot, camera, lens, year, dateStr, fileName);
-                        if (await fs.promises.stat(destFileEarly).then(() => true, () => false)) {
-                            skippedCount++;
-                            return;
-                        }
                     }
 
-                    if (imageUuid) {
-                        const existsByUuid = await db.findImageByUuid(imageUuid);
-                        if (existsByUuid) {
-                            skippedCount++;
-                            return;
-                        }
+                    if (!dateStr) {
+                        skippedCount++;
+                        return;
                     }
 
                     const year = dateStr.substring(0, 4);
@@ -1814,6 +1904,17 @@ async function startFullApplication(): Promise<void> {
                         }
                         if (dryRun) {
                             importOnly++;
+                            // Track for the follow-up run so the import phase can `pendingImports.set` it.
+                            candidates.push({
+                                sourcePath: filePath,
+                                fileName,
+                                dateStr: dateStr!,
+                                camera,
+                                lens,
+                                imageUuid,
+                            });
+                        } else {
+                            pendingImports.set(destFile, { imageUuid });
                         }
                     } else {
                         if (dryRun) {
@@ -1822,15 +1923,20 @@ async function startFullApplication(): Promise<void> {
                             if (!destDirExists) {
                                 newFolderRelPaths.add(syncRelDisplay(destRoot, destDir));
                             }
+                            candidates.push({
+                                sourcePath: filePath,
+                                fileName,
+                                dateStr: dateStr!,
+                                camera,
+                                lens,
+                                imageUuid,
+                            });
                         } else {
                             await fs.promises.mkdir(destDir, { recursive: true });
                             await fs.promises.copyFile(filePath, destFile);
                             copied++;
+                            pendingImports.set(destFile, { imageUuid });
                         }
-                    }
-
-                    if (!dryRun) {
-                        newFolders.add(destDir);
                     }
                 } catch (e) {
                     const msg = e instanceof Error ? e.message : String(e);
@@ -1858,71 +1964,92 @@ async function startFullApplication(): Promise<void> {
                 scanned: totalScanned,
                 skipped: skippedCount,
                 wouldCopy,
-                importOnly,
+                importOnly: importOnly,
                 newFolders: sortedFolders,
                 errors,
+                candidates,
             };
         }
 
-        const foldersToImport = Array.from(newFolders);
+        const pendingEntries = Array.from(pendingImports.entries());
+        const foldersTouched = new Set(pendingEntries.map(([fp]) => path.dirname(fp)));
         let imported = 0;
         const importErrors: string[] = [];
+        const folderIdCache = new Map<string, number>();
+        const newImageIdsByFolder = new Map<string, number[]>();
 
-        for (let i = 0; i < foldersToImport.length; i++) {
-            const folderPath = foldersToImport[i];
+        for (let i = 0; i < pendingEntries.length; i++) {
+            const [destFileAbs, meta] = pendingEntries[i];
+            const folderPath = path.dirname(destFileAbs);
+
             mainWindow?.webContents.send('sync:progress', {
-                phase: 'importing', current: i + 1, total: foldersToImport.length,
-                detail: path.relative(destRoot, folderPath)
+                phase: 'importing',
+                current: i + 1,
+                total: pendingEntries.length,
+                detail: path.relative(destRoot, destFileAbs),
             });
 
+            const fn = path.basename(destFileAbs);
+            const ft = path.extname(destFileAbs).toLowerCase().replace(/^\./, '') || 'unknown';
+
             try {
-                const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });
-                const files = entries
-                    .filter(e => e.isFile())
-                    .map(e => path.join(folderPath, e.name))
-                    .filter(p => SYNC_EXTENSIONS.has(path.extname(p).toLowerCase()));
+                const existsByPath = await db.findImageByFilePath(destFileAbs);
+                if (existsByPath) continue;
 
-                const folderId = await db.getOrCreateFolder(folderPath);
-
-                for (const fp of files) {
-                    const fn = path.basename(fp);
-                    const ft = path.extname(fp).toLowerCase().replace(/^\./, '') || 'unknown';
-
+                let uuid: string | null = meta.imageUuid;
+                if (uuid) {
+                    const existsByUuid = await db.findImageByUuid(uuid);
+                    if (existsByUuid) continue;
+                } else {
                     try {
-                        const existsByPath = await db.findImageByFilePath(fp);
-                        if (existsByPath) continue;
-
-                        let uuid: string | null = null;
-                        try {
-                            const tags = await exiftool.read(fp);
-                            const uid = tags.ImageUniqueID ?? tags.DocumentID ?? null;
-                            if (uid && typeof uid === 'string') {
-                                uuid = uid;
-                                const existsByUuid = await db.findImageByUuid(uuid);
-                                if (existsByUuid) continue;
-                            }
-                        } catch { /* proceed without UUID */ }
-
-                        await db.insertImage({
-                            file_path: fp,
-                            file_name: fn,
-                            file_type: ft,
-                            folder_id: folderId,
-                            image_uuid: uuid,
-                        });
-                        imported++;
-                    } catch (e) {
-                        const msg = e instanceof Error ? e.message : String(e);
-                        importErrors.push(`${fn}: ${msg}`);
-                    }
+                        const tags = await exiftool.read(destFileAbs);
+                        const uid = tags.ImageUniqueID ?? tags.DocumentID ?? null;
+                        if (uid && typeof uid === 'string') {
+                            uuid = uid;
+                            const existsByUuid = await db.findImageByUuid(uuid);
+                            if (existsByUuid) continue;
+                        }
+                    } catch { /* proceed without UUID */ }
                 }
+
+                let folderId = folderIdCache.get(folderPath);
+                if (folderId === undefined) {
+                    folderId = await db.getOrCreateFolder(folderPath);
+                    folderIdCache.set(folderPath, folderId);
+                }
+
+                const newImageId = await db.insertImage({
+                    file_path: destFileAbs,
+                    file_name: fn,
+                    file_type: ft,
+                    folder_id: folderId,
+                    image_uuid: uuid,
+                });
+                try {
+                    await db.markImageIndexingPhaseDone(newImageId);
+                } catch (phaseErr) {
+                    console.warn('[Main] Sync: markImageIndexingPhaseDone failed:', phaseErr);
+                }
+                const list = newImageIdsByFolder.get(folderPath) ?? [];
+                list.push(newImageId);
+                newImageIdsByFolder.set(folderPath, list);
+                imported++;
             } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e);
-                importErrors.push(`folder ${folderPath}: ${msg}`);
+                importErrors.push(`${fn}: ${msg}`);
             }
         }
 
         errors.push(...importErrors);
+
+        const processing: ScheduleResult[] = [];
+        for (const [fp, ids] of newImageIdsByFolder) {
+            const one = await scheduleProcessingForImages(apiService, { folderPath: fp, imageIds: ids });
+            processing.push(one);
+            if (one.method !== 'none') {
+                console.log('[Main] Sync schedule:', fp, ids.length, one);
+            }
+        }
 
         mainWindow?.webContents.send('sync:progress', {
             phase: 'done', current: 0, total: 0, detail: 'Sync complete'
@@ -1934,9 +2061,10 @@ async function startFullApplication(): Promise<void> {
             copied,
             imported,
             skipped: skippedCount,
-            folders: foldersToImport.length,
+            folders: foldersTouched.size,
             errors,
             thresholdDate,
+            processing,
         };
     }
 
@@ -1966,6 +2094,7 @@ async function startFullApplication(): Promise<void> {
                 importOnly: out.importOnly,
                 newFolders: out.newFolders,
                 errors: out.errors,
+                candidates: out.candidates,
             };
         } finally {
             syncGuards.decrementPreviewCount();
@@ -1973,7 +2102,7 @@ async function startFullApplication(): Promise<void> {
         }
     }));
 
-    ipcMain.handle('sync:run', wrapIpcHandler(async (_, sourcePath: string) => {
+    ipcMain.handle('sync:run', wrapIpcHandler(async (_, sourcePath: string, pickedCandidates?: SyncCandidate[]) => {
         if (!sourcePath || typeof sourcePath !== 'string') {
             throw new Error('Source path is required');
         }
@@ -1985,7 +2114,7 @@ async function startFullApplication(): Promise<void> {
         syncGuards.setSyncRunInProgress(true);
         rebuildApplicationMenu();
         try {
-            const out = await runSyncFromSource(sourcePath, false);
+            const out = await runSyncFromSource(sourcePath, false, pickedCandidates);
             if (out.dryRun) {
                 throw new Error('Internal: expected sync result');
             }
@@ -1997,6 +2126,7 @@ async function startFullApplication(): Promise<void> {
                 folders: out.folders,
                 errors: out.errors,
                 thresholdDate: out.thresholdDate,
+                processing: out.processing,
             };
         } finally {
             syncGuards.setSyncRunInProgress(false);
@@ -2186,7 +2316,12 @@ async function startFullApplication(): Promise<void> {
         let host = '127.0.0.1';
 
         if (config.api) {
-            if (config.api.url) return { url: config.api.url };
+            if (config.api.url) {
+                const url = config.api.url.replace(/\/$/, '');
+                const browserRaw = config.api.browserUrl?.trim();
+                const browserUrl = browserRaw ? browserRaw.replace(/\/$/, '') : undefined;
+                return browserUrl ? { url, browserUrl } : { url };
+            }
             if (config.api.port) port = config.api.port;
             if (config.api.host) host = config.api.host;
         }
@@ -2203,6 +2338,24 @@ async function startFullApplication(): Promise<void> {
         }
         return (await findActiveWebuiPort()) || 7860;
     });
+
+    ipcMain.handle('system:open-external-url', wrapIpcHandler(async (_, url: string) => {
+        const { shell } = await import('electron');
+        
+        // Re-use existing scoring or webui shell window if available
+        const targetWin = (scoringWindow && !scoringWindow.isDestroyed()) ? scoringWindow : 
+                         (webuiShellWindow && !webuiShellWindow.isDestroyed()) ? webuiShellWindow : null;
+
+        if (targetWin) {
+            console.log(`[Main] Navigating existing window to: ${url}`);
+            await targetWin.loadURL(url);
+            targetWin.focus();
+            return;
+        }
+
+        console.log(`[Main] Opening external URL: ${url}`);
+        await shell.openExternal(url);
+    }));
 
     ipcMain.handle('system:get-config', wrapIpcHandler(async () => loadSystemConfig(loadConfig)));
 

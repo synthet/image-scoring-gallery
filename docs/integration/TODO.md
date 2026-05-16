@@ -1,27 +1,58 @@
-# API Integration TODO
+# Integration TODO
 
-Tasks for Electron ↔ Python backend integration. See [Agent Coordination](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) for protocols (canonical in **image-scoring-backend**; local pointer: [`../technical/AGENT_COORDINATION.md`](../technical/AGENT_COORDINATION.md)).
+This backlog separates backend-owned contract work from gallery implementation work. The canonical project/task queue may still live outside this file; use this page as an integration handoff map.
 
-> **Source of truth & update order:** Integration status mirror (owner: integration maintainers). Reconcile after [`TODO.md`](../../TODO.md) and [`docs/planning/01-roadmap-todo.md`](../planning/01-roadmap-todo.md); if embedding milestones change, then sync [`docs/features/planned/embeddings/TODO.md`](../features/planned/embeddings/TODO.md). Procedure: [`docs/project/00-backlog-workflow.md`](../project/00-backlog-workflow.md).
+## Backend-Owned Contract Changes
 
-## REST API
+These must start in **image-scoring-backend**:
 
-- [x] Migrate `apiService.ts` to use new `/api/similarity/*` endpoints
-- [x] Updated `searchSimilar` to `/api/similarity/search`
-- [x] Updated `findDuplicates` to `/api/similarity/duplicates`
-- [x] Updated `getOutliers` to `/api/similarity/outliers`
-- [x] Standardized IPC channel names to `api:similarity:*` namespace
-- [x] Updated `main.ts` IPC handlers (`find-duplicates`, `search-similar`, `outliers`)
-- [x] Updated `preload.ts` IPC invocations for consistency
-- [x] Verified `apiTypes.ts` matches backend (OutlierResponse/OutlierSearchResult identical)
-- [ ] Sync `electron/apiTypes.ts` when backend API contract changes
+- REST endpoint additions, removals, request fields, response fields, or status semantics.
+- OpenAPI changes in backend [openapi.yaml](https://github.com/synthet/image-scoring-backend/blob/main/docs/reference/api/openapi.yaml).
+- Database table/column/index/vector-space changes.
+- Pipeline phase codes, operation tokens, or user-facing terminology changes.
+- WebSocket event shape changes.
 
-## WebSocket
+Required backend docs:
 
-- [x] Subscribe to `job_progress` for live progress bar (`src/hooks/useGalleryWebSocket.ts` `subscribe('job_progress', ...)`, `src/components/Layout/JobProgressBar.tsx`, `src/store/useJobProgressStore.ts`)
-- [x] Ensure `image_updated` and `folder_updated` handlers refresh correct views
+- [API_CONTRACT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/API_CONTRACT.md)
+- [DB_SCHEMA.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/DB_SCHEMA.md)
+- [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md)
+- [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md)
 
-## Configuration
+## Gallery Implementation Tasks
 
-- [x] Document `config.api.url` / `config.api.port` override in user-facing docs (`docs/guides/02-api-backend-config.md`)
-- [x] Project layout (sibling **image-scoring-backend** / **image-scoring-gallery**) documented in [`CLAUDE.md`](../../CLAUDE.md)
+These are gallery-side follow-ups after backend contracts are confirmed:
+
+- Sync [api-contract/](../../api-contract/) and generated API types when OpenAPI changes.
+- Update [electron/apiService.ts](../../electron/apiService.ts) for new/changed backend calls.
+- Update [electron/apiTypes.ts](../../electron/apiTypes.ts) or generated API files when response/request types change.
+- Update [electron/db.ts](../../electron/db.ts) and query tests when schema changes affect direct PostgreSQL mode.
+- Update [electron/db/provider.ts](../../electron/db/provider.ts) only for provider/connection behavior changes.
+- Update [src/constants/pipelineLabels.ts](../../src/constants/pipelineLabels.ts) and UI copy when backend stage terminology changes.
+- Update renderer hooks/stores/components that consume the changed API or IPC surface.
+
+## WebSocket Integration Backlog
+
+- Confirm event shapes against backend [API_CONTRACT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/API_CONTRACT.md) before changing [src/services/WebSocketService.ts](../../src/services/WebSocketService.ts).
+- Keep WebSocket client behavior server-to-client unless backend docs confirm bidirectional commands.
+- Add tests for reconnection, event parsing, and store updates when changing WebSocket behavior.
+
+## Checks To List In Handoffs
+
+Backend:
+
+```bash
+python -m pytest -m "not gpu and not db and not ml and not firebird" --ignore=tests/test_probe.py
+python scripts/doctor.py --no-gpu
+```
+
+Gallery:
+
+```bash
+npm run doctor
+npx tsc --noEmit
+npx tsc -p electron/tsconfig.json --noEmit
+npm run lint
+```
+
+Use the exact subset actually run in the final report.

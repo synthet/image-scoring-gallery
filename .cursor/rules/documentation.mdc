@@ -8,6 +8,12 @@ alwaysApply: false
 
 These conventions apply when creating, updating, or reorganizing pages in `docs/`.
 
+
+## Authority (read first)
+
+- **[docs/CANONICAL_SOURCES.md](../../docs/CANONICAL_SOURCES.md)** — integration and backend canonical links.
+- **[docs/WIKI_SCHEMA.md](../../docs/WIKI_SCHEMA.md)** — folder taxonomy, naming, and docs/log.md rules.
+
 ## Page structure
 
 - Every page starts with a `# Title` header. No YAML frontmatter.

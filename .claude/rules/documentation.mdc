@@ -1,0 +1,9 @@
+---
+description: Gallery docs wiki mirror of Cursor documentation rule
+globs: "docs/**"
+alwaysApply: false
+---
+
+# Documentation wiki (image-scoring-gallery)
+
+When editing under the docs folder, read docs/WIKI_SCHEMA.md and docs/CANONICAL_SOURCES.md. Update docs/README.md and docs/log.md after structural wiki changes. Same expectations as .cursor/rules/documentation.mdc.

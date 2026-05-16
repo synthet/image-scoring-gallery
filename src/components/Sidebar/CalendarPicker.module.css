@@ -140,13 +140,13 @@
 }
 
 .selected {
-    background: #3b82f6 !important;
+    background: var(--accent) !important;
     color: #fff !important;
     font-weight: 600;
 }
 
 .today {
-    color: #3b82f6;
+    color: var(--accent);
     font-weight: 700;
 }
 
@@ -158,7 +158,7 @@
 .dot {
     width: 4px;
     height: 4px;
-    background: #10b981;
+    background: var(--color-success);
     border-radius: 50%;
     position: absolute;
     bottom: 4px;
@@ -167,7 +167,7 @@
 }
 
 .day.today .dot {
-    background: #269ebc;
+    background: var(--color-accent-hover);
 }
 
 

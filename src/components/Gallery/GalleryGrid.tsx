@@ -32,7 +32,7 @@ interface Image {
 }
 
 import type { Folder } from '../Tree/treeUtils';
-import { Folder as FolderIcon, Layers, AlertCircle } from 'lucide-react';
+import { Folder as FolderIcon, Layers, AlertTriangle } from 'lucide-react';
 import { GalleryThumbnail } from './GalleryThumbnail';
 import { ThumbnailPlaceholder } from './ThumbnailPlaceholder';
 
@@ -52,6 +52,8 @@ interface GalleryGridProps {
     activeStackId?: number | null;
     /** Use RAW-aware thumbnails (filesystem-only mode without DB-generated JPEGs). */
     useGalleryThumbnail?: boolean;
+    /** Triggered from context menu for a specific image. */
+    onFindSimilar?: (image: Image) => void;
 }
 
 
@@ -91,9 +93,10 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     images, onSelect, onEndReached, subfolders, onSelectFolder,
     onNavigateToParent, viewerOpen = false, sortBy = 'score_general',
     stacksMode = false, stacks = [], onSelectStack, onStackEndReached,
-    activeStackId, useGalleryThumbnail = false,
+    activeStackId, useGalleryThumbnail = false, onFindSimilar,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number, y: number, image: Image } | null>(null);
 
     // Escape key handler for parent navigation (only when viewer is closed)
     useKeyboardLayer('page', useCallback((e: KeyboardEvent) => {
@@ -116,6 +119,22 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         });
     }, [images.length, images]);
 
+    // Close context menu on click elsewhere
+    useEffect(() => {
+        const handleClick = () => setContextMenu(null);
+        window.addEventListener('click', handleClick);
+        return () => window.removeEventListener('click', handleClick);
+    }, []);
+
+    const handleContextMenu = useCallback((e: React.MouseEvent, img: Image) => {
+        e.preventDefault();
+        setContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            image: img
+        });
+    }, []);
+
     const gridComponents = useMemo(() => ({
         List: ItemContainer,
         Item: ItemWrapper
@@ -129,7 +148,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 if (img.is_capture_date_fallback) {
                     return (
                         <span className={styles.fallbackDate} title="EXIF shot date missing; showing import/file date">
-                            <AlertCircle size={10} style={{ marginRight: 2, verticalAlign: 'middle', color: '#ff9800' }} />
+                            <AlertTriangle size={10} style={{ marginRight: 2, verticalAlign: 'middle', color: 'var(--color-warning)' }} />
                             {dateStr}
                         </span>
                     );
@@ -157,11 +176,11 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     }, [sortBy]);
 
     const getLabelColor = useCallback((label: string | null) => {
-        return label === 'Red' ? '#e53935' :
-            label === 'Yellow' ? '#fdd835' :
-                label === 'Green' ? '#43a047' :
-                    label === 'Blue' ? '#1e88e5' :
-                        label === 'Purple' ? '#8e24aa' : 'transparent';
+        return label === 'Red' ? 'var(--label-red)' :
+            label === 'Yellow' ? 'var(--label-yellow)' :
+                label === 'Green' ? 'var(--label-green)' :
+                    label === 'Blue' ? 'var(--label-blue)' :
+                        label === 'Purple' ? 'var(--label-purple)' : 'transparent';
     }, []);
 
     const renderImageCard = useCallback((img: Image, onClick: () => void) => {
@@ -169,6 +188,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         return (
             <div
                 onClick={onClick}
+                onContextMenu={(e) => handleContextMenu(e, img)}
                 className={styles.cardInner}
             >
                 <div className={styles.imageArea}>
@@ -213,7 +233,11 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         const count = stack.image_count || 1;
 
         return (
-            <div onClick={onClick} className={styles.cardInnerStack}>
+            <div
+                onClick={onClick}
+                onContextMenu={(e) => handleContextMenu(e, stack)}
+                className={styles.cardInnerStack}
+            >
                 {count > 1 && (
                     <>
                         <div className={styles.stackLayer1} />
@@ -344,6 +368,38 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 components={gridComponents}
                 itemContent={itemContent}
             />
+
+            {contextMenu && (
+                <div
+                    className={styles.contextMenu}
+                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <button
+                        className={styles.contextMenuItem}
+                        onClick={() => {
+                            if (onFindSimilar) onFindSimilar(contextMenu.image);
+                            setContextMenu(null);
+                        }}
+                    >
+                        Find Similar Images
+                    </button>
+                    {contextMenu.image.stack_id && (
+                        <button
+                            className={styles.contextMenuItem}
+                            onClick={() => {
+                                if (onSelectStack) {
+                                    // Construct a fake stack object if needed, or just use the image
+                                    onSelectStack(contextMenu.image);
+                                }
+                                setContextMenu(null);
+                            }}
+                        >
+                            Open Stack
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

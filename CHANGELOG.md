@@ -1,6 +1,155 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
+
+## [7.7.1] - 2026-05-15
+
+### Changed
+
+- **Documentation hub**: Refreshed **`docs/CANONICAL_SOURCES.md`**, **`docs/README.md`**, **`docs/DEVELOPMENT.md`**, architecture overviews (**`docs/architecture/*`**), integration notes, feature index, and **`docs/log.md`**.
+- **Agent inventory**: **`SKILL_INVENTORY.md`** and Cursor subagent prompts (**`.cursor/agents/*`**) updated for current workflows.
+
+## [7.7.0] - 2026-05-10
+
+### Added
+
+- **Image pipeline phase panel**: **`ImageViewer`** shows every pipeline stage (**indexing** → **keywords**) with authoritative **`image_phase_status`** rows when available, and heuristic fallback so the sidebar never goes blank (**`src/components/Viewer/ImageViewer.tsx`**).
+- **`getImagePhaseStatuses`**: PostgreSQL helper returns one row per known phase in display order, with defaults for missing IPS rows (**`electron/db.ts`**); types and IPC surface in **`electron/types.ts`**, **`electron/preload.ts`**, **`electron/main.ts`**, **`src/bridge.ts`**, **`src/electron.d.ts`**.
+- **Post-import scheduling**: small extensions in **`electron/scheduleProcessing.ts`** aligned with backend phase semantics.
+- **Docs**: **`docs/features/implemented/06-sync-from-device-workflow.md`** (sync-from-device workflow) plus index and terminology cross-links.
+
+### Changed
+
+- **Static server**: minor media / logging tweaks (**`server/index.ts`**).
+- **Docs**: **`docs/CANONICAL_SOURCES.md`**, **`docs/README.md`**, **`docs/log.md`**, **`docs/technical/PIPELINE_TERMINOLOGY.md`**.
+
+## [7.6.2] - 2026-05-09
+
+### Added
+
+- **Claude Code / backlog workflow**: **`/task-claim`** slash command (**`.claude/commands/task-claim.md`**) and **`.claude/skills/backlog-queue/SKILL.md`** mirror (GitHub Project claim flow aligned with **`docs/project/00-backlog-workflow.md`**).
+
+## [7.6.1] - 2026-05-06
+
+### Fixed
+
+- **Windows/WSL path normalization**: `toWindowsLocalFsPath()` now handles decoded URL shapes like `/D:/...`, `/D/...`, and double-slash WSL paths (`electron/pathWinWsl.ts`, tests).
+- **Browser-mode media resolution**: Media candidate generation now includes Docker backend thumbnail roots and logs candidate resolution details for 404 investigations (`server/buildMediaPathCandidates.ts`, `server/index.ts`).
+
+## [7.6.0] - 2026-05-03
+
+### Added
+
+- **`config.api.browserUrl`**: optional host-reachable backend base for **open in browser** / **`/ui/`** links when **`api.url`** is container-only; wired through **`environment.docker.json`** (host **`browserUrl`** alongside internal service URL).
+- **Browser gallery session persistence**: **`src/utils/galleryBrowserPersistence.ts`** (with tests) restores filters, folder, stacks mode, and view in **`AppContent.tsx`** when running the Vite **`dev:browser`** path.
+- **`apiBaseUrlForExternalOpen`**: **`src/utils/apiBaseUrlForBrowser.ts`** (with tests) picks **`browserUrl`** vs **`api.url`** for external links.
+- **Windows ↔ WSL path helpers**: expanded **`electron/pathWinWsl.ts`** and coverage in **`electron/pathWinWsl.test.ts`**.
+
+### Changed
+
+- **Docker refresh script**: **`docker_refresh_webui.bat`** replaces **`docker_refresh_gallery.bat`** (compose refresh targets the WebUI service).
+- **Static file server**: **`server/buildMediaPathCandidates.ts`** / **`server/index.ts`** — additional media path resolution cases and tests.
+- **Electron main/preload/types**: small IPC and typing updates for browser URL and shell behavior (**`electron/main.ts`**, **`electron/preload.ts`**, **`electron/types.ts`**).
+- **Docs**: **`docs/guides/02-api-backend-config.md`** — **`browserUrl`** and API base guidance.
+
+### Fixed
+
+- **Log image links**: **`src/utils/logMessageLinks.tsx`** — align inspector URLs with host-reachable API base when **`browserUrl`** is set.
+
+## [7.5.0] - 2026-05-03
+
+### Added
+
+- **Post-import pipeline scheduling**: **`electron/scheduleProcessing.ts`** submits **`submitPipeline`** (metadata → score → tag → cluster) for copied/imported **`image_ids`**, or marks **`image_phase_status`** pending when the API is down — used from **`electron/main.ts`** sync/import paths (**`scheduleProcessingOutcome`** + **`scheduleProcessingOutcome.test.ts`** in **`src/utils/`**).
+- **Shutter-speed formatting**: **`src/utils/formatShutterSpeed.ts`** (with **`formatShutterSpeed.test.ts`**) for human-readable shutter display.
+- **`pick_status` in DB layer**: PostgreSQL helpers / types aligned with **Vexlum Scoring** **`images.pick_status`** (**`electron/db.ts`**, **`types.ts`**, **`apiTypes.ts`**).
+- **Optional Docker dev**: **`Dockerfile`**, **`docker-compose.yml`**, **`environment.docker.json`**, **`docker_refresh_gallery.bat`** for containerized setups.
+
+### Changed
+
+- **Electron IPC & bridge**: **`electron/preload.ts`**, **`src/bridge.ts`**, **`src/electron.d.ts`** — narrower surface alignment for new scheduling and DB behavior.
+- **Import / sync UX**: **`ImportModal`** and **`SyncModal`** updated for pipeline outcomes and messaging; **`ImageViewer`** small refresh; **`vite.config.ts`** tweak.
+
+### Tests
+
+- **`electron/qualityTiebreakSql.test.ts`** — SQL tie-break expectations against selection ordering.
+
+## [7.4.2] - 2026-04-29
+
+### Fixed
+
+- **Card / folder sync — import phase**: After copy, **import** now runs only for destination files recorded during the copy pass (no second full-folder `readdir` scan). Progress reports per file; folder count reflects destination date-folders that received imports (**`electron/main.ts`**).
+
+### Changed
+
+- **Sync results copy**: Clarified the “Folders” summary line in **`SyncModal`** (“destination date-folder(s) with imports”).
+
+## [7.4.1] - 2026-04-28
+
+### Changed
+
+- **`electron/db.ts`** — **`syncImageKeywords`** (PostgreSQL): upserts **`image_keywords`** with **`relevance_weight`** alongside **`confidence`** (defaults to `1.0`), aligned with PostgreSQL **`image_keywords.relevance_weight`** introduced in **Vexlum Scoring** v7.8.0 migration **`0017`**.
+- **Project pointers & governance**: backlog workflow documentation, **`CLAUDE.md`**, **`TODO.md`**, and related **`docs/**/*.md`** pointer updates (`00-backlog-workflow`, **`BACKLOG_GOVERNANCE`**, roadmap/integration TODO stubs); **`PROJECT_GUIDE`**, **`SKILL_INVENTORY`**, and PR template clarifications.
+
+## [7.4.0] - 2026-04-28
+
+### Added
+
+- **Log message image links**: `[[img:<id>]]` tokens in pipeline log lines are rendered as links that open the backend image inspector (`logMessageLinks.tsx`).
+
+### Changed
+
+- **API contract**: Large refresh of `api-contract/openapi.json` against the current FastAPI surface.
+- **Runs & shell**: Further tweaks to Runs console/page, notification tray, filter panel, gallery grid, and image viewer for layout and behavior.
+- **Styling**: Continued token and layout updates (`tokens.css`, `layout.css`, calendar picker).
+- **Documentation**: Added **CANONICAL_SOURCES**, **DEVELOPMENT**, **WIKI_SCHEMA**, design-system stub, and **implemented** feature hub pages (desktop shell, DB engine modes, backend API jobs, JPEG export/orientation).
+
+### Removed
+
+- **Legacy global `App.css` / placeholder asset**: Removed in favor of token-driven styles and streamlined `App.tsx` boot.
+
+## [7.3.0] - 2026-04-27
+
+### Added
+
+- **Runs UI surfaces**: New and expanded Runs pages and console components for run monitoring and diagnostics.
+- **Notification tray**: In-app notification surface for background activity and operator feedback.
+
+### Changed
+
+- **API contract refresh**: Updated `api-contract/openapi.json` and related docs to reflect current backend APIs.
+- **Styling tokens and layout**: Updated shared CSS tokens/layout for improved spacing and consistency.
+
+## [7.2.0] - 2026-04-25
+
+### Added
+
+- **Find similar images**: Right-click a grid or stack card to open **Find Similar Images** (`SimilarSearchDrawer`); jump to a result or its folder from the drawer.
+- **Export bake tests**: Coverage for **`getJpegOrientation`**, **`applyOrientationTransform`**, and JPEG fixtures under **`src/utils/fixtures/`**.
+- **`npm run doctor`**: Local diagnostics entry point (`scripts/doctor.mjs`).
+
+### Changed
+
+- **`test:db` script**: `../image-scoring` → **`../image-scoring-backend`** for the shared test DB helper path.
+
+### Fixed
+
+- **JPEG export orientation**: Renderer bake uses storage-order pixels (`createImageBitmap` + manual EXIF transform) with safer fallbacks so previews are not double-rotated. **Main process** runs a dedicated **ExifTool** pass to set **Orientation = 1** (`useMWG: false`, numeric tags) right after writing the file so apps like **Windows Photos** do not apply the old preview tag on top of baked pixels.
+
+## [7.1.0] - 2026-04-24
+
+### Added
+
+- **Backend detail deep-link**: Image viewer action now opens the Python backend’s image details page (`/ui/images/<id>`), using a new `openExternalUrl()` bridge function (IPC when running in Electron; `window.open` fallback in browser mode).
+
+### Changed
+
+- **Menu**: Disabled **Duplicates** and **Embeddings** entries (temporarily) to avoid presenting non-functional routes.
+- **Export raster bake**: `bakeExifOrientationToBlob()` now relies on Chromium’s default EXIF auto-orientation during `<img>` decode, then writes an upright raster with Orientation set to 1.
+
+### Fixed
+
+- **Scoring UI window reuse**: Opening backend URLs now reuses an existing scoring/webui shell window when available, instead of always spawning a new one.
 
 ## [7.0.2] - 2026-04-15
 
@@ -129,7 +278,7 @@ All notable changes to this project will be documented in this file.
 - **`getImages` query**: `LEFT JOIN image_exif` to project `capture_date` and `is_capture_date_fallback`; column references qualified with `i.` alias.
 - **`getImageCount`**: Supports `capturedDate` filter via `image_exif` subquery.
 - **Types**: `ImageQueryOptions.capturedDate`, `ImageRow.capture_date` / `is_capture_date_fallback`, `AppConfig.backup.similarityThreshold`, `ScoredImageForBackup.capture_date`.
-- **TODO.md**: Updated evaluation to 2026-04-10; priority tiers aligned with backend `docs/plans/INDEX.md`.
+- **TODO.md**: Updated evaluation to 2026-04-10; priority tiers aligned with backend `docs/planning/INDEX.md`.
 
 ### Removed
 
