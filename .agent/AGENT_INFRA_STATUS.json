@@ -1,0 +1,77 @@
+{
+  "repo": "image-scoring-gallery",
+  "review_date": "2026-05-16",
+  "status": "yellow",
+  "active_files": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".agent/AGENT_INFRA_INVENTORY.md",
+    ".agent/AGENT_INFRA_STATUS.json",
+    ".agent/COMMANDS.md",
+    ".agent/SAFETY.md",
+    ".agent/PROJECT_GUIDE.md",
+    ".agent/SKILL_INVENTORY.md",
+    ".agent/subagents/README.md",
+    ".agent/workflows/",
+    ".cursor/rules/agent-canonical-sources.mdc",
+    ".cursor/rules/",
+    ".cursor/commands/",
+    ".cursor/skills/",
+    ".cursor/agents/",
+    ".claude/rules/agent-canonical-sources.mdc",
+    ".claude/rules/documentation.mdc",
+    ".claude/commands/",
+    ".claude/skills/backlog-queue/",
+    ".claude/agents/",
+    "docs/CANONICAL_SOURCES.md",
+    "docs/WIKI_SCHEMA.md",
+    "docs/DEVELOPMENT.md",
+    "docs/log.md",
+    "docs/project/00-backlog-workflow.md",
+    "docs/integration/TODO.md"
+  ],
+  "created_files": [
+    ".agent/AGENT_INFRA_INVENTORY.md",
+    ".agent/AGENT_INFRA_STATUS.json",
+    ".agent/COMMANDS.md",
+    ".agent/SAFETY.md",
+    ".agent/subagents/README.md",
+    ".agent/workflows/verify_gallery.md",
+    ".agent/workflows/run_gallery_dev.md",
+    ".agent/workflows/debug_gallery_backend_connection.md",
+    ".agent/workflows/debug_raw_preview.md",
+    ".agent/workflows/update_gallery_docs_wiki.md",
+    ".agent/workflows/update_ipc_contract.md",
+    ".agent/workflows/update_api_client.md",
+    ".agent/workflows/cross_repo_contract_change.md",
+    ".cursor/rules/agent-canonical-sources.mdc",
+    ".claude/rules/agent-canonical-sources.mdc"
+  ],
+  "updated_files": [
+    ".agent/PROJECT_GUIDE.md",
+    ".agent/workflows/verify_system.md",
+    ".agent/workflows/run_dev.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "docs/log.md"
+  ],
+  "deprecated_files": [
+    ".agent/skills/firebird-db/SKILL.md (historical name; content describes PostgreSQL — see frontmatter)"
+  ],
+  "missing_recommended_files": [],
+  "validation_commands": [
+    "npm run doctor",
+    "npx tsc --noEmit",
+    "npx tsc -p electron/tsconfig.json --noEmit",
+    "npm run lint"
+  ],
+  "known_risks": [
+    "npm run lint reported 73 errors / 16 warnings on 2026-05-16 (pre-existing baseline per AGENTS.md Cloud notes); tsc and doctor PASSED.",
+    "Third-party .agent/skills/ (e.g. moltbook, serena-integration) may be stale — confirm in a follow-up issue.",
+    "Legacy scripts under scripts/ still referencing node-firebird without package dep — see archive note in AGENT_INFRA_INVENTORY if applicable."
+  ],
+  "next_actions": [
+    "Track ESLint debt reduction separately from agent-infra work.",
+    "Re-run full validation after substantive IPC or apiService changes."
+  ]
+}

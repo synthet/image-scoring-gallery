@@ -1,99 +1,88 @@
 # Driftara Gallery (`image-scoring-gallery`)
 
-## Project Overview
+> Stub — the authoritative agent rules live in `CLAUDE.md`, `AGENTS.md`,
+> `.cursor/rules/*.mdc`, `.agent/PROJECT_GUIDE.md`, and
+> `docs/CANONICAL_SOURCES.md`. This file exists for Cursor IDE compatibility.
 
-This is a high-performance image gallery application built with Electron, React, and Vite. It serves as a frontend for browsing and filtering images scored by **Vexlum Scoring** (`image-scoring-backend`).
+## What this is
 
-## Core Technologies
+Electron + React + Vite desktop viewer for libraries scored by
+**Vexlum Scoring** (`image-scoring-backend`).
 
-- **Frontend**: React 19, TypeScript 5.9
-- **Build Tool**: Vite 7
-- **Electron**: 40.1.0
-- **Database**: Firebird SQL (via `node-firebird`)
-- **Styling**: Vanilla CSS + CSS Modules (tokens in `src/styles/tokens.css`, layout in `src/styles/layout.css`, base resets in `src/index.css`); design system in [`docs/design/DESIGN_SYSTEM.md`](docs/design/DESIGN_SYSTEM.md)
-- **State Management**: Zustand 5
-- **UI Components**: Lucide React, React Virtuoso
+## Where to look first
 
-## Key Entry Points
+- `CLAUDE.md` — orientation and backend integration.
+- `AGENTS.md` — MCP servers, slash commands, AST09/AST10.
+- `docs/CANONICAL_SOURCES.md` — backend vs gallery authority boundaries.
+- `docs/architecture/01-system-overview.md` and `docs/architecture/02-database-design.md`.
+- `.agent/PROJECT_GUIDE.md`, `.agent/SAFETY.md`, `.agent/COMMANDS.md`.
+- `.cursor/rules/` — focused mdc rules; each is single-purpose.
 
-- `electron/main.ts` - Main process entry
-- `src/main.tsx` - Renderer process entry
-- `electron/db.ts` - Firebird database integration
-- `run.bat` - Application launcher
+## Core technologies
 
-## Directory Structure
+- React 19, TypeScript 5.9, Vite 7.
+- Electron 40.x.
+- **Database access:** PostgreSQL via `pg` (node-postgres) in the **Electron main process** through `electron/db/provider.ts`, OR HTTP to the backend (`electron/apiService.ts`). **Firebird is decommissioned.**
+- State: Zustand 5.
+- Lists: react-virtuoso.
 
-```
-image-scoring-gallery/
-├── electron/              # Electron main process source
-│   ├── main.ts            # Entry point
-│   ├── db.ts              # Database operations
-│   ├── preload.ts         # Preload script
-│   └── nefExtractor.ts    # RAW image extraction logic
-├── src/                   # React renderer source
-│   ├── components/        # UI components
-│   ├── hooks/             # Custom React hooks
-│   ├── services/          # API/DB service wrappers
-│   ├── App.tsx            # Root component
-│   └── main.tsx           # React entry point
-├── public/                # Static assets
-├── dist-electron/         # Compiled electron files
-└── dist/                  # Compiled web files
-```
+## Backend integration
 
-## Database Integration (Firebird)
+- Backend HTTP API on `http://localhost:7860`, discovered via `webui.lock` in the sibling repo (see `electron/apiUrlResolver.ts`).
+- Backend owns the REST contract and database schema. The OpenAPI source lives in `image-scoring-backend/docs/reference/api/openapi.yaml`; we mirror types via `npm run generate:api-types`.
+- For pipeline phase codes / labels: backend `docs/technical/PIPELINE_TERMINOLOGY.md`.
 
-The app connects to a Firebird database (`SCORING_HISTORY.FDB`).
-- **CRITICAL**: Use the shared database managed by **Vexlum Scoring** (`image-scoring-backend`).
-- **Port**: Default 3050.
-- **Library**: `node-firebird`.
-- All database logic should reside in `electron/db.ts` and be exposed via IPC to the renderer.
+## Key entry points
 
-## IPC Pattern
+- `electron/main.ts` — main-process entry (IPC handlers).
+- `electron/preload.ts` — `contextBridge` surface.
+- `electron/db.ts` and `electron/db/provider.ts` — DB layer (main process only).
+- `electron/apiService.ts` / `electron/apiUrlResolver.ts` — HTTP client + backend discovery.
+- `electron/apiTypes.ts` / `electron/api.generated.ts` — API contract types.
+- `src/main.tsx` — renderer entry.
 
-1. Define handler in `electron/main.ts` using `ipcMain.handle`.
-2. Expose function in `electron/preload.ts` via `contextBridge`.
-3. Declare types in `src/electron.d.ts`.
-4. Call from React components/hooks using `window.electronAPI`.
+## IPC pattern (required)
 
-## Git Configuration — Do Not Modify
+1. Define handler in `electron/main.ts` via `ipcMain.handle`.
+2. Expose in `electron/preload.ts` through `contextBridge`.
+3. Type in `src/electron.d.ts`.
+4. Call from React via `window.electronAPI`.
 
-**Never modify `.git/config`** — do not set `extensions.worktreeConfig`, change `core.repositoryformatversion`, or add any git extensions. Third-party tools (Gemini Code Assist / Antigravity) use embedded git libraries that fail on non-standard extensions, breaking workspace resolution. If a worktree is needed, use a temporary one and clean it up immediately — do not leave worktree config persisted in the repo.
+**Renderer must NOT do direct DB or filesystem access.** All DB / FS work
+happens in the main process behind IPC.
 
-## Code Conventions
+## Commands
 
-### React / TypeScript
-- Use functional components and hooks.
-- Prefer `interface` for defining object shapes.
-- Leverage `zustand` for global state.
-- Use `react-virtuoso` for large lists (gallery).
+- `npm run dev` — full dev (server + Vite + Electron).
+- `npm run dev:web` — server + Vite only.
+- `npm run build` — production build (electron-packager, Windows).
+- `npm run lint` — ESLint.
+- `npm run test:run` — Vitest.
+- `npm run doctor` — Node + config + sibling backend discovery.
+- `npm run generate:api-types` — regenerate types from backend OpenAPI.
+- `npx tsc --noEmit` — renderer typecheck.
+- `npx tsc -p electron/tsconfig.json --noEmit` — main-process typecheck.
 
-### Electron
-- Keep main process slim; delegate heavy work to modules or separate processes if needed.
-- Use `cross-env` for environment variable management.
-- Ensure all file operations use absolute paths or are safely resolved.
+## Regression-sensitive areas
 
-### Styling
-- Use CSS modules or standard CSS files.
-- Maintain consistency with the existing simple, clean UI.
+- **RAW / NEF preview** — see `docs/features/implemented/01-nef-raw-fallback.md`.
+- **JPEG EXIF orientation** — see `docs/features/implemented/05-jpeg-export-exif-orientation.md` (useMWG: false; `resetExportedJpegExifOrientation` is a separate independent pass — do not collapse).
 
-## Common Tasks
+Changes here require regression checks against those docs.
 
-### Adding a new Database Query
-1. Add function to `electron/db.ts`.
-2. Update `ipcMain.handle` in `electron/main.ts`.
-3. Add to `electron/preload.ts`.
-4. Update `src/electron.d.ts`.
+## Hard rules
 
-### Modifying the Gallery
-- Main gallery logic is in `src/App.tsx` and `src/components/Gallery`.
-- Filtering logic should be handled by the database (SQL queries) when possible.
+- **Never** add renderer-process DB access — IPC/preload only.
+- **Never** add new Firebird/`node-firebird` integrations — Firebird is decommissioned.
+- **Do not** invent backend API endpoints, payloads, phase codes, or DB columns. Cite `docs/CANONICAL_SOURCES.md` and the backend's `openapi.yaml`.
+- **Do not** modify `.git/config` (see below).
+- **Do not** commit thumbnails, caches, local-path scratch files, or generated binaries.
+- **Backlog contract** — every task starts from the GitHub Project board (https://github.com/users/synthet/projects/1). See `.agent/skills/backlog-queue/SKILL.md`.
 
-## Key Dependencies
+## Git configuration — do not modify
 
-- `electron-is-dev`: Dev mode detection
-- `exiftool-vendored`: EXIF metadata extraction
-- `node-firebird`: Firebird DB client
-- `zustand`: State management
-- `lucide-react`: Icons
-- `react-virtuoso`: Virtualized list for gallery performance
+Never modify `.git/config` — do not set `extensions.worktreeConfig`, change
+`core.repositoryformatversion`, or add any git extensions. Third-party tools
+(Gemini Code Assist / Antigravity) use embedded git libraries that fail on
+non-standard extensions, breaking workspace resolution. If a worktree is
+needed, use a temporary one and clean it up immediately.
