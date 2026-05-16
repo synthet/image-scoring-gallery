@@ -16,6 +16,8 @@ It spans `image-scoring-gallery` and `image-scoring-backend`. Every agent must f
 
 Before changing IPC contracts, stage labels, or backend integration: read **[`docs/CANONICAL_SOURCES.md`](../docs/CANONICAL_SOURCES.md)**. For wiki structure and `docs/log.md` rules, read **[`docs/WIKI_SCHEMA.md`](../docs/WIKI_SCHEMA.md)**. Shipped features are indexed under **[`docs/features/implemented/INDEX.md`](../docs/features/implemented/INDEX.md)**.
 
+**Agent infra:** **[`AGENT_INFRA_INVENTORY.md`](AGENT_INFRA_INVENTORY.md)**, **[`COMMANDS.md`](COMMANDS.md)**, **[`SAFETY.md`](SAFETY.md)**, **[`subagents/README.md`](subagents/README.md)**, **[`workflows/`](workflows/)**, **[`AGENT_INFRA_STATUS.json`](AGENT_INFRA_STATUS.json)**.
+
 ## Project Context
 **Driftara Gallery** (`image-scoring-gallery`) is the desktop viewer for libraries managed by **Vexlum Scoring** (`image-scoring-backend`). It is built with Electron and React and connects to PostgreSQL (with pgvector) and/or the backend API.
 

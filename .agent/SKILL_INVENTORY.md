@@ -31,3 +31,13 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | Skill `name` | Path | Purpose (short) | Risk | Last reviewed |
 |--------------|------|-----------------|------|---------------|
 | backlog-queue | `.agent/skills/backlog-queue/SKILL.md` | Project board contract (Antigravity / generic agent mirror of canonical Cursor skill) | L1 | 2026-04-28 |
+
+## Subagents (Cursor / Claude Code)
+
+Project subagents live under **`.cursor/agents/`** (canonical) and are mirrored to **`.claude/agents/`** for Claude Code parity.
+
+| Subagent `name` | Path | Purpose (short) | Risk | Claude mirror | Last reviewed |
+|-----------------|------|-----------------|------|---------------|---------------|
+| gallery-electron-ts | `.cursor/agents/gallery-electron-ts.md` | Electron / TS / db.ts contract; aligns with backend schema | L2 | Yes | 2026-05-15 |
+| gallery-mcp-debug | `.cursor/agents/gallery-mcp-debug.md` | Read-only triage from gallery: gallery-local vs reachability vs backend-internal | L1 | Yes | 2026-05-15 |
+| pr-ready-hygiene | `.cursor/agents/pr-ready-hygiene.md` | Scoped lint/tests/tsc; PR-ready checklist | L2 | Yes | 2026-05-15 |

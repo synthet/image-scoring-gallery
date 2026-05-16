@@ -20,7 +20,7 @@ The `.cursor/mcp.json` file uses the **`imgscore-el-*`** prefix so server names 
 
 **Primary (enabled): `imgscore-el-gallery`** — single stdio app from [`mcp-server/`](mcp-server/) (`node …/mcp-server/dist/index.js`). Always: logs, `config.json`, `get_system_stats`, **`gallery_status`** (probes FastAPI + Electron CDP). When the Python WebUI is up: **`api_*`** tools against the resolved backend URL. When Electron runs in dev with remote debugging: **`cdp_*`** tools (default CDP port 9222; set `ELECTRON_CDP_URL` or `ELECTRON_REMOTE_DEBUGGING_PORT` to match).
 
-**Opt-in: `imgscore-el-stdio`** — Python **`modules.mcp_server`** (full DB diagnostics, ~43 tools). **Disabled by default** in this repo; enable in MCP settings or open the **image-scoring-backend** workspace, which uses **`imgscore-py-stdio`**. **`imgscore-el-sse`** — WebUI SSE (e.g. `execute_code` when `ENABLE_MCP_EXECUTE_CODE=1`).
+**Opt-in: `imgscore-el-stdio`** — Python **`modules.mcp_server`** (full DB diagnostics; tool count matches backend **AGENTS.md** / `modules/mcp_server.py`). **Disabled by default** in this repo; enable in MCP settings or open the **image-scoring-backend** workspace, which uses **`imgscore-py-stdio`**. **`imgscore-el-sse`** — WebUI SSE (e.g. `execute_code` when `ENABLE_MCP_EXECUTE_CODE=1`).
 
 ### Requirements
 - **`imgscore-el-gallery`**: Node; run `npm install` and `npm run build` under `mcp-server/` once.
@@ -52,6 +52,7 @@ The `.cursor/mcp.json` file uses the **`imgscore-el-*`** prefix so server names 
 - **[.cursorrules](.cursorrules)**: Core project rules and architecture patterns.
 - **[Project Guide](.agent/PROJECT_GUIDE.md)**: Navigation and maintenance guide.
 - **[AI Edit Spec](.agent/ai_edit_spec.md)**: Coding guidelines for agents.
+- **Agent infra:** [.agent/AGENT_INFRA_INVENTORY.md](.agent/AGENT_INFRA_INVENTORY.md), [.agent/COMMANDS.md](.agent/COMMANDS.md), [.agent/SAFETY.md](.agent/SAFETY.md), [.agent/subagents/README.md](.agent/subagents/README.md), [.agent/workflows/](.agent/workflows/).
 
 ## Cursor Cloud specific instructions
 
