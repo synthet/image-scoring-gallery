@@ -633,18 +633,12 @@ const rebuildApplicationMenu = () => {
                 },
                 { type: 'separator' },
                 {
-                    label: 'Duplicates',
+                    label: 'Duplicates (Coming soon)',
                     enabled: false,
-                    click: () => {
-                        mainWindow?.webContents.send('open-duplicates');
-                    }
                 },
                 {
-                    label: 'Embeddings',
+                    label: 'Embeddings (Coming soon)',
                     enabled: false,
-                    click: () => {
-                        mainWindow?.webContents.send('open-embeddings');
-                    }
                 },
                 { type: 'separator' },
                 {

@@ -11,7 +11,6 @@ import { ImageViewer } from './components/Viewer/ImageViewer';
 import { NotificationTray } from './components/Layout/NotificationTray';
 import { SettingsModal } from './components/Settings/SettingsModal';
 import { DiagnosticsModal } from './components/Diagnostics/DiagnosticsModal';
-import { DuplicateFinder } from './components/Duplicates/DuplicateFinder';
 import { ImportModal } from './components/Import/ImportModal';
 import { SyncModal } from './components/Sync/SyncModal';
 import { BackupModal } from './components/Backup/BackupModal';
@@ -26,7 +25,6 @@ import { useImageOpener } from './hooks/useImageOpener';
 import { useGalleryWebSocket } from './hooks/useGalleryWebSocket';
 import breadcrumbStyles from './styles/breadcrumbs.module.css';
 import toggleStyles from './styles/toggle.module.css';
-import { EmbeddingMap, type ProjectedEmbeddingPoint } from './components/Embeddings/EmbeddingMap';
 import {
   folderIdExistsInTree,
   isBrowserPersistenceEnabled,
@@ -80,7 +78,6 @@ function AppContent() {
     syncSourcePath, setSyncSourcePath,
     isBackupModalOpen, setIsBackupModalOpen,
     backupTargetPath, setBackupTargetPath,
-    currentView, setCurrentView,
   } = useElectronListeners();
 
   const [isSimilarDrawerOpen, setIsSimilarDrawerOpen] = useState(false);
@@ -167,7 +164,6 @@ function AppContent() {
     if (snap) {
       setFilters(snap.filters);
       setSmartCoverEnabled(snap.smartCoverEnabled);
-      setCurrentView(snap.currentView);
       if (
         snap.selectedFolderId !== undefined &&
         folderIdExistsInTree(folders, snap.selectedFolderId)
@@ -184,7 +180,7 @@ function AppContent() {
       }
     }
     setBrowserSessionReady(true);
-  }, [foldersLoading, folders, browserSessionReady, setCurrentView, setActiveStackInfo, setStacksMode]);
+  }, [foldersLoading, folders, browserSessionReady, setActiveStackInfo, setStacksMode]);
 
   useEffect(() => {
     if (!isBrowserPersistenceEnabled() || !browserSessionReady) return;
@@ -194,7 +190,7 @@ function AppContent() {
       includeSubfolders,
       stacksMode,
       activeStackId,
-      currentView,
+      currentView: 'gallery',
       filters,
       smartCoverEnabled,
     });
@@ -204,7 +200,6 @@ function AppContent() {
     includeSubfolders,
     stacksMode,
     activeStackId,
-    currentView,
     filters,
     smartCoverEnabled,
   ]);
@@ -264,15 +259,11 @@ function AppContent() {
     ? (stacksLoading && stacks.length === 0)
     : (activeStackId ? stackImagesLoading : (imagesLoading && images.length === 0));
 
-  const headerTitle = currentView === 'embeddings'
-    ? 'Embeddings Map'
-    : activeStackId
-      ? `Stack #${activeStackId}`
-      : (currentFolder ? (currentFolder.title || 'Folder') : 'Image Gallery');
+  const headerTitle = activeStackId
+    ? `Stack #${activeStackId}`
+    : (currentFolder ? (currentFolder.title || 'Folder') : 'Image Gallery');
 
   const breadcrumbsNode = useMemo(() => {
-    if (currentView === 'duplicates' || currentView === 'embeddings') return null;
-
     type BreadcrumbPart = { label: string; onClick: () => void; isActive: boolean };
     const parts: BreadcrumbPart[] = [];
 
@@ -329,7 +320,7 @@ function AppContent() {
         ))}
       </>
     );
-  }, [folders, selectedFolderId, activeStackId, currentView]);
+  }, [folders, selectedFolderId, activeStackId]);
 
   const canGalleryNavigateBack = useMemo(
     () => activeStackId !== null || selectedFolderId !== undefined,
@@ -374,8 +365,7 @@ function AppContent() {
         sidebar={
           <div style={{ padding: 10, display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div style={{ marginBottom: 15 }}>
-              {currentView === 'gallery' ? (
-                <button
+              <button
                   type="button"
                   disabled={!canGalleryNavigateBack}
                   onClick={() => handleNavigateToParent()}
@@ -394,25 +384,6 @@ function AppContent() {
                 >
                   Back
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setCurrentView('gallery')}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    backgroundColor: '#4caf50',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    borderLeft: '4px solid #fff',
-                  }}
-                >
-                  Gallery
-                </button>
-              )}
             </div>
 
             <div style={{ padding: '0 0 10px 0', display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -511,20 +482,8 @@ function AppContent() {
         }
         content={
           <div style={{ height: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            {currentView === 'duplicates' ? (
-              <DuplicateFinder currentFolder={currentFolder} />
-            ) : currentView === 'embeddings' ? (
-              <EmbeddingMap
-                points={[]}
-                isLoading={false}
-                error={null}
-                onSelectPoint={(point: ProjectedEmbeddingPoint) => {
-                  void openImageById(point.id);
-                }}
-              />
-            ) : (
-              <>
-                {isInitialGridLoading && (
+            <>
+              {isInitialGridLoading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
                     <div style={{ color: '#aaa' }}>Loading images...</div>
                   </div>
@@ -593,8 +552,7 @@ function AppContent() {
                     }}
                   />
                 )}
-              </>
-            )}
+            </>
           </div>
         }
       />

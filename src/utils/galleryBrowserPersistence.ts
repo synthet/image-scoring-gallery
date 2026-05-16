@@ -37,7 +37,9 @@ export function folderIdExistsInTree(folders: Folder[], id: number): boolean {
 }
 
 function coerceView(v: unknown): 'gallery' | 'duplicates' | 'embeddings' | null {
-  if (v === 'gallery' || v === 'duplicates' || v === 'embeddings') return v;
+  if (v === 'gallery') return 'gallery';
+  // Unfinished Tools views are disabled; never restore them from session storage.
+  if (v === 'duplicates' || v === 'embeddings') return 'gallery';
   return null;
 }
 
