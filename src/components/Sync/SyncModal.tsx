@@ -3,7 +3,7 @@ import type { SyncCandidate } from '../../../electron/types';
 import { bridge } from '../../bridge';
 import { useOperationStore } from '../../store/useOperationStore';
 import { Logger } from '../../services/Logger';
-import { formatScheduleResultsSummary, type ScheduleResult } from '../../utils/scheduleProcessingOutcome';
+import { coerceScheduleResults, formatScheduleResultsSummary, type ScheduleResult } from '../../utils/scheduleProcessingOutcome';
 
 interface SyncResult {
     scanned: number;
@@ -180,7 +180,12 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
             .syncRun(sourcePath, preview?.candidates)
             .then((res) => {
                 if (runRef.current) {
-                    setResult(res);
+                    setResult({
+                        ...res,
+                        processing: res.processing?.length
+                            ? coerceScheduleResults(res.processing)
+                            : undefined,
+                    });
                     setIsComplete(true);
                     Logger.info('[SyncModal] Sync completed', {
                         opId,

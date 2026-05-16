@@ -75,9 +75,9 @@ function AppContent() {
     isImportModalOpen, setIsImportModalOpen,
     importFolderPath, setImportFolderPath,
     isSyncModalOpen, setIsSyncModalOpen,
-    syncSourcePath, setSyncSourcePath,
+    syncSourcePath,
     isBackupModalOpen, setIsBackupModalOpen,
-    backupTargetPath, setBackupTargetPath,
+    backupTargetPath,
   } = useElectronListeners();
 
   const [isSimilarDrawerOpen, setIsSimilarDrawerOpen] = useState(false);

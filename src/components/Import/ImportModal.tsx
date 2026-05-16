@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { bridge } from '../../bridge';
 import { useOperationStore } from '../../store/useOperationStore';
 import { Logger } from '../../services/Logger';
-import { formatScheduleResultLine, type ScheduleResult } from '../../utils/scheduleProcessingOutcome';
+import { coerceScheduleResult, formatScheduleResultLine, type ScheduleResult } from '../../utils/scheduleProcessingOutcome';
 
 interface Props {
     isOpen: boolean;
@@ -73,7 +73,7 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
                     setAdded(result.added);
                     setSkipped(result.skipped);
                     setErrors(result.errors);
-                    setProcessing(result.processing ?? null);
+                    setProcessing(coerceScheduleResult(result.processing));
                     setIsComplete(true);
                     Logger.info('[ImportModal] Import completed', {
                         opId, added: result.added, skipped: result.skipped, errorCount: result.errors.length,

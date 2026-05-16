@@ -5,7 +5,7 @@ import { folderIdExistsInTree, readGalleryBrowserSnapshot } from './galleryBrows
 describe('galleryBrowserPersistence', () => {
   it('folderIdExistsInTree finds nested ids', () => {
     const folders: Folder[] = [
-      { id: 1, title: 'root', children: [{ id: 2, title: 'leaf', children: [] }] },
+      { id: 1, title: 'root', path: '/root', parent_id: null, is_fully_scored: 0, image_count: 0, children: [{ id: 2, title: 'leaf', path: '/root/leaf', parent_id: 1, is_fully_scored: 0, image_count: 0, children: [] }] },
     ];
     expect(folderIdExistsInTree(folders, 1)).toBe(true);
     expect(folderIdExistsInTree(folders, 2)).toBe(true);

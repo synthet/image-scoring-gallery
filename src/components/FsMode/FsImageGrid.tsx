@@ -28,7 +28,7 @@ export const FsImageGrid: React.FC<FsImageGridProps> = ({
     return (
         <GalleryGrid
             images={images}
-            onSelect={onSelect}
+            onSelect={(image) => onSelect(image as FsImageRow)}
             onEndReached={onEndReached}
             subfolders={subfolders}
             onSelectFolder={onSelectFolder}

@@ -1,4 +1,3 @@
-import React from 'react';
 import { ImageOff } from 'lucide-react';
 import styles from './GalleryGrid.module.css';
 

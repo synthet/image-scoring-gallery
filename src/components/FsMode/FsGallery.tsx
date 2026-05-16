@@ -68,7 +68,7 @@ export const FsGallery: React.FC = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [folderCacheReload, setFolderCacheReload] = useState({ nonce: 0, folderPath: '' });
 
-    const { items, subDirectories, totalCount, loading, hasMore, loadMore } = useFsPagination(
+    const { items, subDirectories, totalCount, loading, loadMore } = useFsPagination(
         selectedPath || null,
         folderCacheReload.nonce,
     );

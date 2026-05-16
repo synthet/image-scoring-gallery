@@ -4,6 +4,43 @@ export type ScheduleResult =
     | { method: 'queue'; queuedCount: number; reason: 'api-unavailable' | 'api-error'; error?: string }
     | { method: 'none' };
 
+/** Loose shape returned from import/sync IPC before narrowing. */
+export type ScheduleResultInput = {
+    method: 'api' | 'queue' | 'none';
+    jobId?: string | number;
+    queuedCount?: number;
+    reason?: 'api-unavailable' | 'api-error';
+    error?: string;
+};
+
+export function coerceScheduleResult(raw: ScheduleResultInput | null | undefined): ScheduleResult | null {
+    if (!raw) {
+        return null;
+    }
+    if (raw.method === 'none') {
+        return { method: 'none' };
+    }
+    if (raw.method === 'api') {
+        return { method: 'api', jobId: raw.jobId };
+    }
+    if (raw.method === 'queue') {
+        return {
+            method: 'queue',
+            queuedCount: raw.queuedCount ?? 0,
+            reason: raw.reason ?? 'api-unavailable',
+            error: raw.error,
+        };
+    }
+    return { method: 'none' };
+}
+
+export function coerceScheduleResults(raw: ScheduleResultInput[] | null | undefined): ScheduleResult[] {
+    if (!raw?.length) {
+        return [];
+    }
+    return raw.map((item) => coerceScheduleResult(item) ?? { method: 'none' as const });
+}
+
 export function formatScheduleResultLine(p: ScheduleResult): string | null {
     if (p.method === 'none') {
         return null;
