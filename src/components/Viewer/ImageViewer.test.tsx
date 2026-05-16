@@ -28,6 +28,7 @@ import { ImageViewer } from './ImageViewer';
 
 type ElectronMock = {
     getImageDetails: ReturnType<typeof vi.fn>;
+    getImagePhaseStatuses: ReturnType<typeof vi.fn>;
     readExif: ReturnType<typeof vi.fn>;
     setCurrentExportImageContext: ReturnType<typeof vi.fn>;
     updateImageDetails: ReturnType<typeof vi.fn>;
@@ -68,6 +69,7 @@ describe('ImageViewer tag propagation suggestions', () => {
 
         electron = {
             getImageDetails: vi.fn().mockResolvedValue({ ...baseImage }),
+            getImagePhaseStatuses: vi.fn().mockResolvedValue([]),
             readExif: vi.fn().mockResolvedValue({}),
             setCurrentExportImageContext: vi.fn().mockResolvedValue(true),
             updateImageDetails: vi.fn().mockResolvedValue(true),
