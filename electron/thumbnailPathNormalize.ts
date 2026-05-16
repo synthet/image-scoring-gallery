@@ -36,6 +36,19 @@ export function stripDockerAppThumbnailPrefix(restForwardSlashes: string): strin
 }
 
 /**
+ * Returns the relative path under a thumbnails root (e.g. `91/ab12…jpg`) for any absolute or
+ * repo-style path that still contains a `thumbnails/` segment (host `/mnt/…`, Windows, Docker `/app/…`).
+ */
+export function extractThumbnailTail(input: string): string | null {
+    const flat = collapseMalformedThumbnailSegments(input).replace(/\\/g, '/');
+    const lower = flat.toLowerCase();
+    const marker = '/thumbnails/';
+    const idx = lower.lastIndexOf(marker);
+    if (idx < 0) return null;
+    return flat.slice(idx + marker.length);
+}
+
+/**
  * Resolve a DB thumbnail string to an absolute filesystem path.
  * Relative / repo-relative values are joined to `thumbnailBaseDir` or, by default,
  * `../image-scoring-backend/thumbnails` next to the gallery repo (no exists check — missing

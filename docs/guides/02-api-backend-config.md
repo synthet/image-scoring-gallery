@@ -6,6 +6,14 @@ This gallery can discover the Python backend automatically, but you can also pin
 
 Legacy Firebird-era keys (for example `database.host`, `database.path`, and top-level `firebird.path`) are kept only for historical context and are no longer first-class configuration fields. Prefer `database.engine` with `database.postgres.*` (or `database.api.*` when using API SQL mode), plus top-level `api.*` overrides documented below.
 
+## Browser vs in-process URL (`api.browserUrl`)
+
+When **`config.api.url`** points at a hostname only resolvable **inside Docker** (for example `http://image-scoring-webui:7860`), the Electron app can still call the API from the host if your setup proxies correctly — but **“Open in browser”** links must use a base URL your OS browser can resolve.
+
+Set optional **`config.api.browserUrl`** to a host-reachable base (commonly `http://127.0.0.1:7860` when the WebUI publishes port `7860` on localhost). The gallery uses **`api.url`** for REST, WebSocket, and lock-file logic, and **`api.browserUrl`** only for opening `/ui/...` in the system browser.
+
+`environment.docker.json` in this repo sets both: internal `url` for the compose network and `browserUrl` for the operator’s machine.
+
 ## Resolution Order
 
 The backend base URL is resolved in this order:

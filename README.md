@@ -1,11 +1,13 @@
-# Electron Image Scoring Gallery
+# Driftara Gallery
 
-An AI-powered image gallery application built with Electron, React, and Vite.
+An AI-powered desktop image gallery built with Electron, React, and Vite. (Repository: `image-scoring-gallery`.)
 
 ### Documentation
-For detailed technical info, architecture, and feature plans, see the **[Documentation Index](./docs/README.md)**.
+For detailed technical info, architecture, and feature plans, see the **[Documentation Index](./docs/README.md)**, **[Shipped feature catalog](./docs/features/implemented/INDEX.md)**, and **[docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md)** (includes `npm run doctor`).
 
-This application provides a high-performance interface for browsing and filtering images scored by the **[image-scoring-backend](https://github.com/synthet/image-scoring-backend)** core engine.
+**Sibling backend** ([image-scoring-backend](https://github.com/synthet/image-scoring-backend)): infra hubs such as [docs/DEVELOPMENT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DEVELOPMENT.md), [docs/DIAGNOSTICS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DIAGNOSTICS.md), and `python scripts/doctor.py` for config/DB/pgvector checks.
+
+This application provides a high-performance interface for browsing and filtering libraries processed by **[Vexlum Scoring](https://github.com/synthet/image-scoring-backend)** (`image-scoring-backend`).
 
 ## Features
 

@@ -1,8 +1,8 @@
-# Electron Image Scoring Gallery
+# Driftara Gallery (`image-scoring-gallery`)
 
 ## Project Overview
 
-This is a high-performance image gallery application built with Electron, React, and Vite. It serves as a frontend for browsing and filtering images scored by the core Image Scoring engine.
+This is a high-performance image gallery application built with Electron, React, and Vite. It serves as a frontend for browsing and filtering images scored by **Vexlum Scoring** (`image-scoring-backend`).
 
 ## Core Technologies
 
@@ -10,7 +10,7 @@ This is a high-performance image gallery application built with Electron, React,
 - **Build Tool**: Vite 7
 - **Electron**: 40.1.0
 - **Database**: Firebird SQL (via `node-firebird`)
-- **Styling**: Vanilla CSS (standard `App.css`, `index.css`)
+- **Styling**: Vanilla CSS + CSS Modules (tokens in `src/styles/tokens.css`, layout in `src/styles/layout.css`, base resets in `src/index.css`); design system in [`docs/design/DESIGN_SYSTEM.md`](docs/design/DESIGN_SYSTEM.md)
 - **State Management**: Zustand 5
 - **UI Components**: Lucide React, React Virtuoso
 
@@ -44,7 +44,7 @@ image-scoring-gallery/
 ## Database Integration (Firebird)
 
 The app connects to a Firebird database (`SCORING_HISTORY.FDB`).
-- **CRITICAL**: Use the shared database managed by the core Image Scoring project.
+- **CRITICAL**: Use the shared database managed by **Vexlum Scoring** (`image-scoring-backend`).
 - **Port**: Default 3050.
 - **Library**: `node-firebird`.
 - All database logic should reside in `electron/db.ts` and be exposed via IPC to the renderer.

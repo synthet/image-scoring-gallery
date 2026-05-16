@@ -27,6 +27,10 @@ WebSocket/API `job_type` values (`scoring`, `tagging`, `clustering`, …) are ma
 
 The renderer uses **run** in labels (e.g. Pipeline page, notifications) while the backend still exposes `job_id` — see backend [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md).
 
+## Sync and phase heuristics
+
+**Sync from device** registers files and marks **`indexing`** (Discovery) complete before submitting later phases. The **ImageViewer** “Phases” block uses heuristics (not raw `image_phase_status`). See **[../features/implemented/06-sync-from-device-workflow.md](../features/implemented/06-sync-from-device-workflow.md)** and backend **[ELECTRON_SYNC_IMPORT_AND_PHASES.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/ELECTRON_SYNC_IMPORT_AND_PHASES.md)**.
+
 ## Full reference
 
 **[image-scoring-backend/docs/technical/PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md)**

@@ -39,6 +39,10 @@ If a change requires backend DDL or API changes, **say so explicitly** and treat
 
 ## Optional tooling
 
-When a running backend helps, gallery MCP **`imgscore-el-gallery`** (`gallery_status`, API probes) is described in `AGENTS.md`.
+When a running backend helps, the gallery MCP **`imgscore-el-gallery`** exposes `gallery_status`, FastAPI `api_*` probes, and Electron `cdp_*` tools when CDP is enabled (`ELECTRON_REMOTE_DEBUGGING_PORT=9222` or `ELECTRON_CDP_URL`); see `AGENTS.md`. For deeper backend triage, prefer the **`gallery-mcp-debug`** subagent or the optional **`imgscore-el-stdio`** server (Python `modules.mcp_server`).
+
+## Backlog hygiene
+
+Confirm the GitHub Project board issue is `Claimed` or `In Progress` before coding (per **`backlog-queue`** rule). The PR body must include `Closes #<N>`; flip `Stage` to `Review` when the PR opens.
 
 When invoked, start by confirming task scope (which engine mode, which files), then read the relevant `electron/` or `src/` code and backend docs before changing contracts.

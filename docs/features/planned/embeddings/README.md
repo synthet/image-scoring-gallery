@@ -1,6 +1,6 @@
 # Embedding Applications — gallery hub
 
-**Source of truth (algorithms, API, DB):** **[image-scoring-backend `docs/plans/embedding/`](https://github.com/synthet/image-scoring-backend/tree/main/docs/plans/embedding)** — start with [`EMBEDDING_APPLICATIONS.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/plans/embedding/EMBEDDING_APPLICATIONS.md) and [`EMBEDDING_APPLICATIONS_INDEX.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/plans/embedding/EMBEDDING_APPLICATIONS_INDEX.md). Do not duplicate long backend prose here.
+**Source of truth (algorithms, API, DB):** **[image-scoring-backend `docs/features/planned/embeddings/`](https://github.com/synthet/image-scoring-backend/tree/main/docs/plans/embedding)** — start with [`EMBEDDING_APPLICATIONS.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/planned/embeddings/EMBEDDING_APPLICATIONS.md) and [`EMBEDDING_APPLICATIONS_INDEX.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/planned/embeddings/EMBEDDING_APPLICATIONS_INDEX.md). Do not duplicate long backend prose here.
 
 This folder holds **one idea per file** for **Electron / React / IPC / UX** only (what the desktop app wires up). Each page should link back to the matching backend spec.
 

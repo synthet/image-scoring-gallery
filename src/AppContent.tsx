@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MainLayout } from './components/Layout/MainLayout';
 import { useImages, useKeywords, useStacks } from './hooks/useDatabase';
 import { useFolders } from './hooks/useFolders';
@@ -14,9 +14,9 @@ import { DiagnosticsModal } from './components/Diagnostics/DiagnosticsModal';
 import { ImportModal } from './components/Import/ImportModal';
 import { SyncModal } from './components/Sync/SyncModal';
 import { BackupModal } from './components/Backup/BackupModal';
+import { SimilarSearchDrawer } from './components/Viewer/SimilarSearchDrawer';
 import { Loader2, ChevronRight, RefreshCw } from 'lucide-react';
 import { useOperationStore } from './store/useOperationStore';
-import { useState } from 'react';
 import { bridge } from './bridge';
 import { useElectronListeners } from './hooks/useElectronListeners';
 import { useGalleryNavigation } from './hooks/useGalleryNavigation';
@@ -25,10 +25,18 @@ import { useImageOpener } from './hooks/useImageOpener';
 import { useGalleryWebSocket } from './hooks/useGalleryWebSocket';
 import breadcrumbStyles from './styles/breadcrumbs.module.css';
 import toggleStyles from './styles/toggle.module.css';
+import {
+  folderIdExistsInTree,
+  isBrowserPersistenceEnabled,
+  readGalleryBrowserSnapshot,
+  writeGalleryBrowserSnapshot,
+} from './utils/galleryBrowserPersistence';
 
 function AppContent() {
   const [filters, setFilters] = useState<FilterState>({ minRating: 0, sortBy: 'capture_date', order: 'DESC' });
   const [smartCoverEnabled, setSmartCoverEnabled] = useState(false);
+  /** After first folder load in browser, restore session once so the next persist sees hydrated state. */
+  const [browserSessionReady, setBrowserSessionReady] = useState(() => !isBrowserPersistenceEnabled());
   const activeOps = useOperationStore((s) => s.activeOps);
 
   useEffect(() => {
@@ -71,6 +79,9 @@ function AppContent() {
     isBackupModalOpen, setIsBackupModalOpen,
     backupTargetPath, setBackupTargetPath,
   } = useElectronListeners();
+
+  const [isSimilarDrawerOpen, setIsSimilarDrawerOpen] = useState(false);
+  const [similarSearchImageId, setSimilarSearchImageId] = useState<number | null>(null);
 
   const stacksModeRef = useRef(false);
   const activeStackIdRef = useRef<number | null>(null);
@@ -116,7 +127,7 @@ function AppContent() {
   } = useStacks(50, selectedFolderId, stackFilters);
 
   const {
-    stacksMode, enableStacksMode,
+    stacksMode, setStacksMode, enableStacksMode,
     activeStackId, setActiveStackId,
     activeStackInfo, setActiveStackInfo,
     stackImages, setStackImages,
@@ -146,6 +157,52 @@ function AppContent() {
     activeStackIdRef,
   });
 
+  useEffect(() => {
+    if (!isBrowserPersistenceEnabled()) return;
+    if (foldersLoading || browserSessionReady) return;
+    const snap = readGalleryBrowserSnapshot();
+    if (snap) {
+      setFilters(snap.filters);
+      setSmartCoverEnabled(snap.smartCoverEnabled);
+      if (
+        snap.selectedFolderId !== undefined &&
+        folderIdExistsInTree(folders, snap.selectedFolderId)
+      ) {
+        setSelectedFolderId(snap.selectedFolderId);
+        setIncludeSubfolders(snap.includeSubfolders);
+      }
+      if (snap.stacksMode) {
+        setStacksMode(true);
+        if (snap.activeStackId !== null) {
+          setActiveStackId(snap.activeStackId);
+          setActiveStackInfo({ stackId: snap.activeStackId, imageCount: 0 });
+        }
+      }
+    }
+    setBrowserSessionReady(true);
+  }, [foldersLoading, folders, browserSessionReady, setActiveStackInfo, setStacksMode]);
+
+  useEffect(() => {
+    if (!isBrowserPersistenceEnabled() || !browserSessionReady) return;
+    writeGalleryBrowserSnapshot({
+      v: 1,
+      selectedFolderId,
+      includeSubfolders,
+      stacksMode,
+      activeStackId,
+      currentView: 'gallery',
+      filters,
+      smartCoverEnabled,
+    });
+  }, [
+    browserSessionReady,
+    selectedFolderId,
+    includeSubfolders,
+    stacksMode,
+    activeStackId,
+    filters,
+    smartCoverEnabled,
+  ]);
 
   const handleNavigateToFolder = (folderId: number) => {
     setSelectedFolderId(folderId);
@@ -263,7 +320,7 @@ function AppContent() {
         ))}
       </>
     );
-  }, [folders, selectedFolderId, activeStackId, currentView]);
+  }, [folders, selectedFolderId, activeStackId]);
 
   const canGalleryNavigateBack = useMemo(
     () => activeStackId !== null || selectedFolderId !== undefined,
@@ -309,24 +366,24 @@ function AppContent() {
           <div style={{ padding: 10, display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div style={{ marginBottom: 15 }}>
               <button
-                type="button"
-                disabled={!canGalleryNavigateBack}
-                onClick={() => handleNavigateToParent()}
-                aria-label="Back to previous folder"
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  backgroundColor: canGalleryNavigateBack ? '#4caf50' : '#3a3a3a',
-                  color: canGalleryNavigateBack ? '#fff' : '#888',
-                  border: 'none',
-                  borderRadius: 4,
-                  cursor: canGalleryNavigateBack ? 'pointer' : 'not-allowed',
-                  fontWeight: 'bold',
-                  borderLeft: canGalleryNavigateBack ? '4px solid #fff' : '4px solid #555',
-                }}
-              >
-                Back
-              </button>
+                  type="button"
+                  disabled={!canGalleryNavigateBack}
+                  onClick={() => handleNavigateToParent()}
+                  aria-label="Back to previous folder"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    backgroundColor: canGalleryNavigateBack ? '#4caf50' : '#3a3a3a',
+                    color: canGalleryNavigateBack ? '#fff' : '#888',
+                    border: 'none',
+                    borderRadius: 4,
+                    cursor: canGalleryNavigateBack ? 'pointer' : 'not-allowed',
+                    fontWeight: 'bold',
+                    borderLeft: canGalleryNavigateBack ? '4px solid #fff' : '4px solid #555',
+                  }}
+                >
+                  Back
+                </button>
             </div>
 
             <div style={{ padding: '0 0 10px 0', display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -427,58 +484,74 @@ function AppContent() {
           <div style={{ height: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <>
               {isInitialGridLoading && (
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
-                  <div style={{ color: '#aaa' }}>Loading images...</div>
-                </div>
-              )}
-              {(stackImagesLoading || imagesLoading || stacksLoading) && !isInitialGridLoading && (
-                <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', background: 'rgba(0, 0, 0, 0.7)', color: 'white', borderRadius: 20, fontSize: '0.85em', fontWeight: 500 }}>
-                  <Loader2 size={14} className="app-spinner" />
-                  Loading...
-                </div>
-              )}
-              <GalleryGrid
-                key={`${selectedFolderId ?? 'all'}-${activeStackId ?? 'none'}-${stacksMode ? 'stacks' : 'images'}`}
-                images={currentImages}
-                onSelect={handleImageClick}
-                onEndReached={activeStackId ? undefined : loadMore}
-                onNavigateToParent={handleNavigateToParent}
-                viewerOpen={!!openingImage}
-                subfolders={folders.flatMap(f => {
-                  const find = (nodes: Folder[]): Folder | undefined => {
-                    for (const node of nodes) {
-                      if (node.id === selectedFolderId) return node;
-                      if (node.children) {
-                        const found = find(node.children);
-                        if (found) return found;
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
+                    <div style={{ color: '#aaa' }}>Loading images...</div>
+                  </div>
+                )}
+                {(stackImagesLoading || imagesLoading || stacksLoading) && !isInitialGridLoading && (
+                  <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', background: 'rgba(0, 0, 0, 0.7)', color: 'white', borderRadius: 20, fontSize: '0.85em', fontWeight: 500 }}>
+                    <Loader2 size={14} className="app-spinner" />
+                    Loading...
+                  </div>
+                )}
+                <GalleryGrid
+                  key={`${selectedFolderId ?? 'all'}-${activeStackId ?? 'none'}-${stacksMode ? 'stacks' : 'images'}`}
+                  images={currentImages}
+                  onSelect={handleImageClick}
+                  onEndReached={activeStackId ? undefined : loadMore}
+                  onNavigateToParent={handleNavigateToParent}
+                  viewerOpen={!!openingImage}
+                  subfolders={folders.flatMap(f => {
+                    const find = (nodes: Folder[]): Folder | undefined => {
+                      for (const node of nodes) {
+                        if (node.id === selectedFolderId) return node;
+                        if (node.children) {
+                          const found = find(node.children);
+                          if (found) return found;
+                        }
                       }
-                    }
-                  };
-                  return find([f])?.children || [];
-                })}
-                onSelectFolder={handleSelectFolder}
-                sortBy={filters.sortBy}
-                stacksMode={stacksMode}
-                stacks={stacks}
-                onSelectStack={handleSelectStack}
-                onStackEndReached={loadMoreStacks}
-                activeStackId={activeStackId}
-              />
-              {openingImage && (
-                <ImageViewer
-                  image={openingImage}
-                  onClose={closeViewer}
-                  allImages={currentImages}
-                  currentIndex={currentImageIndex}
-                  onNavigate={handleNavigateImage}
-                  onDelete={handleImageDelete}
-                  onOpenImageById={openImageById}
-                  onOpenFolder={(folderId) => {
-                    handleNavigateToFolder(folderId);
-                    closeViewer();
+                    };
+                    return find([f])?.children || [];
+                  })}
+                  onSelectFolder={handleSelectFolder}
+                  sortBy={filters.sortBy}
+                  stacksMode={stacksMode}
+                  stacks={stacks}
+                  onSelectStack={handleSelectStack}
+                  onStackEndReached={loadMoreStacks}
+                  activeStackId={activeStackId}
+                  onFindSimilar={(img) => {
+                    setSimilarSearchImageId(img.id);
+                    setIsSimilarDrawerOpen(true);
                   }}
                 />
-              )}
+                <SimilarSearchDrawer
+                  open={isSimilarDrawerOpen}
+                  onClose={() => setIsSimilarDrawerOpen(false)}
+                  queryImageId={similarSearchImageId}
+                  onSelectImage={(id) => {
+                    void openImageById(id);
+                    setIsSimilarDrawerOpen(false);
+                  }}
+                  onJumpToImageFolder={(id) => {
+                    void openImageById(id);
+                  }}
+                />
+                {openingImage && (
+                  <ImageViewer
+                    image={openingImage}
+                    onClose={closeViewer}
+                    allImages={currentImages}
+                    currentIndex={currentImageIndex}
+                    onNavigate={handleNavigateImage}
+                    onDelete={handleImageDelete}
+                    onOpenImageById={openImageById}
+                    onOpenFolder={(folderId) => {
+                      handleNavigateToFolder(folderId);
+                      closeViewer();
+                    }}
+                  />
+                )}
             </>
           </div>
         }

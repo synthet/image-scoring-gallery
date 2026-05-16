@@ -1,8 +1,8 @@
-# Image Scoring Context
+# Vexlum Scoring / Driftara Gallery — context
 
 ## Overview
-The **image-scoring-backend** project is the backend and core logic provider for the image scoring system.
-It exposes an MCP server that the **image-scoring-gallery** app can interact with.
+**Vexlum Scoring** (`image-scoring-backend`) is the backend and core logic provider for the quality pipeline.
+It exposes an MCP server that **Driftara Gallery** (`image-scoring-gallery`) can interact with.
 
 ## Key Paths
 - **Backend root**: your local clone of **image-scoring-backend**

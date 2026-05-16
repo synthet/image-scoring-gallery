@@ -149,6 +149,11 @@ export interface ApiDatabaseConfig {
 
 export type DatabaseConfig = PostgresDatabaseConfig | ApiDatabaseConfig;
 
+/** Normalized config returned by config loaders/normalizers. */
+export type NormalizedAppConfig = Omit<AppConfig, 'database'> & {
+    database: DatabaseConfig;
+};
+
 export interface AppConfig {
     database?: DatabaseConfig;
     dev?: {
@@ -156,6 +161,8 @@ export interface AppConfig {
     };
     api?: {
         url?: string;
+        /** Host-reachable base URL for “open in browser” links when `url` is Docker-internal only. */
+        browserUrl?: string;
         port?: number;
         host?: string;
     };
@@ -275,4 +282,59 @@ export interface BackupResult {
     staleRemoved: number;
     /** Candidates removed so the highest-scored copies fit in free space (see rotation in `backupSpace.ts`). */
     droppedForSpace: number;
+}
+
+// -- Pipeline phase types --
+
+export type PipelinePhaseCode = 'indexing' | 'metadata' | 'scoring' | 'culling' | 'keywords';
+export type PipelinePhaseStatusValue = 'not_started' | 'running' | 'done' | 'skipped' | 'failed';
+
+export interface ImagePhaseStatus {
+    code: PipelinePhaseCode;
+    status: PipelinePhaseStatusValue;
+    started_at: string | null;
+    finished_at: string | null;
+    updated_at: string | null;
+    last_error: string | null;
+    attempt_count: number;
+}
+
+// -- Sync Feature Types --
+
+export interface SyncCandidate {
+    sourcePath: string;
+    fileName: string;
+    dateStr: string;
+    camera: string;
+    lens: string;
+    imageUuid: string | null;
+}
+
+export interface SyncPreviewResult {
+    thresholdDate: string | null;
+    destinationRoot: string;
+    scanned: number;
+    skipped: number;
+    wouldCopy: number;
+    importOnly: number;
+    newFolders: string[];
+    errors: string[];
+    candidates: SyncCandidate[];
+}
+
+export interface SyncRunResult {
+    scanned: number;
+    copied: number;
+    imported: number;
+    skipped: number;
+    folders: number;
+    errors: string[];
+    thresholdDate: string | null;
+    processing?: Array<{
+        method: 'api' | 'queue' | 'none';
+        jobId?: string | number;
+        queuedCount?: number;
+        reason?: 'api-unavailable' | 'api-error';
+        error?: string;
+    }>;
 }

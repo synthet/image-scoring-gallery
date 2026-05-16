@@ -1,4 +1,4 @@
-# Electron Image Scoring Components
+# Driftara Gallery — component notes
 
 ## Services
 

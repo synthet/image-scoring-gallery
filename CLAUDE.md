@@ -1,6 +1,6 @@
-# Electron Image Scoring (electron-gallery)
+# Driftara Gallery (`image-scoring-gallery`)
 
-High-performance Electron desktop gallery app with image scoring, browsing, and management.
+High-performance Electron desktop gallery for browsing and managing libraries scored by **Vexlum Scoring** (`image-scoring-backend`).
 
 ## Related Projects
 
@@ -13,6 +13,26 @@ High-performance Electron desktop gallery app with image scoring, browsing, and 
 
 The backend owns DDL/schema migrations. This app connects via PostgreSQL (`pg`) or HTTP SQL to the backend (`database.engine`: `api`) depending on configuration; see `docs/architecture/02-database-design.md`.
 
+## Backlog & queue (read this before picking work)
+
+The canonical queue is the **GitHub Project board**, not `TODO.md`:
+
+**→ https://github.com/users/synthet/projects/1**
+
+It spans both repos. The `TODO.md` files are pointers only.
+
+**Mandatory contract for every agent (human or AI). Do all five steps:**
+
+1. **Pick from `Stage = Ready`** on the board, sorted by `priority:p0..p3`. If `Ready` is empty, ask the maintainer — do not invent work.
+2. **Claim** the issue: `/task-claim <N>` (preferred) or the manual `gh` flow in [`docs/project/00-backlog-workflow.md`](docs/project/00-backlog-workflow.md). Claiming assigns you and moves the card to `Stage = Claimed`.
+3. **Flip to `Stage = In Progress`** on your first commit.
+4. **If blocked**, move the card to `Stage = Blocked` *and* comment on the issue with the blocker + what would unblock it. Do not silently abandon a claimed card.
+5. **Reference the issue in the PR** with `Closes #<N>` (the PR template requires it). Move the card to `Stage = Review` while the PR is open; merging closes the issue and flips `Status = Done`.
+
+**Project ID quick-reference** (for scripts): project node `PVT_kwHOAFXgIs4BWC3c`, Stage field `PVTSSF_lAHOAFXgIs4BWC3czhRaNZ0`. Full Stage option IDs and command examples in [`docs/project/00-backlog-workflow.md`](docs/project/00-backlog-workflow.md) §5.
+
+**Do not** add tasks to `TODO.md`, do not work without an issue, and do not skip the Stage transitions — agents that don't update Stage make the queue lie about what's actually being worked on.
+
 ## MCP mcp-kanban (optional, user-level)
 
 **mcp-kanban** provides SQLite-backed **tickets / kanban** for multi-session work. Configure it in **user** MCP settings (Cursor, Claude Code, Antigravity, Codex) as server **`mcp-kanban`**—see `.cursor/rules/mcp-kanban.mdc` and `.cursor/skills/mcp-kanban-workflow/SKILL.md`.
@@ -20,9 +40,16 @@ The backend owns DDL/schema migrations. This app connects via PostgreSQL (`pg`) 
 - Register this repo with `kanban_register_project` using **your local clone path** to this repo as `projectFolder`.
 - Use **your local clone path** to **image-scoring-backend** as `projectFolder` for backend-only tasks.
 
+## Documentation
+
+Start with **[`docs/CANONICAL_SOURCES.md`](docs/CANONICAL_SOURCES.md)** (what is canonical in this repo vs **image-scoring-backend**) and **[`docs/WIKI_SCHEMA.md`](docs/WIKI_SCHEMA.md)** when adding or moving wiki pages. Shipped feature hub: **[`docs/features/implemented/INDEX.md`](docs/features/implemented/INDEX.md)**.
+
+**Agent infra:** **[`.agent/AGENT_INFRA_INVENTORY.md`](.agent/AGENT_INFRA_INVENTORY.md)**, **[`.agent/COMMANDS.md`](.agent/COMMANDS.md)**, **[`.agent/SAFETY.md`](.agent/SAFETY.md)**, **[`.agent/subagents/README.md`](.agent/subagents/README.md)**, **[`.agent/workflows/`](.agent/workflows/)**.
+
 ## Key Files
 
 - `src/constants/pipelineLabels.ts` — User-facing pipeline stage names aligned with backend `frontend/src/types/api.ts` (`STAGE_DISPLAY`); see `docs/technical/PIPELINE_TERMINOLOGY.md`
+- `src/utils/exportImageBake.ts` — **File → Export** raster bake and EXIF orientation handling; pitfalls and main-process follow-up in [`docs/features/implemented/05-jpeg-export-exif-orientation.md`](docs/features/implemented/05-jpeg-export-exif-orientation.md)
 - `electron/db.ts` — Query layer over `electron/db/provider.ts` (PostgreSQL and/or `api` HTTP SQL to the backend)
 - `electron/main.ts` — Electron main process, IPC handlers
 - `electron/apiService.ts` — HTTP client to Python FastAPI backend

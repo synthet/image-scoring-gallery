@@ -121,9 +121,60 @@ describe('NefViewer', () => {
     expect(result).toBeNull();
   });
 
-  it('returns null if no electron environment', async () => {
+  it('browser: fetches /media then Tier 2 SubIFD parse', async () => {
     delete (window as any).electron;
-    const result = await nefViewer.extractWithFallback('no-electron.nef');
+    const buffer = new Uint8Array(64);
+    const view = new DataView(buffer.buffer);
+    view.setUint8(0, 0x49);
+    view.setUint8(1, 0x49);
+    view.setUint16(2, 42, true);
+    view.setUint32(4, 8, true);
+    view.setUint16(8, 1, true);
+    view.setUint16(10, 0x014a, true);
+    view.setUint16(12, 4, true);
+    view.setUint32(14, 1, true);
+    view.setUint32(18, 26, true);
+    view.setUint16(26, 2, true);
+    view.setUint16(28, 0x0201, true);
+    view.setUint16(30, 4, true);
+    view.setUint32(32, 1, true);
+    view.setUint32(36, 56, true);
+    view.setUint16(40, 0x0202, true);
+    view.setUint16(42, 4, true);
+    view.setUint32(44, 1, true);
+    view.setUint32(48, 4, true);
+    view.setUint8(56, 0xff);
+    view.setUint8(57, 0xd8);
+    view.setUint8(58, 0xff);
+    view.setUint8(59, 0xd9);
+
+    const ab = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => ab,
+      }),
+    );
+
+    const result = await nefViewer.extractWithFallback('/mnt/d/Photos/test.nef');
+    expect(globalThis.fetch).toHaveBeenCalled();
+    expect(result).toBeInstanceOf(Blob);
+    vi.unstubAllGlobals();
+  });
+
+  it('browser: returns null when /media fetch is not ok', async () => {
+    delete (window as any).electron;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        arrayBuffer: async () => new ArrayBuffer(0),
+      }),
+    );
+    const result = await nefViewer.extractWithFallback('/mnt/x.nef');
     expect(result).toBeNull();
+    vi.unstubAllGlobals();
   });
 });

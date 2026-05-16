@@ -13,6 +13,8 @@ import type {
     BackupTargetInfo,
     BackupProgress,
     BackupResult,
+    SyncCandidate,
+    ImagePhaseStatus,
 } from './types';
 import type {
     ApiResponse as BackendApiResponse,
@@ -65,6 +67,10 @@ contextBridge.exposeInMainWorld('electron', {
     getImageDetails: async (id: number) => {
         const response = await ipcRenderer.invoke('db:get-image-details', id);
         return unwrapEnvelope<ImageDetail | null>(response);
+    },
+    getImagePhaseStatuses: async (id: number) => {
+        const response = await ipcRenderer.invoke('db:get-image-phase-statuses', id);
+        return unwrapEnvelope<ImagePhaseStatus[]>(response);
     },
     updateImageDetails: async (id: number, updates: ImageUpdates) => {
         const response = await ipcRenderer.invoke('db:update-image-details', { id, updates });
@@ -199,6 +205,9 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('fs:select-directory');
         return unwrapEnvelope<string | null>(response);
     },
+    openExternalUrl: async (url: string) => {
+        await ipcRenderer.invoke('system:open-external-url', url);
+    },
     onOpenSettings: (callback: () => void) => {
         const handler = () => callback();
         ipcRenderer.on('open-settings', handler);
@@ -262,7 +271,18 @@ contextBridge.exposeInMainWorld('electron', {
     },
     importRun: async (folderPath: string) => {
         const response = await ipcRenderer.invoke('import:run', folderPath);
-        return unwrapEnvelope<{ added: number; skipped: number; errors: string[] }>(response);
+        return unwrapEnvelope<{
+            added: number;
+            skipped: number;
+            errors: string[];
+            processing?: {
+                method: 'api' | 'queue' | 'none';
+                jobId?: string | number;
+                queuedCount?: number;
+                reason?: 'api-unavailable' | 'api-error';
+                error?: string;
+            };
+        }>(response);
     },
     onImportProgress: (callback: (data: { current: number; total: number; path?: string }) => void) => {
         const handler = (_: unknown, data: { current: number; total: number; path?: string }) => callback(data);
@@ -298,10 +318,11 @@ contextBridge.exposeInMainWorld('electron', {
             importOnly: number;
             newFolders: string[];
             errors: string[];
+            candidates: SyncCandidate[];
         }>(response);
     },
-    syncRun: async (sourcePath: string) => {
-        const response = await ipcRenderer.invoke('sync:run', sourcePath);
+    syncRun: async (sourcePath: string, pickedCandidates?: SyncCandidate[]) => {
+        const response = await ipcRenderer.invoke('sync:run', sourcePath, pickedCandidates);
         return unwrapEnvelope<{
             scanned: number;
             copied: number;
@@ -310,6 +331,13 @@ contextBridge.exposeInMainWorld('electron', {
             folders: number;
             errors: string[];
             thresholdDate: string | null;
+            processing?: Array<{
+                method: 'api' | 'queue' | 'none';
+                jobId?: string | number;
+                queuedCount?: number;
+                reason?: 'api-unavailable' | 'api-error';
+                error?: string;
+            }>;
         }>(response);
     },
     onSyncProgress: (callback: (data: { phase: string; current: number; total: number; detail: string }) => void) => {
