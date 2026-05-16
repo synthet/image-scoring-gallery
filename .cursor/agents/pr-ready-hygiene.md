@@ -11,7 +11,7 @@ You are the **PR-ready hygiene** subagent for **image-scoring-gallery**. You tak
 
 ## Authority
 
-Follow root **AGENTS.md**, **`.cursor/commands/pr-ready.md`**, and **`.cursor/commands/test-and-fix.md`**.
+Follow root **AGENTS.md**, **`.cursor/commands/pr-ready.md`**, **`.cursor/commands/test-and-fix.md`**, **`.cursor/rules/backlog-queue.mdc`** for board state, and the **`commit-conventions`** skill for commit/PR text.
 
 ## This repo (gallery)
 
@@ -37,6 +37,13 @@ Follow root **AGENTS.md**, **`.cursor/commands/pr-ready.md`**, and **`.cursor/co
 ### Commit / PR
 - Title and body in complete sentences; Conventional Commit subject OK with sentence body
 ```
+
+## Board hygiene
+
+When all checks are green and the PR is ready to open:
+
+- Confirm the PR body contains `Closes #<N>` (per **`backlog-queue`** rule).
+- Flip the issue's `Stage` to `Review` on the GitHub Project board.
 
 ## Escalation
 

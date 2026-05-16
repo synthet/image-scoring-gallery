@@ -1,20 +1,37 @@
-# Canonical sources — image-scoring-gallery
+# Canonical Sources
 
-Use this page before changing integration contracts, stage naming, or data access patterns. **Schema and REST behavior are owned by image-scoring-backend**; this repo documents the **desktop app** and links to the backend for authority.
+Use this map before changing integration contracts, renderer labels, database access, IPC boundaries, or RAW/export behavior.
 
-| Topic | Canonical location |
-|--------|---------------------|
-| Cross-repo protocols (API/IPC/schema changes) | **Backend:** [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) · **Local stub:** [`technical/AGENT_COORDINATION.md`](technical/AGENT_COORDINATION.md) |
-| Pipeline vocabulary (UI labels vs `phase_code` / REST) | **Backend:** [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) · **Local:** [`technical/PIPELINE_TERMINOLOGY.md`](technical/PIPELINE_TERMINOLOGY.md) · **Renderer:** `src/constants/pipelineLabels.ts` |
-| REST API contract (paths, payloads) | **Backend:** [API_CONTRACT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/API_CONTRACT.md), [openapi.yaml](https://github.com/synthet/image-scoring-backend/blob/main/docs/reference/api/openapi.yaml) |
-| Database access modes (`pg` vs `api`) | [`architecture/02-database-design.md`](architecture/02-database-design.md) |
-| Electron query layer and IPC | `electron/db.ts`, `electron/db/provider.ts`, `electron/main.ts`, `preload` / IPC definitions |
-| HTTP client to the Python WebUI | `electron/apiService.ts` |
-| Runtime wiring (backend URL, lock file) | [`guides/02-api-backend-config.md`](guides/02-api-backend-config.md), repo-root `config.json` |
-| **Sync from device** (workflow, IPS after import) | [`features/implemented/06-sync-from-device-workflow.md`](features/implemented/06-sync-from-device-workflow.md) · **Backend:** [`ELECTRON_SYNC_IMPORT_AND_PHASES.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/ELECTRON_SYNC_IMPORT_AND_PHASES.md) |
-| Backend local health (`python scripts/doctor.py`), support bundles, MCP triage | **Backend:** [DIAGNOSTICS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DIAGNOSTICS.md), [DEVELOPMENT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DEVELOPMENT.md); gallery: [`DEVELOPMENT.md`](DEVELOPMENT.md) (`npm run doctor`) |
-| Backlog and mirror sync | [`project/00-backlog-workflow.md`](project/00-backlog-workflow.md), root [`../TODO.md`](../TODO.md) |
-| Wiki structure | [`WIKI_SCHEMA.md`](WIKI_SCHEMA.md), [`log.md`](log.md) |
-| UI palette, tokens, icons (Electron + CSS Modules) | Local stub: [`design/DESIGN_SYSTEM.md`](design/DESIGN_SYSTEM.md) (**canonical:** [DESIGN_SYSTEM.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/design/DESIGN_SYSTEM.md) in **image-scoring-backend**) |
+## Backend-Owned Authority
 
-**See also:** [Documentation README](README.md)
+| Topic | Canonical source |
+|---|---|
+| REST API paths, request bodies, response fields | [image-scoring-backend API_CONTRACT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/API_CONTRACT.md), [openapi.yaml](https://github.com/synthet/image-scoring-backend/blob/main/docs/reference/api/openapi.yaml) |
+| Database schema and columns | [image-scoring-backend DB_SCHEMA.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/DB_SCHEMA.md), [DATABASE.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DATABASE.md), backend migrations |
+| Pipeline phase codes and user-facing terminology | [image-scoring-backend PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) |
+| Cross-repo change protocol | [image-scoring-backend AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) |
+| Diagnostics, doctor, MCP triage | [image-scoring-backend DIAGNOSTICS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DIAGNOSTICS.md), [AGENTS.md](https://github.com/synthet/image-scoring-backend/blob/main/AGENTS.md) |
+| Backend shipped feature catalog | [image-scoring-backend features/implemented/INDEX.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/implemented/INDEX.md) |
+
+## Gallery-Owned Authority
+
+| Topic | Canonical source |
+|---|---|
+| Electron main-process responsibilities | [electron/main.ts](../electron/main.ts) |
+| Preload/contextBridge surface | [electron/preload.ts](../electron/preload.ts) |
+| Main-process DB query layer | [electron/db.ts](../electron/db.ts) |
+| DB provider modes (`postgres`, `api`) | [electron/db/provider.ts](../electron/db/provider.ts), [architecture/02-database-design.md](architecture/02-database-design.md) |
+| Backend HTTP client behavior | [electron/apiService.ts](../electron/apiService.ts) |
+| Renderer stage labels | [src/constants/pipelineLabels.ts](../src/constants/pipelineLabels.ts), [technical/PIPELINE_TERMINOLOGY.md](technical/PIPELINE_TERMINOLOGY.md) |
+| Electron architecture docs | [architecture/01-system-overview.md](architecture/01-system-overview.md) |
+| Shipped desktop features | [features/implemented/INDEX.md](features/implemented/INDEX.md) |
+| Gallery development commands | [DEVELOPMENT.md](DEVELOPMENT.md), [../package.json](../package.json) |
+| Wiki maintenance | [WIKI_SCHEMA.md](WIKI_SCHEMA.md), [log.md](log.md) |
+
+## Rules
+
+- Do not recommend direct renderer-process database or filesystem access. Use preload/contextBridge and main-process IPC.
+- Do not invent backend endpoints, fields, database columns, phase codes, or config keys. Link to backend canonical files.
+- Keep Firebird references historical only unless current code proves active support. Current gallery provider modes are normalized to PostgreSQL/API.
+- Do not change EXIF orientation, NEF preview behavior, RAW handling, or JPEG export orientation without regression tests.
+- For API/schema/phase terminology changes: update backend canonical docs first, then gallery code/docs, then both `docs/log.md` files.

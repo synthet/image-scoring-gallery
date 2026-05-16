@@ -44,6 +44,8 @@ It spans both repos. The `TODO.md` files are pointers only.
 
 Start with **[`docs/CANONICAL_SOURCES.md`](docs/CANONICAL_SOURCES.md)** (what is canonical in this repo vs **image-scoring-backend**) and **[`docs/WIKI_SCHEMA.md`](docs/WIKI_SCHEMA.md)** when adding or moving wiki pages. Shipped feature hub: **[`docs/features/implemented/INDEX.md`](docs/features/implemented/INDEX.md)**.
 
+**Agent infra:** **[`.agent/AGENT_INFRA_INVENTORY.md`](.agent/AGENT_INFRA_INVENTORY.md)**, **[`.agent/COMMANDS.md`](.agent/COMMANDS.md)**, **[`.agent/SAFETY.md`](.agent/SAFETY.md)**, **[`.agent/subagents/README.md`](.agent/subagents/README.md)**, **[`.agent/workflows/`](.agent/workflows/)**.
+
 ## Key Files
 
 - `src/constants/pipelineLabels.ts` — User-facing pipeline stage names aligned with backend `frontend/src/types/api.ts` (`STAGE_DISPLAY`); see `docs/technical/PIPELINE_TERMINOLOGY.md`

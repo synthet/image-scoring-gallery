@@ -2,6 +2,13 @@
 
 All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
 
+## [7.7.1] - 2026-05-15
+
+### Changed
+
+- **Documentation hub**: Refreshed **`docs/CANONICAL_SOURCES.md`**, **`docs/README.md`**, **`docs/DEVELOPMENT.md`**, architecture overviews (**`docs/architecture/*`**), integration notes, feature index, and **`docs/log.md`**.
+- **Agent inventory**: **`SKILL_INVENTORY.md`** and Cursor subagent prompts (**`.cursor/agents/*`**) updated for current workflows.
+
 ## [7.7.0] - 2026-05-10
 
 ### Added
