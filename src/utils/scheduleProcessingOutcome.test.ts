@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { formatScheduleResultLine, formatScheduleResultsSummary } from './scheduleProcessingOutcome';
+import {
+    coerceScheduleResult,
+    coerceScheduleResults,
+    formatScheduleResultLine,
+    formatScheduleResultsSummary,
+} from './scheduleProcessingOutcome';
 
 describe('scheduleProcessingOutcome', () => {
     it('formats api result with job id', () => {
@@ -14,6 +19,16 @@ describe('scheduleProcessingOutcome', () => {
 
     it('returns null for none', () => {
         expect(formatScheduleResultLine({ method: 'none' })).toBeNull();
+    });
+
+    it('coerces loose IPC queue payloads', () => {
+        expect(coerceScheduleResult({ method: 'queue', queuedCount: 2, reason: 'api-error' })).toEqual({
+            method: 'queue',
+            queuedCount: 2,
+            reason: 'api-error',
+        });
+        expect(coerceScheduleResult({ method: 'api', jobId: 9 })).toEqual({ method: 'api', jobId: 9 });
+        expect(coerceScheduleResults([{ method: 'none' }, { method: 'api', jobId: 1 }])).toHaveLength(2);
     });
 
     it('joins multiple schedule lines', () => {

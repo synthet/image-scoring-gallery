@@ -1,5 +1,8 @@
+// @ts-ignore
 import { readFileSync } from 'node:fs';
+// @ts-ignore
 import { dirname, join } from 'node:path';
+// @ts-ignore
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { bakeExifOrientationToBlob, getJpegOrientation } from './exportImageBake';

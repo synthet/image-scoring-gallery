@@ -9,7 +9,7 @@
  * `import { bridge } from '../bridge'` and call `bridge.xxx()` instead.
  */
 
-import type { FileImageMetadataResult, BackupTargetInfo, BackupProgress, BackupResult, SyncCandidate, SyncPreviewResult, SyncRunResult } from '../electron/types';
+import type { FileImageMetadataResult, SyncPreviewResult, SyncRunResult } from '../electron/types';
 
 
 
@@ -164,7 +164,7 @@ const FOLDER_API_STUB: Window['electron']['api'] = {
     skipPipelinePhase: async () => ({ success: false, message: 'folder mode' }),
     retryPipelinePhase: async () => ({ success: false, message: 'folder mode' }),
     getRecentJobs: async () => [],
-    getJobDetail: async () => ({ status: 'unavailable' }),
+    getJobDetail: async () => ({ job_id: 0, job_type: 'unknown', status: 'unavailable' }),
     getAllStatus: async () => ({
         scoring: {
             is_running: false,
