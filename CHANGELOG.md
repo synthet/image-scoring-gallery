@@ -2,6 +2,18 @@
 
 All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
 
+## [7.7.2] - 2026-05-19
+
+### Fixed
+
+- **OpenAPI contract**: Regenerated **`electron/apiTypes.ts`** / snapshot aligned with published **image-scoring-backend** **`main`** (**#66**).
+- **Tools navigation**: Unfinished Tools routes disabled; stricter contract checks so half-built panels do not ship in production nav.
+- **Tests**: Resolve TypeScript compiler errors that blocked **`tsc -b`**.
+
+### Changed
+
+- **Agent infrastructure**: Phase 1 gallery refinements — inventory, workflows, and **`ImageViewer`** test stubs for **`getImagePhaseStatuses`** (**#85**).
+
 ## [7.7.1] - 2026-05-15
 
 ### Changed
