@@ -366,6 +366,18 @@ contextBridge.exposeInMainWorld('electron', {
             const r = await ipcRenderer.invoke('api:stats');
             return unwrapEnvelope<DatabaseStats>(r);
         },
+        getCullingAnalytics: async (params?: {
+            folderPath?: string;
+            folderId?: number;
+            perStackLimit?: number;
+        }) => {
+            const r = await ipcRenderer.invoke('api:get-culling-analytics', params);
+            return unwrapEnvelope<Record<string, unknown>>(r);
+        },
+        getStackAnalytics: async (stackId: number) => {
+            const r = await ipcRenderer.invoke('api:get-stack-analytics', stackId);
+            return unwrapEnvelope<Record<string, unknown>>(r);
+        },
 
         // Scoring
         startScoring: async (opts: ScoringStartRequest) => {

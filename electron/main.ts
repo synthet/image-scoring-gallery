@@ -2416,6 +2416,18 @@ async function startFullApplication(): Promise<void> {
         return await apiService.getStats();
     }));
 
+    ipcMain.handle('api:get-culling-analytics', wrapIpcHandler(async (_, params?: {
+        folderPath?: string;
+        folderId?: number;
+        perStackLimit?: number;
+    }) => {
+        return await apiService.getCullingAnalytics(params);
+    }));
+
+    ipcMain.handle('api:get-stack-analytics', wrapIpcHandler(async (_, stackId: number) => {
+        return await apiService.getStackAnalytics(stackId);
+    }));
+
     // Scoring
     ipcMain.handle('api:scoring-start', wrapIpcHandler(async (_, opts) => {
         return await apiService.startScoring(opts);

@@ -32,6 +32,7 @@ import type {
     PhaseDecisionResponse,
     JobInfo,
     DatabaseStats,
+    CullingAnalyticsResponse,
     ScopeTreeResponse,
 } from './apiTypes';
 import type { AppConfig } from './types';
@@ -319,6 +320,24 @@ export class ApiService {
 
     getStats() {
         return this.get<DatabaseStats>('/api/stats');
+    }
+
+    getCullingAnalytics(params?: {
+        folderPath?: string;
+        folderId?: number;
+        perStackLimit?: number;
+        perStackOffset?: number;
+    }) {
+        return this.get<CullingAnalyticsResponse>('/api/analytics/culling', {
+            folder_path: params?.folderPath,
+            folder_id: params?.folderId,
+            per_stack_limit: params?.perStackLimit,
+            per_stack_offset: params?.perStackOffset,
+        });
+    }
+
+    getStackAnalytics(stackId: number) {
+        return this.get<CullingAnalyticsResponse>(`/api/analytics/stacks/${stackId}`);
     }
 
     /** Returns combined status for all runners (scoring + tagging). */

@@ -164,6 +164,12 @@ declare global {
                 isAvailable: () => Promise<boolean>;
                 getStatus: () => Promise<BackendStatusResponse>;
                 getStats: () => Promise<BackendDatabaseStats>;
+                getCullingAnalytics: (params?: {
+                    folderPath?: string;
+                    folderId?: number;
+                    perStackLimit?: number;
+                }) => Promise<Record<string, unknown>>;
+                getStackAnalytics: (stackId: number) => Promise<Record<string, unknown>>;
 
                 // Scoring
                 startScoring: (opts: BackendScoringStartRequest) => Promise<BackendApiResponse>;
