@@ -293,6 +293,27 @@ export interface DiagnosticsInfo {
 // ── Stats ───────────────────────────────────────────────────────────────────
 
 /** Matches get_database_stats() from modules/mcp_server.py. Does not include scored_images or tagged_images. */
+export interface CullingAnalyticsResponse {
+    scope: string;
+    generated_at?: string;
+    folder_id?: number | null;
+    folder_path?: string | null;
+    session_id?: number;
+    stack_id?: number;
+    error?: string;
+    stack_size?: Record<string, unknown>;
+    flags?: Record<string, unknown>;
+    scores?: Record<string, unknown>;
+    exposure?: Record<string, unknown>;
+    labels?: Record<string, unknown>;
+    gps?: Record<string, unknown>;
+    keywords?: Record<string, unknown>;
+    embeddings?: Record<string, unknown>;
+    composite?: Record<string, unknown>;
+    warnings?: string[];
+    [key: string]: unknown;
+}
+
 export interface DatabaseStats {
     total_images: number;
     by_rating: Record<string, number>;

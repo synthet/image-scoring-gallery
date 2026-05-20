@@ -23,6 +23,8 @@ import { useGalleryNavigation } from './hooks/useGalleryNavigation';
 import { useStacksMode } from './hooks/useStacksMode';
 import { useImageOpener } from './hooks/useImageOpener';
 import { useGalleryWebSocket } from './hooks/useGalleryWebSocket';
+import { CullingInsightsPanel } from './components/CullingAnalytics/CullingInsightsPanel';
+import { StackAnalyticsBanner } from './components/CullingAnalytics/StackAnalyticsBanner';
 import breadcrumbStyles from './styles/breadcrumbs.module.css';
 import toggleStyles from './styles/toggle.module.css';
 import {
@@ -386,6 +388,12 @@ function AppContent() {
                 </button>
             </div>
 
+            <CullingInsightsPanel
+              stacksMode={stacksMode}
+              folderPath={currentFolder?.path}
+              folderId={selectedFolderId}
+            />
+
             <div style={{ padding: '0 0 10px 0', display: 'flex', flexDirection: 'column', gap: 5 }}>
               {/* Stacks Toggle */}
               <div style={{
@@ -494,6 +502,7 @@ function AppContent() {
                     Loading...
                   </div>
                 )}
+                {activeStackId !== null && <StackAnalyticsBanner stackId={activeStackId} />}
                 <GalleryGrid
                   key={`${selectedFolderId ?? 'all'}-${activeStackId ?? 'none'}-${stacksMode ? 'stacks' : 'images'}`}
                   images={currentImages}
