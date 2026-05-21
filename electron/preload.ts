@@ -166,6 +166,9 @@ contextBridge.exposeInMainWorld('electron', {
     setCurrentExportImageContext: async (context: ExportImageContext | null) => {
         return ipcRenderer.invoke('export:set-current-image-context', context);
     },
+    setSelectionPath: async (filePath: string | null) => {
+        return ipcRenderer.invoke('app:set-selection-path', filePath);
+    },
     readExif: async (filePath: string) => {
         const response = await ipcRenderer.invoke('nef:read-exif', filePath);
         return unwrapEnvelope<Record<string, unknown>>(response);

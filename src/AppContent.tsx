@@ -23,7 +23,7 @@ import { useGalleryNavigation } from './hooks/useGalleryNavigation';
 import { useStacksMode } from './hooks/useStacksMode';
 import { useImageOpener } from './hooks/useImageOpener';
 import { useGalleryWebSocket } from './hooks/useGalleryWebSocket';
-import { CullingInsightsPanel } from './components/CullingAnalytics/CullingInsightsPanel';
+
 import { StackAnalyticsBanner } from './components/CullingAnalytics/StackAnalyticsBanner';
 import breadcrumbStyles from './styles/breadcrumbs.module.css';
 import toggleStyles from './styles/toggle.module.css';
@@ -206,6 +206,28 @@ function AppContent() {
     smartCoverEnabled,
   ]);
 
+  useEffect(() => {
+    if (selectedFolderId === undefined || selectedFolderId === null) {
+      void bridge.setSelectionPath(null);
+      return;
+    }
+    const findFolder = (nodes: Folder[]): Folder | undefined => {
+      for (const node of nodes) {
+        if (node.id === selectedFolderId) return node;
+        if (node.children) {
+          const found = findFolder(node.children);
+          if (found) return found;
+        }
+      }
+    };
+    const folder = findFolder(folders);
+    if (folder && folder.path) {
+      void bridge.setSelectionPath(folder.path);
+    } else {
+      void bridge.setSelectionPath(null);
+    }
+  }, [selectedFolderId, folders]);
+
   const handleNavigateToFolder = (folderId: number) => {
     setSelectedFolderId(folderId);
     setIncludeSubfolders(false);
@@ -387,12 +409,6 @@ function AppContent() {
                   Back
                 </button>
             </div>
-
-            <CullingInsightsPanel
-              stacksMode={stacksMode}
-              folderPath={currentFolder?.path}
-              folderId={selectedFolderId}
-            />
 
             <div style={{ padding: '0 0 10px 0', display: 'flex', flexDirection: 'column', gap: 5 }}>
               {/* Stacks Toggle */}
