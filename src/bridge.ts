@@ -260,6 +260,9 @@ function createHttpBridge(): Window['electron'] {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         setCurrentExportImageContext: (_context: Parameters<Window['electron']['setCurrentExportImageContext']>[0]) => Promise.resolve(true),
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        setSelectionPath: (_filePath: Parameters<Window['electron']['setSelectionPath']>[0]) => Promise.resolve(true),
+
         // Not supported in browser mode — EXIF extraction requires Electron native modules.
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         readExif: (_filePath: string) => Promise.resolve({}),

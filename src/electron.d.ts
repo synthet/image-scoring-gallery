@@ -109,6 +109,7 @@ declare global {
             getConfig: () => Promise<AppConfig>;
             saveConfig: (updates: Partial<AppConfig>) => Promise<AppConfig>;
             setCurrentExportImageContext: (context: ExportImageContext | null) => Promise<boolean>;
+            setSelectionPath: (filePath: string | null) => Promise<boolean>;
             readExif: (filePath: string) => Promise<Record<string, unknown>>;
             readImageMetadata: (filePath: string) => Promise<FileImageMetadataResult>;
             getLightModeRoot: () => Promise<string>;

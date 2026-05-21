@@ -2,6 +2,16 @@
 
 All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
 
+## [7.8.0] - 2026-05-20
+
+### Added
+
+- **Reveal in Explorer**: File menu entry opens the current folder selection (or export source path) in the system file manager via **`app:set-selection-path`** IPC and **`shell.showItemInFolder`**.
+
+### Removed
+
+- **Culling insights panel**: Removed in-app **`CullingInsightsPanel`** (stack analytics banner remains).
+
 ## [7.7.2] - 2026-05-19
 
 ### Fixed

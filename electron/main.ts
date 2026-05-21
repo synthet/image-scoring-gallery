@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, protocol, net, Menu, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, net, Menu, dialog, shell } from 'electron';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import fs from 'fs';
@@ -260,6 +260,7 @@ let currentExportImageContext: ExportImageContext | null = null;
 let sessionLogManager: SessionLogManager | null = null;
 
 let appGalleryMode: 'db' | 'folder' = 'db';
+let currentSelectionPath: string | null = null;
 let isBackupRunning = false;
 const syncGuards = createSyncGuards(() => isBackupRunning);
 
@@ -612,6 +613,16 @@ const rebuildApplicationMenu = () => {
                                 title: 'Export Failed',
                                 message: e instanceof Error ? e.message : 'Failed to export image.',
                             });
+                        }
+                    }
+                },
+                {
+                    label: 'Reveal in Explorer',
+                    enabled: !!currentSelectionPath || !!currentExportImageContext?.sourcePath,
+                    click: () => {
+                        const pathToReveal = currentExportImageContext?.sourcePath || currentSelectionPath;
+                        if (pathToReveal) {
+                            shell.showItemInFolder(pathToReveal);
                         }
                     }
                 },
@@ -2279,6 +2290,12 @@ async function startFullApplication(): Promise<void> {
 
     ipcMain.handle('export:set-current-image-context', async (_, context: ExportImageContext | null) => {
         currentExportImageContext = context;
+        rebuildApplicationMenu();
+        return true;
+    });
+
+    ipcMain.handle('app:set-selection-path', async (_, filePath: string | null) => {
+        currentSelectionPath = filePath;
         rebuildApplicationMenu();
         return true;
     });
