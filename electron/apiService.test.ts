@@ -63,8 +63,8 @@ describe('ApiService', () => {
   it('returns success payload for submitPipeline()', async () => {
     resolveBaseUrlMock.mockReturnValue('http://api-host:7860');
     const submitRequest: PipelineSubmitRequest = {
-      input_path: '/fixtures/folder',
-      operations: ['score', 'tag'],
+      workspace_target: '/fixtures/folder',
+      stage_codes: ['score', 'tag'],
       skip_existing: true,
     };
     const submitFixture = {
