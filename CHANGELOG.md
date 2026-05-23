@@ -2,6 +2,17 @@
 
 All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
 
+## [7.8.1] - 2026-05-22
+
+### Added
+
+- **Frontend UX/UI spec**: [docs/design/FRONTEND_UX_SPEC.md](docs/design/FRONTEND_UX_SPEC.md) — layout, typography, and styling paradigm on top of **`DESIGN_SYSTEM.md`**.
+
+### Changed
+
+- **Documentation**: **`docs/README.md`**, **`docs/design/DESIGN_SYSTEM.md`**, backlog workflow cross-links, and **`docs/log.md`**.
+- **Backlog-queue skill**: Cursor skill aligned with GitHub Project claim flow (**`.cursor/skills/backlog-queue/SKILL.md`**).
+
 ## [7.8.0] - 2026-05-20
 
 ### Added

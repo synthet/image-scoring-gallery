@@ -8,6 +8,8 @@ image-scoring-backend** and applies to this repo unchanged.
 
 ## What lives in this repo
 
+- **[FRONTEND_UX_SPEC.md](FRONTEND_UX_SPEC.md)** — Frontend UX/UI Visual Specification detailing layout, colors, typography, and styling paradigm.
+
 | Concern | File |
 |---|---|
 | Token definitions | [`src/styles/tokens.css`](../../src/styles/tokens.css) — surfaces, text, accent, status (`--color-success/warning/danger/info`), accents, photo labels (`--label-*`), score gold (`--score-gold`) |

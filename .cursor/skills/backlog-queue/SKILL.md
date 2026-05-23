@@ -107,8 +107,22 @@ When the user asks for new backlog work:
 |--------|--------|
 | `area:*` | `python`, `db`, `gradio`, `electron`, `docs` |
 | `priority:*` | `p0`, `p1`, `p2`, `p3` |
-| `type:*` | `bug`, `feature`, `refactor`, `test`, `chore` |
+| `type:*` | `bug`, `feature`, `refactor`, `test`, `chore`, `epic` |
 | (special) | `cross-repo` |
+| (status) | `obsolete` — superseded/deferred; **stay open** on Backlog (not Ready) |
+
+### Epics
+
+- Parent issues use `type:epic` and link children via **GitHub sub-issues** (same repo).
+- Cross-repo programs: one epic per repo + `cross-repo` label + counterpart URL in the body.
+- Inventory snapshot (backend repo): [backlog-inventory-2026-05.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/project/backlog-inventory-2026-05.md).
+
+### Obsolete (two tiers)
+
+| Tier | When | Action |
+|------|------|--------|
+| **1 — dead** | Firebird-only, wrong repo, duplicate | **Close** + `wontfix`; Project **Done** |
+| **2 — superseded** | Icebox or replaced by REST/React | **Open** + `status:obsolete`; Project **Backlog** |
 
 ## Cross-repo work
 
@@ -138,9 +152,11 @@ The backend repo holds the canonical cross-repo coordination doc:
 | `Review` option | `cb723acb` |
 | `Done` option | `73062c96` |
 
-The bootstrap scripts live in the backend repo:
-[`scripts/bootstrap_labels.sh`](https://github.com/synthet/image-scoring-backend/blob/main/scripts/bootstrap_labels.sh) ·
-[`scripts/bootstrap_issues.py`](https://github.com/synthet/image-scoring-backend/blob/main/scripts/bootstrap_issues.py).
+Bootstrap scripts (backend repo, idempotent):
+[`bootstrap_labels.sh`](https://github.com/synthet/image-scoring-backend/blob/main/scripts/bootstrap_labels.sh) ·
+[`audit_backlog_issues.py`](https://github.com/synthet/image-scoring-backend/blob/main/scripts/audit_backlog_issues.py) ·
+[`apply_backlog_inventory.py`](https://github.com/synthet/image-scoring-backend/blob/main/scripts/apply_backlog_inventory.py) ·
+[`backlog-inventory-2026-05.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/project/backlog-inventory-2026-05.md).
 
 ## Don'ts
 

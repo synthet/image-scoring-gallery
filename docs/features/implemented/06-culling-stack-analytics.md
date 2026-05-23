@@ -16,7 +16,6 @@ IPC: `api:get-culling-analytics`, `api:get-stack-analytics` via `electron/apiSer
 
 | Component | Location |
 |-----------|----------|
-| `CullingInsightsPanel` | Sidebar above Stacks toggle when stacks mode or folder selected |
 | `StackAnalyticsBanner` | Above gallery grid when viewing stack members |
 
 ## Regression
