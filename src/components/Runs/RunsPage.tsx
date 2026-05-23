@@ -155,8 +155,8 @@ export function RunsPage({ folders, foldersLoading, onRefreshFolders }: RunsPage
             }
 
             const res = await bridge.api.submitPipeline({
-                input_path: createTarget,
-                operations,
+                workspace_target: createTarget,
+                stage_codes: operations,
                 skip_existing: true,
             });
 
