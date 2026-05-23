@@ -12,6 +12,7 @@ export function useElectronListeners() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importFolderPath, setImportFolderPath] = useState('');
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
@@ -25,6 +26,10 @@ export function useElectronListeners() {
 
     const cleanupDiagnostics = bridge.onOpenDiagnostics(() => {
       setIsDiagnosticsOpen(true);
+    });
+
+    const cleanupSearch = bridge.onOpenSearch(() => {
+      setIsSearchOpen(true);
     });
 
     const cleanupImport = bridge.onImportFolderSelected((path) => {
@@ -49,6 +54,7 @@ export function useElectronListeners() {
     return () => {
       cleanupSettings();
       cleanupDiagnostics();
+      cleanupSearch();
       cleanupImport();
       cleanupSync();
       cleanupBackup();
@@ -61,6 +67,8 @@ export function useElectronListeners() {
     setIsSettingsOpen,
     isDiagnosticsOpen,
     setIsDiagnosticsOpen,
+    isSearchOpen,
+    setIsSearchOpen,
     isImportModalOpen,
     setIsImportModalOpen,
     importFolderPath,

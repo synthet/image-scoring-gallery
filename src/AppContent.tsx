@@ -15,6 +15,7 @@ import { ImportModal } from './components/Import/ImportModal';
 import { SyncModal } from './components/Sync/SyncModal';
 import { BackupModal } from './components/Backup/BackupModal';
 import { SimilarSearchDrawer } from './components/Viewer/SimilarSearchDrawer';
+import { SearchPage } from './components/Search/SearchPage';
 import { Loader2, ChevronRight, RefreshCw } from 'lucide-react';
 import { useOperationStore } from './store/useOperationStore';
 import { bridge } from './bridge';
@@ -74,6 +75,7 @@ function AppContent() {
   const {
     isSettingsOpen, setIsSettingsOpen,
     isDiagnosticsOpen, setIsDiagnosticsOpen,
+    isSearchOpen, setIsSearchOpen,
     isImportModalOpen, setIsImportModalOpen,
     importFolderPath, setImportFolderPath,
     isSyncModalOpen, setIsSyncModalOpen,
@@ -283,9 +285,11 @@ function AppContent() {
     ? (stacksLoading && stacks.length === 0)
     : (activeStackId ? stackImagesLoading : (imagesLoading && images.length === 0));
 
-  const headerTitle = activeStackId
-    ? `Stack #${activeStackId}`
-    : (currentFolder ? (currentFolder.title || 'Folder') : 'Image Gallery');
+  const headerTitle = isSearchOpen
+    ? 'Semantic Search'
+    : activeStackId
+      ? `Stack #${activeStackId}`
+      : (currentFolder ? (currentFolder.title || 'Folder') : 'Image Gallery');
 
   const breadcrumbsNode = useMemo(() => {
     type BreadcrumbPart = { label: string; onClick: () => void; isActive: boolean };
@@ -354,13 +358,15 @@ function AppContent() {
   return (
     <>
       <MainLayout
-        breadcrumbs={breadcrumbsNode}
+        breadcrumbs={isSearchOpen ? null : breadcrumbsNode}
         header={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h2 style={{ margin: 0, fontSize: '1.2em' }}>{headerTitle}</h2>
+            {!isSearchOpen && (
             <span style={{ fontSize: '0.9em', color: '#888' }}>
               ({currentTotal} {stacksMode && !activeStackId ? 'items (grouped)' : 'items'})
             </span>
+            )}
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '15px', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
               {activeOps.size > 0 && Array.from(activeOps.values()).map((op, i) => (
                 <button
@@ -506,6 +512,15 @@ function AppContent() {
         }
         content={
           <div style={{ height: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            {isSearchOpen ? (
+              <SearchPage
+                currentFolder={currentFolder}
+                onBack={() => setIsSearchOpen(false)}
+                onOpenImage={(id) => {
+                  void openImageById(id);
+                }}
+              />
+            ) : (
             <>
               {isInitialGridLoading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
@@ -562,22 +577,23 @@ function AppContent() {
                     void openImageById(id);
                   }}
                 />
-                {openingImage && (
-                  <ImageViewer
-                    image={openingImage}
-                    onClose={closeViewer}
-                    allImages={currentImages}
-                    currentIndex={currentImageIndex}
-                    onNavigate={handleNavigateImage}
-                    onDelete={handleImageDelete}
-                    onOpenImageById={openImageById}
-                    onOpenFolder={(folderId) => {
-                      handleNavigateToFolder(folderId);
-                      closeViewer();
-                    }}
-                  />
-                )}
             </>
+            )}
+            {openingImage && (
+              <ImageViewer
+                image={openingImage}
+                onClose={closeViewer}
+                allImages={currentImages}
+                currentIndex={currentImageIndex}
+                onNavigate={handleNavigateImage}
+                onDelete={handleImageDelete}
+                onOpenImageById={openImageById}
+                onOpenFolder={(folderId) => {
+                  handleNavigateToFolder(folderId);
+                  closeViewer();
+                }}
+              />
+            )}
           </div>
         }
       />

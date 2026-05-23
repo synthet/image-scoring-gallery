@@ -22,6 +22,10 @@ import type {
     FindDuplicatesRequest,
     SimilarSearchParams,
     SimilarSearchResult,
+    TextSearchParams,
+    TextSearchResponse,
+    ExampleQueriesParams,
+    ExampleQueriesResponse,
     OutlierSearchParams,
     OutlierSearchResult,
     ImportRegisterRequest,
@@ -90,6 +94,7 @@ export class ApiService {
             body?: unknown;
             params?: Record<string, string | number | boolean | undefined>;
             timeout?: number;
+            externalSignal?: AbortSignal;
         },
     ): Promise<T> {
         const base = this.resolveBaseUrl();
@@ -107,6 +112,8 @@ export class ApiService {
         const controller = new AbortController();
         const timeoutMs = options?.timeout ?? DEFAULT_TIMEOUT;
         const timer = setTimeout(() => controller.abort(), timeoutMs);
+        const onExternalAbort = () => controller.abort();
+        options?.externalSignal?.addEventListener('abort', onExternalAbort);
 
         try {
             const fetchOptions: RequestInit = {
@@ -131,11 +138,15 @@ export class ApiService {
             return (await response.json()) as T;
         } catch (err: unknown) {
             if (err instanceof Error && err.name === 'AbortError') {
+                if (options?.externalSignal?.aborted) {
+                    throw err;
+                }
                 throw new Error(`API ${method} ${apiPath} timed out after ${timeoutMs}ms`);
             }
             throw err;
         } finally {
             clearTimeout(timer);
+            options?.externalSignal?.removeEventListener('abort', onExternalAbort);
         }
     }
 
@@ -277,6 +288,26 @@ export class ApiService {
             },
             LONG_TIMEOUT,
         );
+    }
+
+    textSearch(opts: TextSearchParams, externalSignal?: AbortSignal) {
+        return this.request<TextSearchResponse>('GET', '/api/similarity/text-search', {
+            params: {
+                query: opts.query,
+                limit: opts.limit,
+                folder_path: opts.folder_path,
+                min_similarity: opts.min_similarity,
+            },
+            timeout: LONG_TIMEOUT,
+            externalSignal,
+        });
+    }
+
+    getSearchExampleQueries(opts?: ExampleQueriesParams) {
+        return this.get<ExampleQueriesResponse>('/api/similarity/example-queries', {
+            limit: opts?.limit,
+            folder_path: opts?.folder_path,
+        });
     }
 
     getOutliers(opts: OutlierSearchParams) {

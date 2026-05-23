@@ -2,6 +2,24 @@
 
 All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be documented in this file.
 
+## [Unreleased]
+
+## [7.9.0] - 2026-05-23
+
+### Added
+
+- **Tools → Search**: Semantic (CLIP) text search in the gallery main window, scoped to the selected folder sidebar path, with progress overlay and cancel.
+- **IPC / API**: `searchByText`, `cancelTextSearch`, `getSearchExampleQueries` against the Python backend `/api/similarity/*` endpoints.
+- **More like this**: Adaptive loading progress overlay with cancel in the similar-search drawer; timing tuned from recent search duration.
+
+### Changed
+
+- **Tools menu**: Removed disabled **Duplicates** and **Embeddings** placeholders; **Search** opens the in-app search view.
+
+### Removed
+
+- **Backend WebUI `/ui/search`**: Search UI moved to the gallery; use **Tools → Search** in Electron instead.
+
 ## [7.8.1] - 2026-05-22
 
 ### Added

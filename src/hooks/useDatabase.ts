@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { bridge } from '../bridge';
 import { useAppMode } from '../context/AppModeContext';
+import { recordSimilarSearchDuration, type SimilarSearchScope } from '../utils/similarSearchTiming';
 
 const MAX_LOADED_ITEMS = 2000;
 
@@ -475,6 +476,21 @@ export interface SimilarImageSearchOptions {
     minSimilarity?: number;
 }
 
+/** Map backend / bridge errors to a short user-facing message. */
+export function formatSimilarImagesError(raw: string): string {
+    const lower = raw.toLowerCase();
+    if (lower.includes('no embeddings') || lower.includes('clustering') || lower.includes('populate_missing_embeddings')) {
+        return (
+            `${raw} Run Similarity Clustering on this library, or backfill embeddings via the Python backend ` +
+            '(scripts/maintenance/run_populate_embeddings.bat).'
+        );
+    }
+    if (lower.includes('folder mode')) {
+        return 'Similar image search requires the Electron app with the Python scoring backend running.';
+    }
+    return raw;
+}
+
 export function useSimilarImages(
     imageId: number | null,
     options: SimilarImageSearchOptions = {}
@@ -490,6 +506,16 @@ export function useSimilarImages(
     const [images, setImages] = useState<SimilarImageResult[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [lastDurationMs, setLastDurationMs] = useState<number | null>(null);
+
+    const requestSeqRef = useRef(0);
+    const cancelledSeqRef = useRef<number | null>(null);
+
+    const cancel = useCallback(() => {
+        cancelledSeqRef.current = requestSeqRef.current;
+        setLoading(false);
+        setError(null);
+    }, []);
 
     useEffect(() => {
         if (!imageId) {
@@ -497,6 +523,17 @@ export function useSimilarImages(
         }
 
         let isMounted = true;
+        const requestId = ++requestSeqRef.current;
+        cancelledSeqRef.current = null;
+        const startedAt = performance.now();
+        const timingScope: SimilarSearchScope =
+            folderId != null || (folderPath?.trim() ?? '') !== '' ? 'folder' : 'library';
+
+        const shouldApply = () =>
+            isMounted
+            && requestSeqRef.current === requestId
+            && cancelledSeqRef.current !== requestId;
+
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true);
         setError(null);
@@ -506,26 +543,44 @@ export function useSimilarImages(
             ? Math.min(1, Math.max(0, minSimilarity))
             : 0.8;
 
-        bridge.searchSimilarImages({
+        const searchParams: Parameters<typeof bridge.searchSimilarImages>[0] = {
             imageId,
             limit,
-            folderId,
-            folderPath: normalizedFolderPath,
             minSimilarity: normalizedMinSimilarity,
-        })
+        };
+        if (folderId != null) {
+            searchParams.folderId = folderId;
+        }
+        if (normalizedFolderPath) {
+            searchParams.folderPath = normalizedFolderPath;
+        }
+
+        bridge.searchSimilarImages(searchParams)
             .then(res => {
-                if (isMounted) {
-                    setImages((res.results || []) as SimilarImageResult[]);
+                if (!shouldApply()) return;
+                const responseError =
+                    typeof res.error === 'string' && res.error.trim()
+                        ? res.error.trim()
+                        : null;
+                if (responseError) {
+                    setImages([]);
+                    setError(formatSimilarImagesError(responseError));
+                    return;
                 }
+                setImages((res.results || []) as SimilarImageResult[]);
             })
             .catch(err => {
-                if (isMounted) {
-                    setError(err.message || 'Failed to fetch similar images');
-                    console.error('[useSimilarImages] Error:', err);
-                }
+                if (!shouldApply()) return;
+                const message = err instanceof Error ? err.message : String(err);
+                setError(formatSimilarImagesError(message || 'Failed to fetch similar images'));
+                console.error('[useSimilarImages] Error:', err);
             })
             .finally(() => {
-                if (isMounted) setLoading(false);
+                if (!shouldApply()) return;
+                const durationMs = Math.round(performance.now() - startedAt);
+                recordSimilarSearchDuration(durationMs, timingScope);
+                setLastDurationMs(durationMs);
+                setLoading(false);
             });
 
         return () => {
@@ -537,7 +592,9 @@ export function useSimilarImages(
         images: imageId ? images : [],
         loading: imageId ? loading : false,
         error: imageId ? error : null,
-    }), [images, loading, error, imageId]);
+        cancel,
+        lastDurationMs: imageId ? lastDurationMs : null,
+    }), [images, loading, error, imageId, cancel, lastDurationMs]);
 }
 
 export function usePropagateTags() {

@@ -5,18 +5,17 @@ vi.mock('../../hooks/useKeyboardLayer', () => ({
     useKeyboardLayer: vi.fn(),
 }));
 
-vi.mock('../../hooks/useDatabase', () => ({
-    usePropagateTags: () => ({
-        propagate: vi.fn(),
-        loading: false,
-        error: null,
-    }),
-    useSimilarImages: () => ({
-        images: [],
-        loading: false,
-        error: null,
-    }),
-}));
+vi.mock('../../hooks/useDatabase', async (importOriginal) => {
+    const mod = await importOriginal<typeof import('../../hooks/useDatabase')>();
+    return {
+        ...mod,
+        usePropagateTags: () => ({
+            propagate: vi.fn(),
+            loading: false,
+            error: null,
+        }),
+    };
+});
 
 const addNotification = vi.fn();
 vi.mock('../../store/useNotificationStore', () => ({
@@ -33,6 +32,8 @@ type ElectronMock = {
     setCurrentExportImageContext: ReturnType<typeof vi.fn>;
     updateImageDetails: ReturnType<typeof vi.fn>;
     deleteImage: ReturnType<typeof vi.fn>;
+    getFolders: ReturnType<typeof vi.fn>;
+    searchSimilarImages: ReturnType<typeof vi.fn>;
     api: {
         propagateTags: ReturnType<typeof vi.fn>;
         fixImageMetadata: ReturnType<typeof vi.fn>;
@@ -74,6 +75,12 @@ describe('ImageViewer tag propagation suggestions', () => {
             setCurrentExportImageContext: vi.fn().mockResolvedValue(true),
             updateImageDetails: vi.fn().mockResolvedValue(true),
             deleteImage: vi.fn().mockResolvedValue(true),
+            getFolders: vi.fn().mockResolvedValue([]),
+            searchSimilarImages: vi.fn().mockResolvedValue({
+                query_image_id: baseImage.id,
+                results: [],
+                count: 0,
+            }),
             api: {
                 propagateTags: vi.fn().mockResolvedValue({
                     success: true,
@@ -183,5 +190,69 @@ describe('ImageViewer tag propagation suggestions', () => {
         });
 
         expect(screen.queryByRole('button', { name: 'Accept' })).toBeNull();
+    });
+});
+
+describe('ImageViewer similar images', () => {
+    let electron: ElectronMock;
+
+    beforeEach(() => {
+        electron = {
+            getImageDetails: vi.fn().mockResolvedValue({ ...baseImage, folder_id: 5 }),
+            getImagePhaseStatuses: vi.fn().mockResolvedValue([]),
+            readExif: vi.fn().mockResolvedValue({}),
+            setCurrentExportImageContext: vi.fn().mockResolvedValue(true),
+            updateImageDetails: vi.fn().mockResolvedValue(true),
+            deleteImage: vi.fn().mockResolvedValue(true),
+            getFolders: vi.fn().mockResolvedValue([{ id: 5, path: '/photos/trip' }]),
+            searchSimilarImages: vi.fn().mockResolvedValue({
+                query_image_id: baseImage.id,
+                results: [],
+                count: 0,
+            }),
+            api: {
+                propagateTags: vi.fn(),
+                fixImageMetadata: vi.fn(),
+            },
+        };
+        (window as unknown as { electron: ElectronMock }).electron = electron;
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            blob: async () => new Blob(['preview'], { type: 'image/jpeg' }),
+        }));
+    });
+
+    afterEach(() => {
+        (window as unknown as { electron?: ElectronMock }).electron = undefined;
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    it('enables Find Similar Images and opens the drawer on click', async () => {
+        render(
+            <ImageViewer
+                image={{ ...baseImage, folder_id: 5 }}
+                onClose={vi.fn()}
+                allImages={[baseImage]}
+                currentIndex={0}
+            />
+        );
+
+        const findButton = screen.getByRole('button', { name: /find similar images/i }) as HTMLButtonElement;
+        expect(findButton.disabled).toBe(false);
+
+        fireEvent.click(findButton);
+
+        expect(await screen.findByRole('heading', { name: 'Similar Images' })).not.toBeNull();
+        await waitFor(() => {
+            expect(electron.searchSimilarImages).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    imageId: baseImage.id,
+                    minSimilarity: expect.any(Number),
+                }),
+            );
+        });
+        const firstCall = electron.searchSimilarImages.mock.calls[0]?.[0] as Record<string, unknown>;
+        expect(firstCall.folderId).toBeUndefined();
+        expect(firstCall.folderPath).toBeUndefined();
     });
 });
