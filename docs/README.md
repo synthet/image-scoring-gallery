@@ -22,6 +22,8 @@ The backend owns REST API contracts, database schema, and pipeline phase termino
 - [architecture/02-database-design.md](architecture/02-database-design.md) - PostgreSQL/API connector modes and Firebird historical notes.
 - [architecture/import-discovery-alignment.md](architecture/import-discovery-alignment.md) - gallery Import vs backend Discovery alignment.
 - [technical/PIPELINE_TERMINOLOGY.md](technical/PIPELINE_TERMINOLOGY.md) - local mirror of backend stage labels and renderer constants.
+- [design/FRONTEND_UX_SPEC.md](design/FRONTEND_UX_SPEC.md) - frontend visual design and UI specifications.
+- [design/DESIGN_SYSTEM.md](design/DESIGN_SYSTEM.md) - local design system conventions and token mapping.
 
 ## Features
 
