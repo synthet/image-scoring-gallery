@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSimilarImages } from '../../hooks/useDatabase';
+import { useAdaptiveLoadingProgress } from '../../hooks/useAdaptiveLoadingProgress';
 import { GalleryThumbnail } from '../Gallery/GalleryThumbnail';
 import { bridge } from '../../bridge';
+import { getAdaptiveProgressConfig, getLastSimilarSearchDuration } from '../../utils/similarSearchTiming';
+import { SimilarSearchLoadingOverlay } from './SimilarSearchLoadingOverlay';
 
 interface SimilarSearchDrawerProps {
     open: boolean;
@@ -20,6 +23,7 @@ interface FolderRow {
 export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolderId, onSelectImage, onJumpToImageFolder }: SimilarSearchDrawerProps) {
     const [folderPathById, setFolderPathById] = useState<string | undefined>(undefined);
     const [minSimilarityInput, setMinSimilarityInput] = useState('0.80');
+    const [limitToCurrentFolder, setLimitToCurrentFolder] = useState(false);
 
     const minSimilarity = useMemo(() => {
         const parsed = Number(minSimilarityInput);
@@ -30,7 +34,7 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
     useEffect(() => {
         let isMounted = true;
 
-        if (!open || !currentFolderId) {
+        if (!open || !currentFolderId || !limitToCurrentFolder) {
             return;
         }
 
@@ -49,18 +53,29 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
         return () => {
             isMounted = false;
         };
-    }, [open, currentFolderId]);
+    }, [open, currentFolderId, limitToCurrentFolder]);
 
-    const resolvedFolderPath = currentFolderId ? folderPathById : undefined;
+    const scopeToFolder = Boolean(currentFolderId && limitToCurrentFolder);
+    const resolvedFolderPath = scopeToFolder ? folderPathById : undefined;
 
     // Only pass imageId when open to avoid unnecessary fetching in the background
     const activeImageId = open ? queryImageId : null;
-    const { images, loading, error } = useSimilarImages(activeImageId, {
+    const timingScope = scopeToFolder ? 'folder' : 'library';
+    const progressConfig = useMemo(
+        () => getAdaptiveProgressConfig(timingScope),
+        [timingScope, activeImageId, minSimilarity, limitToCurrentFolder],
+    );
+    const { images, loading, error, cancel, lastDurationMs } = useSimilarImages(activeImageId, {
         limit: 20,
-        folderId: currentFolderId,
+        folderId: scopeToFolder ? currentFolderId : undefined,
         folderPath: resolvedFolderPath,
         minSimilarity,
     });
+    const { tick, progressMax, percent } = useAdaptiveLoadingProgress(loading, progressConfig);
+    const previousDurationMs = useMemo(
+        () => getLastSimilarSearchDuration(timingScope),
+        [timingScope, loading, lastDurationMs],
+    );
 
     if (!open) return null;
 
@@ -144,26 +159,46 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
                         />
                     </div>
                 </label>
-                <div style={{
-                    height: resolvedFolderPath ? '1.5em' : '0px',
-                    overflow: 'hidden',
-                    transition: 'height 0.2s ease-in-out, opacity 0.2s ease-in-out',
-                    opacity: resolvedFolderPath ? 1 : 0
-                }}>
-                    {resolvedFolderPath && (
-                        <div style={{ color: '#888', fontSize: '0.75em' }} title={resolvedFolderPath}>
+                {currentFolderId != null && (
+                    <label style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        color: '#bbb',
+                        fontSize: '0.8em',
+                        cursor: 'pointer',
+                    }}>
+                        <input
+                            type="checkbox"
+                            checked={limitToCurrentFolder}
+                            onChange={(e) => setLimitToCurrentFolder(e.currentTarget.checked)}
+                            aria-label="Limit to current folder"
+                        />
+                        <span>Limit to current folder</span>
+                    </label>
+                )}
+                <div style={{ color: '#888', fontSize: '0.75em' }}>
+                    {scopeToFolder && resolvedFolderPath ? (
+                        <span title={resolvedFolderPath}>
                             Restricted to folder: {resolvedFolderPath}
-                        </div>
+                        </span>
+                    ) : scopeToFolder && !resolvedFolderPath ? (
+                        <span>Resolving folder path…</span>
+                    ) : (
+                        <span>Searching entire library</span>
                     )}
                 </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: 15 }}>
-                {loading && (
-                    <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
-                        <div>Loading similar images...</div>
-                    </div>
-                )}
+            <div style={{ flex: 1, overflowY: 'auto', padding: 15, position: 'relative' }}>
+                <SimilarSearchLoadingOverlay
+                    visible={loading}
+                    percent={percent}
+                    tick={tick}
+                    progressMax={progressMax}
+                    onCancel={cancel}
+                    lastDurationMs={previousDurationMs}
+                />
 
                 {error && (
                     <div style={{ textAlign: 'center', padding: 20, color: '#f44336' }}>

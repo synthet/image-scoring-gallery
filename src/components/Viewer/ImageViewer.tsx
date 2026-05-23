@@ -1640,7 +1640,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
                             <button
                                 type="button"
-                                disabled
+                                disabled={!SIMILAR_SEARCH_ENABLED}
                                 onClick={() => {
                                     if (!SIMILAR_SEARCH_ENABLED) {
                                         return;
@@ -1656,7 +1656,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     color: '#e6e6e6',
                                     border: '1px solid #444',
                                     borderRadius: 4,
-                                    cursor: 'pointer',
+                                    cursor: SIMILAR_SEARCH_ENABLED ? 'pointer' : 'not-allowed',
+                                    opacity: SIMILAR_SEARCH_ENABLED ? 1 : 0.6,
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',

@@ -644,14 +644,14 @@ const rebuildApplicationMenu = () => {
                 },
                 { type: 'separator' },
                 {
-                    label: 'Duplicates (Coming soon)',
-                    enabled: false,
+                    label: 'Search',
+                    enabled: !folderMode,
+                    click: () => {
+                        if (mainWindow) {
+                            mainWindow.webContents.send('open-search');
+                        }
+                    },
                 },
-                {
-                    label: 'Embeddings (Coming soon)',
-                    enabled: false,
-                },
-                { type: 'separator' },
                 {
                     label: 'Scoring...',
                     enabled: !folderMode,
@@ -1038,6 +1038,47 @@ async function startFullApplication(): Promise<void> {
             folder_path: resolvedFolderPath,
             min_similarity: minSimilarity,
         });
+    }));
+
+    let textSearchAbort: AbortController | null = null;
+
+    ipcMain.handle('api:similarity:text-search', wrapIpcHandler(async (_, options: {
+        query: string;
+        limit?: number;
+        folder_path?: string;
+        min_similarity?: number;
+    }) => {
+        textSearchAbort?.abort();
+        textSearchAbort = new AbortController();
+        const signal = textSearchAbort.signal;
+        try {
+            return await apiService.textSearch(
+                {
+                    query: options.query,
+                    limit: options.limit,
+                    folder_path: options.folder_path,
+                    min_similarity: options.min_similarity,
+                },
+                signal,
+            );
+        } finally {
+            if (textSearchAbort?.signal === signal) {
+                textSearchAbort = null;
+            }
+        }
+    }));
+
+    ipcMain.handle('api:similarity:text-search-cancel', () => {
+        textSearchAbort?.abort();
+        textSearchAbort = null;
+        return { ok: true };
+    });
+
+    ipcMain.handle('api:similarity:example-queries', wrapIpcHandler(async (_, options?: {
+        limit?: number;
+        folder_path?: string;
+    }) => {
+        return await apiService.getSearchExampleQueries(options);
     }));
 
     ipcMain.handle('api:similarity:outliers', wrapIpcHandler(async (_, options) => {

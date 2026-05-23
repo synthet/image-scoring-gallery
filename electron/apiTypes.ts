@@ -127,6 +127,38 @@ export interface SimilarSearchResult {
     count: number;
 }
 
+// ── Text (CLIP) search ─────────────────────────────────────────────────────
+
+export interface TextSearchParams {
+    query: string;
+    limit?: number;
+    folder_path?: string;
+    min_similarity?: number;
+}
+
+export interface TextSearchResultItem {
+    image_id: number;
+    file_path: string;
+    similarity: number;
+}
+
+export interface TextSearchResponse {
+    query: string;
+    results: TextSearchResultItem[];
+    count: number;
+    embedding_space: string;
+}
+
+export interface ExampleQueriesParams {
+    limit?: number;
+    folder_path?: string;
+}
+
+export interface ExampleQueriesResponse {
+    queries: string[];
+    source: string;
+}
+
 // ── Outlier Detection ──────────────────────────────────────────────────────
 
 export interface OutlierSearchParams {

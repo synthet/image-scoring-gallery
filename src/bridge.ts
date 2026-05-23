@@ -17,7 +17,14 @@ import type { FileImageMetadataResult, SyncPreviewResult, SyncRunResult } from '
 
 const BASE = '/gallery-api';
 
-async function get<T>(path: string, params?: Record<string, unknown>): Promise<T> {
+/** In-flight text search abort (browser mode only). */
+let browserTextSearchAbort: AbortController | null = null;
+
+async function get<T>(
+    path: string,
+    params?: Record<string, unknown>,
+    init?: { signal?: AbortSignal; rawJson?: boolean },
+): Promise<T> {
     const url = new URL(BASE + path, window.location.origin);
     if (params) {
         for (const [k, v] of Object.entries(params)) {
@@ -29,12 +36,15 @@ async function get<T>(path: string, params?: Record<string, unknown>): Promise<T
             }
         }
     }
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), { signal: init?.signal });
     if (!res.ok) {
         const text = await res.text().catch(() => '');
         throw new Error(`GET ${path} failed (${res.status}): ${text}`);
     }
     const body = await res.json() as { ok?: boolean; data?: T } | T;
+    if (init?.rawJson) {
+        return body as T;
+    }
     if (body !== null && typeof body === 'object' && 'ok' in body && 'data' in body) {
         const envelope = body as { ok: boolean; data?: T; error?: string };
         if (!envelope.ok) throw new Error(envelope.error ?? 'Request failed');
@@ -222,6 +232,48 @@ function createHttpBridge(): Window['electron'] {
 
         findOutliers: (options) => post('/db/outliers', options),
 
+        searchByText: async (options: {
+            query: string;
+            limit?: number;
+            folder_path?: string;
+            min_similarity?: number;
+        }) => {
+            browserTextSearchAbort?.abort();
+            browserTextSearchAbort = new AbortController();
+            const signal = browserTextSearchAbort.signal;
+            try {
+                return await get<import('../electron/apiTypes').TextSearchResponse>(
+                    '/backend/similarity/text-search',
+                    {
+                        query: options.query,
+                        limit: options.limit,
+                        folder_path: options.folder_path,
+                        min_similarity: options.min_similarity,
+                    },
+                    { signal, rawJson: true },
+                );
+            } finally {
+                if (browserTextSearchAbort?.signal === signal) {
+                    browserTextSearchAbort = null;
+                }
+            }
+        },
+
+        cancelTextSearch: async () => {
+            browserTextSearchAbort?.abort();
+            browserTextSearchAbort = null;
+        },
+
+        getSearchExampleQueries: (options?: { limit?: number; folder_path?: string }) =>
+            get<import('../electron/apiTypes').ExampleQueriesResponse>(
+                '/backend/similarity/example-queries',
+                {
+                    limit: options?.limit,
+                    folder_path: options?.folder_path,
+                },
+                { rawJson: true },
+            ),
+
         getStacks: (options?) => get('/db/stacks', options as Record<string, unknown> | undefined),
 
         getImagesByStack: (stackId, options?) =>
@@ -316,6 +368,7 @@ function createHttpBridge(): Window['electron'] {
         onOpenRuns: noop,
         onOpenEmbeddings: noop,
         onOpenDiagnostics: noop,
+        onOpenSearch: noop,
         onImportFolderSelected: noop,
         onImportProgress: noop,
         onShowNotification: noop,
@@ -414,6 +467,10 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
     deleteFolder: () => Promise.resolve(false),
     findNearDuplicates: () =>
         Promise.resolve({ success: false, data: { duplicates: [] }, message: 'folder mode' }),
+    searchByText: () =>
+        Promise.reject(new Error('Text search is not available in folder mode')),
+    cancelTextSearch: () => Promise.resolve(),
+    getSearchExampleQueries: () => Promise.resolve({ queries: [], source: 'folder mode' }),
     searchSimilarImages: () =>
         Promise.resolve({
             query_image_id: 0,

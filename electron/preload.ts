@@ -32,6 +32,8 @@ import type {
     JobInfo,
     DatabaseStats,
     SimilarSearchResult,
+    TextSearchResponse,
+    ExampleQueriesResponse,
     OutlierSearchResult,
     ScopeTreeResponse,
     DiagnosticsInfo,
@@ -113,6 +115,22 @@ contextBridge.exposeInMainWorld('electron', {
     findOutliers: async (options: { folderPath: string; zThreshold?: number; k?: number; limit?: number }) => {
         const response = await ipcRenderer.invoke('api:similarity:outliers', options);
         return unwrapEnvelope<OutlierSearchResult>(response);
+    },
+    searchByText: async (options: {
+        query: string;
+        limit?: number;
+        folder_path?: string;
+        min_similarity?: number;
+    }) => {
+        const response = await ipcRenderer.invoke('api:similarity:text-search', options);
+        return unwrapEnvelope<TextSearchResponse>(response);
+    },
+    cancelTextSearch: async () => {
+        await ipcRenderer.invoke('api:similarity:text-search-cancel');
+    },
+    getSearchExampleQueries: async (options?: { limit?: number; folder_path?: string }) => {
+        const response = await ipcRenderer.invoke('api:similarity:example-queries', options);
+        return unwrapEnvelope<ExampleQueriesResponse>(response);
     },
     getStacks: async (options?: ImageQueryOptions) => {
         const response = await ipcRenderer.invoke('db:get-stacks', options);
@@ -245,6 +263,13 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.on('open-diagnostics', handler);
         return () => {
             ipcRenderer.removeListener('open-diagnostics', handler);
+        };
+    },
+    onOpenSearch: (callback: () => void) => {
+        const handler = () => callback();
+        ipcRenderer.on('open-search', handler);
+        return () => {
+            ipcRenderer.removeListener('open-search', handler);
         };
     },
     onImportFolderSelected: (callback: (folderPath: string) => void) => {
