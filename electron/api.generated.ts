@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/shutdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Graceful shutdown
+         * @description Stop all runners, finalize jobs to paused state, and shutdown the dispatcher gracefully.
+         */
+        post: operations["shutdown_api_api_shutdown_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schema": {
         parameters: {
             query?: never;
@@ -350,6 +370,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/bird-species/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start bird species classification
+         * @description Classify bird species for images that already have the 'birds' keyword.
+         *
+         *             Images **without** the 'birds' keyword are automatically skipped — no need to
+         *             pre-filter. Top predictions are stored as 'species:Common Name' keywords using
+         *             BioCLIP 2 (zero-shot, MIT license).
+         *
+         *             The job runs asynchronously via the job queue. Monitor progress with
+         *             GET /api/bird-species/status.
+         *
+         *             **Requires:** `open_clip_torch` installed (`pip install open_clip_torch`).
+         */
+        post: operations["start_bird_species_api_bird_species_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bird-species/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop bird species job
+         * @description Send a stop signal to the running bird species classification job.
+         */
+        post: operations["stop_bird_species_api_bird_species_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bird-species/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get bird species status
+         * @description Get the current status of the bird species classification runner.
+         */
+        get: operations["get_bird_species_status_api_bird_species_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/status": {
         parameters: {
             query?: never;
@@ -428,6 +517,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/db/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * SQL bridge for Electron API DB mode
+         * @description Executes parameterized SQL against the configured database engine (Firebird or PostgreSQL).
+         *             Intended for the Electron gallery when ``database.engine`` is ``api`` and the app talks to this
+         *             WebUI over HTTP. **Treat like direct DB access** — disable on untrusted networks via config.
+         *
+         *             **Reads:** SQL must start with ``SELECT`` or ``WITH`` (``WITH``…``SELECT``). Row cap:
+         *             ``database.api_db_query_max_rows`` (default 5000, max 50000).
+         *
+         *             **Writes:** ``INSERT`` / ``UPDATE`` / ``DELETE`` (including Firebird ``UPDATE OR INSERT``) when
+         *             ``database.api_db_allow_write_queries`` is true (default). DDL and ``DROP``/``TRUNCATE``/etc. are rejected.
+         *
+         *             Uses Firebird-style ``?`` placeholders; translated when ``database.engine`` is ``postgres``.
+         */
+        post: operations["api_db_query_api_db_query_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/debug/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Request profiling dashboard
+         * @description In-flight requests, slow request history, and event loop health.
+         */
+        get: operations["debug_requests_api_debug_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/debug/loop-lag": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current event loop lag
+         * @description Quick event loop health check.
+         */
+        get: operations["debug_loop_lag_api_debug_loop_lag_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/scoring/fix-image": {
         parameters: {
             query?: never;
@@ -496,6 +655,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/images/generate-thumbnail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate thumbnail for an image
+         * @description Generate and persist a thumbnail for an image that is missing one. Updates the database with the new thumbnail path.
+         */
+        post: operations["generate_thumbnail_endpoint_api_images_generate_thumbnail_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get active tasks (unified)
+         * @description Returns a unified view of active tasks, workers, and jobs in a single response.
+         *             Combines runner status, dispatcher state, and the currently running job.
+         *
+         *             **Response Structure:**
+         *             - runners: Status of scoring, tagging, clustering runners (is_running, progress, log)
+         *             - dispatcher: Queue state (queue, queue_size, active_runner, is_dispatcher_running)
+         *             - active_job: The currently running job if any, or null
+         */
+        get: operations["get_tasks_active_api_tasks_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs/recent": {
         parameters: {
             query?: never;
@@ -505,7 +710,7 @@ export interface paths {
         };
         /**
          * Get recent jobs
-         * @description Returns a list of recent job history entries.
+         * @description Returns recent job rows as JSON.
          *
          *             Jobs are ordered by creation time (most recent first).
          *             Each job entry includes:
@@ -518,6 +723,11 @@ export interface paths {
          *
          *             **Query Parameters:**
          *             - limit: Maximum number of jobs to return (default: 10, max: 1000)
+         *             - offset: Skip this many jobs (newest-first order; default 0)
+         *             - history: When true, only terminal statuses (completed/failed/canceled/interrupted);
+         *               response is JSON `{"runs":[...],"jobs":[...],"total":N}` for pagination.
+         *
+         *             **Default (`history` false):** JSON object `{"runs":[...],"jobs":[...]}` (same array under both keys; clients that expected a bare array should read `runs` or `jobs`).
          */
         get: operations["get_recent_jobs_api_jobs_recent_get"];
         put?: never;
@@ -575,6 +785,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List image incidents
+         * @description Paginated append-only incidents (phase failures, validation, etc.) linked to images.
+         *             PostgreSQL only; returns empty items when the engine is not PostgreSQL.
+         *
+         *             Query: limit, offset, folder_id, job_id, phase_code, kind, since (ISO-8601).
+         */
+        get: operations["list_incidents_api_incidents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/incidents/{incident_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one image incident
+         * @description Returns a single incident by id with file_path and phase_code.
+         */
+        get: operations["get_incident_api_incidents__incident_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs/{job_id}/cancel": {
         parameters: {
             query?: never;
@@ -595,7 +848,241 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow-runs/{job_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause workflow run */
+        post: operations["pause_workflow_run_api_workflow_runs__job_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow-runs/{job_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume workflow run */
+        post: operations["resume_workflow_run_api_workflow_runs__job_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow-runs/{job_id}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restart workflow run */
+        post: operations["restart_workflow_run_api_workflow_runs__job_id__restart_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stage-runs/{job_id}/{phase_code}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause stage run */
+        post: operations["pause_stage_run_api_stage_runs__job_id___phase_code__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stage-runs/{job_id}/{phase_code}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume stage run */
+        post: operations["resume_stage_run_api_stage_runs__job_id___phase_code__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stage-runs/{job_id}/{phase_code}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restart stage run */
+        post: operations["restart_stage_run_api_stage_runs__job_id___phase_code__restart_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/step-runs/{image_id}/{phase_code}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause step run */
+        post: operations["pause_step_run_api_step_runs__image_id___phase_code__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/step-runs/{image_id}/{phase_code}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume step run */
+        post: operations["resume_step_run_api_step_runs__image_id___phase_code__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/step-runs/{image_id}/{phase_code}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restart step run */
+        post: operations["restart_step_run_api_step_runs__image_id___phase_code__restart_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pause a queued job
+         * @description Moves a queued job to paused state.
+         */
+        post: operations["pause_job_api_jobs__job_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restart a failed job
+         * @description Re-queues a failed job and increments retry count.
+         */
+        post: operations["restart_job_api_jobs__job_id__restart_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/priority": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adjust job priority
+         * @description Bumps queued/paused job priority by delta (default: 10).
+         */
+        post: operations["bump_priority_api_jobs__job_id__priority_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/similar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * [DEPRECATED] Find similar images
+         * @deprecated
+         * @description DEPRECATED: Use GET /api/similarity/search instead.
+         */
+        get: operations["get_similar_images_legacy_api_similar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/similarity/search": {
         parameters: {
             query?: never;
             header?: never;
@@ -611,18 +1098,54 @@ export interface paths {
          *             - limit: Maximum number of results (default: 20).
          *             - folder_path: Optional. Scope search to a specific folder path.
          *             - min_similarity: Minimum similarity threshold 0.0-1.0 (default: 0.80).
+         *             - embedding_space: Optional embedding-space code. Defaults to the
+         *               1280-d MobileNet space. Non-default codes (e.g.
+         *               `clip_vit_b32_image`) require PostgreSQL.
          *
          *             **Returns:**
          *             - query_image_id: ID of the query image
          *             - results: List of {image_id, file_path, similarity}
          *             - count: Number of results returned
-         *
-         *             **Errors:**
-         *             - 400: Missing or invalid image_id
-         *             - 404: Image not found
-         *             - 400: No embeddings (run clustering first)
          */
-        get: operations["get_similar_images_api_similar_get"];
+        get: operations["get_similar_images_similarity_namespace_api_similarity_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/similarity/text-search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search images by text query
+         * @description Find images semantically matching a free-text query using CLIP text-to-image
+         *             similarity.
+         *
+         *             Encodes the query with the CLIP ViT-B/32 text tower and searches against
+         *             stored `clip_vit_b32_image` embeddings via pgvector cosine distance.
+         *             Requires PostgreSQL and at least some images with CLIP embeddings
+         *             (produced during tagging).
+         *
+         *             **Query Parameters:**
+         *             - query: Required. Free-text search query (e.g. "sunset over mountains").
+         *             - limit: Maximum number of results (default: 20, max: 100).
+         *             - folder_path: Optional. Scope search to a specific folder path.
+         *             - min_similarity: Minimum similarity threshold 0.0-1.0 (default: none).
+         *
+         *             **Returns:**
+         *             - query: The original query string
+         *             - results: List of {image_id, file_path, similarity}
+         *             - count: Number of results returned
+         *             - embedding_space: Always "clip_vit_b32_image"
+         */
+        get: operations["search_images_by_text_api_similarity_text_search_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -641,10 +1164,56 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Find Duplicates
-         * @description Find near-duplicate image pairs in the database.
+         * [DEPRECATED] Find near-duplicate images
+         * @deprecated
+         * @description DEPRECATED: Use POST /api/similarity/duplicates instead.
          */
-        post: operations["find_duplicates_api_duplicates_find_post"];
+        post: operations["find_duplicates_legacy_api_duplicates_find_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/similarity/duplicates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Find near-duplicate images (similarity namespace)
+         * @description Detect likely duplicate image pairs using embedding cosine similarity.
+         */
+        get: operations["get_duplicates_similarity_namespace_api_similarity_duplicates_get"];
+        put?: never;
+        /**
+         * Find near-duplicate images
+         * @description Detect likely duplicate image pairs using embedding cosine similarity.
+         */
+        post: operations["post_duplicates_similarity_namespace_api_similarity_duplicates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/similarity/similar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * [DEPRECATED] Find similar images
+         * @deprecated
+         * @description DEPRECATED: Use GET /api/similarity/search instead.
+         */
+        get: operations["get_similar_images_alias_api_similarity_similar_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -659,7 +1228,28 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Find visual outliers in a folder
+         * [DEPRECATED] Find visual outliers in a folder
+         * @deprecated
+         * @description DEPRECATED: Use GET /api/similarity/outliers instead.
+         */
+        get: operations["get_outliers_legacy_api_outliers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/similarity/outliers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Find visual outliers
          * @description Identify visually atypical images inside a folder using embedding-based similarity analysis.
          *
          *             **Query Parameters:**
@@ -673,7 +1263,73 @@ export interface paths {
          *             - stats: Folder-level summary statistics used during detection.
          *             - skipped: Images skipped due to missing embeddings.
          */
-        get: operations["get_outliers_api_outliers_get"];
+        get: operations["get_outliers_similarity_namespace_api_similarity_outliers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/embedding_map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 2D embedding map
+         * @description Project image embeddings to 2D coordinates for spatial visualisation.
+         *
+         *             Uses UMAP (default) or t-SNE to reduce embeddings to two dimensions.
+         *             Defaults to the 1280-d MobileNetV2 space; pass `space_code` to project
+         *             a non-default space (e.g. `clip_vit_b32_image`, `blip_vit_b16_image`,
+         *             `bioclip_2_image`). Results are cached on disk per
+         *             `(folder_path, method, sample_limit, n_neighbors, min_dist, space_code, pca_dim)`;
+         *             pass `refresh=true` to force recomputation.
+         *
+         *             **Query Parameters:**
+         *             - folder_path: Optional.  Scope projection to one folder; omit for all images.
+         *             - method: `umap` (default) or `tsne`.
+         *             - refresh: If true, ignore the on-disk cache and recompute.
+         *             - sample_limit: Cap the number of images projected (default: config `embedding_map.max_points`).
+         *             - n_neighbors: UMAP/t-SNE neighbourhood size (default: 30).
+         *             - min_dist: UMAP min_dist (default: 0.1, ignored for t-SNE).
+         *             - space_code: Embedding-space code (default: `mobilenet_v2_imagenet_gap`).
+         *               Non-default spaces require PostgreSQL.
+         *             - pca_dim: Optional PCA pre-step target dimension. Omit for auto
+         *               (50 when source dim >= 1280, off otherwise). `0` disables PCA.
+         *
+         *             **Returns:**
+         *             - points: List of `{image_id, x, y, file_path, thumbnail_path, label, rating, score_general}`.
+         *             - meta: `{count, method, computed_at, cache_key, embedding_space, pca_dim}`.
+         *               When too few images are available `meta.error == "too_few_points"` and
+         *               `points` is empty. Unknown `space_code` returns
+         *               `meta.error == "unknown_embedding_space"`.
+         */
+        get: operations["get_embedding_map_api_embedding_map_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/embedding_spaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List embedding spaces
+         * @description Return the registry of active embedding spaces (for UI dropdowns and `space_code` selection on /embedding_map and /similarity/*). On Postgres reads from `embedding_spaces`; on Firebird falls back to the static registry in modules.embedding_spaces.
+         */
+        get: operations["list_embedding_spaces_api_embedding_spaces_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -770,6 +1426,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/images/by-uuid/{image_uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get image details by image_uuid
+         * @description Resolves images.image_uuid to the same payload as GET /api/images/{image_id}.
+         */
+        get: operations["get_image_by_uuid_api_images_by_uuid__image_uuid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/images/by-hash/{image_hash}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get image details by content hash
+         * @description Looks up images.image_hash; returns the same payload as GET /api/images/{image_id}.
+         */
+        get: operations["get_image_by_hash_param_api_images_by_hash__image_hash__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/images/{image_id}/exif": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get cached EXIF row for an image
+         * @description Returns columns from image_exif for inspector UIs. Empty object when no cached row exists.
+         */
+        get: operations["get_image_exif_row_api_images__image_id__exif_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/images/{image_id}/xmp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get cached XMP row for an image
+         * @description Returns columns from image_xmp for inspector UIs. Empty object when no cached row exists.
+         */
+        get: operations["get_image_xmp_row_api_images__image_id__xmp_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/images/{image_id}/geocode/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reverse geocoding for an image (coordinates → address)
+         * @description Requires geocoding.enabled and geocoding.user_agent. Uses cached GPS in image_exif or reads from the file.
+         */
+        post: operations["post_geocode_reverse_api_images__image_id__geocode_reverse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/images/{image_id}/geocode/forward": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Forward geocoding (address → coordinates) and update EXIF
+         * @description Resolves the query via the configured provider, updates image_exif, and optionally writes tags with exiftool.
+         */
+        post: operations["post_geocode_forward_api_images__image_id__geocode_forward_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/images/{image_id}": {
         parameters: {
             query?: never;
@@ -782,6 +1558,82 @@ export interface paths {
          * @description Returns full details for a single image including all scores, metadata, and file paths.
          */
         get: operations["get_image_by_id_api_images__image_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete image record from database
+         * @description Removes an image record from the database and cleans up related rows
+         *             (culling picks, resolved paths, stack membership). The image file on disk is
+         *             NOT deleted by default.
+         *
+         *             Pass `delete_file=true` to also delete the source image file and its thumbnail
+         *             from disk. Use with caution — this is irreversible.
+         */
+        delete: operations["delete_image_api_images__image_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update image metadata
+         * @description Updates writable metadata fields for an image: rating, label, title, description,
+         *             and keywords. All fields are optional — only provided fields are updated.
+         *
+         *             When `write_sidecar=true` (default), metadata is also written to the XMP sidecar
+         *             file and embedded tags via the tagging runner, keeping file metadata in sync with
+         *             the database.
+         *
+         *             **IPC contract:** Column names match the `images` table schema; do not rename
+         *             without also updating `electron/db.ts`.
+         */
+        patch: operations["update_image_api_images__image_id__patch"];
+        trace?: never;
+    };
+    "/api/images/{image_id}/neighbors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get image neighbors
+         * @description Find previous and next image IDs for navigation within a sorted/filtered sequence.
+         */
+        get: operations["get_image_neighbors_api_images__image_id__neighbors_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/images/{image_id}/similar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * k-NN visually-similar images for a single image
+         * @description Returns the top-k visually similar images to ``{image_id}`` using
+         *             embedding cosine similarity. RESTful path-parameter form of
+         *             `GET /api/similarity/search?image_id=...`.
+         *
+         *             Note: do **not** confuse with `/images/{image_id}/neighbors`, which
+         *             returns prev/next IDs for sorted-list navigation.
+         *
+         *             **Path parameters:**
+         *             - image_id: ID of the query image.
+         *
+         *             **Query parameters:**
+         *             - limit: Max results (default 20).
+         *             - folder_path: Restrict to a folder.
+         *             - min_similarity: Minimum cosine-similarity threshold (default 0.80).
+         *             - embedding_space: Optional embedding-space code (default
+         *               `mobilenet_v2_imagenet_gap`). Non-default codes require PostgreSQL.
+         */
+        get: operations["get_image_similar_api_images__image_id__similar_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -901,12 +1753,36 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Register images from folder (import without scoring)
-         * @description Scans a folder for image files and adds them to the database without scoring.
-         *             Skips images already in the database (by path or EXIF ImageUniqueID).
-         *             Supports Windows (D:\...) and WSL (/mnt/...) paths.
+         * Register images from folder
+         * @description Scans a folder for image files and registers them in the database.
+         *             Returns a single JSON response when complete.
+         *             Broadcasts real-time progress via WebSocket (event types:
+         *             import_started, import_progress, import_completed).
+         *             For streaming NDJSON progress, use /import/register/stream instead.
          */
         post: operations["import_register_api_import_register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/import/register/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register images from folder with streaming progress
+         * @description Returns a stream of JSON objects (NDJSON) providing real-time progress
+         *             updates during the folder scan and registration process.
+         *             For a single JSON response, use /import/register instead.
+         */
+        post: operations["import_register_stream_api_import_register_stream_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -924,16 +1800,16 @@ export interface paths {
         put?: never;
         /**
          * Submit to processing pipeline
-         * @description Submits an image file or folder for sequential processing through the pipeline.
+         * @description Creates a WorkflowRun for sequential StageRuns on a WorkspaceTarget.
          *
-         *             Operations are executed in order: score -> tag -> cluster.
+         *             StageRuns are executed in order based on stage_codes.
          *             For folder submissions, only the first applicable operation is queued immediately;
          *             subsequent operations should be triggered by the Electron app after the previous
          *             one completes (via status polling or WebSocket events).
          *
-         *             For single-file submissions, the first operation runs immediately.
+         *             For single-file submissions, the first StageRun runs immediately.
          *
-         *             For single files, only 'score' and 'tag' operations are supported.
+         *             For single files, only 'score' and 'tag' StageRuns are supported.
          *             'cluster' requires a folder path.
          */
         post: operations["submit_pipeline_api_pipeline_submit_post"];
@@ -1003,6 +1879,916 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pipeline/phase/backfill-index-meta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Backfill Index/Meta phase status
+         * @description Sets INDEXING=DONE and METADATA=DONE for images that have SCORING=DONE but lack these statuses in the given folder.
+         */
+        post: operations["backfill_index_meta_api_pipeline_phase_backfill_index_meta_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pipeline/run/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause current run */
+        post: operations["pause_pipeline_run_api_pipeline_run_pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pipeline/run/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel current run */
+        post: operations["cancel_pipeline_run_api_pipeline_run_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pipeline/run/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restart run */
+        post: operations["restart_pipeline_run_api_pipeline_run_restart_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pipeline/phase/restart-from": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restart pipeline from stage */
+        post: operations["restart_pipeline_from_stage_api_pipeline_phase_restart_from_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pipeline/step/rerun": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rerun failed idempotent step */
+        post: operations["rerun_pipeline_step_api_pipeline_step_rerun_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/folders/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get hierarchical folder tree
+         * @description Returns the folder list as a nested tree structure (rather than the flat list
+         *             returned by GET /api/folders). Suitable for rendering a sidebar tree widget in
+         *             Electron without the HTML generation done by the Gradio UI.
+         *
+         *             Each node: `{name, path, children: [...]}`. Root nodes are returned as a top-level
+         *             array. Platform path normalisation is applied (WSL↔Windows) the same way the
+         *             Gradio folder tree does it.
+         */
+        get: operations["get_folder_tree_api_folders_tree_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/folders/phase-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get pipeline phase aggregate for a folder
+         * @description Returns per-phase completion counts for all images in the given folder (and its
+         *             sub-folders). This is the JSON equivalent of the Pipeline tab stepper/phase cards.
+         *
+         *             Uses the same cached `phase_agg_json` column as the Gradio UI. Pass
+         *             `force_refresh=true` to bypass the cache and recompute live counts.
+         *
+         *             **Query Parameters:**
+         *             - `path` (required): Absolute folder path.
+         *             - `force_refresh` (optional, default false): Bypass cache.
+         */
+        get: operations["get_folder_phase_status_api_folders_phase_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gallery/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export gallery images to file
+         * @description Exports the image database (or a filtered subset) to JSON, CSV, or XLSX.
+         *             The response is a file download. Filters mirror those available in the Gallery tab.
+         *
+         *             **Formats:** `json` | `csv` | `xlsx`
+         *
+         *             The file is written to `<app_root>/output/export_<timestamp>.<ext>` and served
+         *             as an attachment.
+         */
+        post: operations["export_gallery_api_gallery_export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get application configuration
+         * @description Returns the current `config.json` contents. Sections: `scoring`, `processing`,
+         *             `culling`, `ui`, `tagging`. Used by the Settings tab; Electron should read this
+         *             on startup and display values in its Settings pane.
+         */
+        get: operations["get_config_api_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/config/{section}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save a configuration section
+         * @description Persists a configuration section to `config.json`. Pass the section name as a
+         *             path parameter (e.g. `scoring`, `ui`, `tagging`) and the section dict as the
+         *             JSON body. Equivalent to clicking "Save All Configuration" in the Settings tab
+         *             for a specific section.
+         */
+        post: operations["save_config_api_config__section__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/validation-repair/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview validation-repair issues for scope */
+        post: operations["preview_validation_repair_api_runs_validation_repair_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a new Run */
+        post: operations["submit_run_api_runs_submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Soft-pause a running Run
+         * @description Pause: mark job paused, stop the runner, wait for the batch thread, reconcile in-flight images.
+         */
+        post: operations["pause_run_api_runs__run_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume a paused Run
+         * @description Resume a paused/interrupted run in-place (same run_id).
+         *
+         *     Requeues the same job row. Completed/skipped phases are preserved;
+         *     incomplete phases are reset so the dispatcher picks them up.
+         */
+        post: operations["resume_run_api_runs__run_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a Run */
+        post: operations["cancel_run_api_runs__run_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/force": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Force-start a stuck Run
+         * @description Force-unstick a run that the normal Resume/Retry flow cannot handle.
+         *
+         *     Branches on current status:
+         *     - **running** (ghost — no live runner thread): marks interrupted, then re-enqueues.
+         *     - **queued**: resets the dispatcher's ghost is_running flag if no runner thread
+         *       is actually alive, so the dispatcher can dequeue again.
+         *     - **paused/interrupted**: delegates to the normal resume flow.
+         *     - Terminal states: delegates to the normal retry flow.
+         *
+         *     Requires ``confirm: true`` in the request body.
+         */
+        post: operations["force_run_api_runs__run_id__force_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry a failed/canceled Run */
+        post: operations["retry_run_api_runs__run_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/stages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all stages for a Run */
+        get: operations["get_run_stages_api_runs__run_id__stages_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/stages/{stage_code}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry a specific stage */
+        post: operations["retry_run_stage_api_runs__run_id__stages__stage_code__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/stages/{stage_code}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Skip a specific stage */
+        post: operations["skip_run_stage_api_runs__run_id__stages__stage_code__skip_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/stages/{stage_code}/steps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get steps for a stage
+         * @description Returns step-level telemetry for a stage (e.g. individual ML model runs).
+         */
+        get: operations["get_stage_steps_api_runs__run_id__stages__stage_code__steps_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/stages/{stage_code}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get work items for a stage
+         * @description Returns individual images and their processing status for a stage.
+         */
+        get: operations["get_stage_work_items_api_runs__run_id__stages__stage_code__items_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Run diagnostics (post-run audit + per-phase image_phase_status counts)
+         * @description Returns ``post_run_audit`` from the job queue_payload (when present) and aggregated
+         *             ``image_phase_status`` counts for this run. Use with ``GET .../stages/{stage_code}/items``
+         *             for per-image details.
+         */
+        get: operations["get_run_diagnostics_api_runs__run_id__diagnostics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get job execution report
+         * @description Returns the structured execution report (report_json) for a completed job.
+         */
+        get: operations["get_run_report_api_runs__run_id__report_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/report/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get per-image execution actions
+         * @description Paginated per-image action log with before/after score snapshots. Filter by phase_code and/or action (processed, skipped, failed, unchanged).
+         */
+        get: operations["get_run_report_images_api_runs__run_id__report_images_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scope/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview scope before submitting a Run
+         * @description Returns image count and per-stage phase statuses for the given paths.
+         *     When a folder has no images in the DB (not yet indexed), scans the filesystem to show actual counts.
+         */
+        post: operations["scope_preview_api_scope_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scope/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Folder tree with phase status overlays
+         * @description Enhanced folder tree with per-folder phase status for the Scope Navigator sidebar.
+         */
+        get: operations["scope_tree_api_scope_tree_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the current Run Queue */
+        get: operations["get_run_queue_api_queue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/queue/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reorder a queued Run */
+        post: operations["reorder_queue_api_queue_reorder_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/maintenance/heal/{phase_code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Heal workflow phase: identify false completions, reset, and queue repair runs
+         * @description 1. Identifies images marked 'done' for the phase but missing underlying data. 2. Resets those statuses to 'not_started' (healing false-positives). 3. Identifies folders with images needing the phase. 4. Spawns targeted pipeline runs for those folders (capacity-aware).
+         */
+        post: operations["maintenance_heal_phase_api_maintenance_heal__phase_code__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/maintenance/recalculate-status-from-data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recalculate derivable per-image status and folder aggregates
+         * @description Repairs derivable per-image phase status drift (index/meta, keywords, culling), then rebuilds folder phase aggregates and legacy flags. Supports all-db or selected-folder scope.
+         */
+        post: operations["maintenance_recalculate_status_from_data_api_maintenance_recalculate_status_from_data_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/maintenance/backfill-exif-dates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re-extract EXIF dates for rows with NULL date_time_original
+         * @description Repairs image_exif rows where date_time_original is NULL due to a prior timestamp parsing bug. Re-runs exiftool extraction and updates date columns. Safe to repeat; skips images whose files lack EXIF dates.
+         */
+        post: operations["maintenance_backfill_exif_dates_api_maintenance_backfill_exif_dates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/maintenance/regenerate-thumbnails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Regenerate missing thumbnails (global batch)
+         * @description Regenerates up to 500 thumbnails globally where the DB path does not resolve to a file. May take several minutes on RAW-heavy libraries. Safe to repeat.
+         */
+        post: operations["maintenance_regenerate_thumbnails_api_maintenance_regenerate_thumbnails_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/maintenance/repair-thumbnail-paths": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Repair malformed thumbnail path columns (global batch)
+         * @description Normalizes up to 1000 thumbnail_path / thumbnail_path_win row updates per call. Default (repair_all=false): Postgres scans only likely-bad rows (Docker /app paths, repo-relative fragments, single-column pairs). repair_all=true: full-table scan; normalizes any row where values change (slower). Does not regenerate image pixels. Safe to repeat.
+         */
+        post: operations["maintenance_repair_thumbnail_paths_api_maintenance_repair_thumbnail_paths_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/maintenance/heal-thumbnails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Heal thumbnails (quick path repair + missing regeneration)
+         * @description Runs quick thumbnail path normalization (up to 1000 row updates), then regenerates up to 500 missing thumbnail rasters. Order matters: normalize DB paths first, then decode pixels. Does not perform deep/full-table path repair; use POST /maintenance/repair-thumbnail-paths with repair_all=true when paths still look wrong after this.
+         */
+        post: operations["maintenance_heal_thumbnails_api_maintenance_heal_thumbnails_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ipc/bridge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Electron IPC -> FastAPI bridge
+         * @description Bridges Electron-style IPC messages into FastAPI handlers so the desktop
+         *             main process can forward a single contract to Python.
+         *
+         *             Supported channels:
+         *             - `pipeline:submit` -> POST /api/pipeline/submit
+         *             - `pipeline:phase:skip` -> POST /api/pipeline/phase/skip
+         *             - `pipeline:phase:retry` -> POST /api/pipeline/phase/retry
+         *             - `tasks:active` -> GET /api/tasks/active
+         *             - `jobs:queue` -> GET /api/jobs/queue
+         *             - `folders:tree` -> GET /api/folders/tree
+         *             - `folders:phase-status` -> GET /api/folders/phase-status
+         */
+        post: operations["ipc_bridge_api_ipc_bridge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/maintenance/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a background maintenance run
+         * @description Unified entry point for background data integrity tasks (heal_thumbnails, backfill_exif, prune_missing, reconcile, backfill_index_meta).
+         */
+        post: operations["maintenance_start_api_maintenance_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get comprehensive system diagnostics
+         * @description Returns detailed diagnostic information about the system, database, models, and runners.
+         *
+         *             **Note:** Some fields may be omitted if dependencies (like psutil) are not installed.
+         */
+        get: operations["get_diagnostics_endpoint_api_diagnostics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/api/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List images (public)
+         * @description Read-only paginated image rows from the database; same filters as /api/images. page_size is capped at 200.
+         */
+        get: operations["public_list_images_public_api_images_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/api/images/by-uuid/{image_uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Image by UUID (public)
+         * @description Same JSON as GET /api/images/by-uuid/{image_uuid}.
+         */
+        get: operations["public_get_image_by_uuid_public_api_images_by_uuid__image_uuid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/api/images/by-hash/{image_hash}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Image by content hash (public)
+         * @description Same JSON as GET /api/images/by-hash/{image_hash}. Optional hash_version disambiguates.
+         */
+        get: operations["public_get_image_by_hash_public_api_images_by_hash__image_hash__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/api/images/{image_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Image by numeric id (public)
+         * @description Same JSON as GET /api/images/{image_id}.
+         */
+        get: operations["public_get_image_by_id_public_api_images__image_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/api/images/{image_id}/neighbors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Image neighbors (public)
+         * @description Find previous and next image IDs for navigation within a sorted/filtered sequence.
+         */
+        get: operations["public_get_image_neighbors_public_api_images__image_id__neighbors_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/source-image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get full-resolution source image or RAW preview
+         * @description Serve source image content for fullscreen and zoom workflows.
+         */
+        get: operations["source_image_endpoint_source_image_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1059,15 +2845,116 @@ export interface components {
             } | null;
         };
         /**
+         * BirdSpeciesStartRequest
+         * @description Request model for starting a bird species classification job.
+         *
+         *     Only images that already have the 'birds' keyword are processed — all others are
+         *     automatically skipped. Top predicted species are stored as 'species:Common Name'
+         *     keywords using BioCLIP 2 (zero-shot, MIT license).
+         *
+         *     Example:
+         *         {
+         *             "input_path": "D:/Photos/2024",
+         *             "threshold": 0.1,
+         *             "top_k": 3,
+         *             "overwrite": false
+         *         }
+         * @example {
+         *       "input_path": "D:/Photos/2024",
+         *       "overwrite": false,
+         *       "threshold": 0.1,
+         *       "top_k": 3
+         *     }
+         */
+        BirdSpeciesStartRequest: {
+            /**
+             * Image Ids
+             * @description Specific image IDs to process.
+             * @example [
+             *       101,
+             *       102
+             *     ]
+             */
+            image_ids?: number[] | null;
+            /**
+             * Image Paths
+             * @description Specific image file paths to process.
+             * @example [
+             *       "D:/Photos/2024/img001.jpg"
+             *     ]
+             */
+            image_paths?: string[] | null;
+            /**
+             * Folder Ids
+             * @description Folder IDs to process.
+             * @example [
+             *       12
+             *     ]
+             */
+            folder_ids?: number[] | null;
+            /**
+             * Folder Paths
+             * @description Folder paths to process.
+             * @example [
+             *       "D:/Photos/2024"
+             *     ]
+             */
+            folder_paths?: string[] | null;
+            /**
+             * Recursive
+             * @description If True, include subfolders when folder selectors are used.
+             * @default true
+             * @example true
+             */
+            recursive: boolean;
+            /**
+             * Input Path
+             * @description Directory path containing images to classify.
+             * @example D:/Photos/2024
+             */
+            input_path?: string | null;
+            /**
+             * Candidate Species
+             * @description List of common species names to classify against. If None, uses the bundled North American species list.
+             * @example [
+             *       "American Robin",
+             *       "Northern Cardinal",
+             *       "Mallard"
+             *     ]
+             */
+            candidate_species?: string[] | null;
+            /**
+             * Threshold
+             * @description Minimum softmax probability to store a species prediction.
+             * @default 0.1
+             * @example 0.1
+             */
+            threshold: number;
+            /**
+             * Top K
+             * @description Maximum number of species to store per image.
+             * @default 3
+             * @example 3
+             */
+            top_k: number;
+            /**
+             * Overwrite
+             * @description If True, re-classify images that already have species: keywords.
+             * @default false
+             * @example false
+             */
+            overwrite: boolean;
+        };
+        /**
          * ClusteringStartRequest
          * @description Request model for starting a clustering job.
          *
-         *     Clusters images in a folder based on visual similarity and temporal proximity.
+         *     Clusters images in a folder using (1) temporal batching by capture time gaps, then (2) visual similarity *within* each batch.
          *
          *     Attributes:
          *         input_path: Directory path containing images to cluster. If empty, clusters all unprocessed folders.
-         *         threshold: Distance threshold for clustering (lower = stricter grouping).
-         *         time_gap: Time gap in seconds for burst grouping.
+         *         threshold: Cosine distance limit for visual similarity (not a shot count).
+         *         time_gap: Seconds between consecutive capture times; above this, a new temporal batch starts.
          *         force_rescan: If True, re-cluster even if already processed.
          */
         ClusteringStartRequest: {
@@ -1119,13 +3006,13 @@ export interface components {
             input_path?: string | null;
             /**
              * Threshold
-             * @description Distance threshold for clustering (lower = stricter).
+             * @description Cosine distance cutoff for visual similarity clustering *within* each time batch (lower = stricter). This is not an image count.
              * @example 0.15
              */
             threshold?: number | null;
             /**
              * Time Gap
-             * @description Time gap in seconds for burst grouping.
+             * @description Seconds: images are sorted by capture time; start a new batch when the gap between two consecutive shots exceeds this value. Only shots in the same batch are compared visually (e.g. 3 for tight bursts).
              * @example 5
              */
             time_gap?: number | null;
@@ -1136,6 +3023,147 @@ export interface components {
              * @example false
              */
             force_rescan: boolean;
+        };
+        /**
+         * DbQueryRequest
+         * @description Body for POST /api/db/query (Electron ApiConnector).
+         */
+        DbQueryRequest: {
+            /**
+             * Sql
+             * @description SELECT/WITH (read) or INSERT/UPDATE/DELETE; Firebird-style ? placeholders
+             */
+            sql: string;
+            /**
+             * Params
+             * @description Bound values for each ? in order
+             */
+            params?: unknown[];
+        };
+        /** DbQueryResponse */
+        DbQueryResponse: {
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            }[];
+        };
+        /**
+         * DiagnosticsResponse
+         * @description Response model for diagnostics check endpoint.
+         */
+        DiagnosticsResponse: {
+            /**
+             * Timestamp
+             * @description ISO 8601 timestamp.
+             */
+            timestamp: string;
+            /**
+             * System
+             * @description System-level diagnostics (OS, Python, CPU, Memory).
+             */
+            system: {
+                [key: string]: unknown;
+            };
+            /**
+             * Database
+             * @description Database diagnostics (Path, Reachable, Size).
+             */
+            database: {
+                [key: string]: unknown;
+            };
+            /**
+             * Models
+             * @description Model and GPU diagnostics.
+             */
+            models: {
+                [key: string]: unknown;
+            };
+            /**
+             * Filesystem
+             * @description FileSystem diagnostics.
+             */
+            filesystem: {
+                [key: string]: unknown;
+            };
+            /**
+             * Config
+             * @description Masked configuration summary.
+             */
+            config: {
+                [key: string]: unknown;
+            };
+            /**
+             * Runners
+             * @description Status of all runners.
+             */
+            runners: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * ExportRequest
+         * @description Request body for POST /api/gallery/export.
+         */
+        ExportRequest: {
+            /**
+             * Format
+             * @description Export format: json, csv, or xlsx.
+             * @default json
+             */
+            format: string;
+            /**
+             * Columns
+             * @description Subset of columns to include. Omit for all columns.
+             */
+            columns?: string[] | null;
+            /**
+             * Folder Path
+             * @description Filter to a specific folder path.
+             */
+            folder_path?: string | null;
+            /**
+             * Rating
+             * @description Rating values to include (e.g. [3,4,5]).
+             */
+            rating?: number[] | null;
+            /**
+             * Label
+             * @description Label values to include (e.g. ['Green','Blue']).
+             */
+            label?: string[] | null;
+            /**
+             * Keyword
+             * @description Keyword substring to filter on.
+             */
+            keyword?: string | null;
+            /**
+             * Min Score General
+             * @description Minimum general score.
+             * @default 0
+             */
+            min_score_general: number;
+            /**
+             * Min Score Aesthetic
+             * @description Minimum aesthetic score.
+             * @default 0
+             */
+            min_score_aesthetic: number;
+            /**
+             * Min Score Technical
+             * @description Minimum technical score.
+             * @default 0
+             */
+            min_score_technical: number;
+            /**
+             * Date From
+             * @description Start date filter YYYY-MM-DD.
+             */
+            date_from?: string | null;
+            /**
+             * Date To
+             * @description End date filter YYYY-MM-DD.
+             */
+            date_to?: string | null;
         };
         /**
          * FindDuplicatesRequest
@@ -1161,10 +3189,105 @@ export interface components {
              */
             limit?: number | null;
         };
+        /** ForceRunRequest */
+        ForceRunRequest: {
+            /**
+             * Confirm
+             * @description Must be true to acknowledge this is a destructive operation
+             */
+            confirm: boolean;
+        };
+        /**
+         * GeocodeForwardRequest
+         * @description Forward geocoding: address string → coordinates; updates image_exif and optional file tags.
+         */
+        GeocodeForwardRequest: {
+            /**
+             * Query
+             * @description Address or place name.
+             */
+            query: string;
+            /**
+             * Dry Run
+             * @description Return coordinates without writing to DB or files.
+             * @default false
+             */
+            dry_run: boolean;
+            /**
+             * Write Embedded
+             * @description If true, write GPS and location text to embedded metadata via exiftool.
+             * @default true
+             */
+            write_embedded: boolean;
+            /**
+             * Write Sidecar
+             * @description If true and a .xmp sidecar exists, write the same tags to it.
+             * @default true
+             */
+            write_sidecar: boolean;
+        };
+        /**
+         * GeocodeReverseRequest
+         * @description Reverse geocoding: GPS in EXIF → human-readable location (Nominatim by default).
+         */
+        GeocodeReverseRequest: {
+            /**
+             * Force
+             * @description Re-resolve even if location_resolved is already set.
+             * @default false
+             */
+            force: boolean;
+            /**
+             * Dry Run
+             * @description Return provider result without writing to DB or files.
+             * @default false
+             */
+            dry_run: boolean;
+            /**
+             * Write Embedded
+             * @description If true, also write City/State/Country/GPS to embedded metadata via exiftool.
+             * @default false
+             */
+            write_embedded: boolean;
+            /**
+             * Write Sidecar
+             * @description If true and a .xmp sidecar exists, also write the same tags to it.
+             * @default false
+             */
+            write_sidecar: boolean;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * HealPhaseRequest
+         * @description Request parameters for workflow healing per phase.
+         */
+        HealPhaseRequest: {
+            /**
+             * Root Path
+             * @description Scope restriction. Accepts a folder path, a file path (parent folder is used), or a /ui/images/<id> URL (resolved to the image's folder).
+             */
+            root_path?: string | null;
+            /**
+             * Dry Run
+             * @default false
+             */
+            dry_run: boolean;
+            /**
+             * Budget
+             * @description Schedules at most max(0, budget - active_running_or_queued_jobs) folder runs.
+             * @default 10
+             */
+            budget: number;
+            /**
+             * Run Mode
+             * @description Run mode for spawned jobs (e.g. validate_and_repair, process_unprocessed_or_empty).
+             * @default validate_and_repair
+             */
+            run_mode: string;
         };
         /**
          * HealthResponse
@@ -1217,6 +3340,43 @@ export interface components {
             clustering_available: boolean;
         };
         /**
+         * ImageUpdateRequest
+         * @description Request body for PATCH /api/images/{image_id}.
+         */
+        ImageUpdateRequest: {
+            /**
+             * Rating
+             * @description Star rating 0–5 (0 = unrated).
+             */
+            rating?: number | null;
+            /**
+             * Label
+             * @description Color label: Red, Yellow, Green, Blue, Purple, or empty string to clear.
+             */
+            label?: string | null;
+            /**
+             * Title
+             * @description Image title.
+             */
+            title?: string | null;
+            /**
+             * Description
+             * @description Image description.
+             */
+            description?: string | null;
+            /**
+             * Keywords
+             * @description Comma-separated keywords string.
+             */
+            keywords?: string | null;
+            /**
+             * Write Sidecar
+             * @description If true, also write metadata to XMP sidecar / embedded tags via tagging runner.
+             * @default true
+             */
+            write_sidecar: boolean;
+        };
+        /**
          * ImportRegisterRequest
          * @description Request model for registering images from a folder (import without scoring).
          *
@@ -1233,6 +3393,110 @@ export interface components {
              * @example D:/Photos/2024
              */
             folder_path: string;
+        };
+        /**
+         * IpcBridgeRequest
+         * @description Generic IPC-style message wrapper for Electron -> FastAPI bridging.
+         */
+        IpcBridgeRequest: {
+            /**
+             * Channel
+             * @description IPC channel name (e.g. 'pipeline:submit', 'tasks:active').
+             * @example pipeline:submit
+             */
+            channel: string;
+            /**
+             * Payload
+             * @description Channel-specific payload; mirrors the endpoint body/query shape.
+             */
+            payload?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * IpcBridgeResponse
+         * @description Response envelope for IPC bridge requests.
+         */
+        IpcBridgeResponse: {
+            /**
+             * Channel
+             * @description Echoed IPC channel
+             */
+            channel: string;
+            /**
+             * Ok
+             * @description True when handler succeeded
+             */
+            ok: boolean;
+            /**
+             * Data
+             * @description Handler result payload
+             */
+            data?: unknown | null;
+        };
+        /**
+         * LifecycleControlRequest
+         * @description Generic lifecycle control request for workflow/stage/step runs.
+         */
+        LifecycleControlRequest: {
+            /**
+             * Reason
+             * @description Optional reason for pause/cancel/restart request.
+             */
+            reason?: string | null;
+        };
+        /**
+         * MaintenanceStartRequest
+         * @description Request model for starting a background maintenance run.
+         */
+        MaintenanceStartRequest: {
+            /**
+             * Action
+             * @description Maintenance action to perform (heal_thumbnails, backfill_exif, prune_missing, reconcile, backfill_index_meta).
+             */
+            action: string;
+            /**
+             * Input Path
+             * @description Optional folder path to narrow the scope.
+             */
+            input_path?: string | null;
+            /**
+             * Limit
+             * @description Maximum items to process in this run.
+             */
+            limit?: number | null;
+            /**
+             * Dry Run
+             * @description Whether to simulate changes.
+             * @default false
+             */
+            dry_run: boolean;
+            /**
+             * Job Name
+             * @description Optional UI display name for this run (e.g. Tools tab label); stored as jobs.input_path.
+             */
+            job_name?: string | null;
+            /**
+             * Description
+             * @description Human-readable reason for this run (jobs.description). Server fills a default if omitted.
+             */
+            description?: string | null;
+            /**
+             * Trigger
+             * @description Audit: who queued the job (e.g. runs_tools_tab, api). Stored in queue_payload.trigger.
+             * @default api
+             */
+            trigger: string;
+            /**
+             * Tool Id
+             * @description Optional stable id for the UI control (queue_payload.tool_id).
+             */
+            tool_id?: string | null;
+            /**
+             * Ui Selected Scope Path
+             * @description Scope navigator selection when relevant (queue_payload.ui_selected_scope_path).
+             */
+            ui_selected_scope_path?: string | null;
         };
         /**
          * NeighborInfo
@@ -1348,6 +3612,17 @@ export interface components {
             stored_executor_version?: string | null;
         };
         /**
+         * PipelineBackfillRequest
+         * @description Request model for backfilling Index/Meta phase status on a folder.
+         */
+        PipelineBackfillRequest: {
+            /**
+             * Input Path
+             * @description Folder path to backfill INDEXING/METADATA statuses for.
+             */
+            input_path: string;
+        };
+        /**
          * PipelinePhaseControlRequest
          * @description Request model for skip/retry controls on a pipeline phase.
          */
@@ -1374,26 +3649,109 @@ export interface components {
             actor?: string | null;
         };
         /**
-         * PipelineSubmitRequest
-         * @description Request model for submitting images/folders to the processing pipeline.
-         *
-         *     Chains requested operations sequentially (score -> tag -> cluster).
-         *
-         *     Attributes:
-         *         input_path: File or directory path to process.
-         *         operations: List of operations to run in order. Valid: "score", "tag", "cluster".
-         *         options: Optional per-operation options.
+         * PipelineRestartFromStageRequest
+         * @description Request model for restarting a pipeline from a specific stage.
          */
-        PipelineSubmitRequest: {
+        PipelineRestartFromStageRequest: {
             /**
              * Input Path
-             * @description File or directory path to process.
-             * @example D:/Photos/2024
+             * @description Folder path.
              */
             input_path: string;
             /**
-             * Operations
-             * @description Operations to run in order. Valid values: 'indexing', 'metadata', 'score', 'tag', 'cluster'.
+             * Phase Code
+             * @description Stage code to restart from (scoring|culling|keywords).
+             */
+            phase_code: string;
+        };
+        /**
+         * PipelineRunControlRequest
+         * @description Request model for per-run pipeline controls.
+         */
+        PipelineRunControlRequest: {
+            /**
+             * Input Path
+             * @description Folder path used for restart/cancel scoping.
+             */
+            input_path?: string | null;
+        };
+        /**
+         * PipelineStepRerunRequest
+         * @description Request model for rerunning a failed idempotent step.
+         */
+        PipelineStepRerunRequest: {
+            /**
+             * Image Id
+             * @description Image ID for the step rerun target.
+             */
+            image_id: number;
+            /**
+             * Phase Code
+             * @description Step phase code.
+             */
+            phase_code: string;
+        };
+        /**
+         * PipelineSubmitRequest
+         * @description Request model for submitting images/folders to the processing pipeline.
+         *
+         *     Chains requested StageRuns sequentially (indexing/metadata/score/tag/cluster).
+         *
+         *     Attributes:
+         *         workspace_target: File or directory path to process.
+         *         stage_codes: Ordered stage run codes to execute (indexing|metadata|score|tag|cluster).
+         *         workflow_template: Logical template name for the run (e.g., full_ingest, metadata_only, re_tag).
+         */
+        PipelineSubmitRequest: {
+            /**
+             * Image Ids
+             * @description Specific image IDs to process.
+             * @example [
+             *       101,
+             *       102
+             *     ]
+             */
+            image_ids?: number[] | null;
+            /**
+             * Image Paths
+             * @description Specific image file paths to process.
+             * @example [
+             *       "D:/Photos/2024/img001.jpg"
+             *     ]
+             */
+            image_paths?: string[] | null;
+            /**
+             * Folder Ids
+             * @description Folder IDs to process.
+             * @example [
+             *       12
+             *     ]
+             */
+            folder_ids?: number[] | null;
+            /**
+             * Folder Paths
+             * @description Folder paths to process.
+             * @example [
+             *       "D:/Photos/2024"
+             *     ]
+             */
+            folder_paths?: string[] | null;
+            /**
+             * Recursive
+             * @description If True, include subfolders when folder selectors are used.
+             * @default true
+             * @example true
+             */
+            recursive: boolean;
+            /**
+             * Workspace Target
+             * @description WorkspaceTarget path to process (single file or folder). Optional when using selector fields.
+             * @example D:/Photos/2024
+             */
+            workspace_target?: string | null;
+            /**
+             * Stage Codes
+             * @description Ordered StageRun codes. Valid values: 'indexing', 'metadata', 'score', 'tag', 'cluster'.
              * @default [
              *       "score",
              *       "tag"
@@ -1404,7 +3762,14 @@ export interface components {
              *       "score"
              *     ]
              */
-            operations: string[];
+            stage_codes: string[];
+            /**
+             * Workflow Template
+             * @description WorkflowTemplate identifier that produced this stage sequence.
+             * @default custom
+             * @example full_ingest
+             */
+            workflow_template: string;
             /**
              * Skip Existing
              * @description Skip images that already have results for each operation.
@@ -1414,7 +3779,7 @@ export interface components {
             skip_existing: boolean;
             /**
              * Custom Keywords
-             * @description Custom keywords for tagging (if 'tag' is in operations).
+             * @description Custom keywords for tagging (if 'tag' is in stage_codes).
              */
             custom_keywords?: string[] | null;
             /**
@@ -1426,12 +3791,12 @@ export interface components {
             generate_captions: boolean;
             /**
              * Clustering Threshold
-             * @description Distance threshold for clustering (if 'cluster' is in operations).
+             * @description Cosine distance for visual clustering within each time batch (if 'cluster' is in stage_codes). Not an image count.
              */
             clustering_threshold?: number | null;
             /**
              * Clustering Time Gap
-             * @description Time gap in seconds for clustering burst grouping (if 'cluster' is in operations).
+             * @description Seconds: max capture-time gap between consecutive shots in sorted order while keeping them in one batch; larger gaps start a new batch (if 'cluster' is in stage_codes).
              */
             clustering_time_gap?: number | null;
             /**
@@ -1440,6 +3805,78 @@ export interface components {
              * @default false
              */
             clustering_force_rescan: boolean;
+            /**
+             * Exclude Image Paths
+             * @description Optional image paths to exclude from resolved selector targets.
+             */
+            exclude_image_paths?: string[] | null;
+        };
+        /** QueueReorderRequest */
+        QueueReorderRequest: {
+            /** Run Id */
+            run_id: number;
+            /** New Position */
+            new_position: number;
+        };
+        /** RunSubmitRequest */
+        RunSubmitRequest: {
+            /**
+             * Scope Type
+             * @default folder_recursive
+             */
+            scope_type: string;
+            /** Scope Paths */
+            scope_paths: string[];
+            /** Stages */
+            stages?: string[] | null;
+            /**
+             * Run Mode
+             * @default process_unprocessed_or_empty
+             * @enum {string}
+             */
+            run_mode: "process_all_overwrite" | "process_unprocessed_or_empty" | "validate_and_repair";
+            /** Skip Done */
+            skip_done?: boolean | null;
+            /** Force Rerun */
+            force_rerun?: boolean | null;
+            /** Fix Incomplete Stages */
+            fix_incomplete_stages?: boolean | null;
+            /**
+             * Validation Repair Mode
+             * @default false
+             */
+            validation_repair_mode: boolean;
+            /**
+             * Validation Repair Dry Run
+             * @default false
+             */
+            validation_repair_dry_run: boolean;
+            /**
+             * Description
+             * @description Human-readable reason/scope for this run (stored on jobs.description).
+             */
+            description?: string | null;
+            /**
+             * Post Run Audit
+             * @description When true, force post-completion data-quality audit (see processing.post_run_data_quality_audit).
+             */
+            post_run_audit?: boolean | null;
+            /**
+             * Generate Captions
+             * @description Generate BLIP captions for title/description during the keywords phase.
+             * @default true
+             */
+            generate_captions: boolean;
+        };
+        /** ScopePreviewRequest */
+        ScopePreviewRequest: {
+            /** Paths */
+            paths: string[];
+            /**
+             * Recursive
+             * @default true
+             */
+            recursive: boolean;
         };
         /**
          * ScoringStartRequest
@@ -1699,6 +4136,11 @@ export interface components {
              * @example 10
              */
             max_keywords?: number | null;
+            /**
+             * Focus Image Id
+             * @description When set with dry_run=True, include propagation preview for this image even if it already has keywords. Suggested keywords exclude ones already on the image.
+             */
+            focus_image_id?: number | null;
         };
         /**
          * TaggingSingleRequest
@@ -1859,6 +4301,13 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** ValidationRepairPreviewRequest */
+        ValidationRepairPreviewRequest: {
+            /** Scope Paths */
+            scope_paths: string[];
+            /** Stages */
+            stages?: string[] | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -1868,6 +4317,54 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    shutdown_api_api_shutdown_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_api_schema_api_schema_get: {
         parameters: {
             query?: never;
@@ -2471,6 +4968,163 @@ export interface operations {
             };
         };
     };
+    start_bird_species_api_bird_species_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BirdSpeciesStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    stop_bird_species_api_bird_species_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_bird_species_status_api_bird_species_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_all_status_api_status_get: {
         parameters: {
             query?: never;
@@ -2537,6 +5191,163 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_db_query_api_db_query_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DbQueryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DbQueryResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    debug_requests_api_debug_requests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    debug_loop_lag_api_debug_loop_lag_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Bad Request - Invalid input parameters */
@@ -2642,6 +5453,68 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description JPEG preview bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "image/jpeg": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    generate_thumbnail_endpoint_api_images_generate_thumbnail_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SingleImageRequest"];
+            };
+        };
+        responses: {
             /** @description Successful Response */
             200: {
                 headers: {
@@ -2690,7 +5563,7 @@ export interface operations {
             };
         };
     };
-    get_recent_jobs_api_jobs_recent_get: {
+    get_tasks_active_api_tasks_active_get: {
         parameters: {
             query?: {
                 limit?: number;
@@ -2709,7 +5582,71 @@ export interface operations {
                 content: {
                     "application/json": {
                         [key: string]: unknown;
-                    }[];
+                    };
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_recent_jobs_api_jobs_recent_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description Terminal jobs only; JSON object with runs + total for pagination. */
+                history?: boolean;
+                /** @description Comma-separated status filter (e.g. 'running,paused,queued'). */
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Bad Request - Invalid input parameters */
@@ -2768,9 +5705,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": unknown;
                 };
             };
             /** @description Bad Request - Invalid input parameters */
@@ -2829,9 +5764,132 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_incidents_api_incidents_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                folder_id?: number | null;
+                job_id?: number | null;
+                phase_code?: string | null;
+                kind?: string | null;
+                /** @description ISO-8601 datetime; return rows with created_at >= since */
+                since?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_incident_api_incidents__incident_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Bad Request - Invalid input parameters */
@@ -2932,7 +5990,759 @@ export interface operations {
             };
         };
     };
-    get_similar_images_api_similar_get: {
+    pause_workflow_run_api_workflow_runs__job_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleControlRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resume_workflow_run_api_workflow_runs__job_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleControlRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restart_workflow_run_api_workflow_runs__job_id__restart_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleControlRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    pause_stage_run_api_stage_runs__job_id___phase_code__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+                phase_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleControlRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resume_stage_run_api_stage_runs__job_id___phase_code__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+                phase_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleControlRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restart_stage_run_api_stage_runs__job_id___phase_code__restart_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+                phase_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleControlRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    pause_step_run_api_step_runs__image_id___phase_code__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: number;
+                phase_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleControlRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resume_step_run_api_step_runs__image_id___phase_code__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: number;
+                phase_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleControlRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restart_step_run_api_step_runs__image_id___phase_code__restart_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: number;
+                phase_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleControlRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    pause_job_api_jobs__job_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restart_job_api_jobs__job_id__restart_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    bump_priority_api_jobs__job_id__priority_post: {
+        parameters: {
+            query?: {
+                delta?: number;
+            };
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_similar_images_legacy_api_similar_get: {
         parameters: {
             query: {
                 /** @description ID of the query image */
@@ -2998,7 +6808,141 @@ export interface operations {
             };
         };
     };
-    find_duplicates_api_duplicates_find_post: {
+    get_similar_images_similarity_namespace_api_similarity_search_get: {
+        parameters: {
+            query: {
+                /** @description ID of the query image */
+                image_id: number;
+                /** @description Maximum number of results */
+                limit?: number;
+                /** @description Scope search to folder */
+                folder_path?: string | null;
+                /** @description Minimum similarity threshold */
+                min_similarity?: number | null;
+                /** @description Embedding-space code (default: mobilenet_v2_imagenet_gap) */
+                embedding_space?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    search_images_by_text_api_similarity_text_search_get: {
+        parameters: {
+            query: {
+                /** @description Free-text search query */
+                query: string;
+                /** @description Maximum number of results */
+                limit?: number;
+                /** @description Scope search to folder */
+                folder_path?: string | null;
+                /** @description Minimum similarity threshold */
+                min_similarity?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    find_duplicates_legacy_api_duplicates_find_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3059,7 +7003,200 @@ export interface operations {
             };
         };
     };
-    get_outliers_api_outliers_get: {
+    get_duplicates_similarity_namespace_api_similarity_duplicates_get: {
+        parameters: {
+            query?: {
+                /** @description Similarity threshold. Uses config default when omitted. */
+                threshold?: number | null;
+                /** @description Restrict duplicate detection to a folder */
+                folder_path?: string | null;
+                /** @description Maximum duplicate pairs to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    post_duplicates_similarity_namespace_api_similarity_duplicates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FindDuplicatesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_similar_images_alias_api_similarity_similar_get: {
+        parameters: {
+            query: {
+                /** @description ID of the query image */
+                image_id: number;
+                /** @description Maximum number of results */
+                limit?: number;
+                /** @description Scope search to folder */
+                folder_path?: string | null;
+                /** @description Minimum similarity threshold */
+                min_similarity?: number | null;
+                /** @description Embedding-space code (default: mobilenet_v2_imagenet_gap) */
+                embedding_space?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_outliers_legacy_api_outliers_get: {
         parameters: {
             query: {
                 /** @description Folder path to analyze */
@@ -3108,6 +7245,194 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_outliers_similarity_namespace_api_similarity_outliers_get: {
+        parameters: {
+            query: {
+                /** @description Folder path to analyze */
+                folder_path: string;
+                /** @description Outlier z-score threshold */
+                z_threshold?: number | null;
+                /** @description Top-K neighbors used for local density */
+                k?: number | null;
+                /** @description Maximum outlier results to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_embedding_map_api_embedding_map_get: {
+        parameters: {
+            query?: {
+                /** @description Scope to folder path */
+                folder_path?: string | null;
+                /** @description Projection method: umap or tsne */
+                method?: string;
+                /** @description Force recomputation, ignoring cache */
+                refresh?: boolean;
+                /** @description Max images to project */
+                sample_limit?: number | null;
+                /** @description UMAP/t-SNE neighbourhood size */
+                n_neighbors?: number;
+                /** @description UMAP min_dist parameter */
+                min_dist?: number;
+                /** @description Embedding-space code (default: mobilenet_v2_imagenet_gap) */
+                space_code?: string | null;
+                /** @description PCA target dim before UMAP/t-SNE; omit=auto, 0=off */
+                pca_dim?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_embedding_spaces_api_embedding_spaces_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Internal Server Error */
             500: {
@@ -3364,9 +7689,642 @@ export interface operations {
             };
         };
     };
+    get_image_by_uuid_api_images_by_uuid__image_uuid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_image_by_hash_param_api_images_by_hash__image_hash__get: {
+        parameters: {
+            query?: {
+                /** @description images.hash_version (1=full file, 2=preview) */
+                hash_version?: number | null;
+            };
+            header?: never;
+            path: {
+                image_hash: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_image_exif_row_api_images__image_id__exif_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_image_xmp_row_api_images__image_id__xmp_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    post_geocode_reverse_api_images__image_id__geocode_reverse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["GeocodeReverseRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    post_geocode_forward_api_images__image_id__geocode_forward_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GeocodeForwardRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_image_by_id_api_images__image_id__get: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                image_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_image_api_images__image_id__delete: {
+        parameters: {
+            query?: {
+                /** @description Also delete image file from disk. */
+                delete_file?: boolean;
+            };
+            header?: never;
+            path: {
+                image_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_image_api_images__image_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImageUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_image_neighbors_api_images__image_id__neighbors_get: {
+        parameters: {
+            query?: {
+                /** @description Sort field */
+                sort_by?: string;
+                /** @description Sort order: asc or desc */
+                order?: string;
+                /** @description Comma-separated ratings */
+                rating?: string | null;
+                /** @description Comma-separated labels */
+                label?: string | null;
+                /** @description Keyword filter */
+                keyword?: string | null;
+                min_score_general?: number;
+                min_score_aesthetic?: number;
+                min_score_technical?: number;
+                folder_path?: string | null;
+                stack_id?: number | null;
+            };
+            header?: never;
+            path: {
+                image_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_image_similar_api_images__image_id__similar_get: {
+        parameters: {
+            query?: {
+                /** @description Max results */
+                limit?: number;
+                /** @description Scope search to folder */
+                folder_path?: string | null;
+                /** @description Minimum similarity threshold */
+                min_similarity?: number | null;
+                /** @description Embedding-space code (default: mobilenet_v2_imagenet_gap) */
+                embedding_space?: string | null;
+            };
             header?: never;
             path: {
                 image_id: number;
@@ -3709,7 +8667,68 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse"];
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    import_register_stream_api_import_register_stream_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportRegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Bad Request - Invalid input parameters */
@@ -3993,6 +9012,2666 @@ export interface operations {
             };
             /** @description Service Unavailable - Runner not initialized */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    backfill_index_meta_api_pipeline_phase_backfill_index_meta_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PipelineBackfillRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    pause_pipeline_run_api_pipeline_run_pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PipelineRunControlRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancel_pipeline_run_api_pipeline_run_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PipelineRunControlRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restart_pipeline_run_api_pipeline_run_restart_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PipelineRunControlRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restart_pipeline_from_stage_api_pipeline_phase_restart_from_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PipelineRestartFromStageRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rerun_pipeline_step_api_pipeline_step_rerun_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PipelineStepRerunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_folder_tree_api_folders_tree_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_folder_phase_status_api_folders_phase_status_get: {
+        parameters: {
+            query: {
+                /** @description Absolute folder path to query. */
+                path: string;
+                /** @description Bypass cache and recompute live counts. */
+                force_refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    export_gallery_api_gallery_export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_config_api_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    save_config_api_config__section__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                section: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    preview_validation_repair_api_runs_validation_repair_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidationRepairPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    submit_run_api_runs_submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunSubmitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    pause_run_api_runs__run_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resume_run_api_runs__run_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancel_run_api_runs__run_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    force_run_api_runs__run_id__force_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForceRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    retry_run_api_runs__run_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_run_stages_api_runs__run_id__stages_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    retry_run_stage_api_runs__run_id__stages__stage_code__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+                stage_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    skip_run_stage_api_runs__run_id__stages__stage_code__skip_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+                stage_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_stage_steps_api_runs__run_id__stages__stage_code__steps_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+                stage_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_stage_work_items_api_runs__run_id__stages__stage_code__items_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                run_id: number;
+                stage_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_run_diagnostics_api_runs__run_id__diagnostics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_run_report_api_runs__run_id__report_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_run_report_images_api_runs__run_id__report_images_get: {
+        parameters: {
+            query?: {
+                phase_code?: string | null;
+                action?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    scope_preview_api_scope_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScopePreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    scope_tree_api_scope_tree_get: {
+        parameters: {
+            query?: {
+                include_phase_status?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_run_queue_api_queue_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reorder_queue_api_queue_reorder_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QueueReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    maintenance_heal_phase_api_maintenance_heal__phase_code__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                phase_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HealPhaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    maintenance_recalculate_status_from_data_api_maintenance_recalculate_status_from_data_post: {
+        parameters: {
+            query?: {
+                scope?: string;
+                /** @description Required when scope=selected_folder. Uses folder + descendants. */
+                scope_path?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    maintenance_backfill_exif_dates_api_maintenance_backfill_exif_dates_post: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    maintenance_regenerate_thumbnails_api_maintenance_regenerate_thumbnails_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    maintenance_repair_thumbnail_paths_api_maintenance_repair_thumbnail_paths_post: {
+        parameters: {
+            query?: {
+                /** @description Full scan: normalize every row where normalize_stored_thumbnail_pair changes values */
+                repair_all?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    maintenance_heal_thumbnails_api_maintenance_heal_thumbnails_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ipc_bridge_api_ipc_bridge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IpcBridgeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IpcBridgeResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    maintenance_start_api_maintenance_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaintenanceStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_diagnostics_endpoint_api_diagnostics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiagnosticsResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    public_list_images_public_api_images_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                /** @description score, date, name, rating, score_general, score_aesthetic, score_technical */
+                sort_by?: string;
+                /** @description asc or desc */
+                order?: string;
+                /** @description Comma-separated ratings */
+                rating?: string | null;
+                /** @description Comma-separated labels */
+                label?: string | null;
+                keyword?: string | null;
+                min_score_general?: number;
+                min_score_aesthetic?: number;
+                min_score_technical?: number;
+                folder_path?: string | null;
+                stack_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    public_get_image_by_uuid_public_api_images_by_uuid__image_uuid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    public_get_image_by_hash_public_api_images_by_hash__image_hash__get: {
+        parameters: {
+            query?: {
+                /** @description images.hash_version (1=full file, 2=preview) */
+                hash_version?: number | null;
+            };
+            header?: never;
+            path: {
+                image_hash: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    public_get_image_by_id_public_api_images__image_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    public_get_image_neighbors_public_api_images__image_id__neighbors_get: {
+        parameters: {
+            query?: {
+                /** @description Same sort as /public/api/images */
+                sort_by?: string;
+                /** @description asc or desc */
+                order?: string;
+                /** @description Comma-separated ratings */
+                rating?: string | null;
+                /** @description Comma-separated labels */
+                label?: string | null;
+                keyword?: string | null;
+                min_score_general?: number;
+                min_score_aesthetic?: number;
+                min_score_technical?: number;
+                folder_path?: string | null;
+                stack_id?: number | null;
+            };
+            header?: never;
+            path: {
+                image_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    source_image_endpoint_source_image_get: {
+        parameters: {
+            query: {
+                /** @description URL-encoded absolute file path. RAW formats (.nef/.cr2/.dng/.arw/.orf/.nrw/.cr3/.rw2) return JPEG previews; non-RAW files are streamed in their native media type when supported. */
+                path: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image bytes for RAW previews (JPEG) or direct non-RAW files. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                    "image/gif": unknown;
+                    "image/webp": unknown;
+                    "image/bmp": unknown;
+                    "image/tiff": unknown;
+                };
+            };
+            /** @description Invalid path or request parameters. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Requested path is outside configured allowed roots. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description File not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation failure (for example, missing `path` query parameter). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RAW preview extraction/generation failure. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -13,7 +13,7 @@ export const STAGE_DISPLAY: Record<StageCode, { name: string; description: strin
     [UiStageCode.BIRD_SPECIES]: { name: 'Bird Species ID', description: 'Identify bird species with BioCLIP 2 (run after Tagging)' },
 };
 
-/** Keys sent as `operations` / `stage_codes` in POST /api/pipeline/submit */
+/** Keys sent as `stage_codes` in POST /api/pipeline/submit */
 export type PipelineOperation = 'indexing' | 'metadata' | 'score' | 'tag' | 'cluster';
 
 /** Maps submit API operation tokens to the same display names as STAGE_DISPLAY. */

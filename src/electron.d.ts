@@ -296,13 +296,21 @@ declare global {
     }
 
     interface BackendPipelineSubmitRequest {
-        input_path: string;
-        image_ids?: number[];
-        operations?: string[];
+        workspace_target?: string | null;
+        image_ids?: number[] | null;
+        image_paths?: string[] | null;
+        folder_ids?: number[] | null;
+        folder_paths?: string[] | null;
+        recursive?: boolean;
+        stage_codes?: string[];
+        workflow_template?: string;
         skip_existing?: boolean;
         custom_keywords?: string[] | null;
         generate_captions?: boolean;
         clustering_threshold?: number | null;
+        clustering_time_gap?: number | null;
+        clustering_force_rescan?: boolean;
+        exclude_image_paths?: string[] | null;
     }
 
     interface BackendDatabaseStats {

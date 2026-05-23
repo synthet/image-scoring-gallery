@@ -198,16 +198,23 @@ export interface PipelinePhaseControlRequest {
 }
 
 export interface PipelineSubmitRequest {
-    input_path: string;
-    /** When set (e.g. after local DB import/sync), backend resolves pipeline scope without relying on API host filesystem. */
-    image_ids?: number[];
-    operations?: string[];
+    /** File or directory path to process. Optional when using selector fields. */
+    workspace_target?: string | null;
+    image_ids?: number[] | null;
+    image_paths?: string[] | null;
+    folder_ids?: number[] | null;
+    folder_paths?: string[] | null;
+    recursive?: boolean;
+    /** Ordered stage codes: 'indexing' | 'metadata' | 'score' | 'tag' | 'cluster'. Defaults to ['score', 'tag']. */
+    stage_codes?: string[];
+    workflow_template?: string;
     skip_existing?: boolean;
     custom_keywords?: string[] | null;
     generate_captions?: boolean;
     clustering_threshold?: number | null;
     clustering_time_gap?: number | null;
     clustering_force_rescan?: boolean;
+    exclude_image_paths?: string[] | null;
 }
 
 // ── All-runners status ───────────────────────────────────────────────────────
