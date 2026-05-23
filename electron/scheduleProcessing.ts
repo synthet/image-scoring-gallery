@@ -42,9 +42,9 @@ export async function scheduleProcessingForImages(
 
     try {
         const res = await api.submitPipeline({
-            input_path: folderPath,
+            workspace_target: folderPath,
             image_ids: imageIds,
-            operations: [...PIPELINE_OPERATIONS],
+            stage_codes: [...PIPELINE_OPERATIONS],
             skip_existing: true,
         });
         if (res?.success) {
@@ -98,8 +98,8 @@ export async function scheduleProcessingForImportedFolder(
 
     try {
         const res = await api.submitPipeline({
-            input_path: folderPath,
-            operations: [...PIPELINE_OPERATIONS],
+            workspace_target: folderPath,
+            stage_codes: [...PIPELINE_OPERATIONS],
             skip_existing: true,
         });
         if (res?.success) {
