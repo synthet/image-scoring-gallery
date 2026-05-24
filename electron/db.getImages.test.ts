@@ -53,10 +53,19 @@ describe('db.getImages SQL construction', () => {
 
     const [sql, params] = queryMock.mock.calls[0];
     expect(sql).toContain('image_model_scores ims_sort');
-    expect(sql).toContain('ims_sort.model_name = ?');
+    expect(sql).toContain("ims_sort.model_name = 'topiq'");
     expect(sql).toContain('ORDER BY ims_sort.normalized DESC NULLS LAST, i.id DESC');
     expect(sql).toContain('ims_sort.normalized AS model_sort_score');
-    expect(params).toEqual(['topiq', 50, 0]);
+    expect(params).toEqual([50, 0]);
+  });
+
+  it('binds keyword filters before pagination when sorting by model scores', async () => {
+    await getImages({ keyword: 'birds', sortBy: 'model:arniqa', order: 'DESC', limit: 8, offset: 0 });
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain("ims_sort.model_name = 'arniqa'");
+    expect(sql).toContain('LOWER(kd.keyword_display) LIKE LOWER(?)');
+    expect(params).toEqual(['%birds%', '%birds%', 8, 0]);
   });
 
   it('builds filters and applies explicit pagination params', async () => {

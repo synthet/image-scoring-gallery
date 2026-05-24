@@ -4,6 +4,26 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.11.0] - 2026-05-24
+
+### Added
+
+- **ARNIQA / TOPIQ-NR sort options**: **`arniqa`** in registry defaults and sort labels; all model
+  sort keys use **`model:<name>`** (including SPAQ, AVA, LIQE).
+
+### Changed
+
+- **`electron/db.ts`**: **`image_model_scores`** overlay for legacy per-model fields (SPAQ, AVA, LIQE,
+  KonIQ, PAQ2PIQ) in gallery, stack-cache rebuild, and stack queries — ready for backend column drop.
+- **Search results**: Text search cards use **`GalleryThumbnail`** with DB thumbnail paths instead of
+  raw file paths.
+
+### Fixed
+
+- **Per-model gallery sort**: **`model:*`** sorts (ARNIQA, TOPIQ-NR, SPAQ, etc.) with keyword or
+  other filters no longer bind filter params to the model-name JOIN placeholder — scores and order
+  are correct again (**`electron/sortSql.ts`**).
+
 ## [7.10.0] - 2026-05-24
 
 ### Added

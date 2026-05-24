@@ -24,15 +24,15 @@ describe('scoringModels', () => {
         });
     });
 
-    it('maps legacy models to score_* sort keys', () => {
+    it('routes legacy models through the image_model_scores sort path', () => {
         const infos = buildModelInfosFromApi([
             { name: 'spaq', enabled: true, shadow: false },
             { name: 'liqe', enabled: true, shadow: false },
         ]);
 
         expect(infos).toEqual([
-            expect.objectContaining({ name: 'liqe', sortKey: 'score_liqe', source: 'legacy' }),
-            expect.objectContaining({ name: 'spaq', sortKey: 'score_spaq', source: 'legacy' }),
+            expect.objectContaining({ name: 'liqe', sortKey: 'model:liqe', source: 'model_scores' }),
+            expect.objectContaining({ name: 'spaq', sortKey: 'model:spaq', source: 'model_scores' }),
         ]);
     });
 
@@ -86,5 +86,26 @@ describe('scoringModels', () => {
             label: 'TOPIQ-NR',
             group: 'model',
         });
+    });
+
+    it('never includes excluded models such as qpt_v2', () => {
+        const infos = buildModelInfosFromApi([
+            { name: 'topiq', enabled: true, shadow: false },
+            { name: 'qpt_v2', enabled: true, shadow: false },
+        ]);
+        expect(infos.map((m) => m.name)).toEqual(['topiq']);
+
+        const fromConfig = buildModelInfosFromConfig({
+            topiq: { enabled: true, shadow: false },
+            qpt_v2: { enabled: true, shadow: false },
+        });
+        expect(fromConfig.map((m) => m.name)).not.toContain('qpt_v2');
+    });
+
+    it('FALLBACK_MODEL_SORT_OPTIONS routes legacy models through the model: sort key', async () => {
+        const { FALLBACK_MODEL_SORT_OPTIONS } = await import('./scoringModels');
+        const modelOptions = FALLBACK_MODEL_SORT_OPTIONS.filter((o) => o.group === 'model');
+        const values = modelOptions.map((o) => o.value);
+        expect(values).toEqual(['model:spaq', 'model:ava', 'model:liqe']);
     });
 });

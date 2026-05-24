@@ -10,8 +10,8 @@ import {
 import type { TextSearchResultItem } from '../../../electron/apiTypes';
 import type { Folder } from '../Tree/treeUtils';
 import { bridge } from '../../bridge';
-import { toMediaUrl } from '../../utils/mediaUrl';
 import { useSemanticTextSearch } from '../../hooks/useSemanticTextSearch';
+import { GalleryThumbnail } from '../Gallery/GalleryThumbnail';
 import { SearchProgressOverlay } from './SearchProgressOverlay';
 import styles from './SearchPage.module.css';
 
@@ -65,14 +65,14 @@ function SimilarityBar({ similarity }: { similarity: number }) {
 function ResultCard({
     result,
     rank,
+    thumbnailPath,
     onClick,
 }: {
     result: TextSearchResultItem;
     rank: number;
+    thumbnailPath?: string;
     onClick: () => void;
 }) {
-    const [loaded, setLoaded] = useState(false);
-    const [error, setError] = useState(false);
     const fileName = result.file_path.split(/[/\\]/).pop() ?? result.file_path;
 
     return (
@@ -83,26 +83,13 @@ function ResultCard({
             title={`${fileName}\nSimilarity: ${(result.similarity * 100).toFixed(1)}%`}
         >
             <div className={styles.cardImage}>
-                {!error ? (
-                    <img
-                        src={toMediaUrl(result.file_path)}
-                        alt={fileName}
-                        loading="lazy"
-                        onLoad={() => setLoaded(true)}
-                        onError={() => setError(true)}
-                        style={{ opacity: loaded ? 1 : 0 }}
-                    />
-                ) : (
-                    <div className={styles.thumbPlaceholder}>
-                        <ImageIcon size={24} />
-                        <span>Preview unavailable</span>
-                    </div>
-                )}
-                {!loaded && !error && (
-                    <div className={styles.thumbSpinner}>
-                        <div className={styles.spinner} />
-                    </div>
-                )}
+                <GalleryThumbnail
+                    fileName={fileName}
+                    filePath={result.file_path}
+                    thumbnailPath={thumbnailPath}
+                    className={styles.cardThumb}
+                    alt={fileName}
+                />
             </div>
             <div className={styles.cardFooter}>
                 <div className={styles.cardRow}>
@@ -218,6 +205,36 @@ export function SearchPage({ currentFolder, onBack, onOpenImage }: SearchPagePro
     }, [cancel]);
 
     const results = data?.results ?? [];
+    const [thumbnailPaths, setThumbnailPaths] = useState<Record<number, string>>({});
+
+    useEffect(() => {
+        if (!results.length) {
+            setThumbnailPaths({});
+            return;
+        }
+        let cancelled = false;
+        void (async () => {
+            const pairs = await Promise.all(
+                results.map(async (r) => {
+                    try {
+                        const detail = await bridge.getImageDetails(r.image_id);
+                        const thumb = detail?.thumbnail_path?.trim();
+                        return thumb ? ([r.image_id, thumb] as const) : null;
+                    } catch {
+                        return null;
+                    }
+                }),
+            );
+            if (cancelled) return;
+            setThumbnailPaths(
+                Object.fromEntries(pairs.filter((p): p is readonly [number, string] => p != null)),
+            );
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [results]);
+
     const showError = status === 'error' && error;
     const showNoResults =
         hasSearched && !isSearching && status === 'success' && results.length === 0;
@@ -410,6 +427,7 @@ export function SearchPage({ currentFolder, onBack, onOpenImage }: SearchPagePro
                                     key={result.image_id}
                                     result={result}
                                     rank={i + 1}
+                                    thumbnailPath={thumbnailPaths[result.image_id]}
                                     onClick={() => onOpenImage(result.image_id)}
                                 />
                             ))}
