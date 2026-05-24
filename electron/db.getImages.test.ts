@@ -48,6 +48,17 @@ describe('db.getImages SQL construction', () => {
     expect(sql).not.toContain('DROP TABLE');
   });
 
+  it('joins image_model_scores when sorting by model:topiq', async () => {
+    await getImages({ sortBy: 'model:topiq', order: 'DESC' });
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain('image_model_scores ims_sort');
+    expect(sql).toContain('ims_sort.model_name = ?');
+    expect(sql).toContain('ORDER BY ims_sort.normalized DESC NULLS LAST, i.id DESC');
+    expect(sql).toContain('ims_sort.normalized AS model_sort_score');
+    expect(params).toEqual(['topiq', 50, 0]);
+  });
+
   it('builds filters and applies explicit pagination params', async () => {
     await getImages({
       folderIds: [2, 7],

@@ -38,6 +38,7 @@ export interface ImageDetail extends ImageRow {
     score?: number;
     score_koniq?: number;
     score_paq2piq?: number;
+    model_scores?: Record<string, number>;
     title?: string;
     description?: string;
     keywords?: string;

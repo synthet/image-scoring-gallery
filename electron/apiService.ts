@@ -38,6 +38,7 @@ import type {
     DatabaseStats,
     CullingAnalyticsResponse,
     ScopeTreeResponse,
+    ScoringModelsApiResponse,
 } from './apiTypes';
 import type { AppConfig } from './types';
 
@@ -351,6 +352,10 @@ export class ApiService {
 
     getStats() {
         return this.get<DatabaseStats>('/api/stats');
+    }
+
+    getScoringModels() {
+        return this.get<ScoringModelsApiResponse>('/api/models');
     }
 
     getCullingAnalytics(params?: {

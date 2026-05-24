@@ -2,6 +2,11 @@ import path from 'path';
 import fs from 'fs';
 
 import { getConfigPath, loadAppConfig } from './config';
+import {
+    attachModelSortOverlays,
+    buildImageSortSql,
+    buildStackSortExpressions,
+} from './sortSql';
 import { absolutizeThumbnailPath } from './thumbnailPathNormalize';
 import { applyThumbnailPathRemaps } from './pathsRemap';
 import type { AppConfig, DatabaseConfig } from './types';
@@ -360,24 +365,13 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
 
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
 
-    // Validate sort column to prevent SQL injection
-    const allowedSortColumns = [
-        'id', 'created_at', 'score_general', 'score_technical', 'score_aesthetic',
-        'score_spaq', 'score_ava', 'score_liqe', 'score_koniq', 'score_paq2piq',
-        'rating', 'file_name', 'capture_date'
-    ];
-
-    // Map capture_date to our SQL expression
-    let sortSql: string;
-    const sortField = allowedSortColumns.includes(sortBy) ? sortBy : 'score_general';
-
-    if (sortField === 'capture_date') {
-        sortSql = CAPTURE_TS;
-    } else {
-        sortSql = `i.${sortField}`;
-    }
-
+    const sortParts = buildImageSortSql(sortBy);
     const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
+    const sortSql = sortParts.parsed.kind === 'meta' && sortParts.parsed.key === 'capture_date'
+        ? CAPTURE_TS
+        : sortParts.orderExpr || 'i.score_general';
+    const selectExtra = sortParts.selectExtra ? `,\n            ${sortParts.selectExtra}` : '';
+    const joinSql = sortParts.joinSql ? `\n        ${sortParts.joinSql}` : '';
 
     const sql = `
         SELECT
@@ -398,17 +392,18 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.thumbnail_path,
             i.thumbnail_path_win,
             ${CAPTURE_TS} as capture_date,
-            ${CAPTURE_FALLBACK} as is_capture_date_fallback
+            ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
         LEFT JOIN image_exif ex ON i.id = ex.image_id
-        LEFT JOIN image_xmp xm ON i.id = xm.image_id
+        LEFT JOIN image_xmp xm ON i.id = xm.image_id${joinSql}
         ${whereClause}
         ORDER BY ${sortSql} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}, i.id DESC
         ${paginationSql()}
     `;
-    const rows = await query(sql, [...params, ...pagingParams(offset, limit)]);
+    const rows = await query(sql, [...params, ...sortParts.joinParams, ...pagingParams(offset, limit)]);
+    attachModelSortOverlays(rows, sortParts.modelNameForOverlay);
     return mapRowsThumbnails(rows);
 }
 
@@ -1332,35 +1327,12 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
 
     await ensureStackCacheTable();
 
-    const allowedSortColumns = [
-        'id', 'created_at', 'score_general', 'score_technical', 'score_aesthetic',
-        'score_spaq', 'score_ava', 'score_liqe', 'score_koniq', 'score_paq2piq',
-        'rating', 'file_name', 'capture_date'
-    ];
-    const sortColumn = allowedSortColumns.includes(sortBy) ? sortBy : 'score_general';
     const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
-
-    // Map sort column to cache column
-    const cacheColMap: Record<string, string> = {
-        'score_general': sortOrder === 'DESC' ? 'sc.max_score_general' : 'sc.min_score_general',
-        'score_technical': sortOrder === 'DESC' ? 'sc.max_score_technical' : 'sc.min_score_technical',
-        'score_aesthetic': sortOrder === 'DESC' ? 'sc.max_score_aesthetic' : 'sc.min_score_aesthetic',
-        'score_spaq': sortOrder === 'DESC' ? 'sc.max_score_spaq' : 'sc.min_score_spaq',
-        'score_ava': sortOrder === 'DESC' ? 'sc.max_score_ava' : 'sc.min_score_ava',
-        'score_liqe': sortOrder === 'DESC' ? 'sc.max_score_liqe' : 'sc.min_score_liqe',
-        'rating': sortOrder === 'DESC' ? 'sc.max_rating' : 'sc.min_rating',
-        'created_at': sortOrder === 'DESC' ? 'sc.max_created_at' : 'sc.min_created_at',
-        'file_name': 'i.file_name',
-        'id': 'sc.rep_image_id'
-    };
-
-    const cacheSortCol = sortColumn === 'capture_date'
-        ? CAPTURE_TS
-        : (cacheColMap[sortColumn] || (sortOrder === 'DESC' ? 'sc.max_score_general' : 'sc.min_score_general'));
-
-    const nonStackSortCol = sortColumn === 'capture_date'
-        ? CAPTURE_TS
-        : (allowedSortColumns.includes(sortBy) ? `i.${sortBy}` : 'i.score_general');
+    const stackSort = buildStackSortExpressions(sortBy, sortOrder, CAPTURE_TS);
+    const cacheSortCol = stackSort.cacheSortCol;
+    const nonStackSortCol = stackSort.nonStackSortCol;
+    const nonStackJoinSql = stackSort.joinSqlNonStack ? `\n            ${stackSort.joinSqlNonStack}` : '';
+    const nonStackSelectExtra = stackSort.selectExtraNonStack ? `,\n                ${stackSort.selectExtraNonStack}` : '';
 
     // Params for the union query (need to push them twice, once for top half, once for bottom)
     const topParams: (string | number | null)[] = [];
@@ -1451,13 +1423,13 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.thumbnail_path,
                 i.thumbnail_path_win,
                 ${CAPTURE_TS} as capture_date,
-                ${CAPTURE_FALLBACK} as is_capture_date_fallback
+                ${CAPTURE_FALLBACK} as is_capture_date_fallback${nonStackSelectExtra}
             FROM stack_cache sc
             JOIN images i ON i.id = sc.rep_image_id
             LEFT JOIN image_exif ex ON i.id = ex.image_id
             LEFT JOIN image_xmp xm ON i.id = xm.image_id
             LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
-                AND POSITION('/thumbnails/' IN fp.path) = 0
+                AND POSITION('/thumbnails/' IN fp.path) = 0${nonStackJoinSql}
             ${whereClauseCache}
 
             UNION ALL
@@ -1485,12 +1457,12 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.thumbnail_path,
                 i.thumbnail_path_win,
                 ${CAPTURE_TS} as capture_date,
-                ${CAPTURE_FALLBACK} as is_capture_date_fallback
+                ${CAPTURE_FALLBACK} as is_capture_date_fallback${nonStackSelectExtra}
             FROM images i
             LEFT JOIN image_exif ex ON i.id = ex.image_id
             LEFT JOIN image_xmp xm ON i.id = xm.image_id
             LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
-                AND POSITION('/thumbnails/' IN fp.path) = 0
+                AND POSITION('/thumbnails/' IN fp.path) = 0${nonStackJoinSql}
             ${whereClauseNonStack}
         ) a
         ORDER BY a.sort_value ${sortOrder}${pgNullsLastIfDesc(sortOrder)}, a.stack_key DESC
@@ -1498,6 +1470,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
     `;
 
     const rows = await query(sql, [...topParams, ...botParams, ...pagingParams(offset, limit)]);
+    attachModelSortOverlays(rows, stackSort.modelNameForOverlay);
     return mapRowsThumbnails(rows);
 }
 
@@ -1543,15 +1516,13 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
 
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
 
-    const allowedSortColumns = [
-        'id', 'created_at', 'score_general', 'score_technical', 'score_aesthetic',
-        'score_spaq', 'score_ava', 'score_liqe', 'score_koniq', 'score_paq2piq',
-        'rating', 'file_name', 'capture_date'
-    ];
-    const sortColumn = allowedSortColumns.includes(sortBy) 
-        ? (sortBy === 'capture_date' ? CAPTURE_TS : `i.${sortBy}`)
-        : 'i.score_general';
+    const sortParts = buildImageSortSql(sortBy);
     const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
+    const sortColumn = sortParts.parsed.kind === 'meta' && sortParts.parsed.key === 'capture_date'
+        ? CAPTURE_TS
+        : sortParts.orderExpr || 'i.score_general';
+    const selectExtra = sortParts.selectExtra ? `,\n            ${sortParts.selectExtra}` : '';
+    const joinSql = sortParts.joinSql ? `\n        ${sortParts.joinSql}` : '';
 
     const sql = `
         SELECT
@@ -1571,17 +1542,18 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             i.thumbnail_path_win,
             i.stack_id,
             ${CAPTURE_TS} as capture_date,
-            ${CAPTURE_FALLBACK} as is_capture_date_fallback
+            ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
         LEFT JOIN image_exif ex ON i.id = ex.image_id
         LEFT JOIN image_xmp xm ON i.id = xm.image_id
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
-            AND POSITION('/thumbnails/' IN fp.path) = 0
+            AND POSITION('/thumbnails/' IN fp.path) = 0${joinSql}
         ${whereClause}
         ORDER BY ${sortColumn} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}${QUALITY_TIEBREAK_ORDER_SQL_EX_I}
         ${paginationSql()}
     `;
-    const rows = await query(sql, [...params, ...pagingParams(offset, limit)]);
+    const rows = await query(sql, [...params, ...sortParts.joinParams, ...pagingParams(offset, limit)]);
+    attachModelSortOverlays(rows, sortParts.modelNameForOverlay);
     return mapRowsThumbnails(rows);
 }
 

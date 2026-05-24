@@ -28,6 +28,7 @@ function keepStdinFromEndingProcess(): void {
 import * as db from '../electron/db';
 import { loadAppConfig, getConfigPath } from '../electron/config';
 import { ApiService } from '../electron/apiService';
+import { resolveSortOptions } from '../electron/scoringModels';
 import { resolveBaseUrl } from '../electron/apiUrlResolver';
 
 import { buildMediaPathCandidates } from './buildMediaPathCandidates';
@@ -164,6 +165,13 @@ export function createServerApp(deps: ServerDeps) {
     router.get('/db/keywords', wrap(async (_req, res) => {
         try {
             const result = await dbModule.getKeywords();
+            ok(res, result);
+        } catch (e) { fail(res, e); }
+    }));
+
+    router.get('/scoring/sort-options', wrap(async (_req, res) => {
+        try {
+            const result = await resolveSortOptions(apiService, galleryProjectRoot);
             ok(res, result);
         } catch (e) { fail(res, e); }
     }));
