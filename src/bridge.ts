@@ -398,6 +398,7 @@ function createHttpBridge(): Window['electron'] {
             isAvailable: async () => { try { await post('/backend/health'); return true; } catch { return false; } },
             getStatus: () => get('/backend/status'),
             getStats: () => get('/backend/stats'),
+            getScoringSortOptions: () => get<Array<{ value: string; label: string; group: string }>>('/scoring/sort-options'),
             getCullingAnalytics: (params?: { folderPath?: string; folderId?: number; perStackLimit?: number }) =>
                 get<Record<string, unknown>>('/backend/analytics/culling', {
                     folder_path: params?.folderPath,

@@ -18,6 +18,7 @@ interface Image {
     score_koniq?: number;
     score_paq2piq?: number;
     score_liqe?: number;
+    model_scores?: Record<string, number>;
     rating: number;
     label: string | null;
     created_at?: string;
@@ -141,7 +142,13 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     }), []);
 
     const getScoreDisplay = useCallback((img: Image) => {
-        switch (sortBy) {
+        const sortKey = sortBy || 'score_general';
+        if (sortKey.startsWith('model:')) {
+            const modelName = sortKey.slice('model:'.length);
+            const value = img.model_scores?.[modelName];
+            return value != null && value > 0 ? `${Math.round(value * 100)}%` : '-';
+        }
+        switch (sortKey) {
             case 'capture_date':
                 if (!img.capture_date) return '-';
                 const dateStr = new Date(img.capture_date).toLocaleDateString();

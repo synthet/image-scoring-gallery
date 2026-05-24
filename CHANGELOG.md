@@ -4,6 +4,18 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.10.0] - 2026-05-24
+
+### Added
+
+- **Dynamic gallery sort options**: **`getScoringSortOptions`** IPC loads enabled scoring models and composite score keys from backend config/API (**`electron/scoringModels.ts`**, **`useScoringSortOptions`**).
+- **Sort SQL helpers**: **`electron/sortColumns.ts`** and **`sortSql.ts`** for per-model **`image_model_scores`** column sorting.
+
+### Changed
+
+- **Gallery grid / filters**: Sort dropdown reflects live model list (including shadow labels); persisted invalid sort values reset to **`score_general`**.
+- **`electron/db.ts`**: Consolidated sort-column resolution for model and legacy score fields.
+
 ## [7.9.0] - 2026-05-23
 
 ### Added

@@ -24,6 +24,7 @@ import { useGalleryNavigation } from './hooks/useGalleryNavigation';
 import { useStacksMode } from './hooks/useStacksMode';
 import { useImageOpener } from './hooks/useImageOpener';
 import { useGalleryWebSocket } from './hooks/useGalleryWebSocket';
+import { isSortOptionValue, useScoringSortOptions } from './hooks/useScoringSortOptions';
 
 import { StackAnalyticsBanner } from './components/CullingAnalytics/StackAnalyticsBanner';
 import breadcrumbStyles from './styles/breadcrumbs.module.css';
@@ -37,6 +38,7 @@ import {
 
 function AppContent() {
   const [filters, setFilters] = useState<FilterState>({ minRating: 0, sortBy: 'capture_date', order: 'DESC' });
+  const { sortOptions } = useScoringSortOptions();
   const [smartCoverEnabled, setSmartCoverEnabled] = useState(false);
   /** After first folder load in browser, restore session once so the next persist sees hydrated state. */
   const [browserSessionReady, setBrowserSessionReady] = useState(() => !isBrowserPersistenceEnabled());
@@ -68,6 +70,13 @@ function AppContent() {
       window.removeEventListener('config-updated', handleConfigUpdated as EventListener);
     };
   }, []);
+
+  useEffect(() => {
+    const sortBy = filters.sortBy;
+    if (!sortBy) return;
+    if (isSortOptionValue(sortBy, sortOptions)) return;
+    setFilters((prev) => ({ ...prev, sortBy: 'score_general' }));
+  }, [filters.sortBy, sortOptions]);
 
   const { folders, loading: foldersLoading, refresh: refreshFolders } = useFolders();
   const { keywords, loading: keywordsLoading, fetch: fetchKeywords } = useKeywords();
@@ -473,16 +482,9 @@ function AppContent() {
                 onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
                 style={{ background: '#333', color: '#eee', border: '1px solid #555', padding: '6px', borderRadius: 4, width: '100%', cursor: 'pointer' }}
               >
-                <option value="score_general">General Score</option>
-                <option value="capture_date">Capture Date</option>
-                <option value="id">ID</option>
-                <option value="score_technical">Technical Score</option>
-                <option value="score_aesthetic">Aesthetic Score</option>
-                <option value="score_spaq">SPAQ</option>
-                <option value="score_ava">AVA</option>
-                <option value="score_liqe">LIQE</option>
-                <option value="score_koniq">KonIQ</option>
-                <option value="score_paq2piq">Paq2Piq</option>
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
 
               <select

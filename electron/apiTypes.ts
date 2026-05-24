@@ -353,6 +353,21 @@ export interface CullingAnalyticsResponse {
     [key: string]: unknown;
 }
 
+export interface ScoringModelApiEntry {
+    name: string;
+    version?: string;
+    framework?: string;
+    score_range?: [number, number];
+    enabled: boolean;
+    shadow: boolean;
+    load_status?: string;
+}
+
+export interface ScoringModelsApiResponse {
+    models: ScoringModelApiEntry[];
+    count: number;
+}
+
 export interface DatabaseStats {
     total_images: number;
     by_rating: Record<string, number>;

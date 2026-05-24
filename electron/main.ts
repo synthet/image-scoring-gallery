@@ -27,6 +27,7 @@ import {
 } from './types';
 import { SessionLogManager } from './sessionLogManager';
 import { getConfigPath, loadAppConfig } from './config';
+import { resolveSortOptions } from './scoringModels';
 import { resolveBackendUiStaticDir, startScoringUiServer, type ScoringUiServer } from './scoringUiServer';
 import { normalizeLensFolderName, UNKNOWN_LENS_FOLDER } from './lensFolderName';
 import { cameraFolderFromExifModel } from './cameraFolderName';
@@ -2472,6 +2473,10 @@ async function startFullApplication(): Promise<void> {
 
     ipcMain.handle('api:stats', wrapIpcHandler(async () => {
         return await apiService.getStats();
+    }));
+
+    ipcMain.handle('api:get-scoring-sort-options', wrapIpcHandler(async () => {
+        return await resolveSortOptions(apiService, path.resolve(__dirname, '..'));
     }));
 
     ipcMain.handle('api:get-culling-analytics', wrapIpcHandler(async (_, params?: {

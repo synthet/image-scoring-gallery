@@ -178,6 +178,7 @@ declare global {
                 isAvailable: () => Promise<boolean>;
                 getStatus: () => Promise<BackendStatusResponse>;
                 getStats: () => Promise<BackendDatabaseStats>;
+                getScoringSortOptions: () => Promise<Array<{ value: string; label: string; group: string }>>;
                 getCullingAnalytics: (params?: {
                     folderPath?: string;
                     folderId?: number;
