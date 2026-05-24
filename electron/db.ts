@@ -68,6 +68,46 @@ const CAPTURE_FALLBACK =
     '(ex.date_time_original IS NULL AND ex.create_date IS NULL AND xm.create_date IS NULL)';
 
 /**
+ * IMS overlay: per-image production (non-shadow) scores for the five models
+ * that used to live on ``images``. Joined LEFT once per query and surfaced via
+ * ``COALESCE`` with the typed columns so renderer types stay stable while the
+ * columns are being retired (see backend migration 0016 and the legacy column
+ * deprecation plan).
+ *
+ * Aliased so the same fragment can be used in both stack-cache rebuild and
+ * per-image SELECTs. ``aliasId`` is the SQL expression that resolves to the
+ * ``images.id`` of the row this overlay should match (e.g. ``i.id``).
+ */
+function imsOverlayJoin(alias: string, aliasId: string): string {
+    return `
+        LEFT JOIN (
+            SELECT
+                image_id,
+                MAX(CASE WHEN model_name = 'spaq'    THEN COALESCE(normalized, raw_score) END) AS score_spaq,
+                MAX(CASE WHEN model_name = 'ava'     THEN COALESCE(normalized, raw_score) END) AS score_ava,
+                MAX(CASE WHEN model_name = 'liqe'    THEN COALESCE(normalized, raw_score) END) AS score_liqe,
+                MAX(CASE WHEN model_name = 'koniq'   THEN COALESCE(normalized, raw_score) END) AS score_koniq,
+                MAX(CASE WHEN model_name = 'paq2piq' THEN COALESCE(normalized, raw_score) END) AS score_paq2piq
+            FROM image_model_scores
+            WHERE model_name IN ('spaq', 'ava', 'liqe', 'koniq', 'paq2piq')
+              AND is_shadow = FALSE
+              AND status = 'success'
+            GROUP BY image_id
+        ) ${alias} ON ${alias}.image_id = ${aliasId}`;
+}
+
+/** Renderer-facing ``score_<model>`` projections: legacy column first, then IMS overlay. */
+function imsOverlaySelect(alias: string, imagesAlias: string): string {
+    return [
+        `COALESCE(${imagesAlias}.score_spaq, ${alias}.score_spaq) AS score_spaq`,
+        `COALESCE(${imagesAlias}.score_ava, ${alias}.score_ava) AS score_ava`,
+        `COALESCE(${imagesAlias}.score_liqe, ${alias}.score_liqe) AS score_liqe`,
+        `COALESCE(${imagesAlias}.score_koniq, ${alias}.score_koniq) AS score_koniq`,
+        `COALESCE(${imagesAlias}.score_paq2piq, ${alias}.score_paq2piq) AS score_paq2piq`,
+    ].join(',\n            ');
+}
+
+/**
  * ORDER BY suffix after primary score (aliases ``ex`` = image_exif, ``i`` = images).
  * Must stay aligned with Postgres ``quality_tiebreak_order_sql(..., dialect='postgres')``
  * in sibling repo image-scoring-backend ``modules/quality_ranking.py``.
@@ -381,11 +421,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.score_general,
             i.score_technical,
             i.score_aesthetic,
-            i.score_spaq,
-            i.score_ava,
-            i.score_liqe,
-            i.score_koniq,
-            i.score_paq2piq,
+            ${imsOverlaySelect('ims_legacy', 'i')},
             i.rating,
             i.label,
             i.created_at,
@@ -397,7 +433,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
         LEFT JOIN image_exif ex ON i.id = ex.image_id
-        LEFT JOIN image_xmp xm ON i.id = xm.image_id${joinSql}
+        LEFT JOIN image_xmp xm ON i.id = xm.image_id${imsOverlayJoin('ims_legacy', 'i.id')}${joinSql}
         ${whereClause}
         ORDER BY ${sortSql} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}, i.id DESC
         ${paginationSql()}
@@ -496,11 +532,7 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
             i.score_general,
             i.score_technical,
             i.score_aesthetic,
-            i.score_spaq,
-            i.score_ava,
-            i.score_koniq,
-            i.score_paq2piq,
-            i.score_liqe,
+            ${imsOverlaySelect('ims_legacy', 'i')},
             (SELECT string_agg(kd.keyword_display, ', ') 
              FROM image_keywords ik 
              JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id 
@@ -530,7 +562,7 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
         FROM images i
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
-        LEFT JOIN image_exif ex ON i.id = ex.image_id
+        LEFT JOIN image_exif ex ON i.id = ex.image_id${imsOverlayJoin('ims_legacy', 'i.id')}
         WHERE i.id = ?
     `;
     const rows = await query(sql, [id]);
@@ -1252,7 +1284,10 @@ export async function rebuildStackCache(context: { smartCover?: boolean } = {}):
                 // Clear existing cache
                 await txQuery('DELETE FROM stack_cache');
 
-                // Populate from images table - only for actual stacks (stack_id IS NOT NULL)
+                // Populate from images table - only for actual stacks (stack_id IS NOT NULL).
+                // Per-model min/max overlay legacy typed columns with image_model_scores
+                // (backend migration 0016) so the cache stays correct while the typed
+                // columns are being retired.
                 const sql = `
                     INSERT INTO stack_cache (
                         stack_id, image_count, rep_image_id, folder_id,
@@ -1273,12 +1308,15 @@ export async function rebuildStackCache(context: { smartCover?: boolean } = {}):
                         MIN(i.score_general), MAX(i.score_general),
                         MIN(i.score_technical), MAX(i.score_technical),
                         MIN(i.score_aesthetic), MAX(i.score_aesthetic),
-                        MIN(i.score_spaq), MAX(i.score_spaq),
-                        MIN(i.score_ava), MAX(i.score_ava),
-                        MIN(i.score_liqe), MAX(i.score_liqe),
+                        MIN(COALESCE(i.score_spaq, ims_legacy.score_spaq)),
+                        MAX(COALESCE(i.score_spaq, ims_legacy.score_spaq)),
+                        MIN(COALESCE(i.score_ava, ims_legacy.score_ava)),
+                        MAX(COALESCE(i.score_ava, ims_legacy.score_ava)),
+                        MIN(COALESCE(i.score_liqe, ims_legacy.score_liqe)),
+                        MAX(COALESCE(i.score_liqe, ims_legacy.score_liqe)),
                         MIN(i.rating), MAX(i.rating),
                         MIN(i.created_at), MAX(i.created_at)
-                    FROM images i
+                    FROM images i${imsOverlayJoin('ims_legacy', 'i.id')}
                     WHERE i.stack_id IS NOT NULL
                     GROUP BY i.stack_id
                 `;
@@ -1412,11 +1450,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.score_general,
                 i.score_technical,
                 i.score_aesthetic,
-                i.score_spaq,
-                i.score_ava,
-                i.score_liqe,
-                i.score_koniq,
-                i.score_paq2piq,
+                ${imsOverlaySelect('ims_legacy', 'i')},
                 i.rating,
                 i.label,
                 i.created_at,
@@ -1429,7 +1463,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
             LEFT JOIN image_exif ex ON i.id = ex.image_id
             LEFT JOIN image_xmp xm ON i.id = xm.image_id
             LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
-                AND POSITION('/thumbnails/' IN fp.path) = 0${nonStackJoinSql}
+                AND POSITION('/thumbnails/' IN fp.path) = 0${imsOverlayJoin('ims_legacy', 'i.id')}${nonStackJoinSql}
             ${whereClauseCache}
 
             UNION ALL
@@ -1446,11 +1480,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.score_general,
                 i.score_technical,
                 i.score_aesthetic,
-                i.score_spaq,
-                i.score_ava,
-                i.score_liqe,
-                i.score_koniq,
-                i.score_paq2piq,
+                ${imsOverlaySelect('ims_legacy', 'i')},
                 i.rating,
                 i.label,
                 i.created_at,
@@ -1462,7 +1492,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
             LEFT JOIN image_exif ex ON i.id = ex.image_id
             LEFT JOIN image_xmp xm ON i.id = xm.image_id
             LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
-                AND POSITION('/thumbnails/' IN fp.path) = 0${nonStackJoinSql}
+                AND POSITION('/thumbnails/' IN fp.path) = 0${imsOverlayJoin('ims_legacy', 'i.id')}${nonStackJoinSql}
             ${whereClauseNonStack}
         ) a
         ORDER BY a.sort_value ${sortOrder}${pgNullsLastIfDesc(sortOrder)}, a.stack_key DESC
@@ -1532,9 +1562,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             i.score_general,
             i.score_technical,
             i.score_aesthetic,
-            i.score_spaq,
-            i.score_ava,
-            i.score_liqe,
+            ${imsOverlaySelect('ims_legacy', 'i')},
             i.rating,
             i.label,
             i.created_at,
@@ -1547,7 +1575,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
         LEFT JOIN image_exif ex ON i.id = ex.image_id
         LEFT JOIN image_xmp xm ON i.id = xm.image_id
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
-            AND POSITION('/thumbnails/' IN fp.path) = 0${joinSql}
+            AND POSITION('/thumbnails/' IN fp.path) = 0${imsOverlayJoin('ims_legacy', 'i.id')}${joinSql}
         ${whereClause}
         ORDER BY ${sortColumn} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}${QUALITY_TIEBREAK_ORDER_SQL_EX_I}
         ${paginationSql()}

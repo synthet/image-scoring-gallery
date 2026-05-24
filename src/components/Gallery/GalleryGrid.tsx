@@ -145,7 +145,9 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         const sortKey = sortBy || 'score_general';
         if (sortKey.startsWith('model:')) {
             const modelName = sortKey.slice('model:'.length);
-            const value = img.model_scores?.[modelName];
+            const fromOverlay = img.model_scores?.[modelName];
+            const legacyCol = (img as Record<string, unknown>)[`score_${modelName}`];
+            const value = fromOverlay ?? (typeof legacyCol === 'number' ? legacyCol : undefined);
             return value != null && value > 0 ? `${Math.round(value * 100)}%` : '-';
         }
         switch (sortKey) {

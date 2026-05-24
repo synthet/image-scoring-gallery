@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import type { ApiService } from './apiService';
 import {
-    LEGACY_MODEL_SORT_KEYS,
     modelSortKey,
 } from './sortColumns';
 
@@ -31,17 +30,22 @@ export interface SortOption {
     group: 'composite' | 'meta' | 'model';
 }
 
+/** Not registered in the live backend pipeline; never show in the sort dropdown. */
+export const SORT_EXCLUDED_MODEL_NAMES = new Set(['qpt_v2']);
+
 /** Registered model names when config does not list them (matches backend registry defaults). */
 export const REGISTERED_MODEL_NAMES = [
     'spaq',
     'ava',
     'liqe',
     'topiq',
+    'arniqa',
     'cursor',
     'claude',
 ] as const;
 
 const SCORE_LABELS: Record<string, string> = {
+    arniqa: 'ARNIQA',
     topiq: 'TOPIQ-NR',
     cursor: 'Cursor (LLM)',
     claude: 'Claude (LLM)',
@@ -66,21 +70,20 @@ const STATIC_SORT_OPTIONS: SortOption[] = [
 /** Fallback when API and config are unavailable. */
 export const FALLBACK_MODEL_SORT_OPTIONS: SortOption[] = [
     ...STATIC_SORT_OPTIONS,
-    { value: 'score_spaq', label: 'SPAQ', group: 'model' },
-    { value: 'score_ava', label: 'AVA', group: 'model' },
-    { value: 'score_liqe', label: 'LIQE', group: 'model' },
+    { value: modelSortKey('spaq'), label: 'SPAQ', group: 'model' },
+    { value: modelSortKey('ava'), label: 'AVA', group: 'model' },
+    { value: modelSortKey('liqe'), label: 'LIQE', group: 'model' },
 ];
 
 type ModelMembership = { enabled?: boolean; shadow?: boolean };
 
+function isSortableModelName(name: string): boolean {
+    return !SORT_EXCLUDED_MODEL_NAMES.has(name);
+}
+
 function modelLabel(name: string, isShadow: boolean): string {
     const base = SCORE_LABELS[name] ?? name.toUpperCase();
     return isShadow ? `${base} (shadow)` : base;
-}
-
-function legacySortKeyForModel(name: string): string | null {
-    const key = `score_${name}`;
-    return LEGACY_MODEL_SORT_KEYS.has(key) ? key : null;
 }
 
 /** Production models only (enabled, not shadow) — matches backend registry. */
@@ -97,16 +100,14 @@ function isProductionMembership(membership: ModelMembership | undefined): boolea
 export function buildModelInfosFromApi(models: ScoringModelApiEntry[]): ScoringModelInfo[] {
     return models
         .filter(isProductionApiModel)
-        .map((m) => {
-            const legacyKey = legacySortKeyForModel(m.name);
-            return {
-                name: m.name,
-                label: modelLabel(m.name, false),
-                sortKey: legacyKey ?? modelSortKey(m.name),
-                source: legacyKey ? 'legacy' : 'model_scores',
-                isShadow: false,
-            } satisfies ScoringModelInfo;
-        })
+        .filter((m) => isSortableModelName(m.name))
+        .map((m) => ({
+            name: m.name,
+            label: modelLabel(m.name, false),
+            sortKey: modelSortKey(m.name),
+            source: 'model_scores',
+            isShadow: false,
+        } satisfies ScoringModelInfo))
         .sort((a, b) => a.label.localeCompare(b.label));
 }
 
@@ -120,14 +121,14 @@ export function buildModelInfosFromConfig(
 
     const infos: ScoringModelInfo[] = [];
     for (const name of names) {
+        if (!isSortableModelName(name)) continue;
         const membership = scoringModels[name];
         if (!isProductionMembership(membership)) continue;
-        const legacyKey = legacySortKeyForModel(name);
         infos.push({
             name,
             label: modelLabel(name, false),
-            sortKey: legacyKey ?? modelSortKey(name),
-            source: legacyKey ? 'legacy' : 'model_scores',
+            sortKey: modelSortKey(name),
+            source: 'model_scores',
             isShadow: false,
         });
     }

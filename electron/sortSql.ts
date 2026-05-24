@@ -19,11 +19,13 @@ export function buildImageSortSql(sortBy: string | undefined, fallback = 'score_
     const parsed = parseSortKey(sortBy, fallback);
 
     if (parsed.kind === 'model') {
+        // Model name is validated in parseSortKey (^[a-z0-9_]+$); inline literal matches
+        // buildStackSortExpressions and avoids placeholder order vs WHERE params.
         return {
             parsed,
-            joinSql: `LEFT JOIN image_model_scores ${IMS_ALIAS} ON i.id = ${IMS_ALIAS}.image_id AND ${IMS_ALIAS}.model_name = ?`,
+            joinSql: `LEFT JOIN image_model_scores ${IMS_ALIAS} ON i.id = ${IMS_ALIAS}.image_id AND ${IMS_ALIAS}.model_name = '${parsed.modelName}'`,
             orderExpr: `${IMS_ALIAS}.normalized`,
-            joinParams: [parsed.modelName],
+            joinParams: [],
             selectExtra: `${IMS_ALIAS}.normalized AS model_sort_score`,
             modelNameForOverlay: parsed.modelName,
         };
@@ -40,7 +42,7 @@ export function buildImageSortSql(sortBy: string | undefined, fallback = 'score_
         };
     }
 
-    const column = parsed.kind === 'meta' || parsed.kind === 'legacy' || parsed.kind === 'composite'
+    const column = parsed.kind === 'meta' || parsed.kind === 'composite'
         ? parsed.key
         : fallback;
 
@@ -93,7 +95,7 @@ export function buildStackSortExpressions(
         };
     }
 
-    const key = parsed.kind === 'meta' || parsed.kind === 'legacy' || parsed.kind === 'composite'
+    const key = parsed.kind === 'meta' || parsed.kind === 'composite'
         ? parsed.key
         : fallback;
 
@@ -109,13 +111,14 @@ export function buildStackSortExpressions(
         };
     }
 
+    // Composite/meta sort keys map directly to stack_cache aggregates. Per-model
+    // sorts now route through the `model:<name>` path (which JOINs
+    // ``image_model_scores``), so ``score_spaq`` / ``score_ava`` / ``score_liqe``
+    // no longer appear here.
     const cacheColMap: Record<string, string> = {
         score_general: desc ? 'sc.max_score_general' : 'sc.min_score_general',
         score_technical: desc ? 'sc.max_score_technical' : 'sc.min_score_technical',
         score_aesthetic: desc ? 'sc.max_score_aesthetic' : 'sc.min_score_aesthetic',
-        score_spaq: desc ? 'sc.max_score_spaq' : 'sc.min_score_spaq',
-        score_ava: desc ? 'sc.max_score_ava' : 'sc.min_score_ava',
-        score_liqe: desc ? 'sc.max_score_liqe' : 'sc.min_score_liqe',
         rating: desc ? 'sc.max_rating' : 'sc.min_rating',
         created_at: desc ? 'sc.max_created_at' : 'sc.min_created_at',
         file_name: 'i.file_name',
