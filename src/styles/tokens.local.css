@@ -1,0 +1,36 @@
+/*
+ * Gallery-only design tokens (layout, spacing, component surfaces).
+ * Shared palette and status colors come from @synthet/image-scoring-design/tokens.css.
+ */
+
+:root {
+  /* ── Layout ──────────────────────────────────────────────────────── */
+  --sidebar-width: 250px;
+
+  /* ── Spacing scale ───────────────────────────────────────────────── */
+  --space-xs: 4px;
+  --space-sm: 6px;
+  --space-md: 10px;
+  --space-lg: 15px;
+  --space-xl: 20px;
+
+  /* ── Typography scale ────────────────────────────────────────────── */
+  --font-xs:   0.75em;
+  --font-sm:   0.8em;
+  --font-md:   0.85em;
+  --font-base: 0.9em;
+  --font-lg:   1em;
+  --font-xl:   1.1em;
+  --font-2xl:  1.2em;
+
+  /* ── Component surfaces ──────────────────────────────────────────── */
+  --card-bg:        #2a2a2a;
+  --input-bg:       #333333;
+  --input-border:   #555555;
+  --overlay-bg:     rgba(0, 0, 0, 0.95);
+  --modal-backdrop: rgba(0, 0, 0, 0.75);
+
+  /* ── Focus ring ──────────────────────────────────────────────────── */
+  --focus-ring:   2px solid var(--color-accent);
+  --focus-offset: 2px;
+}

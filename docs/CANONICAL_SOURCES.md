@@ -10,6 +10,7 @@ Use this map before changing integration contracts, renderer labels, database ac
 | Database schema and columns | [image-scoring-backend DB_SCHEMA.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/DB_SCHEMA.md), [DATABASE.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DATABASE.md), backend migrations |
 | Pipeline phase codes and user-facing terminology | [image-scoring-backend PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) |
 | Cross-repo change protocol | [image-scoring-backend AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) |
+| Design system (palette, icons, token package) | [image-scoring-ui DESIGN_SYSTEM.md](https://github.com/synthet/image-scoring-ui/blob/main/docs/DESIGN_SYSTEM.md), `@synthet/image-scoring-design` **1.0.0**; local pointer [design/DESIGN_SYSTEM.md](design/DESIGN_SYSTEM.md) |
 | Diagnostics, doctor, MCP triage | [image-scoring-backend DIAGNOSTICS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DIAGNOSTICS.md), [AGENTS.md](https://github.com/synthet/image-scoring-backend/blob/main/AGENTS.md) |
 | Backend shipped feature catalog | [image-scoring-backend features/implemented/INDEX.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/implemented/INDEX.md) |
 

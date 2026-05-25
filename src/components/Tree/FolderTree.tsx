@@ -9,7 +9,7 @@ const STATUS_COLOR: Record<string, string> = {
     not_started: '#555',
     queued: '#888',
     running: '#4a9eff',
-    done: '#4caf50',
+    done: 'var(--color-success)',
     skipped: '#f0a500',
     failed: '#e05050',
 };

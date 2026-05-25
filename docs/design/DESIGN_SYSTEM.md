@@ -1,32 +1,13 @@
-# Design system — gallery mirror
+# Design system — gallery pointer
 
-The full design-system contract (palette, status mapping, Lucide icon
-contract, sizing rules, photo-label palette) is **canonical in
-image-scoring-backend** and applies to this repo unchanged.
+**Canonical doc:** [image-scoring-ui `docs/DESIGN_SYSTEM.md`](https://github.com/synthet/image-scoring-ui/blob/main/docs/DESIGN_SYSTEM.md) (sibling clone: [`../image-scoring-ui/docs/DESIGN_SYSTEM.md`](../../image-scoring-ui/docs/DESIGN_SYSTEM.md)).
 
-> **Read the canonical doc:** [image-scoring-backend / docs / design / DESIGN_SYSTEM.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/design/DESIGN_SYSTEM.md)
+**Shared package:** [`@synthet/image-scoring-design`](https://github.com/synthet/image-scoring-ui) **1.0.0** — installed from `package.json` (`file:../image-scoring-ui`). Rebuild the UI package (`npm run build` in **image-scoring-ui**) after editing `src/tokens.json`.
 
 ## What lives in this repo
 
-- **[FRONTEND_UX_SPEC.md](FRONTEND_UX_SPEC.md)** — Frontend UX/UI Visual Specification detailing layout, colors, typography, and styling paradigm.
+- **[FRONTEND_UX_SPEC.md](FRONTEND_UX_SPEC.md)** — Gallery layout, typography, and CSS Modules conventions (stack differences vs backend Tailwind: see that doc).
+- **`src/styles/tokens.css`** — Generated or synced from the design package; layout-only rules in `src/styles/layout.css`.
+- **Severity toasts** — [`src/components/Layout/NotificationTray.tsx`](../../src/components/Layout/NotificationTray.tsx) (`Info` / `CheckCircle2` / `AlertTriangle` / `XCircle`).
 
-| Concern | File |
-|---|---|
-| Token definitions | [`src/styles/tokens.css`](../../src/styles/tokens.css) — surfaces, text, accent, status (`--color-success/warning/danger/info`), accents, photo labels (`--label-*`), score gold (`--score-gold`) |
-| Layout-only CSS | [`src/styles/layout.css`](../../src/styles/layout.css) — sidebar width, top bar, breadcrumbs, content area; no longer redefines color tokens |
-| Severity toasts | [`src/components/Layout/NotificationTray.tsx`](../../src/components/Layout/NotificationTray.tsx) (`Info` / `CheckCircle2` / `AlertTriangle` / `XCircle`) |
-| Photo labels (rendering) | [`src/components/Sidebar/FilterPanel.tsx`](../../src/components/Sidebar/FilterPanel.tsx), [`src/components/Gallery/GalleryGrid.tsx`](../../src/components/Gallery/GalleryGrid.tsx), [`src/components/Viewer/ImageViewer.tsx`](../../src/components/Viewer/ImageViewer.tsx) — all read from `--label-*` |
-| Score gold | `--score-gold` in `tokens.css`; consumed by `GalleryGrid.module.css` (`.ratingStars`) and `ImageViewer.tsx` |
-
-## Local conventions
-
-- All colors come from `var(--…)`. New hex literals in `.tsx` / `.module.css`
-  are a smell — propose a token in `tokens.css` first.
-- Lucide icons follow the canonical contract. Notable consequences in this
-  repo:
-  - DB-connection error in [`src/App.tsx`](../../src/App.tsx) uses `XCircle` (error, not `AlertCircle`).
-  - RAW preview hint in [`src/components/Gallery/GalleryGrid.tsx`](../../src/components/Gallery/GalleryGrid.tsx) uses `AlertTriangle` (warning).
-- Run-status visuals (Loader / CheckCircle2 / XCircle / AlertTriangle / etc.)
-  align with [`PhaseStatusIcon.tsx` in the backend frontend](https://github.com/synthet/image-scoring-backend/blob/main/frontend/src/components/status/PhaseStatusIcon.tsx).
-
-**See also:** [Canonical sources](../CANONICAL_SOURCES.md) · [Documentation index](../README.md)
+**See also:** [Canonical sources](../CANONICAL_SOURCES.md) · [Pipeline terminology](../technical/PIPELINE_TERMINOLOGY.md)
