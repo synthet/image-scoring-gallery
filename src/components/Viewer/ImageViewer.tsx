@@ -82,7 +82,7 @@ const PHASE_STATUS_LABEL: Record<ImagePhaseStatus['status'], string> = {
 const PHASE_STATUS_COLOR: Record<ImagePhaseStatus['status'], string> = {
     not_started: '#ffa726',
     running: '#42a5f5',
-    done: '#4caf50',
+    done: 'var(--color-success)',
     skipped: '#9e9e9e',
     failed: '#ef5350',
 };
@@ -132,25 +132,25 @@ const renderPhaseRows = (
     return [
         <div key="metadata" style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: '#888' }}>{STAGE_DISPLAY.metadata.name}:</span>
-            <span style={{ color: heuristic.metadata ? '#4caf50' : '#ffa726' }}>
+            <span style={{ color: heuristic.metadata ? 'var(--color-success)' : '#ffa726' }}>
                 {heuristic.metadata ? 'Extracted' : 'Pending'}
             </span>
         </div>,
         <div key="scoring" style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: '#888' }}>{STAGE_DISPLAY.scoring.name}:</span>
-            <span style={{ color: heuristic.scoring ? '#4caf50' : '#ffa726' }}>
+            <span style={{ color: heuristic.scoring ? 'var(--color-success)' : '#ffa726' }}>
                 {heuristic.scoring ? 'Completed' : 'Pending'}
             </span>
         </div>,
         <div key="culling" style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: '#888' }}>{STAGE_DISPLAY.culling.name}:</span>
-            <span style={{ color: heuristic.culling ? '#4caf50' : '#ffa726' }}>
+            <span style={{ color: heuristic.culling ? 'var(--color-success)' : '#ffa726' }}>
                 {heuristic.culling ? 'Completed' : 'Pending'}
             </span>
         </div>,
         <div key="keywords" style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: '#888' }}>{STAGE_DISPLAY.keywords.name}:</span>
-            <span style={{ color: heuristic.keywords ? '#4caf50' : '#ffa726' }}>
+            <span style={{ color: heuristic.keywords ? 'var(--color-success)' : '#ffa726' }}>
                 {heuristic.keywords ? 'Completed' : 'Pending'}
             </span>
         </div>,

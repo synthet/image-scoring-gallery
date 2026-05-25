@@ -2,6 +2,20 @@
 
 This document outlines the visual design, user experience, and UI specifications for the **Driftara Gallery** (`image-scoring-gallery`) frontend application.
 
+**Palette and icons:** canonical contract in [image-scoring-ui `DESIGN_SYSTEM.md`](https://github.com/synthet/image-scoring-ui/blob/main/docs/DESIGN_SYSTEM.md) via `@synthet/image-scoring-design` **1.0.0**. Local pointer: [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
+
+### Stack differences (gallery vs backend `/ui/`)
+
+| Aspect | Backend `/ui/` (`image-scoring-backend/frontend`) | Gallery (this repo) |
+|--------|-----------------------------------------------------|---------------------|
+| Framework utilities | Tailwind v4 (`@theme` from package `tailwind-theme.css`) | Vanilla CSS + **CSS Modules** (`.module.css`) |
+| Token consumption | Theme utilities (`bg-bg-primary`, `text-text-secondary`, …) | `var(--color-…)` from `src/styles/tokens.css` |
+| Design package CSS | `dist/tailwind-theme.css` | `dist/tokens.css` (imported into `tokens.css`) |
+| Stage labels | `frontend/src/types/api.ts` (`STAGE_DISPLAY`) | `src/constants/pipelineLabels.ts` |
+| `phase_code` authority | [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) (backend) | Same doc; gallery mirrors labels only |
+
+Other surfaces: Gradio operator UI at `/app` (backend) uses `gradio-snippet.css` from the same package — not used in the Electron app.
+
 ## 1. Overview and Design Language
 The application is built using a modern desktop stack (Electron + React + Vite). The design language is strictly utilitarian, professional, and heavily inspired by developer tools like **VS Code Dark+**. The focus is on dense information display, high contrast for image viewing, and a distraction-free environment.
 

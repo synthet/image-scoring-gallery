@@ -29,22 +29,23 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
 
     // Check target info when modal opens or path changes
     useEffect(() => {
-        if (isOpen && targetPath && !isRunning) {
+        if (isOpen && targetPath) {
             bridge.backupCheckTarget(targetPath)
                 .then(info => setTargetInfo(info))
                 .catch(err => console.error('Failed to check backup target:', err));
         }
-    }, [isOpen, targetPath, isRunning]);
+    }, [isOpen, targetPath]);
 
-    // Reset state when modal opens or path changes
+    // Reset state when modal opens or path changes (not when a run finishes)
     useEffect(() => {
-        if (isOpen && !isRunning) {
-            setIsComplete(false);
-            setResult(null);
-            setError(null);
-            setProgress({ phase: 'scanning', current: 0, total: 0, detail: '' });
-        }
-    }, [isOpen, targetPath, isRunning]);
+        if (!isOpen) return;
+        runRef.current = false;
+        setIsRunning(false);
+        setIsComplete(false);
+        setResult(null);
+        setError(null);
+        setProgress({ phase: 'scanning', current: 0, total: 0, detail: '' });
+    }, [isOpen, targetPath]);
 
     const startBackup = () => {
         if (!targetPath || isRunning) return;
@@ -189,7 +190,7 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                             {(isRunning || isComplete) && (
                                 <div style={{ marginBottom: 24 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9em', marginBottom: 8 }}>
-                                        <span style={{ fontWeight: 500, color: isComplete ? '#4caf50' : '#ddd' }}>
+                                        <span style={{ fontWeight: 500, color: isComplete ? 'var(--color-success)' : '#ddd' }}>
                                             {isRunning
                                                 ? `${phaseLabel}...`
                                                 : 'Backup process finished'}
@@ -204,7 +205,7 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                                     }}>
                                         <div style={{
                                             height: '100%',
-                                            backgroundColor: isComplete ? '#4caf50' : '#0078d4',
+                                            backgroundColor: isComplete ? 'var(--color-success)' : '#0078d4',
                                             width: progress.total > 0 ? `${pct}%` : isComplete ? '100%' : '5%',
                                             transition: 'width 0.3s ease-out',
                                             boxShadow: isRunning ? '0 0 10px rgba(0,120,212,0.5)' : 'none'
@@ -230,7 +231,7 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                                 }}>
                                     <div style={{ fontSize: '0.9em' }}>
                                         <div style={{ color: '#888', fontSize: '0.8em', textTransform: 'uppercase', marginBottom: 4 }}>Copied</div>
-                                        <div style={{ fontSize: '1.5em', fontWeight: 600, color: '#4caf50' }}>{result.copied}</div>
+                                        <div style={{ fontSize: '1.5em', fontWeight: 600, color: 'var(--color-success)' }}>{result.copied}</div>
                                     </div>
                                     <div style={{ fontSize: '0.9em' }}>
                                         <div style={{ color: '#888', fontSize: '0.8em', textTransform: 'uppercase', marginBottom: 4 }}>Skipped</div>
@@ -326,7 +327,7 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                         <button
                             onClick={handleClose}
                             style={{
-                                padding: '10px 24px', background: isComplete ? '#4caf50' : '#444',
+                                padding: '10px 24px', background: isComplete ? 'var(--color-success)' : '#444',
                                 border: 'none', color: '#fff', borderRadius: 6, cursor: 'pointer',
                                 fontWeight: 600, transition: 'all 0.2s'
                             }}

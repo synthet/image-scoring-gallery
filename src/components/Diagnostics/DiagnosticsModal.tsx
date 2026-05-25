@@ -57,7 +57,7 @@ export const DiagnosticsModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
     const renderStatus = (connected: boolean, disabled?: boolean) => (
         <span style={{ 
-            color: disabled ? '#888' : (connected ? '#4caf50' : '#f44336'),
+            color: disabled ? '#888' : (connected ? 'var(--color-success)' : 'var(--color-danger)'),
             fontWeight: 'bold',
             marginLeft: '8px',
             fontStyle: disabled ? 'italic' : 'normal'
@@ -120,7 +120,7 @@ export const DiagnosticsModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
                                     <div style={{ color: '#888', marginTop: '12px' }}>Real-time Updates:</div>
                                     <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <span style={{ fontSize: '0.9em', color: isWebSocketEnabled ? '#4caf50' : '#888' }}>
+                                        <span style={{ fontSize: '0.9em', color: isWebSocketEnabled ? 'var(--color-success)' : '#888' }}>
                                             {isWebSocketEnabled ? 'Enabled' : 'Disabled'}
                                         </span>
                                         <button

@@ -201,7 +201,7 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
                 />
 
                 {error && (
-                    <div style={{ textAlign: 'center', padding: 20, color: '#f44336' }}>
+                    <div style={{ textAlign: 'center', padding: 20, color: 'var(--color-danger)' }}>
                         <div style={{ marginBottom: 10 }}>Error finding similarities</div>
                         <div style={{ fontSize: '0.85em', color: '#ffaaaa' }}>{error}</div>
                     </div>

@@ -1,16 +1,17 @@
+import { STAGE_DISPLAY as SHARED_STAGE_DISPLAY } from '@synthet/image-scoring-design';
 import { UiStageCode, type StageCode } from '../types/pipelineStage';
 
 /**
- * User-facing pipeline stage names — keep in sync with
- * image-scoring-backend `frontend/src/types/api.ts` (`STAGE_DISPLAY`).
+ * User-facing pipeline stage names — sourced from @synthet/image-scoring-design
+ * (aligns with image-scoring-backend `frontend/src/types/api.ts`).
  */
-export const STAGE_DISPLAY: Record<StageCode, { name: string; description: string }> = {
-    [UiStageCode.INDEXING]: { name: 'Discovery', description: 'Scan and register image files' },
-    [UiStageCode.METADATA]: { name: 'Inspection', description: 'Extract EXIF metadata and generate thumbnails' },
-    [UiStageCode.SCORING]: { name: 'Quality Analysis', description: 'AI-powered quality scoring (MUSIQ, LIQE, TOPIQ, Q-Align)' },
-    [UiStageCode.CULLING]: { name: 'Similarity Clustering', description: 'Group similar images into stacks' },
-    [UiStageCode.KEYWORDS]: { name: 'Tagging', description: 'Generate keywords and captions via BLIP/CLIP' },
-    [UiStageCode.BIRD_SPECIES]: { name: 'Bird Species ID', description: 'Identify bird species with BioCLIP 2 (run after Tagging)' },
+export const STAGE_DISPLAY: Pick<typeof SHARED_STAGE_DISPLAY, StageCode> = {
+    [UiStageCode.INDEXING]: SHARED_STAGE_DISPLAY.indexing,
+    [UiStageCode.METADATA]: SHARED_STAGE_DISPLAY.metadata,
+    [UiStageCode.SCORING]: SHARED_STAGE_DISPLAY.scoring,
+    [UiStageCode.CULLING]: SHARED_STAGE_DISPLAY.culling,
+    [UiStageCode.KEYWORDS]: SHARED_STAGE_DISPLAY.keywords,
+    [UiStageCode.BIRD_SPECIES]: SHARED_STAGE_DISPLAY.bird_species,
 };
 
 /** Keys sent as `stage_codes` in POST /api/pipeline/submit */

@@ -166,7 +166,7 @@ export function DuplicateFinder({ currentFolder }: DuplicateFinderProps) {
                                 <strong>Similarity: {(pair.similarity * 100).toFixed(1)}%</strong>
                                 <button
                                     onClick={() => handleKeepBest(pair, idx)}
-                                    style={{ backgroundColor: '#4caf50', border: 'none', borderRadius: '4px', color: '#fff', padding: '4px 12px', cursor: 'pointer', fontSize: '12px' }}
+                                    style={{ backgroundColor: 'var(--color-success)', border: 'none', borderRadius: '4px', color: '#fff', padding: '4px 12px', cursor: 'pointer', fontSize: '12px' }}
                                 >
                                     Keep Best Only
                                 </button>
@@ -187,7 +187,7 @@ export function DuplicateFinder({ currentFolder }: DuplicateFinderProps) {
                                         {pair.imgA && (
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
                                                 <span>Score: {pair.imgA.score_general ? pair.imgA.score_general.toFixed(2) : 'N/A'}</span>
-                                                <span style={{ color: pair.imgA.rating === -1 ? '#f44336' : '#4caf50' }}>
+                                                <span style={{ color: pair.imgA.rating === -1 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                                                     Rating: {pair.imgA.rating ?? 0}
                                                 </span>
                                             </div>
@@ -209,7 +209,7 @@ export function DuplicateFinder({ currentFolder }: DuplicateFinderProps) {
                                         {pair.imgB && (
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
                                                 <span>Score: {pair.imgB.score_general ? pair.imgB.score_general.toFixed(2) : 'N/A'}</span>
-                                                <span style={{ color: pair.imgB.rating === -1 ? '#f44336' : '#4caf50' }}>
+                                                <span style={{ color: pair.imgB.rating === -1 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                                                     Rating: {pair.imgB.rating ?? 0}
                                                 </span>
                                             </div>
