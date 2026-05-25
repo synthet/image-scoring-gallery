@@ -132,8 +132,20 @@ export interface SimilarSearchResult {
 export interface TextSearchParams {
     query: string;
     limit?: number;
+    /** Single-folder scope (ignored when folder_ids is set). */
     folder_path?: string;
+    /** Folder scope including subfolders (preferred over folder_path). */
+    folder_ids?: number[];
     min_similarity?: number;
+    min_rating?: number;
+    color_label?: string;
+    /** AND filter: image must also match this keyword in the catalog. */
+    keyword?: string;
+    /** Capture date filter YYYY-MM-DD. */
+    captured_date?: string;
+    /** Secondary sort after vector relevance (capture_date, created_at, rating, score_general, ...). */
+    sort_by?: string;
+    order?: 'ASC' | 'DESC';
 }
 
 export interface TextSearchResultItem {

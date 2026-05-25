@@ -232,12 +232,7 @@ function createHttpBridge(): Window['electron'] {
 
         findOutliers: (options) => post('/db/outliers', options),
 
-        searchByText: async (options: {
-            query: string;
-            limit?: number;
-            folder_path?: string;
-            min_similarity?: number;
-        }) => {
+        searchByText: async (options: import('../electron/apiTypes').TextSearchParams) => {
             browserTextSearchAbort?.abort();
             browserTextSearchAbort = new AbortController();
             const signal = browserTextSearchAbort.signal;
@@ -247,8 +242,15 @@ function createHttpBridge(): Window['electron'] {
                     {
                         query: options.query,
                         limit: options.limit,
-                        folder_path: options.folder_path,
+                        folder_path: options.folder_ids?.length ? undefined : options.folder_path,
+                        folder_ids: options.folder_ids,
                         min_similarity: options.min_similarity,
+                        min_rating: options.min_rating,
+                        color_label: options.color_label,
+                        keyword: options.keyword,
+                        captured_date: options.captured_date,
+                        sort_by: options.sort_by,
+                        order: options.order,
                     },
                     { signal, rawJson: true },
                 );

@@ -266,6 +266,8 @@ function AppContent() {
     handleImageClick,
     handleNavigateImage,
     openImageById,
+    openImageFromSearch,
+    viewerImages,
     handleImageDelete,
     closeViewer,
   } = useImageOpener({
@@ -360,8 +362,11 @@ function AppContent() {
   }, [folders, selectedFolderId, activeStackId]);
 
   const canGalleryNavigateBack = useMemo(
-    () => activeStackId !== null || selectedFolderId !== undefined,
-    [activeStackId, selectedFolderId],
+    () =>
+      isSearchOpen
+        ? true
+        : activeStackId !== null || selectedFolderId !== undefined,
+    [isSearchOpen, activeStackId, selectedFolderId],
   );
 
   return (
@@ -407,12 +412,18 @@ function AppContent() {
               <button
                   type="button"
                   disabled={!canGalleryNavigateBack}
-                  onClick={() => handleNavigateToParent()}
-                  aria-label="Back to previous folder"
+                  onClick={() => {
+                    if (isSearchOpen) {
+                      setIsSearchOpen(false);
+                    } else {
+                      handleNavigateToParent();
+                    }
+                  }}
+                  aria-label={isSearchOpen ? 'Back to gallery' : 'Back to previous folder'}
                   style={{
                     width: '100%',
                     padding: '10px',
-                    backgroundColor: canGalleryNavigateBack ? '#4caf50' : '#3a3a3a',
+                    backgroundColor: canGalleryNavigateBack ? 'var(--color-success)' : '#3a3a3a',
                     color: canGalleryNavigateBack ? '#fff' : '#888',
                     border: 'none',
                     borderRadius: 4,
@@ -421,12 +432,12 @@ function AppContent() {
                     borderLeft: canGalleryNavigateBack ? '4px solid #fff' : '4px solid #555',
                   }}
                 >
-                  Back
+                  {isSearchOpen ? 'Back to Gallery' : 'Back'}
                 </button>
             </div>
 
             <div style={{ padding: '0 0 10px 0', display: 'flex', flexDirection: 'column', gap: 5 }}>
-              {/* Stacks Toggle */}
+              {!isSearchOpen && (
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '6px', background: '#333', borderRadius: 4, border: '1px solid #555',
@@ -442,6 +453,7 @@ function AppContent() {
                   <span className={toggleStyles.thumb} />
                 </button>
               </div>
+              )}
 
               {/* Subfolders Toggle */}
               {currentFolder && currentFolder.children && currentFolder.children.length > 0 && (
@@ -449,7 +461,9 @@ function AppContent() {
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '6px', background: '#333', borderRadius: 4, border: '1px solid #555',
                 }}>
-                  <span style={{ fontSize: '12px', color: '#ccc' }}>Show Subfolders</span>
+                  <span style={{ fontSize: '12px', color: '#ccc' }}>
+                    {isSearchOpen ? 'Include subfolders in search' : 'Show Subfolders'}
+                  </span>
                   <button
                     role="switch"
                     aria-checked={includeSubfolders}
@@ -463,21 +477,23 @@ function AppContent() {
               )}
 
               <select
-                aria-label="Filter by keyword"
+                aria-label={isSearchOpen ? 'Also require keyword' : 'Filter by keyword'}
+                title={isSearchOpen ? 'AND filter: results must also have this keyword' : undefined}
                 value={filters.keyword || ''}
                 onChange={(e) => setFilters({ ...filters, keyword: e.target.value || undefined })}
                 onFocus={fetchKeywords}
                 style={{ background: '#333', color: '#eee', border: '1px solid #555', padding: '6px', borderRadius: 4, width: '100%', cursor: 'pointer' }}
                 disabled={keywordsLoading}
               >
-                <option value="">All Keywords</option>
+                <option value="">{isSearchOpen ? 'Any keyword' : 'All Keywords'}</option>
                 {keywords.map((kw) => (
                   <option key={kw} value={kw}>{kw}</option>
                 ))}
               </select>
 
               <select
-                aria-label="Sort by"
+                aria-label={isSearchOpen ? 'Then sort by' : 'Sort by'}
+                title={isSearchOpen ? 'Secondary sort after CLIP relevance' : undefined}
                 value={filters.sortBy || 'score_general'}
                 onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
                 style={{ background: '#333', color: '#eee', border: '1px solid #555', padding: '6px', borderRadius: 4, width: '100%', cursor: 'pointer' }}
@@ -505,7 +521,15 @@ function AppContent() {
               pointerEvents: isInitialGridLoading ? 'none' : 'auto',
               opacity: isInitialGridLoading ? 0.6 : 1,
               transition: 'opacity 0.2s',
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0,
             }}>
+              {isSearchOpen && (
+                <div style={{ fontSize: '11px', color: '#888', marginBottom: 8, lineHeight: 1.4 }}>
+                  Search scope: select a folder below or leave unselected for the whole library.
+                </div>
+              )}
               {foldersLoading ? <div>Loading folders...</div> : (
                 <FolderTree folders={folders} onSelect={handleSelectFolder} selectedId={selectedFolderId} onRefresh={refreshFolders} />
               )}
@@ -517,9 +541,11 @@ function AppContent() {
             {isSearchOpen ? (
               <SearchPage
                 currentFolder={currentFolder}
-                onBack={() => setIsSearchOpen(false)}
-                onOpenImage={(id) => {
-                  void openImageById(id);
+                folderIds={subfolderIds}
+                includeSubfolders={includeSubfolders}
+                filters={filters}
+                onOpenImage={(id, searchResults) => {
+                  void openImageFromSearch(id, searchResults);
                 }}
               />
             ) : (
@@ -585,7 +611,7 @@ function AppContent() {
               <ImageViewer
                 image={openingImage}
                 onClose={closeViewer}
-                allImages={currentImages}
+                allImages={viewerImages}
                 currentIndex={currentImageIndex}
                 onNavigate={handleNavigateImage}
                 onDelete={handleImageDelete}

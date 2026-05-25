@@ -4,6 +4,27 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.12.0] - 2026-05-25
+
+### Added
+
+- **Semantic text search scope**: `buildTextSearchParams` maps sidebar filters (rating, label, keyword,
+  capture date, sort) and folder tree selection (`folder_ids` or `folder_path`) to backend text-search
+  query params.
+- **Search viewer navigation**: Open images from text-search results with prev/next in the image viewer;
+  back control returns from Search to the gallery grid.
+
+### Changed
+
+- **Search page**: Text search uses shared filter state, aborts in-flight API requests on new queries, and
+  shows results with gallery thumbnails.
+- **OpenAPI contract**: `text-search` documents `folder_ids`, metadata filters, and secondary sort params.
+
+### Fixed
+
+- **IPC text search**: Main-process `AbortController` cancels stale `apiService.textSearch` calls when the
+  query or filters change.
+
 ## [7.11.0] - 2026-05-24
 
 ### Added

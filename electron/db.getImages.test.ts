@@ -59,6 +59,15 @@ describe('db.getImages SQL construction', () => {
     expect(params).toEqual([50, 0]);
   });
 
+  it('does not reference dropped images.score_* columns in overlay SELECT', async () => {
+    await getImages({ limit: 5, offset: 0 });
+
+    const [sql] = queryMock.mock.calls[0];
+    expect(sql).toContain('ims_legacy.score_spaq AS score_spaq');
+    expect(sql).not.toMatch(/i\.score_spaq\b/);
+    expect(sql).not.toMatch(/COALESCE\(i\.score_spaq/);
+  });
+
   it('binds keyword filters before pagination when sorting by model scores', async () => {
     await getImages({ keyword: 'birds', sortBy: 'model:arniqa', order: 'DESC', limit: 8, offset: 0 });
 

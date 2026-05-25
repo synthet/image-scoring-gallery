@@ -96,14 +96,14 @@ function imsOverlayJoin(alias: string, aliasId: string): string {
         ) ${alias} ON ${alias}.image_id = ${aliasId}`;
 }
 
-/** Renderer-facing ``score_<model>`` projections: legacy column first, then IMS overlay. */
-function imsOverlaySelect(alias: string, imagesAlias: string): string {
+/** Renderer-facing ``score_<model>`` projections from ``image_model_scores`` only. */
+function imsOverlaySelect(alias: string): string {
     return [
-        `COALESCE(${imagesAlias}.score_spaq, ${alias}.score_spaq) AS score_spaq`,
-        `COALESCE(${imagesAlias}.score_ava, ${alias}.score_ava) AS score_ava`,
-        `COALESCE(${imagesAlias}.score_liqe, ${alias}.score_liqe) AS score_liqe`,
-        `COALESCE(${imagesAlias}.score_koniq, ${alias}.score_koniq) AS score_koniq`,
-        `COALESCE(${imagesAlias}.score_paq2piq, ${alias}.score_paq2piq) AS score_paq2piq`,
+        `${alias}.score_spaq AS score_spaq`,
+        `${alias}.score_ava AS score_ava`,
+        `${alias}.score_liqe AS score_liqe`,
+        `${alias}.score_koniq AS score_koniq`,
+        `${alias}.score_paq2piq AS score_paq2piq`,
     ].join(',\n            ');
 }
 
@@ -421,7 +421,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.score_general,
             i.score_technical,
             i.score_aesthetic,
-            ${imsOverlaySelect('ims_legacy', 'i')},
+            ${imsOverlaySelect('ims_legacy')},
             i.rating,
             i.label,
             i.created_at,
@@ -532,7 +532,7 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
             i.score_general,
             i.score_technical,
             i.score_aesthetic,
-            ${imsOverlaySelect('ims_legacy', 'i')},
+            ${imsOverlaySelect('ims_legacy')},
             (SELECT string_agg(kd.keyword_display, ', ') 
              FROM image_keywords ik 
              JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id 
@@ -1308,12 +1308,12 @@ export async function rebuildStackCache(context: { smartCover?: boolean } = {}):
                         MIN(i.score_general), MAX(i.score_general),
                         MIN(i.score_technical), MAX(i.score_technical),
                         MIN(i.score_aesthetic), MAX(i.score_aesthetic),
-                        MIN(COALESCE(i.score_spaq, ims_legacy.score_spaq)),
-                        MAX(COALESCE(i.score_spaq, ims_legacy.score_spaq)),
-                        MIN(COALESCE(i.score_ava, ims_legacy.score_ava)),
-                        MAX(COALESCE(i.score_ava, ims_legacy.score_ava)),
-                        MIN(COALESCE(i.score_liqe, ims_legacy.score_liqe)),
-                        MAX(COALESCE(i.score_liqe, ims_legacy.score_liqe)),
+                        MIN(ims_legacy.score_spaq),
+                        MAX(ims_legacy.score_spaq),
+                        MIN(ims_legacy.score_ava),
+                        MAX(ims_legacy.score_ava),
+                        MIN(ims_legacy.score_liqe),
+                        MAX(ims_legacy.score_liqe),
                         MIN(i.rating), MAX(i.rating),
                         MIN(i.created_at), MAX(i.created_at)
                     FROM images i${imsOverlayJoin('ims_legacy', 'i.id')}
@@ -1450,7 +1450,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.score_general,
                 i.score_technical,
                 i.score_aesthetic,
-                ${imsOverlaySelect('ims_legacy', 'i')},
+                ${imsOverlaySelect('ims_legacy')},
                 i.rating,
                 i.label,
                 i.created_at,
@@ -1480,7 +1480,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.score_general,
                 i.score_technical,
                 i.score_aesthetic,
-                ${imsOverlaySelect('ims_legacy', 'i')},
+                ${imsOverlaySelect('ims_legacy')},
                 i.rating,
                 i.label,
                 i.created_at,
@@ -1562,7 +1562,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             i.score_general,
             i.score_technical,
             i.score_aesthetic,
-            ${imsOverlaySelect('ims_legacy', 'i')},
+            ${imsOverlaySelect('ims_legacy')},
             i.rating,
             i.label,
             i.created_at,

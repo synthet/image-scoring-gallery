@@ -96,12 +96,7 @@ declare global {
             getKeywords: () => Promise<string[]>;
             findNearDuplicates: (options?: { threshold?: number; folder_path?: string; limit?: number }) => Promise<DuplicateResponse>;
             searchSimilarImages: (options: { imageId: number; limit?: number; folderId?: number; folderPath?: string; minSimilarity?: number }) => Promise<{ query_image_id: number; results: Array<Record<string, unknown>>; count: number; error?: string }>;
-            searchByText: (options: {
-                query: string;
-                limit?: number;
-                folder_path?: string;
-                min_similarity?: number;
-            }) => Promise<TextSearchResponse>;
+            searchByText: (options: import('../electron/apiTypes').TextSearchParams) => Promise<TextSearchResponse>;
             cancelTextSearch: () => Promise<void>;
             getSearchExampleQueries: (options?: { limit?: number; folder_path?: string }) => Promise<ExampleQueriesResponse>;
             findOutliers: (options: { folderPath: string; zThreshold?: number; k?: number; limit?: number }) => Promise<OutlierSearchResult>;

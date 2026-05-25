@@ -1,15 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
-import type { TextSearchResponse } from '../../electron/apiTypes';
+import type { TextSearchParams, TextSearchResponse } from '../../electron/apiTypes';
 import { bridge } from '../bridge';
 
 export type SemanticSearchStatus = 'idle' | 'loading' | 'success' | 'error' | 'cancelled';
 
-export interface SemanticSearchParams {
-    query: string;
-    limit?: number;
-    folder_path?: string;
-    min_similarity?: number;
-}
+export type SemanticSearchParams = TextSearchParams;
 
 function isAbortError(err: unknown): boolean {
     if (err instanceof DOMException && err.name === 'AbortError') return true;
@@ -38,12 +33,7 @@ export function useSemanticTextSearch() {
         setError(null);
 
         try {
-            const result = await bridge.searchByText({
-                query: text,
-                limit: params.limit,
-                folder_path: params.folder_path,
-                min_similarity: params.min_similarity,
-            });
+            const result = await bridge.searchByText(params);
             if (requestIdRef.current !== reqId) return;
             setData(result);
             setStatus('success');

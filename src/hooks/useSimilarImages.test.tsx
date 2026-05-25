@@ -96,11 +96,16 @@ describe('useSimilarImages', () => {
     });
 
     it('records duration after a successful search', async () => {
+        const nowSpy = vi.spyOn(performance, 'now');
+        nowSpy.mockReturnValueOnce(1000).mockReturnValueOnce(1008);
+
         const { result } = renderHook(() => useSimilarImages(42));
 
         await waitFor(() => {
             expect(result.current.loading).toBe(false);
         });
+
+        nowSpy.mockRestore();
 
         expect(result.current.lastDurationMs).not.toBeNull();
         expect(result.current.lastDurationMs).toBeGreaterThan(0);
