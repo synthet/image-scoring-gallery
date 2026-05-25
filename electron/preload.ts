@@ -116,12 +116,7 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('api:similarity:outliers', options);
         return unwrapEnvelope<OutlierSearchResult>(response);
     },
-    searchByText: async (options: {
-        query: string;
-        limit?: number;
-        folder_path?: string;
-        min_similarity?: number;
-    }) => {
+    searchByText: async (options: import('./apiTypes').TextSearchParams) => {
         const response = await ipcRenderer.invoke('api:similarity:text-search', options);
         return unwrapEnvelope<TextSearchResponse>(response);
     },

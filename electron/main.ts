@@ -1043,25 +1043,12 @@ async function startFullApplication(): Promise<void> {
 
     let textSearchAbort: AbortController | null = null;
 
-    ipcMain.handle('api:similarity:text-search', wrapIpcHandler(async (_, options: {
-        query: string;
-        limit?: number;
-        folder_path?: string;
-        min_similarity?: number;
-    }) => {
+    ipcMain.handle('api:similarity:text-search', wrapIpcHandler(async (_, options: import('./apiTypes').TextSearchParams) => {
         textSearchAbort?.abort();
         textSearchAbort = new AbortController();
         const signal = textSearchAbort.signal;
         try {
-            return await apiService.textSearch(
-                {
-                    query: options.query,
-                    limit: options.limit,
-                    folder_path: options.folder_path,
-                    min_similarity: options.min_similarity,
-                },
-                signal,
-            );
+            return await apiService.textSearch(options, signal);
         } finally {
             if (textSearchAbort?.signal === signal) {
                 textSearchAbort = null;

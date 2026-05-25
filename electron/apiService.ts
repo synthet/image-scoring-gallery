@@ -93,7 +93,7 @@ export class ApiService {
         apiPath: string,
         options?: {
             body?: unknown;
-            params?: Record<string, string | number | boolean | undefined>;
+            params?: Record<string, string | number | boolean | undefined | Array<string | number>>;
             timeout?: number;
             externalSignal?: AbortSignal;
         },
@@ -104,7 +104,12 @@ export class ApiService {
         // Append query params for GET requests
         if (options?.params) {
             for (const [key, value] of Object.entries(options.params)) {
-                if (value !== undefined && value !== null) {
+                if (value === undefined || value === null) continue;
+                if (Array.isArray(value)) {
+                    for (const item of value) {
+                        url.searchParams.append(key, String(item));
+                    }
+                } else {
                     url.searchParams.append(key, String(value));
                 }
             }
@@ -296,8 +301,15 @@ export class ApiService {
             params: {
                 query: opts.query,
                 limit: opts.limit,
-                folder_path: opts.folder_path,
+                folder_path: opts.folder_ids?.length ? undefined : opts.folder_path,
+                folder_ids: opts.folder_ids,
                 min_similarity: opts.min_similarity,
+                min_rating: opts.min_rating,
+                color_label: opts.color_label,
+                keyword: opts.keyword,
+                captured_date: opts.captured_date,
+                sort_by: opts.sort_by,
+                order: opts.order,
             },
             timeout: LONG_TIMEOUT,
             externalSignal,

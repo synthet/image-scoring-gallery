@@ -2545,7 +2545,7 @@
           "Similarity"
         ],
         "summary": "Search images by text query",
-        "description": "Find images semantically matching a free-text query using CLIP text-to-image\n        similarity.\n\n        Encodes the query with the CLIP ViT-B/32 text tower and searches against\n        stored `clip_vit_b32_image` embeddings via pgvector cosine distance.\n        Requires PostgreSQL and at least some images with CLIP embeddings\n        (produced during tagging).\n\n        **Query Parameters:**\n        - query: Required. Free-text search query (e.g. \"sunset over mountains\").\n        - limit: Maximum number of results (default: 20, max: 100).\n        - folder_path: Optional. Scope search to a specific folder path.\n        - min_similarity: Minimum similarity threshold 0.0-1.0 (default: none).\n\n        **Returns:**\n        - query: The original query string\n        - results: List of {image_id, file_path, similarity}\n        - count: Number of results returned\n        - embedding_space: Always \"clip_vit_b32_image\"",
+        "description": "Find images semantically matching a free-text query using CLIP text-to-image similarity.\n\n        Encodes the query with the CLIP ViT-B/32 text tower and searches against stored `clip_vit_b32_image` embeddings via pgvector cosine distance. Results are ranked by relevance first; optional secondary sort applies within similar matches.\n\n        **Query Parameters:**\n        - query: Required. Free-text search query.\n        - limit: Maximum number of results (default: 20, max: 100).\n        - folder_path: Optional single-folder scope (ignored when folder_ids is set).\n        - folder_ids: Optional list of folder IDs (e.g. parent + subfolders).\n        - min_similarity: Minimum similarity threshold 0.0-1.0.\n        - min_rating, color_label, keyword, captured_date: Optional AND filters on image metadata.\n        - sort_by, order: Optional secondary sort after relevance.\n\n        **Returns:** query, results [{image_id, file_path, similarity}], count, embedding_space.",
         "operationId": "search_images_by_text_api_similarity_text_search_get",
         "parameters": [
           {
@@ -2612,6 +2612,80 @@
               "title": "Min Similarity"
             },
             "description": "Minimum similarity threshold"
+          },
+          {
+            "name": "folder_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": { "type": "integer" },
+              "title": "Folder Ids"
+            },
+            "description": "Scope search to folder IDs (preferred over folder_path)"
+          },
+          {
+            "name": "min_rating",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 5,
+              "minimum": 0,
+              "title": "Min Rating"
+            },
+            "description": "Minimum star rating"
+          },
+          {
+            "name": "color_label",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Color Label"
+            },
+            "description": "Filter by color label"
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Keyword"
+            },
+            "description": "Also require normalized keyword match"
+          },
+          {
+            "name": "captured_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Captured Date"
+            },
+            "description": "Filter by capture date (YYYY-MM-DD)"
+          },
+          {
+            "name": "sort_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Sort By"
+            },
+            "description": "Secondary sort after relevance"
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "DESC",
+              "title": "Order"
+            },
+            "description": "Secondary sort direction (ASC or DESC)"
           }
         ],
         "responses": {

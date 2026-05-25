@@ -11,6 +11,9 @@ import type { TextSearchResultItem } from '../../../electron/apiTypes';
 import type { Folder } from '../Tree/treeUtils';
 import { bridge } from '../../bridge';
 import { useSemanticTextSearch } from '../../hooks/useSemanticTextSearch';
+import type { SearchResultNavItem } from '../../hooks/useImageOpener';
+import type { FilterState } from '../Sidebar/FilterPanel';
+import { buildTextSearchParams } from '../../utils/textSearchParams';
 import { GalleryThumbnail } from '../Gallery/GalleryThumbnail';
 import { SearchProgressOverlay } from './SearchProgressOverlay';
 import styles from './SearchPage.module.css';
@@ -107,14 +110,63 @@ function ResultCard({
     );
 }
 
-export interface SearchPageProps {
-    currentFolder: Folder | null | undefined;
-    onBack: () => void;
-    onOpenImage: (imageId: number) => void;
+function formatScopeLabel(
+    currentFolder: Folder | null | undefined,
+    includeSubfolders: boolean,
+): string | null {
+    if (!currentFolder?.path) return 'Library (all folders)';
+    const name = currentFolder.path.split(/[/\\]/).pop() ?? currentFolder.path;
+    return includeSubfolders ? `${name} (+ subfolders)` : name;
 }
 
-export function SearchPage({ currentFolder, onBack, onOpenImage }: SearchPageProps) {
-    const folderPath = currentFolder?.path;
+function ActiveFilterChips({
+    scopeLabel,
+    filters,
+    minSim,
+}: {
+    scopeLabel: string | null;
+    filters: FilterState;
+    minSim?: number;
+}) {
+    const chips: string[] = [];
+    if (scopeLabel) chips.push(`Scope: ${scopeLabel}`);
+    if (filters.minRating > 0) chips.push(`Rating ≥ ${filters.minRating}`);
+    if (filters.colorLabel) chips.push(`Label: ${filters.colorLabel}`);
+    if (filters.keyword?.trim()) chips.push(`Keyword: ${filters.keyword.trim()}`);
+    if (filters.capturedDate?.trim()) chips.push(`Date: ${filters.capturedDate.trim()}`);
+    if (filters.sortBy && filters.sortBy !== 'score_general') {
+        chips.push(`Then: ${filters.sortBy} ${filters.order ?? 'DESC'}`);
+    }
+    if (minSim != null) chips.push(`Sim ≥ ${(minSim * 100).toFixed(0)}%`);
+    if (chips.length === 0) return null;
+    return (
+        <div className={styles.filterChips}>
+            {chips.map((c) => (
+                <span key={c} className={styles.filterChip}>
+                    {c}
+                </span>
+            ))}
+        </div>
+    );
+}
+
+export interface SearchPageProps {
+    currentFolder: Folder | null | undefined;
+    folderIds?: number[];
+    includeSubfolders: boolean;
+    filters: FilterState;
+    onOpenImage: (imageId: number, searchResults: SearchResultNavItem[]) => void;
+}
+
+export function SearchPage({
+    currentFolder,
+    folderIds,
+    includeSubfolders,
+    filters,
+    onOpenImage,
+}: SearchPageProps) {
+    const folderPath = folderIds?.length ? undefined : currentFolder?.path;
+    const scopeLabel = formatScopeLabel(currentFolder, includeSubfolders);
 
     const [queryText, setQueryText] = useState('');
     const [limit, setLimit] = useState<(typeof RESULT_LIMITS)[number]>(24);
@@ -181,21 +233,52 @@ export function SearchPage({ currentFolder, onBack, onOpenImage }: SearchPagePro
         inputRef.current?.focus();
     }, []);
 
+    const filterKey = useMemo(
+        () =>
+            JSON.stringify({
+                minRating: filters.minRating,
+                colorLabel: filters.colorLabel,
+                keyword: filters.keyword,
+                capturedDate: filters.capturedDate,
+                sortBy: filters.sortBy,
+                order: filters.order,
+            }),
+        [filters],
+    );
+
+    const folderScopeKey = folderIds?.length ? folderIds.join(',') : (folderPath ?? '');
+
     const runSearch = useCallback(
         (q?: string) => {
             const text = (q ?? queryText).trim();
             if (!text || isSearching) return;
             if (q) setQueryText(q);
             setHasSearched(true);
-            void search({
-                query: text,
-                limit,
-                folder_path: folderPath,
-                min_similarity: minSim,
-            });
+            void search(
+                buildTextSearchParams(
+                    text,
+                    { folderPath, folderIds },
+                    filters,
+                    { limit, min_similarity: minSim },
+                ),
+            );
         },
-        [queryText, isSearching, search, limit, folderPath, minSim],
+        [queryText, isSearching, search, limit, folderPath, folderIds, filters, minSim],
     );
+
+    useEffect(() => {
+        if (!hasSearched || !queryText.trim() || isSearching) return;
+        void search(
+            buildTextSearchParams(
+                queryText,
+                { folderPath, folderIds },
+                filters,
+                { limit, min_similarity: minSim },
+            ),
+        );
+        // Re-run when sidebar scope or filters change, not on each keystroke.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filterKey, folderScopeKey, limit, minSim]);
 
     const handleClear = useCallback(() => {
         setQueryText('');
@@ -244,11 +327,6 @@ export function SearchPage({ currentFolder, onBack, onOpenImage }: SearchPagePro
         <div className={styles.root}>
             <div className={styles.header}>
                 <div className={styles.headerInner}>
-                    <div className={styles.backBar}>
-                        <button type="button" className={styles.backBtn} onClick={onBack}>
-                            ← Back to Gallery
-                        </button>
-                    </div>
                     <form
                         onSubmit={(e) => {
                             e.preventDefault();
@@ -338,11 +416,14 @@ export function SearchPage({ currentFolder, onBack, onOpenImage }: SearchPagePro
                                     ))}
                                 </select>
                             </label>
-                            {folderPath && (
+                            {scopeLabel && (
                                 <div>
                                     <span className={styles.scopeLabel}>Scope: </span>
-                                    <span className={styles.scopeValue} title={folderPath}>
-                                        {folderPath.split(/[/\\]/).pop()}
+                                    <span
+                                        className={styles.scopeValue}
+                                        title={currentFolder?.path ?? 'All folders'}
+                                    >
+                                        {scopeLabel}
                                     </span>
                                 </div>
                             )}
@@ -398,8 +479,9 @@ export function SearchPage({ currentFolder, onBack, onOpenImage }: SearchPagePro
                         <ImageIcon size={36} />
                         <p className={styles.noResultsText}>No matches found</p>
                         <p className={styles.noResultsHint}>
-                            Try a different query, lower the similarity threshold, or ensure images
-                            have CLIP embeddings (run tagging).
+                            Try a different query, widen the folder scope, relax sidebar filters
+                            (rating, label, date, keyword), lower min similarity, or run tagging so
+                            images have CLIP embeddings.
                         </p>
                     </div>
                 )}
@@ -407,14 +489,21 @@ export function SearchPage({ currentFolder, onBack, onOpenImage }: SearchPagePro
                 {showResults && (
                     <div className={styles.resultsSection}>
                         <div className={styles.metaBar}>
-                            <div>
-                                <span className={styles.metaAccent}>{results.length}</span>
-                                {' result'}
-                                {results.length !== 1 ? 's' : ''} for &ldquo;
-                                <span className={styles.metaQuery}>{data?.query ?? activeQuery}</span>
-                                &rdquo;
+                            <div className={styles.metaPrimary}>
+                                <div>
+                                    <span className={styles.metaAccent}>{results.length}</span>
+                                    {' result'}
+                                    {results.length !== 1 ? 's' : ''} for &ldquo;
+                                    <span className={styles.metaQuery}>{data?.query ?? activeQuery}</span>
+                                    &rdquo;
+                                </div>
+                                <ActiveFilterChips
+                                    scopeLabel={scopeLabel}
+                                    filters={filters}
+                                    minSim={minSim}
+                                />
                             </div>
-                            <div>
+                            <div className={styles.metaSpace}>
                                 space:{' '}
                                 <span style={{ fontFamily: 'ui-monospace, monospace' }}>
                                     {data?.embedding_space}
@@ -428,7 +517,15 @@ export function SearchPage({ currentFolder, onBack, onOpenImage }: SearchPagePro
                                     result={result}
                                     rank={i + 1}
                                     thumbnailPath={thumbnailPaths[result.image_id]}
-                                    onClick={() => onOpenImage(result.image_id)}
+                                    onClick={() =>
+                                        onOpenImage(
+                                            result.image_id,
+                                            results.map((r) => ({
+                                                image_id: r.image_id,
+                                                file_path: r.file_path,
+                                            })),
+                                        )
+                                    }
                                 />
                             ))}
                         </div>
