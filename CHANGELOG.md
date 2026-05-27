@@ -4,6 +4,16 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.12.1] - 2026-05-26
+
+### Fixed
+
+- **Fix image metadata**: Resolve canonical `images.file_path` via `getImageDetails` before calling the backend so Windows COALESCE paths from the grid work on WSL-backed servers.
+
+### Changed
+
+- **OpenAPI contract**: Regenerated `api-contract/openapi.json` and `electron/api.generated.ts` for backend **7.25.0** (accessibility fields, embeddings, runs API).
+
 ## [7.12.0] - 2026-05-25
 
 ### Added

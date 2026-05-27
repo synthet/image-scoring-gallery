@@ -39,6 +39,9 @@ dm_check.json
 config.json
 environment.json
 
+# External sub-agent run outputs (subagent-orchestrator MCP)
+.agent-runs/
+
 # Scratch logs
 git_log.txt
 git_status.txt

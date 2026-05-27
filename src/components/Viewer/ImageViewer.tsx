@@ -259,13 +259,17 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     );
 
     const handleFixImageMetadata = useCallback(async () => {
-        const path = image.file_path?.trim();
-        if (!path) {
-            addNotification('No database file path for this image', 'error');
-            return;
-        }
         setFixMetadataBusy(true);
         try {
+            // List/grid rows may expose Windows file_paths (COALESCE win alias); server keys on images.file_path.
+            const detailsForPath = await bridge.getImageDetails(image.id);
+            const path =
+                detailsForPath?.file_path?.trim() ||
+                image.file_path?.trim();
+            if (!path) {
+                addNotification('No database file path for this image', 'error');
+                return;
+            }
             const result = await bridge.api.fixImageMetadata(path);
             if (result?.success) {
                 addNotification(result.message || 'Metadata synced from file on server', 'success');
@@ -282,7 +286,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         } finally {
             setFixMetadataBusy(false);
         }
-    }, [addNotification, image.file_path, image.id]);
+    }, [addNotification, bridge, image.file_path, image.id]);
     
     const handleOpenBackend = useCallback(async () => {
         try {
