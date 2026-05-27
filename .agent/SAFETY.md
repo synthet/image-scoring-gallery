@@ -28,6 +28,14 @@
 
 - **execute_code** (when enabled on backend SSE) runs in the **WebUI process** — high risk on shared hosts. Prefer read-only gallery/backend MCP tools for triage.
 
+## External CLI reviews (subagent-orchestrator)
+
+- Review-only: never set `allowWrites: true` on `run_subagent` (rejected in v0.1).
+- Selected source files are sent to **Codex / Gemini** per their provider policies; do not use for proprietary code you cannot export.
+- Never include `secrets.json`, `.env`, DB connection strings, or full `config.json` in `task`, `files`, or `extraContext`.
+- Outputs land in `.agent-runs/` (gitignored); treat as sensitive until reviewed.
+- See [docs/technical/EXTERNAL_CLI_REVIEWS.md](../docs/technical/EXTERNAL_CLI_REVIEWS.md).
+
 ## Git
 
 - Never modify `.git/config` or add git extensions (see AGENTS.md).

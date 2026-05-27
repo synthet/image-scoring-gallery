@@ -68,12 +68,16 @@ export interface paths {
          * Start batch image scoring
          * @description Initiates a batch image quality assessment job for all images in the specified directory.
          *
-         *             The scoring process uses multiple AI models to evaluate images:
-         *             - **SPAQ**: Spatial Perception of Aesthetic Quality
-         *             - **AVA**: Aesthetic Visual Analysis
-         *             - **KonIQ**: Konstanz Image Quality
-         *             - **PaQ2PiQ**: Perceptual Quality to Perceptual Image Quality
-         *             - **LIQE**: Learning Image Quality Evaluator
+         *             The scoring process uses a configurable ensemble of AI models, selected via the
+         *             `scoring.models` registry. Current production models include:
+         *             - **LIQE**: Learning Image Quality Evaluator (CLIP-based semantic quality)
+         *             - **SPAQ**: Smartphone Photography Aesthetics Quality (MUSIQ)
+         *             - **AVA**: Aesthetic Visual Analysis (MUSIQ)
+         *             - **TOPIQ**: Top-down Image Quality (no-reference)
+         *
+         *             Additional models run in shadow (stored but not fused) — e.g. **QPT V2** — and the
+         *             active set is config-driven. See `GET /api/models` for the live registry and per-model
+         *             shadow status.
          *
          *             Results include:
          *             - Technical score (sharpness, noise, exposure)
@@ -517,30 +521,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/db/query": {
+    "/api/config": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
         /**
-         * SQL bridge for Electron API DB mode
-         * @description Executes parameterized SQL against the configured database engine (Firebird or PostgreSQL).
-         *             Intended for the Electron gallery when ``database.engine`` is ``api`` and the app talks to this
-         *             WebUI over HTTP. **Treat like direct DB access** — disable on untrusted networks via config.
-         *
-         *             **Reads:** SQL must start with ``SELECT`` or ``WITH`` (``WITH``…``SELECT``). Row cap:
-         *             ``database.api_db_query_max_rows`` (default 5000, max 50000).
-         *
-         *             **Writes:** ``INSERT`` / ``UPDATE`` / ``DELETE`` (including Firebird ``UPDATE OR INSERT``) when
-         *             ``database.api_db_allow_write_queries`` is true (default). DDL and ``DROP``/``TRUNCATE``/etc. are rejected.
-         *
-         *             Uses Firebird-style ``?`` placeholders; translated when ``database.engine`` is ``postgres``.
+         * Get application configuration
+         * @description Returns the current `config.json` contents. Sections: `scoring`, `processing`,
+         *             `culling`, `ui`, `tagging`. Used by the Settings tab; Electron should read this
+         *             on startup and display values in its Settings pane.
          */
-        post: operations["api_db_query_api_db_query_post"];
+        get: operations["get_config_api_config_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -710,7 +706,7 @@ export interface paths {
         };
         /**
          * Get recent jobs
-         * @description Returns recent job rows as JSON.
+         * @description Returns a list of recent job history entries.
          *
          *             Jobs are ordered by creation time (most recent first).
          *             Each job entry includes:
@@ -725,9 +721,7 @@ export interface paths {
          *             - limit: Maximum number of jobs to return (default: 10, max: 1000)
          *             - offset: Skip this many jobs (newest-first order; default 0)
          *             - history: When true, only terminal statuses (completed/failed/canceled/interrupted);
-         *               response is JSON `{"runs":[...],"jobs":[...],"total":N}` for pagination.
-         *
-         *             **Default (`history` false):** JSON object `{"runs":[...],"jobs":[...]}` (same array under both keys; clients that expected a bare array should read `runs` or `jobs`).
+         *               response is JSON `{"runs":[...],"total":N}` for pagination (default response remains a JSON array).
          */
         get: operations["get_recent_jobs_api_jobs_recent_get"];
         put?: never;
@@ -1061,6 +1055,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/geo/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get geotagged images for map display
+         * @description Return images that have GPS coordinates stored in image_exif,
+         *             suitable for rendering on an interactive map.
+         *
+         *             **Query Parameters:**
+         *             - folder_path: Optional. Restrict to images under this folder.
+         *             - keyword: Optional. Filter by keyword (substring match on image_keywords).
+         *             - min_score: Optional. Minimum score_general threshold.
+         *             - label: Optional. Filter by label (e.g. 'Green', 'Yellow', 'Red').
+         *             - rating: Optional. Filter by star rating (1-5).
+         *             - semantic: Optional. If true, perform semantic search via CLIP.
+         *             - limit: Maximum number of results (default: 50000, max: 100000).
+         *
+         *             **Returns:**
+         *             - images: List of geotagged image objects with lat/lng and metadata.
+         *             - count: Number of results.
+         *             - bounds: Bounding box {sw: [lat, lng], ne: [lat, lng]} or null.
+         */
+        get: operations["get_geo_images_api_geo_images_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/similar": {
         parameters: {
             query?: never;
@@ -1146,6 +1175,30 @@ export interface paths {
          *             - embedding_space: Always "clip_vit_b32_image"
          */
         get: operations["search_images_by_text_api_similarity_text_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/similarity/example-queries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Suggested text-search queries from library keywords
+         * @description Returns up to ``limit`` display strings derived from ranked keywords in the catalog
+         *             (``keywords_dim`` / ``image_keywords``), optionally scoped to a folder path.
+         *             Used by the Semantic Search UI for rotating example chips.
+         *
+         *             Always returns HTTP 200; on failure or empty catalog, ``queries`` is an empty list.
+         */
+        get: operations["get_similarity_example_queries_api_similarity_example_queries_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1743,6 +1796,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/analytics/culling": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Culling and stack analytics (library or folder)
+         * @description Aggregates stack size, pick/reject flags (images.pick_status), scores, EXIF exposure consistency, labels, GPS, keywords, and embedding coverage. PostgreSQL only. Optional folder_path or folder_id filter.
+         */
+        get: operations["get_culling_analytics_api_analytics_culling_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analytics/culling/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Culling session analytics */
+        get: operations["get_culling_session_analytics_api_analytics_culling_sessions__session_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analytics/stacks/{stack_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Per-stack culling analytics */
+        get: operations["get_stack_analytics_endpoint_api_analytics_stacks__stack_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/import/register": {
         parameters: {
             query?: never;
@@ -2010,6 +2117,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/folders/cache": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove empty folder subtree from DB cache
+         * @description Deletes the subtree rooted at ``path`` only when ``COUNT(images.folder_id ∈ subtree)==0``. Does not delete files on disk. Descendant rows are cleared via FK cascade.
+         */
+        delete: operations["delete_empty_folder_cache_route_api_folders_cache_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/folders/phase-status": {
         parameters: {
             query?: never;
@@ -2064,28 +2191,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get application configuration
-         * @description Returns the current `config.json` contents. Sections: `scoring`, `processing`,
-         *             `culling`, `ui`, `tagging`. Used by the Settings tab; Electron should read this
-         *             on startup and display values in its Settings pane.
-         */
-        get: operations["get_config_api_config_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/config/{section}": {
         parameters: {
             query?: never;
@@ -2118,8 +2223,110 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Preview validation-repair issues for scope */
+        /** Preview stale/missing work for scope (alias) */
         post: operations["preview_validation_repair_api_runs_validation_repair_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/plan/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview stale/missing work for scope */
+        post: operations["preview_validation_repair_api_runs_plan_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/folder-buckets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Paginated folder buckets for Runs auto-queue */
+        get: operations["get_run_folder_buckets_api_runs_folder_buckets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/auto-drive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Auto-queue folder runs from bucket planner */
+        post: operations["auto_drive_runs_api_runs_auto_drive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/drive/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start the durable auto-drive loop */
+        post: operations["start_runs_drive_api_runs_drive_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/drive/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop the durable auto-drive loop */
+        post: operations["stop_runs_drive_api_runs_drive_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/drive/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Auto-drive loop status + outstanding work */
+        get: operations["runs_drive_status_api_runs_drive_status_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2669,6 +2876,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List registered scoring models
+         * @description Return the contents of the scoring-model registry: per-model name, version, framework, native score range, and whether the model is enabled (production) or running in shadow mode. Useful for UI / shadow-comparison tooling.
+         */
+        get: operations["list_scoring_models_api_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/debug/thread-dump": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Capture Python thread dump
+         * @description Returns a full Python thread dump for backend diagnostic and stall debugging.
+         */
+        get: operations["get_thread_dump_api_debug_thread_dump_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/api/images": {
         parameters: {
             query?: never;
@@ -2949,12 +3196,12 @@ export interface components {
          * ClusteringStartRequest
          * @description Request model for starting a clustering job.
          *
-         *     Clusters images in a folder using (1) temporal batching by capture time gaps, then (2) visual similarity *within* each batch.
+         *     Clusters images in a folder based on visual similarity and temporal proximity.
          *
          *     Attributes:
          *         input_path: Directory path containing images to cluster. If empty, clusters all unprocessed folders.
-         *         threshold: Cosine distance limit for visual similarity (not a shot count).
-         *         time_gap: Seconds between consecutive capture times; above this, a new temporal batch starts.
+         *         threshold: Distance threshold for clustering (lower = stricter grouping).
+         *         time_gap: Time gap in seconds for burst grouping.
          *         force_rescan: If True, re-cluster even if already processed.
          */
         ClusteringStartRequest: {
@@ -3006,13 +3253,13 @@ export interface components {
             input_path?: string | null;
             /**
              * Threshold
-             * @description Cosine distance cutoff for visual similarity clustering *within* each time batch (lower = stricter). This is not an image count.
+             * @description Distance threshold for clustering (lower = stricter).
              * @example 0.15
              */
             threshold?: number | null;
             /**
              * Time Gap
-             * @description Seconds: images are sorted by capture time; start a new batch when the gap between two consecutive shots exceeds this value. Only shots in the same batch are compared visually (e.g. 3 for tight bursts).
+             * @description Time gap in seconds for burst grouping.
              * @example 5
              */
             time_gap?: number | null;
@@ -3025,27 +3272,131 @@ export interface components {
             force_rescan: boolean;
         };
         /**
-         * DbQueryRequest
-         * @description Body for POST /api/db/query (Electron ApiConnector).
+         * ConfigResponse
+         * @description Response model for public configuration flags.
+         *
+         *     Exposes a safe subset of configuration values to the frontend.
+         * @example {
+         *       "embedding_map_enabled": true,
+         *       "enable_culling": false,
+         *       "scoring_models": {
+         *         "claude": {
+         *           "enabled": false,
+         *           "shadow": false
+         *         },
+         *         "cursor": {
+         *           "enabled": false,
+         *           "shadow": false
+         *         },
+         *         "topiq": {
+         *           "enabled": false,
+         *           "shadow": false
+         *         }
+         *       }
+         *     }
          */
-        DbQueryRequest: {
+        ConfigResponse: {
             /**
-             * Sql
-             * @description SELECT/WITH (read) or INSERT/UPDATE/DELETE; Firebird-style ? placeholders
+             * Enable Culling
+             * @description True if the experimental culling feature should be visible and accessible.
+             * @default false
              */
-            sql: string;
+            enable_culling: boolean;
             /**
-             * Params
-             * @description Bound values for each ? in order
+             * Embedding Map Enabled
+             * @description True if the embedding map feature is enabled.
+             * @default false
              */
-            params?: unknown[];
+            embedding_map_enabled: boolean;
+            /**
+             * Db Explorer Enabled
+             * @description True if the React DB Explorer (/ui/db) should be visible.
+             * @default true
+             */
+            db_explorer_enabled: boolean;
+            /**
+             * Scoring Models
+             * @description scoring.models membership map: {model_name: {enabled, shadow}}. Lets the UI show known models (and which are active vs. disabled).
+             */
+            scoring_models?: {
+                [key: string]: {
+                    [key: string]: boolean;
+                };
+            };
         };
-        /** DbQueryResponse */
-        DbQueryResponse: {
-            /** Data */
-            data: {
+        /**
+         * CullingAnalyticsResponse
+         * @description Culling and stack analytics payload (library, folder, session, or stack scope).
+         */
+        CullingAnalyticsResponse: {
+            /**
+             * Scope
+             * @description library | session | stack
+             */
+            scope: string;
+            /** Generated At */
+            generated_at?: string | null;
+            /** Folder Id */
+            folder_id?: number | null;
+            /** Folder Path */
+            folder_path?: string | null;
+            /** Session Id */
+            session_id?: number | null;
+            /** Stack Id */
+            stack_id?: number | null;
+            /** Error */
+            error?: string | null;
+            /** Stack Size */
+            stack_size?: {
                 [key: string]: unknown;
-            }[];
+            } | null;
+            /** Flags */
+            flags?: {
+                [key: string]: unknown;
+            } | null;
+            /** Scores */
+            scores?: {
+                [key: string]: unknown;
+            } | null;
+            /** Exposure */
+            exposure?: {
+                [key: string]: unknown;
+            } | null;
+            /** Labels */
+            labels?: {
+                [key: string]: unknown;
+            } | null;
+            /** Gps */
+            gps?: {
+                [key: string]: unknown;
+            } | null;
+            /** Keywords */
+            keywords?: {
+                [key: string]: unknown;
+            } | null;
+            /** Embeddings */
+            embeddings?: {
+                [key: string]: unknown;
+            } | null;
+            /** Composite */
+            composite?: {
+                [key: string]: unknown;
+            } | null;
+            /** Warnings */
+            warnings?: string[] | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * DeleteFolderCacheRequest
+         * @description Remove a folder subtree from the ``folders`` cache when no images reference it.
+         */
+        DeleteFolderCacheRequest: {
+            /**
+             * Path
+             * @description Absolute folder path matching a cached ``folders.path``.
+             */
+            path: string;
         };
         /**
          * DiagnosticsResponse
@@ -3282,12 +3633,6 @@ export interface components {
              * @default 10
              */
             budget: number;
-            /**
-             * Run Mode
-             * @description Run mode for spawned jobs (e.g. validate_and_repair, process_unprocessed_or_empty).
-             * @default validate_and_repair
-             */
-            run_mode: string;
         };
         /**
          * HealthResponse
@@ -3369,6 +3714,11 @@ export interface components {
              * @description Comma-separated keywords string.
              */
             keywords?: string | null;
+            /**
+             * Pick Status
+             * @description Culling pick: 1 = picked, -1 = rejected, 0 = unflagged. When provided without explicit rating/label, the server mirrors the pick to rating + label so legacy gallery filters keep working.
+             */
+            pick_status?: number | null;
             /**
              * Write Sidecar
              * @description If true, also write metadata to XMP sidecar / embedded tags via tagging runner.
@@ -3790,13 +4140,20 @@ export interface components {
              */
             generate_captions: boolean;
             /**
+             * Generate Accessibility
+             * @description Generate IPTC accessibility alt/extended description during tagging.
+             * @default false
+             * @example false
+             */
+            generate_accessibility: boolean;
+            /**
              * Clustering Threshold
-             * @description Cosine distance for visual clustering within each time batch (if 'cluster' is in stage_codes). Not an image count.
+             * @description Distance threshold for clustering (if 'cluster' is in stage_codes).
              */
             clustering_threshold?: number | null;
             /**
              * Clustering Time Gap
-             * @description Seconds: max capture-time gap between consecutive shots in sorted order while keeping them in one batch; larger gaps start a new batch (if 'cluster' is in stage_codes).
+             * @description Time gap in seconds for clustering burst grouping (if 'cluster' is in stage_codes).
              */
             clustering_time_gap?: number | null;
             /**
@@ -3831,26 +4188,16 @@ export interface components {
             stages?: string[] | null;
             /**
              * Run Mode
-             * @default process_unprocessed_or_empty
-             * @enum {string}
+             * @default process_stale_or_missing
+             * @constant
              */
-            run_mode: "process_all_overwrite" | "process_unprocessed_or_empty" | "validate_and_repair";
-            /** Skip Done */
-            skip_done?: boolean | null;
-            /** Force Rerun */
-            force_rerun?: boolean | null;
-            /** Fix Incomplete Stages */
-            fix_incomplete_stages?: boolean | null;
+            run_mode: "process_stale_or_missing";
             /**
-             * Validation Repair Mode
+             * Plan Dry Run
+             * @description When true, run the stale/missing planner only and return the plan without enqueueing a job.
              * @default false
              */
-            validation_repair_mode: boolean;
-            /**
-             * Validation Repair Dry Run
-             * @default false
-             */
-            validation_repair_dry_run: boolean;
+            plan_dry_run: boolean;
             /**
              * Description
              * @description Human-readable reason/scope for this run (stored on jobs.description).
@@ -3867,6 +4214,85 @@ export interface components {
              * @default true
              */
             generate_captions: boolean;
+            /**
+             * Generate Accessibility
+             * @description Generate IPTC accessibility alt/extended description during the keywords phase.
+             * @default false
+             */
+            generate_accessibility: boolean;
+        };
+        /** RunsAutoDriveRequest */
+        RunsAutoDriveRequest: {
+            /**
+             * Root Path
+             * @description Optional root folder restriction for the bucket planner.
+             */
+            root_path?: string | null;
+            /**
+             * Folder Paths
+             * @description Optional explicit folder paths to queue; used by per-row Queue actions.
+             */
+            folder_paths?: string[] | null;
+            /**
+             * Target Phases
+             * @description Pipeline phases the auto-driver should consider. Defaults to the full pipeline.
+             */
+            target_phases?: string[] | null;
+            /**
+             * Limit
+             * @description Maximum folder runs to queue in this drive tick.
+             * @default 50
+             */
+            limit: number;
+            /**
+             * Dry Run
+             * @description When true, return the proposed queue operations without writing jobs.
+             * @default false
+             */
+            dry_run: boolean;
+            /**
+             * Max Repeats
+             * @description Skip a folder/phase plan after this many prior terminal auto-drive attempts.
+             * @default 2
+             */
+            max_repeats: number;
+            /**
+             * Generate Captions
+             * @description Generate captions during keywords runs.
+             * @default true
+             */
+            generate_captions: boolean;
+        };
+        /** RunsDriveStartRequest */
+        RunsDriveStartRequest: {
+            /**
+             * Root Path
+             * @description Optional root folder restriction; omit to drive the whole library.
+             */
+            root_path?: string | null;
+            /**
+             * Limit
+             * @description Max folder runs queued per drive tick.
+             * @default 50
+             */
+            limit: number;
+            /**
+             * Target Phases
+             * @description Phases to drive. Defaults to the full pipeline including bird_species.
+             */
+            target_phases?: string[] | null;
+            /**
+             * Generate Captions
+             * @description Generate captions during keywords runs.
+             * @default true
+             */
+            generate_captions: boolean;
+            /**
+             * Max Repeats
+             * @description Skip a folder/phase plan after this many prior terminal attempts.
+             * @default 2
+             */
+            max_repeats: number;
         };
         /** ScopePreviewRequest */
         ScopePreviewRequest: {
@@ -3882,8 +4308,10 @@ export interface components {
          * ScoringStartRequest
          * @description Request model for starting a batch image scoring job.
          *
-         *     This endpoint initiates quality assessment of images using multiple AI models
-         *     (SPAQ, AVA, KonIQ, PaQ2PiQ, LIQE) to generate technical, aesthetic, and general quality scores.
+         *     This endpoint initiates quality assessment of images using a configurable ensemble of
+         *     AI models selected via the scoring.models registry (LIQE, MUSIQ variants such as SPAQ/AVA,
+         *     and TOPIQ; QPT V2 runs in shadow) to generate technical, aesthetic, and general quality
+         *     scores. See GET /api/models for the live set and per-model shadow status.
          *
          *     Attributes:
          *         input_path: Directory path containing images to score. Supports Windows (D:\...)
@@ -4150,18 +4578,21 @@ export interface components {
          *         file_path: Full path to the image file.
          *         custom_keywords: Optional list of custom keywords. If None, uses default set.
          *         generate_captions: If True, generate caption for the image. Default: True.
+         *         generate_accessibility: If True, generate IPTC accessibility metadata via CLIP.
          *
          *     Example:
          *         {
          *             "file_path": "D:/Photos/2024/image.jpg",
          *             "custom_keywords": ["landscape"],
-         *             "generate_captions": true
+         *             "generate_captions": true,
+         *             "generate_accessibility": false
          *         }
          * @example {
          *       "custom_keywords": [
          *         "landscape"
          *       ],
          *       "file_path": "D:/Photos/2024/image.jpg",
+         *       "generate_accessibility": false,
          *       "generate_captions": true
          *     }
          */
@@ -4188,6 +4619,13 @@ export interface components {
              * @example true
              */
             generate_captions: boolean;
+            /**
+             * Generate Accessibility
+             * @description If True, generate IPTC Alt Text and Extended Description via CLIP.
+             * @default false
+             * @example false
+             */
+            generate_accessibility: boolean;
         };
         /**
          * TaggingStartRequest
@@ -4202,19 +4640,22 @@ export interface components {
          *                        If None, uses default keywords (landscape, portrait, urban, etc.).
          *         overwrite: If True, overwrite existing keywords in database. Default: False.
          *         generate_captions: If True, generate image captions using BLIP model. Default: False.
+         *         generate_accessibility: If True, generate IPTC accessibility alt/extended text via CLIP.
          *
          *     Example:
          *         {
          *             "input_path": "D:/Photos/2024",
          *             "custom_keywords": ["landscape", "sunset", "nature"],
          *             "overwrite": false,
-         *             "generate_captions": true
+         *             "generate_captions": true,
+         *             "generate_accessibility": true
          *         }
          * @example {
          *       "custom_keywords": [
          *         "landscape",
          *         "sunset"
          *       ],
+         *       "generate_accessibility": false,
          *       "generate_captions": true,
          *       "input_path": "D:/Photos/2024",
          *       "overwrite": false
@@ -4291,6 +4732,13 @@ export interface components {
              * @example true
              */
             generate_captions: boolean;
+            /**
+             * Generate Accessibility
+             * @description If True, generate IPTC Alt Text and Extended Description via CLIP prompt ranking.
+             * @default false
+             * @example false
+             */
+            generate_accessibility: boolean;
         };
         /** ValidationError */
         ValidationError: {
@@ -4300,6 +4748,10 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
         /** ValidationRepairPreviewRequest */
         ValidationRepairPreviewRequest: {
@@ -5223,18 +5675,14 @@ export interface operations {
             };
         };
     };
-    api_db_query_api_db_query_post: {
+    get_config_api_config_get: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DbQueryRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -5242,7 +5690,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DbQueryResponse"];
+                    "application/json": unknown;
                 };
             };
             /** @description Bad Request - Invalid input parameters */
@@ -5258,15 +5706,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
             };
             /** @description Internal Server Error */
             500: {
@@ -6742,6 +7181,78 @@ export interface operations {
             };
         };
     };
+    get_geo_images_api_geo_images_get: {
+        parameters: {
+            query?: {
+                /** @description Restrict to folder path */
+                folder_path?: string | null;
+                /** @description Filter by keyword substring */
+                keyword?: string | null;
+                /** @description Minimum score_general */
+                min_score?: number | null;
+                /** @description Filter by label */
+                label?: string | null;
+                /** @description Filter by star rating */
+                rating?: number | null;
+                /** @description Perform semantic search via CLIP */
+                semantic?: boolean;
+                /** @description Maximum results */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_similar_images_legacy_api_similar_get: {
         parameters: {
             query: {
@@ -6883,10 +7394,86 @@ export interface operations {
                 query: string;
                 /** @description Maximum number of results */
                 limit?: number;
-                /** @description Scope search to folder */
+                /** @description Scope search to folder (ignored if folder_ids set) */
                 folder_path?: string | null;
+                /** @description Scope search to folder IDs (includes subfolders when expanded client-side) */
+                folder_ids?: number[] | null;
                 /** @description Minimum similarity threshold */
                 min_similarity?: number | null;
+                /** @description Minimum star rating */
+                min_rating?: number | null;
+                /** @description Filter by color label (Red, Yellow, Green, Blue, Purple) */
+                color_label?: string | null;
+                /** @description Also require normalized keyword match (AND filter) */
+                keyword?: string | null;
+                /** @description Filter by capture date (YYYY-MM-DD) */
+                captured_date?: string | null;
+                /** @description Secondary sort after relevance (capture_date, created_at, rating, score_general, ...) */
+                sort_by?: string | null;
+                /** @description Secondary sort direction (ASC or DESC) */
+                order?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_similarity_example_queries_api_similarity_example_queries_get: {
+        parameters: {
+            query?: {
+                /** @description Maximum keyword phrases to return */
+                limit?: number;
+                /** @description Scope keywords to images under this folder path */
+                folder_path?: string | null;
             };
             header?: never;
             path?: never;
@@ -7614,7 +8201,7 @@ export interface operations {
                 page?: number;
                 /** @description Items per page */
                 page_size?: number;
-                /** @description Sort field (score, date, name, rating, score_general, score_aesthetic, score_technical) */
+                /** @description Sort field (score, date, name, rating, score_general, score_aesthetic, score_technical, phases, embeddings) */
                 sort_by?: string;
                 /** @description Sort order: asc or desc */
                 order?: string;
@@ -8648,6 +9235,188 @@ export interface operations {
             };
         };
     };
+    get_culling_analytics_api_analytics_culling_get: {
+        parameters: {
+            query?: {
+                /** @description Filter to exact folder path */
+                folder_path?: string | null;
+                /** @description Filter to folder id */
+                folder_id?: number | null;
+                per_stack_limit?: number;
+                per_stack_offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CullingAnalyticsResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_culling_session_analytics_api_analytics_culling_sessions__session_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CullingAnalyticsResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_stack_analytics_endpoint_api_analytics_stacks__stack_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stack_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CullingAnalyticsResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     import_register_api_import_register_post: {
         parameters: {
             query?: never;
@@ -9433,6 +10202,67 @@ export interface operations {
             };
         };
     };
+    delete_empty_folder_cache_route_api_folders_cache_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteFolderCacheRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_folder_phase_status_api_folders_phase_status_get: {
         parameters: {
             query: {
@@ -9539,54 +10369,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Service Unavailable - Runner not initialized */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    get_config_api_config_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Bad Request - Invalid input parameters */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not Found - Resource not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Internal Server Error */
             500: {
@@ -9713,6 +10495,349 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    preview_validation_repair_api_runs_plan_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidationRepairPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_run_folder_buckets_api_runs_folder_buckets_get: {
+        parameters: {
+            query?: {
+                root_path?: string | null;
+                q?: string | null;
+                bucket?: string | null;
+                limit?: number;
+                offset?: number;
+                include_complete?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auto_drive_runs_api_runs_auto_drive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunsAutoDriveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    start_runs_drive_api_runs_drive_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunsDriveStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    stop_runs_drive_api_runs_drive_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    runs_drive_status_api_runs_drive_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Internal Server Error */
             500: {
@@ -11291,6 +12416,102 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DiagnosticsResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_scoring_models_api_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_thread_dump_api_debug_thread_dump_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Bad Request - Invalid input parameters */

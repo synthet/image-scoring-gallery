@@ -23,6 +23,7 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | docs-wiki | `.cursor/skills/docs-wiki/SKILL.md` | `docs/` wiki conventions | L1 | — | 2026-04-25 |
 | gallery-electron-ts | `.cursor/skills/gallery-electron-ts/SKILL.md` | Electron / TS / db contract | L1 | — | 2026-04-25 |
 | security-review | `.cursor/skills/security-review/SKILL.md` | Pre-merge security sanity | L1 | — | 2026-04-25 |
+| subagent-review | `.cursor/skills/subagent-review/SKILL.md` | External Codex/Gemini review via subagent-orchestrator MCP | L2 | Yes | 2026-05-26 |
 
 **Note:** Most skills here are Cursor-only. **`backlog-queue`** is mirrored under `.claude/skills/` and `.agent/skills/` because it gates every task — agent harnesses must see it regardless of which loader they use.
 
@@ -41,3 +42,6 @@ Project subagents live under **`.cursor/agents/`** (canonical) and are mirrored 
 | gallery-electron-ts | `.cursor/agents/gallery-electron-ts.md` | Electron / TS / db.ts contract; aligns with backend schema | L2 | Yes | 2026-05-15 |
 | gallery-mcp-debug | `.cursor/agents/gallery-mcp-debug.md` | Read-only triage from gallery: gallery-local vs reachability vs backend-internal | L1 | Yes | 2026-05-15 |
 | pr-ready-hygiene | `.cursor/agents/pr-ready-hygiene.md` | Scoped lint/tests/tsc; PR-ready checklist | L2 | Yes | 2026-05-15 |
+| external-codex-review | `.cursor/agents/external-codex-review.md` | Codex-only external CLI review (MCP) | L2 | Yes | 2026-05-26 |
+| external-gemini-review | `.cursor/agents/external-gemini-review.md` | Gemini-only external CLI review (MCP) | L2 | Yes | 2026-05-26 |
+| external-cli-reviewer | `.cursor/agents/external-cli-reviewer.md` | Detect + run + panel-style external reviews | L2 | Yes | 2026-05-26 |

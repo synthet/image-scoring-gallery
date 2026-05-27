@@ -4,6 +4,13 @@
       "command": "node",
       "args": ["${workspaceFolder}/mcp-server/dist/index.js"],
       "disabled": false
+    },
+    "imgscore-el-subagent-orchestrator": {
+      "command": "node",
+      "args": ["../subagent-orchestrator/agent-orchestrator/dist/index.js"],
+      "env": {
+        "WORKSPACE_ROOT": "${workspaceFolder}"
+      }
     }
   }
 }

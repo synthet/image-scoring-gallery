@@ -14,6 +14,7 @@ Physical definitions: [`.cursor/agents/`](../.cursor/agents/), mirrored to [`.cl
 | gallery-docs-agent | [`docs-wiki` skill](../.cursor/skills/docs-wiki/SKILL.md) | `docs/`, log, indexes | [docs/WIKI_SCHEMA.md](../docs/WIKI_SCHEMA.md) |
 | gallery-mcp-debug (triage) | [`gallery-mcp-debug`](../.cursor/agents/gallery-mcp-debug.md) | Reachability, CDP, local status | [AGENTS.md](../AGENTS.md) |
 | cross-repo-integration-agent | `gallery-electron-ts` + backend handoff | Contract order, types sync | [Backend AGENT_COORDINATION](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) |
+| external-review-agent | [`external-cli-reviewer`](../.cursor/agents/external-cli-reviewer.md), [`subagent-review`](../.cursor/skills/subagent-review/SKILL.md) | Review-only Codex/Gemini via MCP | [docs/technical/EXTERNAL_CLI_REVIEWS.md](../docs/technical/EXTERNAL_CLI_REVIEWS.md) |
 
 ## Allowed vs forbidden
 
@@ -22,6 +23,7 @@ Physical definitions: [`.cursor/agents/`](../.cursor/agents/), mirrored to [`.cl
 | Electron / TS | IPC-safe main-process DB/fs; renderer via `window.electronAPI` | Direct `pg` import or `node:fs` from React components |
 | API client | Changes to `apiService.ts` matching backend contract | Invented paths or fields not in OpenAPI/API_CONTRACT |
 | Docs | Relative in-repo links; GitHub URLs to backend authority | Duplicating full backend schema in gallery |
+| External review | MCP `run_subagent` with `allowWrites: false` | Auto-apply patches; `allowWrites: true`; raw CLI unless user bypasses |
 
 ## Validation commands
 

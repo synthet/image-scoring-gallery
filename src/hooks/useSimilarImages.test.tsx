@@ -97,7 +97,12 @@ describe('useSimilarImages', () => {
 
     it('records duration after a successful search', async () => {
         const nowSpy = vi.spyOn(performance, 'now');
-        nowSpy.mockReturnValueOnce(1000).mockReturnValueOnce(1008);
+        let tick = 1000;
+        nowSpy.mockImplementation(() => {
+            const t = tick;
+            tick += 8;
+            return t;
+        });
 
         const { result } = renderHook(() => useSimilarImages(42));
 

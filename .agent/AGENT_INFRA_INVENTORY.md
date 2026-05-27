@@ -20,6 +20,9 @@
 | [.cursor/commands/*.md](../.cursor/commands/) | Slash commands | workflow | active | agent-sdlc | None |
 | [.cursor/skills/*/SKILL.md](../.cursor/skills/) | Skills (no `.claude` mirror) | coding | active | SKILL_INVENTORY | None |
 | [.cursor/agents/*.md](../.cursor/agents/) | Subagents | coding | active | AGENTS.md | Sync `.claude/agents/` |
+| [.cursor/rules/external-cli-subagents.mdc](../.cursor/rules/external-cli-subagents.mdc) | External Codex/Gemini review safety | governance | active | subagent-orchestrator | Mirror `.claude/rules/` |
+| [.cursor/skills/subagent-review/](../.cursor/skills/subagent-review/) | MCP external review workflow | workflow | active | `../subagent-orchestrator` | Mirror `.claude/skills/` |
+| [docs/technical/EXTERNAL_CLI_REVIEWS.md](../docs/technical/EXTERNAL_CLI_REVIEWS.md) | Setup for imgscore-el-subagent-orchestrator MCP | cross-repo | active | backend EXTERNAL_CLI_REVIEWS | None |
 | [.claude/commands/*.md](../.claude/commands/) | Claude commands | workflow | active | .cursor/commands | Keep aligned |
 | [.claude/rules/documentation.mdc](../.claude/rules/documentation.mdc) | Wiki rules mirror | docs-only | duplicate-of | .cursor/rules/documentation.mdc | Sync on doc rule changes |
 | [.claude/skills/backlog-queue/SKILL.md](../.claude/skills/backlog-queue/SKILL.md) | Board contract mirror | cross-repo | duplicate-of | .cursor/skills/backlog-queue | Same-PR sync |
