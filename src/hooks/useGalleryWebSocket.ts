@@ -9,7 +9,7 @@ interface UseGalleryWebSocketParams {
   refreshImages: (opts?: { preserveItems?: boolean }) => void;
   refreshStacks: (opts?: { preserveItems?: boolean }) => void;
   refreshFolders: () => void;
-  loadStackImages: (stackId: number) => Promise<void>;
+  refreshActiveStackView: () => Promise<void>;
   stacksModeRef: React.MutableRefObject<boolean>;
   activeStackIdRef: React.MutableRefObject<number | null>;
   onVisibleRefresh?: () => void;
@@ -25,7 +25,7 @@ export function useGalleryWebSocket({
   refreshImages,
   refreshStacks,
   refreshFolders,
-  loadStackImages,
+  refreshActiveStackView,
   stacksModeRef,
   activeStackIdRef,
   onVisibleRefresh,
@@ -40,8 +40,8 @@ export function useGalleryWebSocket({
   refreshStacksRef.current = refreshStacks;
   const refreshFoldersRef = useRef(refreshFolders);
   refreshFoldersRef.current = refreshFolders;
-  const loadStackImagesRef = useRef(loadStackImages);
-  loadStackImagesRef.current = loadStackImages;
+  const refreshActiveStackViewRef = useRef(refreshActiveStackView);
+  refreshActiveStackViewRef.current = refreshActiveStackView;
   const onVisibleRefreshRef = useRef(onVisibleRefresh);
   onVisibleRefreshRef.current = onVisibleRefresh;
 
@@ -70,7 +70,7 @@ export function useGalleryWebSocket({
         imageRefreshTimer = null;
 
         if (activeStackIdRef.current !== null) {
-          void loadStackImagesRef.current(activeStackIdRef.current);
+          void refreshActiveStackViewRef.current();
           onVisibleRefreshRef.current?.();
           return;
         }
@@ -194,5 +194,5 @@ export function useGalleryWebSocket({
       if (folderRefreshTimer) clearTimeout(folderRefreshTimer);
       if (ws) ws.disconnect();
     };
-  }, [addNotification, isWebSocketEnabled, activeStackIdRef, loadStackImagesRef, onVisibleRefreshRef, refreshFoldersRef, refreshImagesRef, refreshStacksRef, stacksModeRef]);
+  }, [addNotification, isWebSocketEnabled, activeStackIdRef, refreshActiveStackViewRef, onVisibleRefreshRef, refreshFoldersRef, refreshImagesRef, refreshStacksRef, stacksModeRef]);
 }

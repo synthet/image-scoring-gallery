@@ -18,6 +18,7 @@ interface ImageRow {
   thumbnail_path?: string;
   stack_id?: number | null;
   stack_key?: number;
+  sub_stack_id?: number | null;
   image_count?: number;
   sort_value?: number;
   folder_id?: number;
@@ -30,11 +31,9 @@ export interface SearchResultNavItem {
 }
 
 interface UseImageOpenerParams {
-  images: ImageRow[];
-  stackImages: ImageRow[];
-  stacks: ImageRow[];
-  stacksMode: boolean;
+  currentImages: ImageRow[];
   activeStackId: number | null;
+  activeSubStackId: number | null;
   selectedFolderId: number | undefined;
   onNavigateToFolder: (folderId: number) => void;
   removeImage: (id: number) => void;
@@ -46,11 +45,9 @@ interface UseImageOpenerParams {
  * and resolving pending image opens when switching folders.
  */
 export function useImageOpener({
-  images,
-  stackImages,
-  stacks,
-  stacksMode,
+  currentImages,
   activeStackId,
+  activeSubStackId,
   selectedFolderId,
   onNavigateToFolder,
   removeImage,
@@ -65,8 +62,8 @@ export function useImageOpener({
   const [viewerListOverride, setViewerListOverride] = useState<ImageRow[] | null>(null);
 
   const getCurrentList = useCallback(() => {
-    return (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
-  }, [stacksMode, activeStackId, stacks, stackImages, images]);
+    return currentImages;
+  }, [currentImages]);
 
   const getViewerList = useCallback(() => {
     return viewerListOverride ?? getCurrentList();
@@ -112,7 +109,7 @@ export function useImageOpener({
         return false;
       }
 
-      const currentList = (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
+      const currentList = getCurrentList();
       const existingIdx = currentList.findIndex(img => img.id === id);
 
       if (existingIdx >= 0) {
@@ -138,7 +135,7 @@ export function useImageOpener({
       addNotification('Failed to open image by id', 'error');
       return false;
     }
-  }, [selectedFolderId, stacksMode, activeStackId, stacks, stackImages, images, addNotification, onNavigateToFolder]);
+  }, [selectedFolderId, getCurrentList, addNotification, onNavigateToFolder]);
 
   const viewerImages = useMemo(() => getViewerList(), [getViewerList]);
 
@@ -185,7 +182,7 @@ export function useImageOpener({
   }, [getCurrentList, pendingOpenImageId, viewerListOverride]);
 
   const handleImageDelete = (id: number) => {
-    if (activeStackId) {
+    if (activeStackId !== null || activeSubStackId !== null) {
       handleImageDeleteFromStack(id);
     } else {
       removeImage(id);

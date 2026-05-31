@@ -281,6 +281,15 @@ function createHttpBridge(): Window['electron'] {
         getImagesByStack: (stackId, options?) =>
             get(`/db/stacks/${stackId ?? 'null'}/images`, options as Record<string, unknown> | undefined),
 
+        getImagesByStackUngrouped: (stackId, options?) =>
+            get(`/db/stacks/${stackId}/ungrouped-images`, options as Record<string, unknown> | undefined),
+
+        getSubstacksForStack: (stackId, options?) =>
+            get(`/db/stacks/${stackId}/substacks`, options as Record<string, unknown> | undefined),
+
+        getImagesBySubStack: (subStackId, options?) =>
+            get(`/db/substacks/${subStackId}/images`, options as Record<string, unknown> | undefined),
+
         getStackCount: (options?) => get('/db/stack-count', options as Record<string, unknown> | undefined),
 
         rebuildStackCache: (context) => post('/db/rebuild-stack-cache', context ?? {}),
@@ -463,6 +472,9 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
     getStacks: () => Promise.resolve([]),
     getStackCount: () => Promise.resolve(0),
     getImagesByStack: () => Promise.resolve([]),
+    getImagesByStackUngrouped: () => Promise.resolve([]),
+    getSubstacksForStack: () => Promise.resolve([]),
+    getImagesBySubStack: () => Promise.resolve([]),
     getImageDetails: () => Promise.resolve(null),
     getImagePhaseStatuses: () => Promise.resolve([]),
     updateImageDetails: () => Promise.resolve(false),

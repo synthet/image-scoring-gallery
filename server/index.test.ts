@@ -16,6 +16,9 @@ function createDbMock() {
     getDatesWithShots: vi.fn(),
     getStacks: vi.fn(),
     getImagesByStack: vi.fn(),
+    getImagesByStackUngrouped: vi.fn(),
+    getSubstacksForStack: vi.fn(),
+    getImagesBySubStack: vi.fn(),
     getStackCount: vi.fn(),
     rebuildStackCache: vi.fn(),
     getFolderPathById: vi.fn(),
@@ -72,6 +75,82 @@ describe('server /gallery-api contract envelope', () => {
     const res = await fetch(`${baseUrl}/gallery-api/db/image-count?minRating=2`);
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({ ok: true, data: 42 });
+  });
+
+  it('returns sub-stack route results in the standard envelope', async () => {
+    const dbMock = createDbMock();
+    dbMock.getSubstacksForStack.mockResolvedValue([{ sub_stack_id: 12, stack_id: 7, image_count: 3 }]);
+
+    const app = createServerApp({
+      dbModule: dbMock as any,
+      apiService: {
+        findDuplicates: vi.fn(),
+        searchSimilar: vi.fn(),
+        getOutliers: vi.fn(),
+        importRegister: vi.fn(),
+      } as any,
+      configPath: '/tmp/nope.json',
+      appConfig: {},
+      backendBaseUrl: 'http://127.0.0.1:7860',
+    });
+
+    const routeServer = await new Promise<Server>((resolve) => {
+      const s = app.listen(0, '127.0.0.1', () => resolve(s));
+    });
+
+    try {
+      const addr = routeServer.address();
+      if (!addr || typeof addr === 'string') {
+        throw new Error('invalid server address');
+      }
+      const res = await fetch(`http://127.0.0.1:${addr.port}/gallery-api/db/stacks/7/substacks?minRating=2`);
+      expect(res.status).toBe(200);
+      await expect(res.json()).resolves.toEqual({
+        ok: true,
+        data: [{ sub_stack_id: 12, stack_id: 7, image_count: 3 }],
+      });
+      expect(dbMock.getSubstacksForStack).toHaveBeenCalledWith(7, { minRating: 2 });
+    } finally {
+      await new Promise<void>((resolve, reject) => routeServer.close((err) => (err ? reject(err) : resolve())));
+    }
+  });
+
+  it('returns ungrouped stack images route results in the standard envelope', async () => {
+    const dbMock = createDbMock();
+    dbMock.getImagesByStackUngrouped.mockResolvedValue([{ id: 22, stack_id: 7, sub_stack_id: null }]);
+
+    const app = createServerApp({
+      dbModule: dbMock as any,
+      apiService: {
+        findDuplicates: vi.fn(),
+        searchSimilar: vi.fn(),
+        getOutliers: vi.fn(),
+        importRegister: vi.fn(),
+      } as any,
+      configPath: '/tmp/nope.json',
+      appConfig: {},
+      backendBaseUrl: 'http://127.0.0.1:7860',
+    });
+
+    const routeServer = await new Promise<Server>((resolve) => {
+      const s = app.listen(0, '127.0.0.1', () => resolve(s));
+    });
+
+    try {
+      const addr = routeServer.address();
+      if (!addr || typeof addr === 'string') {
+        throw new Error('invalid server address');
+      }
+      const res = await fetch(`http://127.0.0.1:${addr.port}/gallery-api/db/stacks/7/ungrouped-images?minRating=2`);
+      expect(res.status).toBe(200);
+      await expect(res.json()).resolves.toEqual({
+        ok: true,
+        data: [{ id: 22, stack_id: 7, sub_stack_id: null }],
+      });
+      expect(dbMock.getImagesByStackUngrouped).toHaveBeenCalledWith(7, { minRating: 2 });
+    } finally {
+      await new Promise<void>((resolve, reject) => routeServer.close((err) => (err ? reject(err) : resolve())));
+    }
   });
 
   it('returns { ok: false, error } for thrown route errors', async () => {

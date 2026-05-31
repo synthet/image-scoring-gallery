@@ -1089,6 +1089,20 @@ async function startFullApplication(): Promise<void> {
         return await db.getImagesByStack(stackId, options);
     }));
 
+    ipcMain.handle('db:get-images-by-stack-ungrouped', wrapIpcHandler(async (_, { stackId, options }) => {
+        return await db.getImagesByStackUngrouped(stackId, options);
+    }));
+
+    ipcMain.handle('db:get-substacks-for-stack', wrapIpcHandler(async (_, payload: number | { stackId: number; options?: db.ImageQueryOptions }) => {
+        const stackId = typeof payload === 'number' ? payload : payload.stackId;
+        const options = typeof payload === 'number' ? undefined : payload.options;
+        return await db.getSubstacksForStack(stackId, options);
+    }));
+
+    ipcMain.handle('db:get-images-by-substack', wrapIpcHandler(async (_, { subStackId, options }) => {
+        return await db.getImagesBySubStack(subStackId, options);
+    }));
+
     ipcMain.handle('db:get-stack-count', wrapIpcHandler(async (_, options) => {
         return await db.getStackCount(options);
     }));

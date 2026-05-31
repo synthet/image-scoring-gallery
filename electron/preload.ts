@@ -15,6 +15,7 @@ import type {
     BackupResult,
     SyncCandidate,
     ImagePhaseStatus,
+    SubStackRow,
 } from './types';
 import type {
     ApiResponse as BackendApiResponse,
@@ -133,6 +134,18 @@ contextBridge.exposeInMainWorld('electron', {
     },
     getImagesByStack: async (stackId: number | null, options?: ImageQueryOptions) => {
         const response = await ipcRenderer.invoke('db:get-images-by-stack', { stackId, options });
+        return unwrapEnvelope<ImageRow[]>(response);
+    },
+    getImagesByStackUngrouped: async (stackId: number, options?: ImageQueryOptions) => {
+        const response = await ipcRenderer.invoke('db:get-images-by-stack-ungrouped', { stackId, options });
+        return unwrapEnvelope<ImageRow[]>(response);
+    },
+    getSubstacksForStack: async (stackId: number, options?: ImageQueryOptions) => {
+        const response = await ipcRenderer.invoke('db:get-substacks-for-stack', { stackId, options });
+        return unwrapEnvelope<SubStackRow[]>(response);
+    },
+    getImagesBySubStack: async (subStackId: number, options?: ImageQueryOptions) => {
+        const response = await ipcRenderer.invoke('db:get-images-by-substack', { subStackId, options });
         return unwrapEnvelope<ImageRow[]>(response);
     },
     getStackCount: async (options?: ImageQueryOptions) => {

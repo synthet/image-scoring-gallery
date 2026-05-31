@@ -201,6 +201,39 @@ export function createServerApp(deps: ServerDeps) {
         } catch (e) { fail(res, e); }
     }));
 
+    // DB: images by stack without a nested sub-stack assignment
+    router.get('/db/stacks/:stackId/ungrouped-images', wrap(async (req, res) => {
+        try {
+            const result = await dbModule.getImagesByStackUngrouped(
+                parseInt(req.params.stackId, 10),
+                parseQueryOptions(req.query)
+            );
+            ok(res, result);
+        } catch (e) { fail(res, e); }
+    }));
+
+    // DB: sub-stacks by root stack
+    router.get('/db/stacks/:stackId/substacks', wrap(async (req, res) => {
+        try {
+            const result = await dbModule.getSubstacksForStack(
+                parseInt(req.params.stackId, 10),
+                parseQueryOptions(req.query)
+            );
+            ok(res, result);
+        } catch (e) { fail(res, e); }
+    }));
+
+    // DB: images by sub-stack
+    router.get('/db/substacks/:subStackId/images', wrap(async (req, res) => {
+        try {
+            const result = await dbModule.getImagesBySubStack(
+                parseInt(req.params.subStackId, 10),
+                parseQueryOptions(req.query)
+            );
+            ok(res, result);
+        } catch (e) { fail(res, e); }
+    }));
+
     // DB: stack count
     router.get('/db/stack-count', wrap(async (req, res) => {
         try {
