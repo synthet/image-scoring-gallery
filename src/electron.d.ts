@@ -42,6 +42,7 @@ import type {
     ImageQueryOptions,
     ImageRow,
     ImageUpdates,
+    SubStackRow,
 
     SyncCandidate,
     SyncPreviewResult,
@@ -68,6 +69,7 @@ export type {
     ImageQueryOptions,
     ImageRow,
     ImageUpdates,
+    SubStackRow,
     SyncCandidate,
     SyncPreviewResult,
     SyncRunResult,
@@ -102,6 +104,9 @@ declare global {
             findOutliers: (options: { folderPath: string; zThreshold?: number; k?: number; limit?: number }) => Promise<OutlierSearchResult>;
             getStacks: (options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getImagesByStack: (stackId: number | null, options?: ImageQueryOptions) => Promise<ImageRow[]>;
+            getImagesByStackUngrouped: (stackId: number, options?: ImageQueryOptions) => Promise<ImageRow[]>;
+            getSubstacksForStack: (stackId: number, options?: ImageQueryOptions) => Promise<SubStackRow[]>;
+            getImagesBySubStack: (subStackId: number, options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getStackCount: (options?: ImageQueryOptions) => Promise<number>;
             rebuildStackCache: (context?: { smartCover?: boolean }) => Promise<{ success: boolean; count: number }>;
             log: (level: string, message: string, data?: unknown) => Promise<boolean>;

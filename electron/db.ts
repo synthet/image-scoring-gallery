@@ -302,6 +302,40 @@ function pushFolderFilter(
     }
 }
 
+function pushImageAttributeFilters(
+    whereParts: string[],
+    params: (string | number | null)[],
+    options: Pick<ImageQueryOptions, 'minRating' | 'colorLabel' | 'keyword' | 'capturedDate'>,
+    imageAlias = 'i',
+) {
+    const { minRating, colorLabel, keyword, capturedDate } = options;
+
+    if (minRating !== undefined && minRating > 0) {
+        whereParts.push(`${imageAlias}.rating >= ?`);
+        params.push(minRating);
+    }
+
+    if (colorLabel) {
+        whereParts.push(`${imageAlias}.label = ?`);
+        params.push(colorLabel);
+    }
+
+    if (keyword) {
+        whereParts.push(`EXISTS (
+            SELECT 1 FROM image_keywords ik
+            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
+            WHERE ik.image_id = ${imageAlias}.id
+            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
+        )`);
+        params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+
+    if (capturedDate) {
+        whereParts.push(`${castDate(CAPTURE_TS)} = ?`);
+        params.push(capturedDate);
+    }
+}
+
 export async function getImageCount(options: ImageQueryOptions = {}): Promise<number> {
     const { folderId, folderIds, minRating, colorLabel, keyword, capturedDate } = options;
     const params: (string | number | null)[] = [];
@@ -499,11 +533,11 @@ interface ImageDetailRow {
     description?: string;
     keywords?: string;
     metadata?: string;
-    scores_json?: string;
     model_version?: string;
     image_hash?: string;
     folder_id?: number;
     stack_id?: number;
+    sub_stack_id?: number;
     burst_uuid?: string;
     created_at?: string;
     thumbnail_path?: string;
@@ -542,13 +576,13 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
             i.metadata,
             i.thumbnail_path,
             i.thumbnail_path_win,
-            i.scores_json,
             i.model_version,
             i.rating,
             i.label,
             i.image_hash,
             i.folder_id,
             i.stack_id,
+            i.sub_stack_id,
             i.created_at,
             i.burst_uuid,
             i.image_uuid,
@@ -1436,7 +1470,25 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
     const whereClauseCache = wherePartsCache.length > 0 ? 'WHERE ' + wherePartsCache.join(' AND ') : '';
     const whereClauseNonStack = 'WHERE ' + wherePartsNonStack.join(' AND ');
 
-    const sql = `
+    const buildSql = (includePickStatus: boolean) => {
+        const stackPickStatsJoin = includePickStatus ? `
+            LEFT JOIN LATERAL (
+                SELECT
+                    COUNT(*) FILTER (WHERE ci.pick_status = 1) AS pick_count,
+                    COUNT(*) FILTER (WHERE ci.pick_status = -1) AS reject_count
+                FROM images ci
+                WHERE ci.stack_id = sc.stack_id
+            ) pick_stats ON TRUE` : '';
+        const stackPickCountExpr = includePickStatus ? 'pick_stats.pick_count' : 'CAST(0 AS BIGINT)';
+        const stackRejectCountExpr = includePickStatus ? 'pick_stats.reject_count' : 'CAST(0 AS BIGINT)';
+        const nonStackPickCountExpr = includePickStatus
+            ? 'CASE WHEN i.pick_status = 1 THEN 1 ELSE 0 END'
+            : '0';
+        const nonStackRejectCountExpr = includePickStatus
+            ? 'CASE WHEN i.pick_status = -1 THEN 1 ELSE 0 END'
+            : '0';
+
+        return `
         SELECT * FROM (
             SELECT
                 sc.stack_id,
@@ -1444,6 +1496,9 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 sc.image_count,
                 ${cacheSortCol} as sort_value,
                 sc.rep_image_id,
+                ${stackPickCountExpr} AS pick_count,
+                ${stackRejectCountExpr} AS reject_count,
+                ${imagePickStatusSelect(includePickStatus, 'i')},
                 i.id,
                 COALESCE(fp.path, i.file_path) as file_path,
                 i.file_name,
@@ -1463,7 +1518,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
             LEFT JOIN image_exif ex ON i.id = ex.image_id
             LEFT JOIN image_xmp xm ON i.id = xm.image_id
             LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
-                AND POSITION('/thumbnails/' IN fp.path) = 0${imsOverlayJoin('ims_legacy', 'i.id')}${nonStackJoinSql}
+                AND POSITION('/thumbnails/' IN fp.path) = 0${imsOverlayJoin('ims_legacy', 'i.id')}${stackPickStatsJoin}${nonStackJoinSql}
             ${whereClauseCache}
 
             UNION ALL
@@ -1474,6 +1529,9 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 1 as image_count,
                 ${nonStackSortCol} as sort_value,
                 i.id as rep_image_id,
+                ${nonStackPickCountExpr} AS pick_count,
+                ${nonStackRejectCountExpr} AS reject_count,
+                ${imagePickStatusSelect(includePickStatus, 'i')},
                 i.id,
                 COALESCE(fp.path, i.file_path) as file_path,
                 i.file_name,
@@ -1498,8 +1556,9 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
         ORDER BY a.sort_value ${sortOrder}${pgNullsLastIfDesc(sortOrder)}, a.stack_key DESC
         ${paginationSql()}
     `;
+    };
 
-    const rows = await query(sql, [...topParams, ...botParams, ...pagingParams(offset, limit)]);
+    const rows = await queryWithOptionalPickStatus(buildSql, [...topParams, ...botParams, ...pagingParams(offset, limit)]);
     attachModelSortOverlays(rows, stackSort.modelNameForOverlay);
     return mapRowsThumbnails(rows);
 }
@@ -1569,6 +1628,8 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             i.thumbnail_path,
             i.thumbnail_path_win,
             i.stack_id,
+            i.sub_stack_id,
+            ${imagePickStatusSelect(includePickStatus, 'i')},
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -1580,9 +1641,435 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
         ORDER BY ${sortColumn} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}${QUALITY_TIEBREAK_ORDER_SQL_EX_I}
         ${paginationSql()}
     `;
-    const rows = await query(sql, [...params, ...sortParts.joinParams, ...pagingParams(offset, limit)]);
+    const rows = await queryWithOptionalPickStatus(buildSql, [...params, ...sortParts.joinParams, ...pagingParams(offset, limit)]);
     attachModelSortOverlays(rows, sortParts.modelNameForOverlay);
     return mapRowsThumbnails(rows);
+}
+
+export interface SubStackRow {
+    // Representative image id for the card; use sub_stack_id for the persisted sub-stack id.
+    id: number;
+    sub_stack_id: number | null;
+    sub_stack_key?: number;
+    stack_id: number;
+    file_path: string;
+    file_name: string;
+    score_general: number;
+    score_technical: number;
+    score_aesthetic: number;
+    score_spaq: number;
+    score_ava: number;
+    score_liqe: number;
+    score_koniq?: number;
+    score_paq2piq?: number;
+    rating: number;
+    label: string | null;
+    thumbnail_path?: string;
+    name?: string | null;
+    best_image_id?: number | null;
+    level1_space?: string | null;
+    level2_visual_space?: string | null;
+    level2_semantic_space?: string | null;
+    policy_version?: string | null;
+    image_count?: number;
+    created_at?: string;
+    is_ungrouped_sub_stack?: boolean;
+}
+
+let hasWarnedMissingSubStackSchema = false;
+
+function isMissingSubStackSchemaError(error: unknown): boolean {
+    const e = error as { code?: string; message?: string };
+    const msg = String(e?.message ?? error).toLowerCase();
+    const missingObject = msg.includes('does not exist')
+        || msg.includes('no such table')
+        || msg.includes('no such column')
+        || msg.includes('unknown column');
+    return e?.code === '42P01'
+        || e?.code === '42703'
+        || (missingObject && (msg.includes('sub_stacks') || msg.includes('sub_stack_id')));
+}
+
+function warnMissingSubStackSchema(error: unknown): void {
+    if (hasWarnedMissingSubStackSchema) return;
+    hasWarnedMissingSubStackSchema = true;
+    console.warn('[DB] Sub-stack schema not available; falling back to flat stack view.', error);
+}
+
+let hasWarnedMissingPickStatusColumn = false;
+
+function isMissingPickStatusColumnError(error: unknown): boolean {
+    const e = error as { code?: string; message?: string };
+    const msg = String(e?.message ?? error).toLowerCase();
+    const missingColumn = msg.includes('pick_status')
+        && (msg.includes('does not exist') || msg.includes('no such column') || msg.includes('unknown column'));
+    return (e?.code === '42703' && msg.includes('pick_status')) || missingColumn;
+}
+
+function warnMissingPickStatusColumn(error: unknown): void {
+    if (hasWarnedMissingPickStatusColumn) return;
+    hasWarnedMissingPickStatusColumn = true;
+    console.warn('[DB] images.pick_status not available; hiding pick/reject stack badges.', error);
+}
+
+function imagePickStatusSelect(includePickStatus: boolean, imageAlias = 'i'): string {
+    return includePickStatus
+        ? `${imageAlias}.pick_status`
+        : 'CAST(NULL AS INTEGER) AS pick_status';
+}
+
+async function queryWithOptionalPickStatus<T>(
+    buildSql: (includePickStatus: boolean) => string,
+    params: QueryParam[],
+): Promise<T[]> {
+    try {
+        return await query<T>(buildSql(true), params);
+    } catch (e) {
+        if (!isMissingPickStatusColumnError(e)) {
+            throw e;
+        }
+        warnMissingPickStatusColumn(e);
+        return await query<T>(buildSql(false), params);
+    }
+}
+
+export async function getSubstacksForStack(stackId: number, options: ImageQueryOptions = {}): Promise<SubStackRow[]> {
+    const { minRating, colorLabel, keyword, capturedDate } = options;
+    const params: (string | number | null)[] = [stackId];
+    const whereParts: string[] = [
+        'i.stack_id = ?',
+        'i.sub_stack_id IS NOT NULL',
+    ];
+
+    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, capturedDate });
+
+    const filteredWhere = whereParts.join(' AND ');
+    const buildSql = (includePickStatus: boolean) => `
+        WITH filtered_members AS (
+            SELECT i.id, i.sub_stack_id, ${imagePickStatusSelect(includePickStatus, 'i')}
+            FROM images i
+            LEFT JOIN image_exif ex ON i.id = ex.image_id
+            LEFT JOIN image_xmp xm ON i.id = xm.image_id
+            WHERE ${filteredWhere}
+        ),
+        member_counts AS (
+            SELECT
+                sub_stack_id,
+                ${countBigint()} AS image_count,
+                SUM(CASE WHEN pick_status = 1 THEN 1 ELSE 0 END)::bigint AS pick_count,
+                SUM(CASE WHEN pick_status = -1 THEN 1 ELSE 0 END)::bigint AS reject_count
+            FROM filtered_members
+            GROUP BY sub_stack_id
+        )
+        SELECT
+               rep.id,
+               ss.id AS sub_stack_id,
+               CAST(ss.id AS BIGINT) AS sub_stack_key,
+               ss.stack_id,
+               ss.name,
+               ss.best_image_id,
+               ss.level1_space,
+               ss.level2_visual_space,
+               ss.level2_semantic_space,
+               ss.policy_version,
+               ss.created_at,
+               FALSE AS is_ungrouped_sub_stack,
+               mc.image_count,
+               mc.pick_count,
+               mc.reject_count,
+               rep.file_path,
+               rep.file_name,
+               rep.score_general,
+               rep.score_technical,
+               rep.score_aesthetic,
+               rep.score_spaq,
+               rep.score_ava,
+               rep.score_liqe,
+               rep.score_koniq,
+               rep.score_paq2piq,
+               rep.rating,
+               rep.label,
+               rep.pick_status,
+               rep.thumbnail_path,
+               rep.thumbnail_path_win,
+               rep.capture_date,
+               rep.is_capture_date_fallback
+        FROM sub_stacks ss
+        JOIN member_counts mc ON mc.sub_stack_id = ss.id
+        -- PostgreSQL LATERAL lets each sub-stack choose its own best filtered representative image.
+        JOIN LATERAL (
+            SELECT
+                i.id,
+                COALESCE(fp.path, i.file_path) as file_path,
+                i.file_name,
+                i.score_general,
+                i.score_technical,
+                i.score_aesthetic,
+                ${imsOverlaySelect('ims_legacy')},
+                i.rating,
+                i.label,
+                ${imagePickStatusSelect(includePickStatus, 'i')},
+                i.thumbnail_path,
+                i.thumbnail_path_win,
+                ${CAPTURE_TS} as capture_date,
+                ${CAPTURE_FALLBACK} as is_capture_date_fallback
+            FROM images i
+            JOIN filtered_members fm ON fm.id = i.id
+            LEFT JOIN image_exif ex ON i.id = ex.image_id
+            LEFT JOIN image_xmp xm ON i.id = xm.image_id
+            LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
+                AND POSITION('/thumbnails/' IN fp.path) = 0${imsOverlayJoin('ims_legacy', 'i.id')}
+            WHERE i.sub_stack_id = ss.id
+            ORDER BY
+                CASE WHEN i.id = ss.best_image_id THEN 0 ELSE 1 END,
+                i.score_general DESC NULLS LAST
+                ${QUALITY_TIEBREAK_ORDER_SQL_EX_I}
+            LIMIT 1
+        ) rep ON TRUE
+        WHERE ss.stack_id = ?
+        ORDER BY ss.id
+    `;
+    try {
+        const rows = await queryWithOptionalPickStatus<SubStackRow>(buildSql, [...params, stackId]);
+        const subStacks = mapRowsThumbnails(rows) as SubStackRow[];
+        if (subStacks.length === 0) {
+            return subStacks;
+        }
+
+        const ungroupedCard = await getUngroupedSubStackCardForStack(stackId, options);
+        return ungroupedCard ? [...subStacks, ungroupedCard] : subStacks;
+    } catch (e) {
+        if (isMissingSubStackSchemaError(e)) {
+            warnMissingSubStackSchema(e);
+            return [];
+        }
+        throw e;
+    }
+}
+
+async function getUngroupedSubStackCardForStack(stackId: number, options: ImageQueryOptions = {}): Promise<SubStackRow | null> {
+    const { minRating, colorLabel, keyword, capturedDate } = options;
+    const params: (string | number | null)[] = [stackId];
+    const whereParts: string[] = [
+        'i.stack_id = ?',
+        'i.sub_stack_id IS NULL',
+    ];
+
+    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, capturedDate });
+
+    const buildSql = (includePickStatus: boolean) => `
+        WITH filtered_orphans AS (
+            SELECT i.id, ${imagePickStatusSelect(includePickStatus, 'i')}
+            FROM images i
+            LEFT JOIN image_exif ex ON i.id = ex.image_id
+            LEFT JOIN image_xmp xm ON i.id = xm.image_id
+            WHERE ${whereParts.join(' AND ')}
+        ),
+        orphan_count AS (
+            SELECT
+                ${countBigint()} AS image_count,
+                SUM(CASE WHEN pick_status = 1 THEN 1 ELSE 0 END)::bigint AS pick_count,
+                SUM(CASE WHEN pick_status = -1 THEN 1 ELSE 0 END)::bigint AS reject_count
+            FROM filtered_orphans
+        )
+        SELECT
+               rep.id,
+               CAST(NULL AS BIGINT) AS sub_stack_id,
+               CAST(NULL AS BIGINT) AS sub_stack_key,
+               CAST(? AS BIGINT) AS stack_id,
+               'Ungrouped' AS name,
+               CAST(NULL AS BIGINT) AS best_image_id,
+               CAST(NULL AS TEXT) AS level1_space,
+               CAST(NULL AS TEXT) AS level2_visual_space,
+               CAST(NULL AS TEXT) AS level2_semantic_space,
+               CAST(NULL AS TEXT) AS policy_version,
+               CAST(NULL AS TEXT) AS created_at,
+               TRUE AS is_ungrouped_sub_stack,
+               oc.image_count,
+               oc.pick_count,
+               oc.reject_count,
+               rep.file_path,
+               rep.file_name,
+               rep.score_general,
+               rep.score_technical,
+               rep.score_aesthetic,
+               rep.score_spaq,
+               rep.score_ava,
+               rep.score_liqe,
+               rep.score_koniq,
+               rep.score_paq2piq,
+               rep.rating,
+               rep.label,
+               rep.pick_status,
+               rep.thumbnail_path,
+               rep.thumbnail_path_win,
+               rep.capture_date,
+               rep.is_capture_date_fallback
+        FROM orphan_count oc
+        JOIN LATERAL (
+            SELECT
+                i.id,
+                COALESCE(fp.path, i.file_path) as file_path,
+                i.file_name,
+                i.score_general,
+                i.score_technical,
+                i.score_aesthetic,
+                ${imsOverlaySelect('ims_legacy')},
+                i.rating,
+                i.label,
+                ${imagePickStatusSelect(includePickStatus, 'i')},
+                i.thumbnail_path,
+                i.thumbnail_path_win,
+                ${CAPTURE_TS} as capture_date,
+                ${CAPTURE_FALLBACK} as is_capture_date_fallback
+            FROM images i
+            JOIN filtered_orphans fo ON fo.id = i.id
+            LEFT JOIN image_exif ex ON i.id = ex.image_id
+            LEFT JOIN image_xmp xm ON i.id = xm.image_id
+            LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
+                AND POSITION('/thumbnails/' IN fp.path) = 0${imsOverlayJoin('ims_legacy', 'i.id')}
+            ORDER BY i.score_general DESC NULLS LAST${QUALITY_TIEBREAK_ORDER_SQL_EX_I}
+            LIMIT 1
+        ) rep ON TRUE
+        WHERE oc.image_count > 0
+    `;
+
+    const rows = await queryWithOptionalPickStatus<SubStackRow>(buildSql, [...params, stackId]);
+    const mapped = mapRowsThumbnails(rows) as SubStackRow[];
+    return mapped[0] ?? null;
+}
+
+export async function getImagesBySubStack(subStackId: number, options: ImageQueryOptions = {}): Promise<unknown[]> {
+    const {
+        limit = 200,
+        offset = 0,
+        minRating,
+        colorLabel,
+        keyword,
+        sortBy = 'score_general',
+        order = 'DESC',
+        capturedDate,
+    } = options;
+    const params: (string | number | null)[] = [subStackId];
+    const whereParts = ['i.sub_stack_id = ?'];
+    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, capturedDate });
+    const whereClause = 'WHERE ' + whereParts.join(' AND ');
+
+    const sortParts = buildImageSortSql(sortBy);
+    const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
+    const sortColumn = sortParts.parsed.kind === 'meta' && sortParts.parsed.key === 'capture_date'
+        ? CAPTURE_TS
+        : sortParts.orderExpr || 'i.score_general';
+    const selectExtra = sortParts.selectExtra ? `,\n            ${sortParts.selectExtra}` : '';
+    const joinSql = sortParts.joinSql ? `\n        ${sortParts.joinSql}` : '';
+
+    const buildSql = (includePickStatus: boolean) => `
+        SELECT
+            i.id,
+            COALESCE(fp.path, i.file_path) as file_path,
+            i.file_name,
+            i.score_general,
+            i.score_technical,
+            i.score_aesthetic,
+            ${imsOverlaySelect('ims_legacy')},
+            i.rating,
+            i.label,
+            i.created_at,
+            i.thumbnail_path,
+            i.thumbnail_path_win,
+            i.stack_id,
+            i.sub_stack_id,
+            ${imagePickStatusSelect(includePickStatus, 'i')},
+            ${CAPTURE_TS} as capture_date,
+            ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
+        FROM images i
+        LEFT JOIN image_exif ex ON i.id = ex.image_id
+        LEFT JOIN image_xmp xm ON i.id = xm.image_id
+        LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
+            AND POSITION('/thumbnails/' IN fp.path) = 0${imsOverlayJoin('ims_legacy', 'i.id')}${joinSql}
+        ${whereClause}
+        ORDER BY ${sortColumn} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}${QUALITY_TIEBREAK_ORDER_SQL_EX_I}
+        ${paginationSql()}
+    `;
+    try {
+        const rows = await queryWithOptionalPickStatus(buildSql, [...params, ...sortParts.joinParams, ...pagingParams(offset, limit)]);
+        attachModelSortOverlays(rows, sortParts.modelNameForOverlay);
+        return mapRowsThumbnails(rows);
+    } catch (e) {
+        if (isMissingSubStackSchemaError(e)) {
+            warnMissingSubStackSchema(e);
+            return [];
+        }
+        throw e;
+    }
+}
+
+export async function getImagesByStackUngrouped(stackId: number, options: ImageQueryOptions = {}): Promise<unknown[]> {
+    const {
+        limit = 200,
+        offset = 0,
+        minRating,
+        colorLabel,
+        keyword,
+        sortBy = 'score_general',
+        order = 'DESC',
+        capturedDate,
+    } = options;
+    const params: (string | number | null)[] = [stackId];
+    const whereParts = ['i.stack_id = ?', 'i.sub_stack_id IS NULL'];
+    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, capturedDate });
+    const whereClause = 'WHERE ' + whereParts.join(' AND ');
+
+    const sortParts = buildImageSortSql(sortBy);
+    const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
+    const sortColumn = sortParts.parsed.kind === 'meta' && sortParts.parsed.key === 'capture_date'
+        ? CAPTURE_TS
+        : sortParts.orderExpr || 'i.score_general';
+    const selectExtra = sortParts.selectExtra ? `,\n            ${sortParts.selectExtra}` : '';
+    const joinSql = sortParts.joinSql ? `\n        ${sortParts.joinSql}` : '';
+
+    const buildSql = (includePickStatus: boolean) => `
+        SELECT
+            i.id,
+            COALESCE(fp.path, i.file_path) as file_path,
+            i.file_name,
+            i.score_general,
+            i.score_technical,
+            i.score_aesthetic,
+            ${imsOverlaySelect('ims_legacy')},
+            i.rating,
+            i.label,
+            i.created_at,
+            i.thumbnail_path,
+            i.thumbnail_path_win,
+            i.stack_id,
+            i.sub_stack_id,
+            ${imagePickStatusSelect(includePickStatus, 'i')},
+            ${CAPTURE_TS} as capture_date,
+            ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
+        FROM images i
+        LEFT JOIN image_exif ex ON i.id = ex.image_id
+        LEFT JOIN image_xmp xm ON i.id = xm.image_id
+        LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
+            AND POSITION('/thumbnails/' IN fp.path) = 0${imsOverlayJoin('ims_legacy', 'i.id')}${joinSql}
+        ${whereClause}
+        ORDER BY ${sortColumn} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}${QUALITY_TIEBREAK_ORDER_SQL_EX_I}
+        ${paginationSql()}
+    `;
+    try {
+        const rows = await queryWithOptionalPickStatus(
+            buildSql,
+            [...params, ...sortParts.joinParams, ...pagingParams(offset, limit)],
+        );
+        attachModelSortOverlays(rows, sortParts.modelNameForOverlay);
+        return mapRowsThumbnails(rows);
+    } catch (e) {
+        if (isMissingSubStackSchemaError(e)) {
+            warnMissingSubStackSchema(e);
+            return [];
+        }
+        throw e;
+    }
 }
 
 export async function getStackCount(options: StackQueryOptions = {}): Promise<number> {

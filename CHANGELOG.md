@@ -4,6 +4,23 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.13.0] - 2026-05-31
+
+### Added
+
+- **Two-level stack navigation**: Opening a similarity stack can show **sub-stack** cards (visual groups from backend two-level culling) plus an **Ungrouped** card for filtered members without a sub-stack assignment; drill-down loads images via `getSubstacksForStack`, `getImagesBySubStack`, and `getImagesByStackUngrouped`.
+- **IPC / browser API**: `get-substacks-for-stack`, `get-images-by-sub-stack`, and `get-images-by-stack-ungrouped` in Electron main/preload and the dev `server` routes for browser mode.
+- **Tests**: `useStacksMode` hook coverage and expanded `db.getStacks` SQL contract tests for sub-stack queries.
+
+### Changed
+
+- **Stacks mode UI**: `useStacksMode`, `GalleryGrid`, and `AppContent` support sub-stack selection, breadcrumbs, and viewer navigation within sub-stack and ungrouped views.
+- **Image opener**: Viewer prev/next respects sub-stack card lists when stacks mode is active.
+
+### Fixed
+
+- **Sub-stack SQL helpers**: Correct `buildSql` invocation and optional `pick_status` fallback in `getSubstacksForStack`, ungrouped card query, and `getImagesByStackUngrouped`.
+
 ## [7.12.1] - 2026-05-26
 
 ### Fixed

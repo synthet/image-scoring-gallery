@@ -143,11 +143,23 @@ function AppContent() {
     stacksMode, setStacksMode, enableStacksMode,
     activeStackId, setActiveStackId,
     activeStackInfo, setActiveStackInfo,
+    activeSubStackId, setActiveSubStackId,
+    activeUngroupedSubStack, setActiveUngroupedSubStack,
+    activeSubStackInfo, setActiveSubStackInfo,
+    subStacks, setSubStacks,
+    subStacksLoading,
     stackImages, setStackImages,
     stackImagesLoading,
-    loadStackImages,
+    subStackImages, setSubStackImages,
+    subStackImagesLoading,
+    activeStackDisplayImages,
+    activeStackDisplayLoading,
+    hasSubStackCards,
+    refreshActiveStackView,
     clearStack,
+    clearSubStack,
     handleSelectStack: handleSelectStackBase,
+    handleSelectSubStack,
     handleImageDeleteFromStack,
   } = useStacksMode(selectedFolderId, filters, refreshStacks, smartCoverEnabled);
 
@@ -165,7 +177,7 @@ function AppContent() {
     refreshImages,
     refreshStacks,
     refreshFolders,
-    loadStackImages,
+    refreshActiveStackView,
     stacksModeRef,
     activeStackIdRef,
   });
@@ -189,11 +201,16 @@ function AppContent() {
         if (snap.activeStackId !== null) {
           setActiveStackId(snap.activeStackId);
           setActiveStackInfo({ stackId: snap.activeStackId, imageCount: 0 });
+          setActiveSubStackId(snap.activeSubStackId);
+          setActiveUngroupedSubStack(false);
+          if (snap.activeSubStackId !== null) {
+            setActiveSubStackInfo({ subStackId: snap.activeSubStackId, imageCount: 0 });
+          }
         }
       }
     }
     setBrowserSessionReady(true);
-  }, [foldersLoading, folders, browserSessionReady, setActiveStackInfo, setStacksMode]);
+  }, [foldersLoading, folders, browserSessionReady, setActiveStackInfo, setActiveSubStackId, setActiveSubStackInfo, setActiveUngroupedSubStack, setStacksMode]);
 
   useEffect(() => {
     if (!isBrowserPersistenceEnabled() || !browserSessionReady) return;
@@ -203,6 +220,7 @@ function AppContent() {
       includeSubfolders,
       stacksMode,
       activeStackId,
+      activeSubStackId,
       currentView: 'gallery',
       filters,
       smartCoverEnabled,
@@ -213,6 +231,7 @@ function AppContent() {
     includeSubfolders,
     stacksMode,
     activeStackId,
+    activeSubStackId,
     filters,
     smartCoverEnabled,
   ]);
@@ -244,7 +263,12 @@ function AppContent() {
     setIncludeSubfolders(false);
     setActiveStackId(null);
     setActiveStackInfo(null);
+    setActiveSubStackId(null);
+    setActiveUngroupedSubStack(false);
+    setActiveSubStackInfo(null);
+    setSubStacks([]);
     setStackImages([]);
+    setSubStackImages([]);
   };
 
   const handleSelectFolder = (folder: Folder) => {
@@ -253,12 +277,19 @@ function AppContent() {
   };
 
   const handleNavigateToParent = () => {
+    if (activeSubStackId !== null || activeUngroupedSubStack) {
+      clearSubStack();
+      return;
+    }
     if (activeStackId !== null) {
       clearStack();
       return;
     }
     handleNavigateToParentNav();
   };
+
+  // Current display list is shared by the grid and viewer opener so card/detail navigation stays aligned.
+  const currentImages = (stacksMode && !activeStackId) ? stacks : (activeStackId ? activeStackDisplayImages : images);
 
   const {
     openingImage,
@@ -271,11 +302,9 @@ function AppContent() {
     handleImageDelete,
     closeViewer,
   } = useImageOpener({
-    images,
-    stackImages,
-    stacks,
-    stacksMode,
+    currentImages,
     activeStackId,
+    activeSubStackId,
     selectedFolderId,
     onNavigateToFolder: handleNavigateToFolder,
     removeImage,
@@ -286,21 +315,33 @@ function AppContent() {
     handleSelectStackBase(stack, handleImageClick);
   };
 
-  // Current display list and count
-  const currentImages = (stacksMode && !activeStackId) ? stacks : (activeStackId ? stackImages : images);
-  const currentTotal = stacksMode && !activeStackId
-    ? stacksTotalCount
-    : (activeStackId ? (activeStackInfo?.imageCount || stackImages.length) : totalCount);
+  // Current display count
+  const currentTotal = activeSubStackId !== null || activeUngroupedSubStack
+    ? (activeSubStackInfo?.imageCount || subStackImages.length)
+    : hasSubStackCards
+      ? subStacks.length
+      : (stacksMode && !activeStackId)
+        ? stacksTotalCount
+        : (activeStackId ? (activeStackInfo?.imageCount || stackImages.length) : totalCount);
+  const currentTotalLabel = hasSubStackCards
+    ? 'sub-stacks'
+    : stacksMode && !activeStackId
+      ? 'items (grouped)'
+      : 'items';
 
   const isInitialGridLoading = stacksMode && !activeStackId
     ? (stacksLoading && stacks.length === 0)
-    : (activeStackId ? stackImagesLoading : (imagesLoading && images.length === 0));
+    : (activeStackId ? (activeStackDisplayLoading && currentImages.length === 0) : (imagesLoading && images.length === 0));
 
   const headerTitle = isSearchOpen
     ? 'Semantic Search'
-    : activeStackId
-      ? `Stack #${activeStackId}`
-      : (currentFolder ? (currentFolder.title || 'Folder') : 'Image Gallery');
+    : activeUngroupedSubStack
+      ? (activeSubStackInfo?.name || 'Ungrouped')
+      : activeSubStackId !== null
+        ? (activeSubStackInfo?.name || `Sub-stack #${activeSubStackId}`)
+        : activeStackId
+          ? `Stack #${activeStackId}`
+          : (currentFolder ? (currentFolder.title || 'Folder') : 'Image Gallery');
 
   const breadcrumbsNode = useMemo(() => {
     type BreadcrumbPart = { label: string; onClick: () => void; isActive: boolean };
@@ -328,7 +369,12 @@ function AppContent() {
             setIncludeSubfolders(false);
             setActiveStackId(null);
             setActiveStackInfo(null);
+            setActiveSubStackId(null);
+            setActiveUngroupedSubStack(false);
+            setActiveSubStackInfo(null);
+            setSubStacks([]);
             setStackImages([]);
+            setSubStackImages([]);
           },
           isActive: isLast,
         });
@@ -336,7 +382,23 @@ function AppContent() {
     }
 
     if (activeStackId) {
-      parts.push({ label: `Stack #${activeStackId}`, onClick: () => { }, isActive: true });
+      parts.push({
+        label: `Stack #${activeStackId}`,
+        onClick: () => {
+          clearSubStack();
+        },
+        isActive: activeSubStackId === null && !activeUngroupedSubStack,
+      });
+    }
+
+    if (activeSubStackId !== null || activeUngroupedSubStack) {
+      parts.push({
+        label: activeUngroupedSubStack
+          ? (activeSubStackInfo?.name || 'Ungrouped')
+          : activeSubStackInfo?.name || `Sub-stack #${activeSubStackId}`,
+        onClick: () => { },
+        isActive: true,
+      });
     }
 
     if (parts.length === 0) return null;
@@ -359,14 +421,29 @@ function AppContent() {
         ))}
       </>
     );
-  }, [folders, selectedFolderId, activeStackId]);
+  }, [
+    folders,
+    selectedFolderId,
+    activeStackId,
+    activeSubStackId,
+    activeUngroupedSubStack,
+    activeSubStackInfo?.name,
+    clearSubStack,
+    setActiveStackInfo,
+    setActiveSubStackId,
+    setActiveUngroupedSubStack,
+    setActiveSubStackInfo,
+    setSubStacks,
+    setStackImages,
+    setSubStackImages,
+  ]);
 
   const canGalleryNavigateBack = useMemo(
     () =>
       isSearchOpen
         ? true
-        : activeStackId !== null || selectedFolderId !== undefined,
-    [isSearchOpen, activeStackId, selectedFolderId],
+        : activeSubStackId !== null || activeUngroupedSubStack || activeStackId !== null || selectedFolderId !== undefined,
+    [isSearchOpen, activeSubStackId, activeUngroupedSubStack, activeStackId, selectedFolderId],
   );
 
   return (
@@ -378,7 +455,7 @@ function AppContent() {
             <h2 style={{ margin: 0, fontSize: '1.2em' }}>{headerTitle}</h2>
             {!isSearchOpen && (
             <span style={{ fontSize: '0.9em', color: '#888' }}>
-              ({currentTotal} {stacksMode && !activeStackId ? 'items (grouped)' : 'items'})
+              ({currentTotal} {currentTotalLabel})
             </span>
             )}
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '15px', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
@@ -555,7 +632,7 @@ function AppContent() {
                     <div style={{ color: '#aaa' }}>Loading images...</div>
                   </div>
                 )}
-                {(stackImagesLoading || imagesLoading || stacksLoading) && !isInitialGridLoading && (
+                {(stackImagesLoading || subStacksLoading || subStackImagesLoading || imagesLoading || stacksLoading) && !isInitialGridLoading && (
                   <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', background: 'rgba(0, 0, 0, 0.7)', color: 'white', borderRadius: 20, fontSize: '0.85em', fontWeight: 500 }}>
                     <Loader2 size={14} className="app-spinner" />
                     Loading...
@@ -563,7 +640,7 @@ function AppContent() {
                 )}
                 {activeStackId !== null && <StackAnalyticsBanner stackId={activeStackId} />}
                 <GalleryGrid
-                  key={`${selectedFolderId ?? 'all'}-${activeStackId ?? 'none'}-${stacksMode ? 'stacks' : 'images'}`}
+                  key={`${selectedFolderId ?? 'all'}-${activeStackId ?? 'none'}-${activeSubStackId ?? 'none'}-${activeUngroupedSubStack ? 'ungrouped' : 'grouped'}-${stacksMode ? 'stacks' : 'images'}-${hasSubStackCards ? 'substacks' : 'flat'}`}
                   images={currentImages}
                   onSelect={handleImageClick}
                   onEndReached={activeStackId ? undefined : loadMore}
@@ -586,8 +663,11 @@ function AppContent() {
                   stacksMode={stacksMode}
                   stacks={stacks}
                   onSelectStack={handleSelectStack}
+                  subStacksMode={hasSubStackCards}
+                  onSelectSubStack={handleSelectSubStack}
                   onStackEndReached={loadMoreStacks}
                   activeStackId={activeStackId}
+                  activeSubStackId={activeSubStackId}
                   onFindSimilar={(img) => {
                     setSimilarSearchImageId(img.id);
                     setIsSimilarDrawerOpen(true);

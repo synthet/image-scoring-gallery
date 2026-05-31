@@ -22,7 +22,7 @@ vi.mock('./db/provider', () => ({
   })),
 }));
 
-import { getStacks, getStackCount } from './db';
+import { getImagesByStackUngrouped, getStacks, getStackCount, getSubstacksForStack } from './db';
 
 describe('db.getStacks keyword filter', () => {
   beforeEach(() => {
@@ -66,5 +66,141 @@ describe('db.getStackCount keyword filter', () => {
     expect(sql).toContain('LOWER(kd.keyword_norm) LIKE LOWER(?)');
 
     expect(params).toEqual(expect.arrayContaining(['%bird%', '%bird%']));
+  });
+});
+
+describe('db.getSubstacksForStack', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    queryMock.mockResolvedValue([]);
+  });
+
+  it('returns display-ready sub-stack cards from filtered members', async () => {
+    await getSubstacksForStack(5, {
+      minRating: 2,
+      colorLabel: 'Red',
+      keyword: 'bird',
+      capturedDate: '2024-01-02',
+    });
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain('WITH filtered_members AS');
+    expect(sql).toContain('FROM sub_stacks ss');
+    expect(sql).toContain('JOIN member_counts mc ON mc.sub_stack_id = ss.id');
+    expect(sql).toContain('JOIN LATERAL');
+    expect(sql).toContain('i.sub_stack_id IS NOT NULL');
+    expect(sql).toContain('i.rating >= ?');
+    expect(sql).toContain('i.label = ?');
+    expect(sql).toContain('FROM image_keywords ik');
+    expect(sql).toContain('ss.id AS sub_stack_id');
+    expect(sql).toContain('rep.file_path');
+
+    expect(params).toEqual([
+      5,
+      2,
+      'Red',
+      '%bird%',
+      '%bird%',
+      '2024-01-02',
+      5,
+    ]);
+  });
+
+  it('appends an ungrouped card when filtered stack members have no sub-stack assignment', async () => {
+    const subStackRow = {
+      id: 101,
+      sub_stack_id: 12,
+      sub_stack_key: 12,
+      stack_id: 5,
+      name: 'Visual group',
+      file_path: '/images/101.jpg',
+      file_name: '101.jpg',
+      score_general: 0.9,
+      score_technical: 0.8,
+      score_aesthetic: 0.7,
+      score_spaq: 0.6,
+      score_ava: 0.5,
+      score_liqe: 0.4,
+      rating: 3,
+      label: null,
+      image_count: 2,
+      is_ungrouped_sub_stack: false,
+    };
+    const ungroupedRow = {
+      id: 201,
+      sub_stack_id: null,
+      sub_stack_key: null,
+      stack_id: 5,
+      name: 'Ungrouped',
+      file_path: '/images/201.jpg',
+      file_name: '201.jpg',
+      score_general: 0.85,
+      score_technical: 0.75,
+      score_aesthetic: 0.65,
+      score_spaq: 0.55,
+      score_ava: 0.45,
+      score_liqe: 0.35,
+      rating: 2,
+      label: 'Blue',
+      image_count: 1,
+      is_ungrouped_sub_stack: true,
+    };
+    queryMock
+      .mockResolvedValueOnce([subStackRow])
+      .mockResolvedValueOnce([ungroupedRow]);
+
+    await expect(getSubstacksForStack(5, { minRating: 2, keyword: 'bird' })).resolves.toEqual([
+      subStackRow,
+      ungroupedRow,
+    ]);
+
+    const [subStackSql] = queryMock.mock.calls[0];
+    const [ungroupedSql, ungroupedParams] = queryMock.mock.calls[1];
+    expect(subStackSql).toContain('i.sub_stack_id IS NOT NULL');
+    expect(ungroupedSql).toContain('i.sub_stack_id IS NULL');
+    expect(ungroupedSql).toContain("'Ungrouped' AS name");
+    expect(ungroupedSql).toContain('TRUE AS is_ungrouped_sub_stack');
+    expect(ungroupedParams).toEqual([5, 2, '%bird%', '%bird%', 5]);
+  });
+
+  it('falls back to no sub-stacks when the additive schema is absent', async () => {
+    queryMock.mockRejectedValueOnce(Object.assign(new Error('relation "sub_stacks" does not exist'), { code: '42P01' }));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await expect(getSubstacksForStack(5)).resolves.toEqual([]);
+    expect(warnSpy).toHaveBeenCalled();
+  });
+});
+
+describe('db.getImagesByStackUngrouped', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    queryMock.mockResolvedValue([]);
+  });
+
+  it('loads only filtered images from the root stack without sub-stack assignment', async () => {
+    await getImagesByStackUngrouped(5, {
+      minRating: 2,
+      colorLabel: 'Blue',
+      keyword: 'bird',
+      capturedDate: '2024-01-02',
+    });
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain('i.stack_id = ?');
+    expect(sql).toContain('i.sub_stack_id IS NULL');
+    expect(sql).toContain('i.rating >= ?');
+    expect(sql).toContain('i.label = ?');
+    expect(sql).toContain('FROM image_keywords ik');
+    expect(params).toEqual([
+      5,
+      2,
+      'Blue',
+      '%bird%',
+      '%bird%',
+      '2024-01-02',
+      200,
+      0,
+    ]);
   });
 });

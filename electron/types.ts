@@ -14,6 +14,7 @@ export interface ImageQueryOptions {
     sortBy?: string;
     order?: 'ASC' | 'DESC';
     smartCover?: boolean;
+    capturedDate?: string;
 }
 
 export interface ImageRow {
@@ -30,6 +31,8 @@ export interface ImageRow {
     label: string | null;
     created_at?: string;
     thumbnail_path?: string;
+    stack_id?: number | null;
+    sub_stack_id?: number | null;
 }
 
 export interface ImageDetail extends ImageRow {
@@ -43,11 +46,11 @@ export interface ImageDetail extends ImageRow {
     description?: string;
     keywords?: string;
     metadata?: string;
-    scores_json?: string;
     model_version?: string;
     image_hash?: string;
     folder_id?: number;
     stack_id?: number;
+    sub_stack_id?: number;
     burst_uuid?: string;
     win_path?: string;
     file_exists?: boolean;
@@ -74,6 +77,23 @@ export interface StackRow extends ImageRow {
     stack_key?: number;
     image_count?: number;
     sort_value?: number;
+}
+
+export interface SubStackRow extends ImageRow {
+    /** Representative image id for the card; use sub_stack_id for the persisted sub-stack id. */
+    id: number;
+    sub_stack_id: number | null;
+    sub_stack_key?: number;
+    stack_id: number;
+    name?: string | null;
+    best_image_id?: number | null;
+    level1_space?: string | null;
+    level2_visual_space?: string | null;
+    level2_semantic_space?: string | null;
+    policy_version?: string | null;
+    image_count?: number;
+    created_at?: string;
+    is_ungrouped_sub_stack?: boolean;
 }
 
 export interface NefPreviewResult {

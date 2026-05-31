@@ -27,9 +27,14 @@ interface Image {
     keywords?: string;
     stack_id?: number | null;
     stack_key?: number;
+    sub_stack_id?: number | null;
+    sub_stack_key?: number;
+    name?: string | null;
     image_count?: number;
     capture_date?: string;
     is_capture_date_fallback?: boolean;
+    is_sub_stack_card?: boolean;
+    is_ungrouped_sub_stack?: boolean;
 }
 
 import type { Folder } from '../Tree/treeUtils';
@@ -49,8 +54,11 @@ interface GalleryGridProps {
     stacksMode?: boolean;
     stacks?: Image[];
     onSelectStack?: (stack: Image) => void;
+    subStacksMode?: boolean;
+    onSelectSubStack?: (subStack: Image) => void;
     onStackEndReached?: () => void;
     activeStackId?: number | null;
+    activeSubStackId?: number | null;
     /** Use RAW-aware thumbnails (filesystem-only mode without DB-generated JPEGs). */
     useGalleryThumbnail?: boolean;
     /** Triggered from context menu for a specific image. */
@@ -94,7 +102,8 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     images, onSelect, onEndReached, subfolders, onSelectFolder,
     onNavigateToParent, viewerOpen = false, sortBy = 'score_general',
     stacksMode = false, stacks = [], onSelectStack, onStackEndReached,
-    activeStackId, useGalleryThumbnail = false, onFindSimilar,
+    subStacksMode = false, onSelectSubStack,
+    activeStackId, activeSubStackId, useGalleryThumbnail = false, onFindSimilar,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, image: Image } | null>(null);
@@ -237,14 +246,17 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         );
     }, [getScoreDisplay, getLabelColor, useGalleryThumbnail]);
 
-    const renderStackCard = useCallback((stack: Image, onClick: () => void) => {
+    const renderStackCard = useCallback((stack: Image, onClick: () => void, kind: 'stack' | 'substack' = 'stack') => {
         const labelColor = getLabelColor(stack.label);
         const count = stack.image_count || 1;
+        const title = kind === 'substack'
+            ? `${stack.name || (stack.is_ungrouped_sub_stack ? 'Ungrouped' : `Sub-stack #${stack.sub_stack_id ?? stack.id}`)} (${count} photos)`
+            : count > 1 ? `Stack (${count} photos)` : stack.file_name;
 
         return (
             <div
                 onClick={onClick}
-                onContextMenu={(e) => handleContextMenu(e, stack)}
+                onContextMenu={(e) => handleContextMenu(e, kind === 'substack' ? { ...stack, is_sub_stack_card: true } : stack)}
                 className={styles.cardInnerStack}
             >
                 {count > 1 && (
@@ -288,8 +300,8 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 </div>
 
                 <div className={styles.cardMetaStack} style={{ borderTop: `2px solid ${labelColor}` }}>
-                    <div className={styles.cardFileName} title={stack.file_name}>
-                        {count > 1 ? `Stack (${count} photos)` : stack.file_name}
+                    <div className={styles.cardFileName} title={title}>
+                        {title}
                     </div>
                     <div className={styles.cardScore}>
                         <span>{getScoreDisplay(stack)}</span>
@@ -301,8 +313,9 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
 
     // Determine what data source to use
     const isStacksView = stacksMode && !activeStackId;
+    const isSubStacksView = subStacksMode && activeStackId !== null && activeSubStackId === null;
     const displayData = isStacksView ? stacks : images;
-    const endReachedHandler = isStacksView ? onStackEndReached : onEndReached;
+    const endReachedHandler = isStacksView ? onStackEndReached : (isSubStacksView ? undefined : onEndReached);
 
     const itemContent = useCallback((index: number) => {
         const item = displayData[index];
@@ -316,10 +329,16 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                     onSelect(item);
                 }
             });
+        } else if (isSubStacksView) {
+            return renderStackCard(item, () => {
+                if ((item.is_ungrouped_sub_stack || item.sub_stack_id !== null && item.sub_stack_id !== undefined) && onSelectSubStack) {
+                    onSelectSubStack(item);
+                }
+            }, 'substack');
         } else {
             return renderImageCard(item, () => onSelect && onSelect(item));
         }
-    }, [displayData, isStacksView, renderStackCard, renderImageCard, onSelectStack, onSelect]);
+    }, [displayData, isStacksView, isSubStacksView, renderStackCard, renderImageCard, onSelectStack, onSelectSubStack, onSelect]);
 
     const endReachedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const handleEndReached = useCallback(() => {
@@ -393,7 +412,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                     >
                         Find Similar Images
                     </button>
-                    {contextMenu.image.stack_id && (
+                    {contextMenu.image.stack_id && !contextMenu.image.is_sub_stack_card && (
                         <button
                             className={styles.contextMenuItem}
                             onClick={() => {

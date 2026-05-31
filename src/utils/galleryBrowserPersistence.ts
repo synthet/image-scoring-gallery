@@ -9,6 +9,7 @@ export type GalleryBrowserPersistedState = {
   includeSubfolders: boolean;
   stacksMode: boolean;
   activeStackId: number | null;
+  activeSubStackId: number | null;
   currentView: 'gallery' | 'duplicates' | 'embeddings';
   filters: FilterState;
   smartCoverEnabled: boolean;
@@ -82,6 +83,8 @@ export function readGalleryBrowserSnapshot(): GalleryBrowserPersistedState | nul
       stacksMode: Boolean(o.stacksMode),
       activeStackId:
         typeof o.activeStackId === 'number' && Number.isFinite(o.activeStackId) ? o.activeStackId : null,
+      activeSubStackId:
+        typeof o.activeSubStackId === 'number' && Number.isFinite(o.activeSubStackId) ? o.activeSubStackId : null,
       currentView,
       filters,
       smartCoverEnabled: Boolean(o.smartCoverEnabled),
