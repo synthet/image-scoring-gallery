@@ -9,7 +9,7 @@
 
 .sectionLabel {
   font-size: 12px;
-  color: #888;
+  color: var(--text-secondary);
   margin-bottom: 5px;
 }
 
@@ -22,7 +22,7 @@
   flex: 1;
   padding: 4px 0;
   background: var(--input-bg);
-  color: #eee;
+  color: var(--text-primary);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -39,6 +39,7 @@
 .ratingButtonActive {
   composes: ratingButton;
   background: var(--accent);
+  color: var(--color-text-on-accent);
 }
 
 .colorRow {
@@ -52,7 +53,7 @@
   font-size: 11px;
   border: none;
   border-radius: 4px;
-  color: #ddd;
+  color: var(--text-secondary);
   cursor: pointer;
   font-family: inherit;
   transition: background 0.15s ease;
@@ -92,7 +93,7 @@
   flex: 1;
   background: var(--input-bg);
   border: 1px solid var(--border);
-  color: #eee;
+  color: var(--text-primary);
   padding: 6px 8px;
   border-radius: 4px;
   font-size: 13px;

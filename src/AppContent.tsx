@@ -16,7 +16,7 @@ import { SyncModal } from './components/Sync/SyncModal';
 import { BackupModal } from './components/Backup/BackupModal';
 import { SimilarSearchDrawer } from './components/Viewer/SimilarSearchDrawer';
 import { SearchPage } from './components/Search/SearchPage';
-import { Loader2, ChevronRight, RefreshCw } from 'lucide-react';
+import { Loader2, ChevronRight, RefreshCw, PanelLeft } from 'lucide-react';
 import { useOperationStore } from './store/useOperationStore';
 import { bridge } from './bridge';
 import { useElectronListeners } from './hooks/useElectronListeners';
@@ -95,6 +95,17 @@ function AppContent() {
 
   const [isSimilarDrawerOpen, setIsSimilarDrawerOpen] = useState(false);
   const [similarSearchImageId, setSimilarSearchImageId] = useState<number | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1100px)');
+    const onMatch = () => {
+      if (mq.matches) setSidebarOpen(false);
+    };
+    onMatch();
+    mq.addEventListener('change', onMatch);
+    return () => mq.removeEventListener('change', onMatch);
+  }, []);
 
   const stacksModeRef = useRef(false);
   const activeStackIdRef = useRef<number | null>(null);
@@ -333,6 +344,15 @@ function AppContent() {
     ? (stacksLoading && stacks.length === 0)
     : (activeStackId ? (activeStackDisplayLoading && currentImages.length === 0) : (imagesLoading && images.length === 0));
 
+  const hasActiveFilters = useMemo(
+    () =>
+      filters.minRating > 0
+      || Boolean(filters.colorLabel)
+      || Boolean(filters.keyword?.trim())
+      || Boolean(filters.capturedDate),
+    [filters],
+  );
+
   const headerTitle = isSearchOpen
     ? 'Semantic Search'
     : activeUngroupedSubStack
@@ -449,12 +469,24 @@ function AppContent() {
   return (
     <>
       <MainLayout
+        sidebarOpen={sidebarOpen}
         breadcrumbs={isSearchOpen ? null : breadcrumbsNode}
         header={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {!isSearchOpen && (
+              <button
+                type="button"
+                className="sidebarToggle"
+                aria-label="Toggle filters sidebar"
+                title="Toggle filters sidebar"
+                onClick={() => setSidebarOpen((open) => !open)}
+              >
+                <PanelLeft size={16} />
+              </button>
+            )}
             <h2 style={{ margin: 0, fontSize: '1.2em' }}>{headerTitle}</h2>
             {!isSearchOpen && (
-            <span style={{ fontSize: '0.9em', color: '#888' }}>
+            <span style={{ fontSize: '0.9em', color: 'var(--text-secondary)' }}>
               ({currentTotal} {currentTotalLabel})
             </span>
             )}
@@ -672,6 +704,7 @@ function AppContent() {
                     setSimilarSearchImageId(img.id);
                     setIsSimilarDrawerOpen(true);
                   }}
+                  filterEmptyActive={hasActiveFilters && !isInitialGridLoading}
                 />
                 <SimilarSearchDrawer
                   open={isSimilarDrawerOpen}

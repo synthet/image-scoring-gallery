@@ -55,6 +55,10 @@ import {
     scheduleProcessingForImportedFolder,
     type ScheduleResult,
 } from './scheduleProcessing';
+import {
+    startGalleryMcpLiveFromElectron,
+    stopGalleryMcpLiveFromElectron,
+} from './galleryMcpLive';
 
 /** Verbose `media://` request logging (default off in dev — huge galleries flood the console). */
 function debugGalleryMedia(): boolean {
@@ -2590,6 +2594,18 @@ async function startFullApplication(): Promise<void> {
     createWindow();
     rebuildApplicationMenu();
 
+    void startGalleryMcpLiveFromElectron({
+        projectRoot: path.join(__dirname, '..'),
+        getWindowStatus: async () => ({
+            hasMainWindow: mainWindow !== null && !mainWindow.isDestroyed(),
+            visible: mainWindow?.isVisible() ?? false,
+            focused: mainWindow?.isFocused() ?? false,
+            bounds: mainWindow && !mainWindow.isDestroyed() ? mainWindow.getBounds() : null,
+        }),
+    }).catch((err) => {
+        console.warn('[Main] image-scoring-gallery-live MCP failed to start:', err);
+    });
+
     // Non-blocking: Postgres/API can take connectionTimeoutMillis (e.g. 10s) when Docker/DB is down.
     // Show the window immediately; the renderer surfaces connection errors via IPC.
     void db.initializeDatabaseProvider().then((ok) => {
@@ -2612,6 +2628,8 @@ if (webuiShellOnlyUrl) {
 
 
 app.on('window-all-closed', async () => {
+    await stopGalleryMcpLiveFromElectron();
+
     // Close persistent database connection
     db.closeConnection();
 

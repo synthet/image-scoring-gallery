@@ -22,7 +22,13 @@ vi.mock('./db/provider', () => ({
   })),
 }));
 
-import { getImagesByStackUngrouped, getStacks, getStackCount, getSubstacksForStack } from './db';
+import {
+  getImagesByStackUngrouped,
+  getImagesBySubStack,
+  getStacks,
+  getStackCount,
+  getSubstacksForStack,
+} from './db';
 
 describe('db.getStacks keyword filter', () => {
   beforeEach(() => {
@@ -169,6 +175,48 @@ describe('db.getSubstacksForStack', () => {
 
     await expect(getSubstacksForStack(5)).resolves.toEqual([]);
     expect(warnSpy).toHaveBeenCalled();
+  });
+});
+
+describe('db.getImagesBySubStack', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    queryMock.mockResolvedValue([]);
+  });
+
+  it('filters images by sub_stack_id with attribute filters and paging', async () => {
+    await getImagesBySubStack(12, {
+      minRating: 2,
+      colorLabel: 'Red',
+      keyword: 'bird',
+      capturedDate: '2024-01-02',
+      limit: 50,
+      offset: 10,
+    });
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain('i.sub_stack_id = ?');
+    expect(sql).toContain('i.rating >= ?');
+    expect(sql).toContain('i.label = ?');
+    expect(sql).toContain('FROM image_keywords ik');
+    expect(params).toEqual([
+      12,
+      2,
+      'Red',
+      '%bird%',
+      '%bird%',
+      '2024-01-02',
+      50,
+      10,
+    ]);
+  });
+
+  it('falls back to empty list when sub-stack schema is absent', async () => {
+    queryMock.mockRejectedValueOnce(
+      Object.assign(new Error('relation "sub_stacks" does not exist'), { code: '42P01' }),
+    );
+
+    await expect(getImagesBySubStack(12)).resolves.toEqual([]);
   });
 });
 

@@ -81,5 +81,5 @@ Keep **sibling clone layout** in mind: backend and gallery as sibling folders so
 
 ## Optional MCP
 
-When debugging integration with a running backend, **`imgscore-el-gallery`**
+When debugging integration with a running backend, **`gallery`**
 (`gallery_status`, API probes) is described in **`AGENTS.md`**.

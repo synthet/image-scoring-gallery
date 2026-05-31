@@ -4,6 +4,7 @@ Chronological record of wiki maintenance activities. Newest entries first.
 
 ## 2026-05
 
+- 2026-05-31: updated — OpenAPI contract sync: refreshed [api-contract/openapi.json](../api-contract/openapi.json) and [electron/api.generated.ts](../electron/api.generated.ts) from sibling backend; added [technical/OPENAPI_CONTRACT.md](technical/OPENAPI_CONTRACT.md); [CANONICAL_SOURCES.md](CANONICAL_SOURCES.md) lists snapshot + backend cross-project doc.
 - 2026-05-26: created — External CLI review agent infra: MCP `imgscore-el-subagent-orchestrator`, skill `subagent-review`, slash commands `/check-subagents` and `/run-*-review`, subagents `external-*`. See [technical/EXTERNAL_CLI_REVIEWS.md](technical/EXTERNAL_CLI_REVIEWS.md).
 - 2026-05-24: updated — Design token pointers: [design/DESIGN_SYSTEM.md](design/DESIGN_SYSTEM.md) → **image-scoring-ui** + `@synthet/image-scoring-design` 1.0.0; [CANONICAL_SOURCES.md](CANONICAL_SOURCES.md) design row; [design/FRONTEND_UX_SPEC.md](design/FRONTEND_UX_SPEC.md) stack differences table (Tailwind backend vs CSS Modules gallery).
 - 2026-05-24: updated — Semantic search sidebar integration: server-side filters on `GET /api/similarity/text-search` (gallery `api-contract/openapi.json`, `electron/apiTypes.ts`); `SearchPage` re-runs on folder/filters; doc § in [features/implemented/02-desktop-shell-and-navigation.md](features/implemented/02-desktop-shell-and-navigation.md).

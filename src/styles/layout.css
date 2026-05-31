@@ -24,10 +24,57 @@ body {
 
 .sidebar {
   width: var(--sidebar-width);
+  flex-shrink: 0;
   background-color: var(--bg-darker);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  transition: width 0.2s ease, min-width 0.2s ease;
+  overflow: hidden;
+}
+
+.sidebarCollapsed {
+  width: 0;
+  min-width: 0;
+  border-right: none;
+}
+
+@media (max-width: 1100px) {
+  .sidebar:not(.sidebarOpen) {
+    width: 0;
+    min-width: 0;
+    border-right: none;
+  }
+
+  .sidebar.sidebarOpen {
+    position: fixed;
+    z-index: 100;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45);
+  }
+}
+
+.sidebarToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  margin-right: 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.sidebarToggle:hover {
+  color: var(--text-primary);
+  background: var(--color-bg-elevated, #3c3c3c);
 }
 
 .main-content {

@@ -1,4 +1,5 @@
 import { resolveApiUrl } from "./config.js";
+import { assertLocalHttpUrl } from "./localNetwork.js";
 
 /**
  * Base URL for Chrome DevTools HTTP (Electron remote debugging).
@@ -8,7 +9,7 @@ import { resolveApiUrl } from "./config.js";
 export function getCdpBaseUrl(): string {
     const full = process.env.ELECTRON_CDP_URL?.trim();
     if (full) {
-        return full.replace(/\/$/, "");
+        return assertLocalHttpUrl(full, "ELECTRON_CDP_URL");
     }
     const port =
         process.env.ELECTRON_REMOTE_DEBUGGING_PORT?.trim() ||
