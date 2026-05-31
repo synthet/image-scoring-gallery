@@ -1,10 +1,9 @@
 {
+  "_comment": "Merge into gallery .cursor/mcp.json. Live server requires Electron dev (gallery-mcp.lock for actual port).",
   "mcpServers": {
     "image-scoring-gallery-stdio": {
       "command": "node",
-      "args": [
-        "${workspaceFolder}/mcp-server/dist/index.js"
-      ]
+      "args": ["${workspaceFolder}/mcp-server/dist/index.js"]
     },
     "image-scoring-gallery-live": {
       "url": "http://127.0.0.1:9373/mcp/sse",

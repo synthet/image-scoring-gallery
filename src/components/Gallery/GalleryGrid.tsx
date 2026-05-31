@@ -63,6 +63,8 @@ interface GalleryGridProps {
     useGalleryThumbnail?: boolean;
     /** Triggered from context menu for a specific image. */
     onFindSimilar?: (image: Image) => void;
+    /** Show empty copy when filters yield zero rows (not loading). */
+    filterEmptyActive?: boolean;
 }
 
 
@@ -104,6 +106,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     stacksMode = false, stacks = [], onSelectStack, onStackEndReached,
     subStacksMode = false, onSelectSubStack,
     activeStackId, activeSubStackId, useGalleryThumbnail = false, onFindSimilar,
+    filterEmptyActive = false,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, image: Image } | null>(null);
@@ -351,6 +354,17 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
 
 
 
+
+    if (filterEmptyActive && displayData.length === 0 && !activeStackId) {
+        return (
+            <div className={styles.filterEmptyState}>
+                <p className={styles.filterEmptyTitle}>No images match filters</p>
+                <p className={styles.filterEmptyHint}>
+                    Clear filters or change minimum rating, color label, keyword, or sort.
+                </p>
+            </div>
+        );
+    }
 
     if (displayData.length === 0 && subfolders && subfolders.length > 0 && !activeStackId) {
         return (

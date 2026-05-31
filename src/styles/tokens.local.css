@@ -6,6 +6,7 @@
 :root {
   /* ── Layout ──────────────────────────────────────────────────────── */
   --sidebar-width: 250px;
+  --layout-sidebar-collapse-bp: 1100px;
 
   /* ── Spacing scale ───────────────────────────────────────────────── */
   --space-xs: 4px;
@@ -33,4 +34,10 @@
   /* ── Focus ring ──────────────────────────────────────────────────── */
   --focus-ring:   2px solid var(--color-accent);
   --focus-offset: 2px;
+
+  /* ── Contrast (gallery #123; upstream in design pkg v1.1.1+) ─────── */
+  --color-text-on-accent: #ffffff;
+  --color-text-placeholder: #9d9d9d;
+  --text-on-accent: var(--color-text-on-accent);
+  --text-placeholder: var(--color-text-placeholder);
 }

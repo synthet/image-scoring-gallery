@@ -39,7 +39,7 @@ If a change requires backend DDL or API changes, **say so explicitly** and treat
 
 ## Optional tooling
 
-When a running backend helps, the gallery MCP **`imgscore-el-gallery`** exposes `gallery_status`, FastAPI `api_*` probes, and Electron `cdp_*` tools when CDP is enabled (`ELECTRON_REMOTE_DEBUGGING_PORT=9222` or `ELECTRON_CDP_URL`); see `AGENTS.md`. For deeper backend triage, prefer the **`gallery-mcp-debug`** subagent or the optional **`imgscore-el-stdio`** server (Python `modules.mcp_server`).
+When debugging integration with a running backend, **`image-scoring-gallery-stdio`** exposes `gallery_status` and `api_*`. For Electron/CDP use **`image-scoring-gallery-live`** (`npm run dev`); for backend DB/jobs use **`image-scoring-backend-stdio`**.
 
 ## Backlog hygiene
 

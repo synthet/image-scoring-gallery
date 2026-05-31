@@ -6,7 +6,9 @@
     "type": "module",
     "scripts": {
         "build": "tsc",
-        "start": "node dist/index.js"
+        "start": "node dist/index.js",
+        "start:live": "node dist/liveServer.js",
+        "test:live-smoke": "npm run build && node dist/liveServer.smoke.js"
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.0.1"

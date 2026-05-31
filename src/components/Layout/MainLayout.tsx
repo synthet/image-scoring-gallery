@@ -7,12 +7,20 @@ interface MainLayoutProps {
     content: React.ReactNode;
     header?: React.ReactNode;
     breadcrumbs?: React.ReactNode;
+    sidebarOpen?: boolean;
 }
 
-export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content, header, breadcrumbs }) => {
+export const MainLayout: React.FC<MainLayoutProps> = ({
+    sidebar,
+    content,
+    header,
+    breadcrumbs,
+    sidebarOpen = true,
+}) => {
+    const sidebarClass = sidebarOpen ? 'sidebar sidebarOpen' : 'sidebar sidebarCollapsed';
     return (
         <div className="app-container">
-            <aside className="sidebar">
+            <aside className={sidebarClass}>
                 {sidebar}
             </aside>
             <main className="main-content">

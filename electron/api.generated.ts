@@ -529,12 +529,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get application configuration
-         * @description Returns the current `config.json` contents. Sections: `scoring`, `processing`,
-         *             `culling`, `ui`, `tagging`. Used by the Settings tab; Electron should read this
-         *             on startup and display values in its Settings pane.
+         * Get public configuration
+         * @description Returns a safe subset of configuration flags for the frontend.
          */
-        get: operations["get_config_api_config_get"];
+        get: operations["get_public_config_api_config_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1775,6 +1773,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stacks/{stack_id}/substacks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get sub-stacks for a root stack
+         * @description Returns persisted leaf sub-stacks from two-level culling (visual then semantic clustering). Empty when two-level culling has not run or is disabled.
+         */
+        get: operations["get_stack_substacks_api_stacks__stack_id__substacks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/substacks/{sub_stack_id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get images in a sub-stack
+         * @description Returns images belonging to a two-level culling sub-stack.
+         */
+        get: operations["get_substack_images_api_substacks__sub_stack_id__images_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stats": {
         parameters: {
             query?: never;
@@ -2185,6 +2223,28 @@ export interface paths {
          *             as an attachment.
          */
         post: operations["export_gallery_api_gallery_export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/config/full": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get full application configuration
+         * @description Returns merged `config.json` + `environment.json` contents for Settings integrations
+         *             and Electron. Prefer `GET /api/config` for the React SPA feature-flag subset.
+         *             Passwords and tokens may be present; callers should not expose this response publicly.
+         */
+        get: operations["get_config_full_api_config_full_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4759,6 +4819,18 @@ export interface components {
             scope_paths: string[];
             /** Stages */
             stages?: string[] | null;
+            /**
+             * Include Stale Executor
+             * @description When false, exclude executor-version-only drift from stage_queues (same as auto-drive enqueue).
+             * @default true
+             */
+            include_stale_executor: boolean;
+            /**
+             * Align Auto Drive
+             * @description When true, forces include_stale_executor=false for this preview.
+             * @default false
+             */
+            align_auto_drive: boolean;
         };
     };
     responses: never;
@@ -5675,7 +5747,7 @@ export interface operations {
             };
         };
     };
-    get_config_api_config_get: {
+    get_public_config_api_config_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5690,7 +5762,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ConfigResponse"];
                 };
             };
             /** @description Bad Request - Invalid input parameters */
@@ -9187,6 +9259,124 @@ export interface operations {
             };
         };
     };
+    get_stack_substacks_api_stacks__stack_id__substacks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stack_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_substack_images_api_substacks__sub_stack_id__images_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sub_stack_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_stats_api_stats_get: {
         parameters: {
             query?: never;
@@ -10386,6 +10576,54 @@ export interface operations {
             };
         };
     };
+    get_config_full_api_config_full_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     save_config_api_config__section__post: {
         parameters: {
             query?: never;
@@ -10582,6 +10820,12 @@ export interface operations {
                 limit?: number;
                 offset?: number;
                 include_complete?: boolean;
+                /** @description Max folder phase summaries to force-refresh when bulk cache is missing or phase_agg_dirty=1 (0 = only refresh missing cache entries). */
+                refresh_dirty_limit?: number;
+                /** @description Max folder-bucket rows on this page to compute JIT planner_next_phases (default 0; opt in for accurate enqueue preview, but each row runs a per-image plan_scope and can be slow on folders with many images). */
+                planner_preview_limit?: number;
+                /** @description Skip planner preview on folders larger than this image count (0 disables the cap). */
+                planner_preview_max_images?: number;
             };
             header?: never;
             path?: never;

@@ -15,25 +15,34 @@ Project skills live only under [`.cursor/skills/`](.cursor/skills/) (no `.claude
 
 **Cursor slash commands** (type `/` in chat): **`/spec`**, **`/plan`**, **`/implement`**, **`/test-and-fix`**, **`/pr-ready`**, **`/release-notes`**, **`/check-subagents`**, **`/run-codex-review`**, **`/run-gemini-review`**, **`/run-subagent-review`**. **Claude Code** mirrors these under `.claude/commands/`.
 
-**External CLI reviews:** sibling [`subagent-orchestrator`](../subagent-orchestrator) via MCP **`imgscore-el-subagent-orchestrator`** — see [docs/technical/EXTERNAL_CLI_REVIEWS.md](docs/technical/EXTERNAL_CLI_REVIEWS.md).
+**External CLI reviews:** sibling [`subagent-orchestrator`](../subagent-orchestrator) via user-level **`subagent-orchestrator`** — see [docs/technical/EXTERNAL_CLI_REVIEWS.md](docs/technical/EXTERNAL_CLI_REVIEWS.md).
 
 ## MCP Configuration
-The `.cursor/mcp.json` file uses the **`imgscore-el-*`** prefix so server names stay unique when Cursor merges multiple project configs.
 
-**Primary (enabled): `imgscore-el-gallery`** — single stdio app from [`mcp-server/`](mcp-server/) (`node …/mcp-server/dist/index.js`). Always: logs, `config.json`, `get_system_stats`, **`gallery_status`** (probes FastAPI + Electron CDP). When the Python WebUI is up: **`api_*`** tools against the resolved backend URL. When Electron runs in dev with remote debugging: **`cdp_*`** tools (default CDP port 9222; set `ELECTRON_CDP_URL` or `ELECTRON_REMOTE_DEBUGGING_PORT` to match).
+Each repo defines an **stdio + live SSE** pair in [`.cursor/mcp.json`](.cursor/mcp.json). Keys use prefix **`image-scoring-`**.
 
-**Enabled: `imgscore-el-subagent-orchestrator`** — review-only external Codex/Gemini via sibling **`../subagent-orchestrator`** (`detect_subagents`, `run_subagent`). Setup: [docs/technical/EXTERNAL_CLI_REVIEWS.md](docs/technical/EXTERNAL_CLI_REVIEWS.md).
+| Cursor server key | Transport | Requires running app? |
+|-------------------|-----------|------------------------|
+| **`image-scoring-gallery-stdio`** | stdio (Node `mcp-server`) | No — logs, config, `gallery_status`, `api_*` |
+| **`image-scoring-gallery-live`** | SSE (Electron-hosted) | Yes — `npm run dev` or `ENABLE_GALLERY_MCP_SSE=1` |
 
-**Opt-in: `imgscore-el-stdio`** — Python **`modules.mcp_server`** (full DB diagnostics; tool count matches backend **AGENTS.md** / `modules/mcp_server.py`). **Disabled by default** in this repo; enable in MCP settings or open the **image-scoring-backend** workspace, which uses **`imgscore-py-stdio`**. **`imgscore-el-sse`** — WebUI SSE (e.g. `execute_code` when `ENABLE_MCP_EXECUTE_CODE=1`).
+Backend pair (sibling **image-scoring-backend**): **`image-scoring-backend-stdio`**, **`image-scoring-backend-webui`**, optional **`image-scoring-backend-postgres`**.
+
+- Build MCP once: `npm install && npm run build` under `mcp-server/`.
+- Live SSE: default `http://127.0.0.1:9373/mcp/sse`; see **`gallery-mcp.lock`** after Electron starts.
+- Optional auth: **`GALLERY_MCP_TOKEN`**.
+
+User `~/.cursor/mcp.json`: cross-repo tools only — **do not** duplicate `image-scoring-*` there.
 
 ### Requirements
-- **`imgscore-el-gallery`**: Node; run `npm install` and `npm run build` under `mcp-server/` once.
-- **Full DB MCP**: Python env with `mcp` (and DB drivers) when **`imgscore-el-stdio`** / backend workspace is enabled.
+- **`image-scoring-gallery-stdio`**: Node; `mcp-server/` built.
+- **`image-scoring-gallery-live`**: Electron dev (`ELECTRON_IS_DEV=1`) or `ENABLE_GALLERY_MCP_SSE=1`.
 - **Database:** PostgreSQL (local `pg`) and/or backend API SQL mode; configure `database` in `config.json` (see `docs/architecture/02-database-design.md`).
 
 ## Tools for Agents
-- **Gallery MCP (`imgscore-el-gallery`)**: Local diagnostics, optional FastAPI job/health probes, optional CDP for renderer inspection. Start with **`gallery_status`** to see what is reachable.
-- **Python MCP (optional)**: Query images, `execute_sql`, health, jobs — see backend **`AGENTS.md`** / **`imgscore-py-stdio`**.
+- **`image-scoring-gallery-stdio`**: Start with **`gallery_status`**; then `api_*` when backend WebUI is up.
+- **`image-scoring-gallery-live`**: `cdp_*`, `gallery_window_status`, `gallery_ipc_ping` when Electron is running.
+- **`image-scoring-backend-stdio`**: Full Python DB/job catalog — see backend **`AGENTS.md`** (backend workspace or multi-root).
 
 ### mcp-kanban (optional, user MCP)
 

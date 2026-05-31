@@ -1613,7 +1613,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
     const selectExtra = sortParts.selectExtra ? `,\n            ${sortParts.selectExtra}` : '';
     const joinSql = sortParts.joinSql ? `\n        ${sortParts.joinSql}` : '';
 
-    const sql = `
+    const buildSql = (includePickStatus: boolean) => `
         SELECT
             i.id,
             COALESCE(fp.path, i.file_path) as file_path,

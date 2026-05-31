@@ -4,6 +4,21 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.14.0] - 2026-05-31
+
+### Added
+
+- **Gallery MCP live**: Electron hosts SSE MCP (`galleryMcpLive`) on startup for `image-scoring-gallery-live` (CDP / window tools when dev app is running).
+- **MCP server refactor**: Shared `createGalleryMcpServer`, `liveServer`, `liveIpc`, and `core` tools; smoke test for live server.
+- **Visual UX (#123)**: Collapsible sidebar below 1100px, improved filter/calendar contrast, empty-filter message in gallery grid.
+- **Tests**: `GalleryGrid`, `MainLayout`, and `useImageOpener` coverage.
+
+### Changed
+
+- **Design tokens**: Gallery-local `--color-text-on-accent` and `--color-text-placeholder` in `tokens.local.css` (aligned with upcoming `@synthet/image-scoring-design` v1.1.1).
+- **OpenAPI contract**: Regenerated `api-contract/openapi.json` and `electron/api.generated.ts` for backend **8.0.0**.
+- **Layout**: `layout.css` sidebar toggle; `AppContent` / `MainLayout` wiring.
+
 ## [7.13.0] - 2026-05-31
 
 ### Added

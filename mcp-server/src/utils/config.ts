@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { assertLocalHttpUrl } from "./localNetwork.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -125,24 +126,28 @@ export function getEnvironmentPath(): string {
  * Priority: merged config (config.json + environment.json) → lock file → default.
  */
 export async function resolveApiUrl(): Promise<string> {
+    let resolved = "http://127.0.0.1:7860";
+
     // 1. Check merged config
     const config = await readConfig();
-    if (config.api?.url) return config.api.url;
-
-    // 2. Check lock files for port
-    for (const lockName of ["webui-debug.lock", "webui.lock"]) {
-        try {
-            const lockPath = path.join(IMAGE_SCORING_ROOT, lockName);
-            const content = await fs.readFile(lockPath, "utf-8");
-            const port = content.trim().split("\n")[0]?.trim();
-            if (port && /^\d+$/.test(port)) {
-                return `http://127.0.0.1:${port}`;
+    if (config.api?.url) {
+        resolved = config.api.url;
+    } else {
+        // 2. Check lock files for port
+        for (const lockName of ["webui-debug.lock", "webui.lock"]) {
+            try {
+                const lockPath = path.join(IMAGE_SCORING_ROOT, lockName);
+                const content = await fs.readFile(lockPath, "utf-8");
+                const port = content.trim().split("\n")[0]?.trim();
+                if (port && /^\d+$/.test(port)) {
+                    resolved = `http://127.0.0.1:${port}`;
+                    break;
+                }
+            } catch {
+                // Lock file doesn't exist, try next
             }
-        } catch {
-            // Lock file doesn't exist, try next
         }
     }
 
-    // 3. Default
-    return "http://127.0.0.1:7860";
+    return assertLocalHttpUrl(resolved, "API base URL");
 }

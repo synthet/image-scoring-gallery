@@ -48,7 +48,8 @@ The backend owns REST API contracts, database schema, and pipeline phase termino
 - [CANONICAL_SOURCES.md](CANONICAL_SOURCES.md) - owner map for backend vs gallery authority.
 - [integration/TODO.md](integration/TODO.md) - API/WebSocket backlog split by backend-owned contract tasks and gallery implementation tasks.
 - [technical/AGENT_COORDINATION.md](technical/AGENT_COORDINATION.md) - local pointer to backend canonical coordination.
-- [api-contract/](../api-contract/) - synced API contract artifacts when present.
+- [technical/OPENAPI_CONTRACT.md](technical/OPENAPI_CONTRACT.md) - gallery consumer checklist for backend OpenAPI sync and type generation.
+- [api-contract/](../api-contract/) - synced API contract snapshot (`openapi.json` from backend).
 
 ## Planning
 
