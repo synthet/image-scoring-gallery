@@ -196,6 +196,10 @@ const FOLDER_API_STUB: Window['electron']['api'] = {
     getJobsQueue: async () => ({ queue_depth: 0, jobs: [] }),
     cancelJob: async () => ({ success: false, message: 'folder mode' }),
     getScopeTree: async () => ({ folders: [] }),
+    getScoringSortOptions: async () => [
+        { value: 'score_general', label: 'General', group: 'composite' as const },
+        { value: 'capture_date', label: 'Capture date', group: 'meta' as const },
+    ],
 };
 
 // ── HTTP Bridge (browser mode) ────────────────────────────────────────────────
