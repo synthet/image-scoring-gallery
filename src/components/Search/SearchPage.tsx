@@ -7,6 +7,7 @@ import {
     X,
     Loader2,
 } from 'lucide-react';
+import { EmbeddingSpaceIcon, EMBEDDING_SPACE_LABELS } from '@synthet/image-scoring-design';
 import type { TextSearchResultItem } from '../../../electron/apiTypes';
 import type { Folder } from '../Tree/treeUtils';
 import { bridge } from '../../bridge';
@@ -504,10 +505,19 @@ export function SearchPage({
                                 />
                             </div>
                             <div className={styles.metaSpace}>
-                                space:{' '}
-                                <span style={{ fontFamily: 'ui-monospace, monospace' }}>
-                                    {data?.embedding_space}
-                                </span>
+                                <span className={styles.metaSpaceLabel}>space:</span>
+                                {data?.embedding_space ? (
+                                    <span className={styles.metaSpaceValue}>
+                                        <EmbeddingSpaceIcon
+                                            code={data.embedding_space}
+                                            size={14}
+                                        />
+                                        <span title={data.embedding_space}>
+                                            {EMBEDDING_SPACE_LABELS[data.embedding_space] ??
+                                                data.embedding_space}
+                                        </span>
+                                    </span>
+                                ) : null}
                             </div>
                         </div>
                         <div className={styles.grid}>

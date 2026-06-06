@@ -1,4 +1,5 @@
 import React from 'react';
+import { EmbeddingSpaceIcon, EMBEDDING_SPACE_LABELS } from '@synthet/image-scoring-design';
 
 export interface ProjectedEmbeddingPoint {
   id: number;
@@ -12,6 +13,7 @@ export interface ProjectedEmbeddingPoint {
 
 interface EmbeddingMapProps {
   points: ProjectedEmbeddingPoint[];
+  spaceCode?: string;
   isLoading?: boolean;
   error?: string | null;
   onRetry?: () => void;
@@ -26,6 +28,7 @@ interface EmbeddingMapProps {
  */
 export const EmbeddingMap: React.FC<EmbeddingMapProps> = ({
   points,
+  spaceCode,
   isLoading = false,
   error = null,
   onRetry,
@@ -72,6 +75,22 @@ export const EmbeddingMap: React.FC<EmbeddingMapProps> = ({
 
   return (
     <div style={{ padding: 20, height: '100%', overflow: 'auto' }}>
+      {spaceCode ? (
+        <div
+          style={{
+            marginBottom: 10,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            color: '#aaa',
+          }}
+        >
+          <EmbeddingSpaceIcon code={spaceCode} size={16} />
+          <span title={spaceCode}>
+            {EMBEDDING_SPACE_LABELS[spaceCode] ?? spaceCode}
+          </span>
+        </div>
+      ) : null}
       <div style={{ marginBottom: 10, color: '#aaa' }}>
         Embedding map placeholder ({points.length} points)
       </div>
