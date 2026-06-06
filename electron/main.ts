@@ -1854,6 +1854,10 @@ async function startFullApplication(): Promise<void> {
         const newFolderRelPaths = new Set<string>();
         const candidates: SyncCandidate[] = [];
 
+        // Preload deleted_images tombstones once so previously-deleted files are not
+        // re-imported by Sync (matches by image_uuid+file_name or original_path).
+        const deletedKeys = await db.getDeletedImageKeys();
+
         const processPhase = dryRun ? 'preview' : 'copying';
         let processedCount = 0;
         const concurrencyLimit = 15; // Safe parallelism for exiftool + DB queries
@@ -1953,6 +1957,19 @@ async function startFullApplication(): Promise<void> {
                     const year = dateStr.substring(0, 4);
                     const destDir = path.join(destRoot, camera, lens, year, dateStr);
                     const destFile = path.join(destDir, fileName);
+
+                    // Skip files previously deleted from the gallery (deleted_images tombstones)
+                    // so Sync does not resurrect them.
+                    const uuidNameKey = imageUuid ? `${imageUuid} ${fileName.toLowerCase()}` : null;
+                    const isTombstoned =
+                        (uuidNameKey !== null && deletedKeys.uuidNameKeys.has(uuidNameKey)) ||
+                        deletedKeys.originalPaths.has(db.normalizePathForDb(destFile)) ||
+                        deletedKeys.originalPaths.has(destFile.replace(/\\/g, '/'));
+                    if (isTombstoned) {
+                        console.warn(`[Sync] Skip (previously deleted): ${fileName}`);
+                        skippedCount++;
+                        return;
+                    }
 
                     if (await fs.promises.stat(destFile).then(() => true, () => false)) {
                         const existsByPath = await db.findImageByFilePath(destFile);

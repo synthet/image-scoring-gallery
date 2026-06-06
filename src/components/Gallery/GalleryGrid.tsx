@@ -21,6 +21,7 @@ interface Image {
     model_scores?: Record<string, number>;
     rating: number;
     label: string | null;
+    pick_status?: number | null;
     created_at?: string;
     title?: string;
     description?: string;
@@ -31,6 +32,8 @@ interface Image {
     sub_stack_key?: number;
     name?: string | null;
     image_count?: number;
+    pick_count?: number;
+    reject_count?: number;
     capture_date?: string;
     is_capture_date_fallback?: boolean;
     is_sub_stack_card?: boolean;
@@ -99,6 +102,25 @@ const ItemWrapper = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
         {children}
     </div>
 ));
+
+function numericStatusValue(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim() !== '') {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+}
+
+function displayPickStatus(img: Image): number | null {
+    const explicit = numericStatusValue(img.pick_status);
+    if (explicit === 1 || explicit === -1) return explicit;
+
+    // Legacy libraries may only have the mirrored rating/label metadata populated.
+    if (img.label === 'Red') return -1;
+    if (img.label === 'Green' || img.label === 'Blue' || img.label === 'Purple') return 1;
+    return null;
+}
 
 export const GalleryGrid: React.FC<GalleryGridProps> = ({
     images, onSelect, onEndReached, subfolders, onSelectFolder,
@@ -204,7 +226,30 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                         label === 'Purple' ? 'var(--label-purple)' : 'transparent';
     }, []);
 
-    const renderImageCard = useCallback((img: Image, onClick: () => void) => {
+    const renderPickRejectStatus = useCallback((img: Image) => {
+        const chips: Array<{ key: string; text: string; className: string }> = [];
+
+        const status = displayPickStatus(img);
+        if (status === 1) {
+            chips.push({ key: 'pick', text: 'Picked', className: styles.pickStatusPick });
+        } else if (status === -1) {
+            chips.push({ key: 'reject', text: 'Rejected', className: styles.pickStatusReject });
+        }
+
+        if (chips.length === 0) return null;
+
+        return (
+            <span className={styles.pickStatusGroup} aria-label="Pick/reject status">
+                {chips.map((chip) => (
+                    <span key={chip.key} className={`${styles.pickStatusChip} ${chip.className}`}>
+                        {chip.text}
+                    </span>
+                ))}
+            </span>
+        );
+    }, []);
+
+    const renderImageCard = useCallback((img: Image, onClick: () => void, showPickRejectStatus = false) => {
         const labelColor = getLabelColor(img.label);
         return (
             <div
@@ -242,12 +287,13 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                         {img.file_name}
                     </div>
                     <div className={styles.cardScore}>
-                        <span>{getScoreDisplay(img)}</span>
+                        <span className={styles.cardScoreValue}>{getScoreDisplay(img)}</span>
+                        {showPickRejectStatus ? renderPickRejectStatus(img) : null}
                     </div>
                 </div>
             </div>
         );
-    }, [getScoreDisplay, getLabelColor, useGalleryThumbnail]);
+    }, [getScoreDisplay, getLabelColor, renderPickRejectStatus, useGalleryThumbnail]);
 
     const renderStackCard = useCallback((stack: Image, onClick: () => void, kind: 'stack' | 'substack' = 'stack') => {
         const labelColor = getLabelColor(stack.label);
@@ -307,7 +353,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                         {title}
                     </div>
                     <div className={styles.cardScore}>
-                        <span>{getScoreDisplay(stack)}</span>
+                        <span className={styles.cardScoreValue}>{getScoreDisplay(stack)}</span>
                     </div>
                 </div>
             </div>
@@ -339,9 +385,9 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 }
             }, 'substack');
         } else {
-            return renderImageCard(item, () => onSelect && onSelect(item));
+            return renderImageCard(item, () => onSelect && onSelect(item), activeSubStackId !== null && activeSubStackId !== undefined);
         }
-    }, [displayData, isStacksView, isSubStacksView, renderStackCard, renderImageCard, onSelectStack, onSelectSubStack, onSelect]);
+    }, [activeStackId, activeSubStackId, displayData, isStacksView, isSubStacksView, renderStackCard, renderImageCard, onSelectStack, onSelectSubStack, onSelect]);
 
     const endReachedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const handleEndReached = useCallback(() => {
