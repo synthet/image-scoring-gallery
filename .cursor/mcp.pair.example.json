@@ -1,15 +1,28 @@
 {
-  "_comment": "Merge into gallery .cursor/mcp.json. Live server requires Electron dev (gallery-mcp.lock for actual port).",
+  "_comment": "Merge into gallery .cursor/mcp.json. Build first: cd mcp-server && npm install && npm run build. Live SSE requires Electron dev (gallery-mcp.lock for port). Do not add is-be-* here — use sibling image-scoring-backend workspace.",
   "mcpServers": {
-    "image-scoring-gallery-stdio": {
+    "is-ui-router": {
       "command": "node",
-      "args": ["${workspaceFolder}/mcp-server/dist/index.js"]
+      "args": ["${workspaceFolder}/mcp-server/dist/routerIndex.js"]
     },
-    "image-scoring-gallery-live": {
+    "is-ui-local": {
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp-server/dist/localIndex.js"]
+    },
+    "is-ui-api": {
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp-server/dist/apiIndex.js"]
+    },
+    "is-ui-live": {
       "url": "http://127.0.0.1:9373/mcp/sse",
       "headers": {
         "Authorization": "Bearer ${env:GALLERY_MCP_TOKEN}"
       }
+    },
+    "is-ui-full": {
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp-server/dist/index.js"],
+      "disabled": true
     }
   }
 }

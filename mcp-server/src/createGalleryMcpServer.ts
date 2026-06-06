@@ -13,11 +13,14 @@ import {
     handleLiveIpcTool,
     type GalleryLiveHooks,
 } from "./tools/liveIpc.js";
+import { serverForProfile } from "./names.js";
 
 export type GalleryMcpMode = "stdio" | "live";
+export type GalleryMcpProfile = "local" | "api" | "full" | "live";
 
 export interface CreateGalleryMcpServerOptions {
-    mode: GalleryMcpMode;
+    mode?: GalleryMcpMode;
+    profile?: Exclude<GalleryMcpProfile, "live">;
     hooks?: GalleryLiveHooks;
 }
 
@@ -32,17 +35,33 @@ export function toolsForMode(mode: GalleryMcpMode): ToolDef[] {
     return [...cdpToolDefs, ...createLiveIpcToolDefs()];
 }
 
-export function createGalleryMcpServer(options: CreateGalleryMcpServerOptions): {
+export function toolsForProfile(profile: Exclude<GalleryMcpProfile, "live">): ToolDef[] {
+    switch (profile) {
+        case "local":
+            return [...coreToolDefs];
+        case "api":
+            return [...apiToolDefs];
+        case "full":
+            return [...coreToolDefs, ...apiToolDefs];
+    }
+}
+
+export function createGalleryMcpServer(options: CreateGalleryMcpServerOptions = {}): {
     server: Server;
     toolDefs: ToolDef[];
+    profile: GalleryMcpProfile;
 } {
-    const { mode, hooks = {} } = options;
-    const toolDefs = toolsForMode(mode);
+    const { hooks = {} } = options;
+    const mode = options.mode ?? "stdio";
+    const profile: GalleryMcpProfile =
+        mode === "live" ? "live" : (options.profile ?? "full");
+    const toolDefs =
+        profile === "live" ? toolsForMode("live") : toolsForProfile(profile);
 
     const mcpServer = new Server(
         {
-            name: mode === "stdio" ? "image-scoring-gallery-stdio" : "image-scoring-gallery-live",
-            version: "2.2.0",
+            name: serverForProfile(profile),
+            version: "2.3.0",
         },
         { capabilities: { tools: {} } },
     );
@@ -77,5 +96,5 @@ export function createGalleryMcpServer(options: CreateGalleryMcpServerOptions): 
         }
     });
 
-    return { server: mcpServer, toolDefs };
+    return { server: mcpServer, toolDefs, profile };
 }
