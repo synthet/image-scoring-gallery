@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "repo": "gallery",
+  "field_weights": {
+    "name": 3.0,
+    "tags": 2.0,
+    "description": 1.0,
+    "examples": 2.0
+  },
+  "domains": {
+    "local": { "server": "is-ui-local" },
+    "api": { "server": "is-ui-api" },
+    "live": { "server": "is-ui-live" }
+  },
+  "tools": {
+    "gallery_status": {
+      "domain": "local",
+      "tags": ["capabilities", "probe", "api", "cdp"],
+      "examples": ["is backend reachable", "can I use api tools"]
+    },
+    "get_electron_logs": {
+      "domain": "local",
+      "tags": ["logs", "electron", "session"],
+      "examples": ["gallery app logs", "electron session log tail"]
+    },
+    "get_electron_config": {
+      "domain": "local",
+      "tags": ["config", "gallery", "settings"],
+      "examples": ["read gallery config.json"]
+    },
+    "get_system_stats": {
+      "domain": "local",
+      "tags": ["system", "cpu", "memory"],
+      "examples": ["host memory usage", "system stats"]
+    },
+    "api_health": {
+      "domain": "api",
+      "tags": ["health", "backend", "fastapi"],
+      "examples": ["is python webui up", "backend health check"]
+    },
+    "api_job_status": {
+      "domain": "api",
+      "tags": ["jobs", "runs", "status"],
+      "examples": ["recent jobs", "job details by id"]
+    },
+    "api_run_stages": {
+      "domain": "api",
+      "tags": ["runs", "stages", "pipeline"],
+      "examples": ["pipeline stages for run"]
+    },
+    "api_probe": {
+      "domain": "api",
+      "tags": ["probe", "http", "debug"],
+      "examples": ["test api endpoint", "timed get request"]
+    },
+    "api_runner_status": {
+      "domain": "api",
+      "tags": ["runners", "scoring", "tagging"],
+      "examples": ["scoring runner status via api"]
+    },
+    "cdp_screenshot": {
+      "domain": "live",
+      "tags": ["cdp", "screenshot", "electron", "ui"],
+      "examples": ["screenshot gallery window"]
+    },
+    "cdp_evaluate": {
+      "domain": "live",
+      "tags": ["cdp", "javascript", "renderer"],
+      "examples": ["evaluate js in renderer", "inspect react state"]
+    },
+    "cdp_console_logs": {
+      "domain": "live",
+      "tags": ["cdp", "console", "renderer", "logs"],
+      "examples": ["renderer console errors"]
+    },
+    "gallery_window_status": {
+      "domain": "live",
+      "tags": ["electron", "window", "ipc"],
+      "examples": ["is gallery window visible"]
+    },
+    "gallery_ipc_ping": {
+      "domain": "live",
+      "tags": ["ipc", "live", "ping"],
+      "examples": ["test gallery live mcp ipc"]
+    }
+  }
+}

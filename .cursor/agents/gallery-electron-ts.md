@@ -39,7 +39,7 @@ If a change requires backend DDL or API changes, **say so explicitly** and treat
 
 ## Optional tooling
 
-When debugging integration with a running backend, **`image-scoring-gallery-stdio`** exposes `gallery_status` and `api_*`. For Electron/CDP use **`image-scoring-gallery-live`** (`npm run dev`); for backend DB/jobs use **`image-scoring-backend-stdio`**.
+When debugging integration with a running backend, **`is-ui-local`** exposes `gallery_status`; use **`is-ui-api`** for `api_*`. For Electron/CDP use **`is-ui-live`** (`npm run dev`); for backend DB/jobs use sibling **`is-be-mcp`** (`search` → `dispatch`).
 
 ## Backlog hygiene
 
