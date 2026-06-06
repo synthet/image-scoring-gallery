@@ -50,7 +50,7 @@
     ]
   },
   "dependencies": {
-    "@synthet/image-scoring-design": "github:synthet/image-scoring-ui#v1.0.0",
+    "@synthet/image-scoring-design": "github:synthet/image-scoring-ui#v1.2.0",
     "@types/express": "^5.0.6",
     "electron-is-dev": "^3.0.1",
     "exiftool-vendored": "^35.11.0",

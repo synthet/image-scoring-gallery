@@ -31,6 +31,9 @@ console.log(`[Vite] Proxying /gallery-api and /media to: ${galleryServerUrl}`)
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
   plugins: [galleryBrowserProxy(galleryServerUrl), react()],
+  resolve: {
+    dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
+  },
   // Dev: `/` avoids baseMiddleware 404 for absolute paths (e.g. /gallery-api/ping) that
   // would otherwise fall through if proxy order fails. Build keeps `./` for Electron/file://.
   base: command === 'serve' ? '/' : './',

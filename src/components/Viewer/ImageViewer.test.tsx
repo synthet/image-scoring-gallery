@@ -5,6 +5,10 @@ vi.mock('../../hooks/useKeyboardLayer', () => ({
     useKeyboardLayer: vi.fn(),
 }));
 
+vi.mock('../../utils/exportImageBake', () => ({
+    bakeExifOrientationToBlob: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock('../../hooks/useDatabase', async (importOriginal) => {
     const mod = await importOriginal<typeof import('../../hooks/useDatabase')>();
     return {

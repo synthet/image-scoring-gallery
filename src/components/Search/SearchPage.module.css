@@ -306,6 +306,30 @@
 
 .metaSpace {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #9d9d9d;
+}
+
+.metaSpaceLabel {
+  flex-shrink: 0;
+}
+
+.metaSpaceValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: #cccccc;
+}
+
+.metaSpaceValue span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 14rem;
 }
 
 .filterChips {
