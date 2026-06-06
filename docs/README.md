@@ -18,22 +18,25 @@ The backend owns REST API contracts, database schema, and pipeline phase termino
 
 ## Architecture
 
+- [architecture/README.md](architecture/README.md) - architecture section index.
 - [architecture/01-system-overview.md](architecture/01-system-overview.md) - Electron main/renderer/preload responsibilities, API mode, PostgreSQL mode, `media://`, and RAW/NEF preview flow.
 - [architecture/02-database-design.md](architecture/02-database-design.md) - PostgreSQL/API connector modes and Firebird historical notes.
 - [architecture/import-discovery-alignment.md](architecture/import-discovery-alignment.md) - gallery Import vs backend Discovery alignment.
+- [architecture/backup-feature.md](architecture/backup-feature.md) - Backup/import alignment with backend.
 - [technical/PIPELINE_TERMINOLOGY.md](technical/PIPELINE_TERMINOLOGY.md) - local mirror of backend stage labels and renderer constants.
 - [design/FRONTEND_UX_SPEC.md](design/FRONTEND_UX_SPEC.md) - frontend visual design and UI specifications.
 - [design/DESIGN_SYSTEM.md](design/DESIGN_SYSTEM.md) - local design system conventions and token mapping.
 
 ## Features
 
-- [features/implemented/INDEX.md](features/implemented/INDEX.md) - shipped desktop feature catalog.
+- [features/implemented/INDEX.md](features/implemented/INDEX.md) - shipped desktop feature catalog ([README](features/implemented/README.md)).
 - [features/implemented/01-nef-raw-fallback.md](features/implemented/01-nef-raw-fallback.md) - RAW/NEF preview fallback.
 - [features/implemented/02-desktop-shell-and-navigation.md](features/implemented/02-desktop-shell-and-navigation.md) - shell, modes, and navigation.
 - [features/implemented/03-database-engine-modes.md](features/implemented/03-database-engine-modes.md) - PostgreSQL/API DB modes.
 - [features/implemented/04-backend-api-jobs.md](features/implemented/04-backend-api-jobs.md) - backend job API integration.
 - [features/implemented/05-jpeg-export-exif-orientation.md](features/implemented/05-jpeg-export-exif-orientation.md) - JPEG export and EXIF orientation behavior.
 - [features/implemented/06-sync-from-device-workflow.md](features/implemented/06-sync-from-device-workflow.md) - device sync workflow and backend phase scheduling.
+- [features/implemented/06-culling-stack-analytics.md](features/implemented/06-culling-stack-analytics.md) - culling insights sidebar and stack analytics banner.
 - [features/planned/README.md](features/planned/README.md) - planned desktop work.
 
 ## Guides
@@ -49,6 +52,8 @@ The backend owns REST API contracts, database schema, and pipeline phase termino
 - [integration/TODO.md](integration/TODO.md) - API/WebSocket backlog split by backend-owned contract tasks and gallery implementation tasks.
 - [technical/AGENT_COORDINATION.md](technical/AGENT_COORDINATION.md) - local pointer to backend canonical coordination.
 - [technical/OPENAPI_CONTRACT.md](technical/OPENAPI_CONTRACT.md) - gallery consumer checklist for backend OpenAPI sync and type generation.
+- [technical/DATABASE_REFACTOR_ANALYSIS.md](technical/DATABASE_REFACTOR_ANALYSIS.md) - analysis of backend `modules/db.py` decomposition (pointer).
+- [technical/EXTERNAL_CLI_REVIEWS.md](technical/EXTERNAL_CLI_REVIEWS.md) - Codex/Gemini review via subagent-orchestrator MCP.
 - [api-contract/](../api-contract/) - synced API contract snapshot (`openapi.json` from backend).
 
 ## Planning

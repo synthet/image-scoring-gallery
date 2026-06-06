@@ -18,6 +18,6 @@ This folder holds **one idea per file** for **Electron / React / IPC / UX** only
 - [07 - More Like This UI](07-more-like-this-ui.md) — **Implemented**
 - [08 - Gradio Integration](08-gradio-integration.md) — **In progress** (WebSocket / IPC bridge)
 
-[TODO.md](TODO.md) — embedding UI slice only (sync with root [`TODO.md`](../../../TODO.md)).
+[TODO.md](TODO.md) — embedding UI slice only (sync with root [`TODO.md`](../../../../TODO.md)).
 
 [← Back to Planned Features](../README.md)

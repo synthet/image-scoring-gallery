@@ -2,6 +2,12 @@
 
 Chronological record of wiki maintenance activities. Newest entries first.
 
+## 2026-06
+
+- 2026-06-05: lint-fixed — Housekeeping wiki pass: deduped `reports/gallery-visual-review/` PNGs (kept `01-*` set), removed generated lighthouse dumps; G4 branch carries index/README fixes from pre-split stash. Visual review artifacts ship on `housekeeping/g5-visual-review` (Closes #123).
+- 2026-06-03: lint-fixed — Second `/wiki-lint` pass (re-scan): structurally clean — 0 broken index entries, 0 orphans, 0 zero-inbound pages. Only finding is a cross-repo link to a third repo (`image-scoring-ui`) in [design/DESIGN_SYSTEM.md](design/DESIGN_SYSTEM.md); left as-is (resolves only when that repo is a sibling). No changes needed.
+- 2026-06-03: lint-fixed — Full `/wiki-lint`: fixed `TODO.md` links in [planning/README.md](planning/README.md) and [features/planned/embeddings/README.md](features/planned/embeddings/README.md); indexed backup, culling analytics, planning, reports, and technical pages in [README.md](README.md); added historical banner to [reports/01-code-design-review-2026-03.md](reports/01-code-design-review-2026-03.md); updated [planning/README.md](planning/README.md), [reports/README.md](reports/README.md).
+
 ## 2026-05
 
 - 2026-05-31: updated — OpenAPI contract sync: refreshed [api-contract/openapi.json](../api-contract/openapi.json) and [electron/api.generated.ts](../electron/api.generated.ts) from sibling backend; added [technical/OPENAPI_CONTRACT.md](technical/OPENAPI_CONTRACT.md); [CANONICAL_SOURCES.md](CANONICAL_SOURCES.md) lists snapshot + backend cross-project doc.
