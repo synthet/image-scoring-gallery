@@ -3,6 +3,8 @@
 
 **Date:** 2026-03-02
 
+> **Snapshot as of 2026-03-02.** Sections below describe Firebird/`node-firebird` as the active database path. Production gallery uses PostgreSQL or backend API SQL via [`electron/db/provider.ts`](../../electron/db/provider.ts); see [03-database-engine-modes.md](../features/implemented/03-database-engine-modes.md) and [architecture/02-database-design.md](../architecture/02-database-design.md).
+
 ---
 
 ## Executive Summary

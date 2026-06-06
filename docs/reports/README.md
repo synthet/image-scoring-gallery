@@ -7,5 +7,6 @@ Code reviews, design audits, and quality assessments.
 - [03 - ESLint Audit (Mar 2026)](03-eslint-audit-2026-03.md) - Code quality status and linting recommendations
 - [04 - UX/UI Review (Mar 2026)](04-ux-ui-review-2026-03.md) - Heuristic usability review with prioritized recommendations
 - [05 - NEF Tier-1 Failure Incident (Apr 2026)](05-nef-raw-fallback-incident-2026-04-19.md) - Dated incident snapshot preserved from feature doc
+- [06 - Reveal in Explorer review (May 2026)](06-code-review-reveal-in-explorer-2026-05.md) - Code review snapshot for explorer integration
 
 [← Back to Documentation Index](../README.md)
