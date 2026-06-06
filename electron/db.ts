@@ -899,6 +899,40 @@ export async function getDeletedImageMatchSets(): Promise<{
     return { originalIds, hashes };
 }
 
+/**
+ * Tombstone keys for the Sync skip check, preloaded once per run.
+ * Mirrors the matching `isImageDeleted` performs — (image_uuid AND file_name) OR
+ * original_path — but as in-memory sets to avoid a DB round-trip per candidate file.
+ */
+export async function getDeletedImageKeys(): Promise<{
+    uuidNameKeys: Set<string>;
+    originalPaths: Set<string>;
+}> {
+    const uuidNameKeys = new Set<string>();
+    const originalPaths = new Set<string>();
+    try {
+        const rows = await query<{
+            image_uuid: string | null;
+            file_name: string | null;
+            original_path: string | null;
+        }>('SELECT image_uuid, file_name, original_path FROM deleted_images');
+        for (const r of rows) {
+            const uuid = r.image_uuid?.trim();
+            if (uuid && r.file_name) {
+                uuidNameKeys.add(`${uuid} ${r.file_name.toLowerCase()}`);
+            }
+            const op = r.original_path;
+            if (op && op.trim()) {
+                originalPaths.add(normalizePathForDb(op));
+                originalPaths.add(op.replace(/\\/g, '/'));
+            }
+        }
+    } catch (e) {
+        console.warn('[DB] getDeletedImageKeys failed (ensure backend migration for deleted_images):', e);
+    }
+    return { uuidNameKeys, originalPaths };
+}
+
 export interface InsertImageRow {
     file_path: string;
     file_name: string;
@@ -1471,22 +1505,18 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
     const whereClauseNonStack = 'WHERE ' + wherePartsNonStack.join(' AND ');
 
     const buildSql = (includePickStatus: boolean) => {
-        const stackPickStatsJoin = includePickStatus ? `
+        const stackPickStatusExpr = effectivePickStatusExpr(includePickStatus, 'ci');
+        const repPickStatusExpr = effectivePickStatusExpr(includePickStatus, 'i');
+        const stackPickStatsJoin = `
             LEFT JOIN LATERAL (
                 SELECT
-                    COUNT(*) FILTER (WHERE ci.pick_status = 1) AS pick_count,
-                    COUNT(*) FILTER (WHERE ci.pick_status = -1) AS reject_count
+                    COUNT(*) FILTER (WHERE ${stackPickStatusExpr} = 1) AS pick_count,
+                    COUNT(*) FILTER (WHERE ${stackPickStatusExpr} = -1) AS reject_count
                 FROM images ci
                 WHERE ci.stack_id = sc.stack_id
-            ) pick_stats ON TRUE` : '';
-        const stackPickCountExpr = includePickStatus ? 'pick_stats.pick_count' : 'CAST(0 AS BIGINT)';
-        const stackRejectCountExpr = includePickStatus ? 'pick_stats.reject_count' : 'CAST(0 AS BIGINT)';
-        const nonStackPickCountExpr = includePickStatus
-            ? 'CASE WHEN i.pick_status = 1 THEN 1 ELSE 0 END'
-            : '0';
-        const nonStackRejectCountExpr = includePickStatus
-            ? 'CASE WHEN i.pick_status = -1 THEN 1 ELSE 0 END'
-            : '0';
+            ) pick_stats ON TRUE`;
+        const nonStackPickCountExpr = `CASE WHEN ${repPickStatusExpr} = 1 THEN 1 ELSE 0 END`;
+        const nonStackRejectCountExpr = `CASE WHEN ${repPickStatusExpr} = -1 THEN 1 ELSE 0 END`;
 
         return `
         SELECT * FROM (
@@ -1496,8 +1526,8 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 sc.image_count,
                 ${cacheSortCol} as sort_value,
                 sc.rep_image_id,
-                ${stackPickCountExpr} AS pick_count,
-                ${stackRejectCountExpr} AS reject_count,
+                pick_stats.pick_count AS pick_count,
+                pick_stats.reject_count AS reject_count,
                 ${imagePickStatusSelect(includePickStatus, 'i')},
                 i.id,
                 COALESCE(fp.path, i.file_path) as file_path,
@@ -1664,6 +1694,7 @@ export interface SubStackRow {
     score_paq2piq?: number;
     rating: number;
     label: string | null;
+    pick_status?: number | null;
     thumbnail_path?: string;
     name?: string | null;
     best_image_id?: number | null;
@@ -1672,6 +1703,8 @@ export interface SubStackRow {
     level2_semantic_space?: string | null;
     policy_version?: string | null;
     image_count?: number;
+    pick_count?: number;
+    reject_count?: number;
     created_at?: string;
     is_ungrouped_sub_stack?: boolean;
 }
@@ -1713,9 +1746,18 @@ function warnMissingPickStatusColumn(error: unknown): void {
 }
 
 function imagePickStatusSelect(includePickStatus: boolean, imageAlias = 'i'): string {
-    return includePickStatus
-        ? `${imageAlias}.pick_status`
-        : 'CAST(NULL AS INTEGER) AS pick_status';
+    return `${effectivePickStatusExpr(includePickStatus, imageAlias)} AS pick_status`;
+}
+
+function effectivePickStatusExpr(includePickStatus: boolean, imageAlias = 'i'): string {
+    const rawStatus = includePickStatus ? `${imageAlias}.pick_status` : 'NULL';
+    return `CASE
+        WHEN ${rawStatus} = 1 THEN 1
+        WHEN ${rawStatus} = -1 THEN -1
+        WHEN COALESCE(${rawStatus}, 0) = 0 AND ${imageAlias}.label = 'Red' THEN -1
+        WHEN COALESCE(${rawStatus}, 0) = 0 AND ${imageAlias}.label IN ('Green', 'Blue', 'Purple') THEN 1
+        ELSE COALESCE(${rawStatus}, 0)
+    END`;
 }
 
 async function queryWithOptionalPickStatus<T>(

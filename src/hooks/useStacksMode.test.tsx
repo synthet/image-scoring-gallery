@@ -68,7 +68,7 @@ describe('useStacksMode sub-stack navigation', () => {
     electronApi.getSubstacksForStack.mockResolvedValue([subStack]);
     electronApi.getImagesByStack.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useStacksMode(undefined, filters, vi.fn(), false));
+    const { result } = renderHook(() => useStacksMode(filters, vi.fn(), false));
 
     act(() => {
       result.current.handleSelectStack(img(1, { stack_id: 7, image_count: 9 }), vi.fn());
@@ -88,7 +88,7 @@ describe('useStacksMode sub-stack navigation', () => {
     electronApi.getSubstacksForStack.mockResolvedValue([]);
     electronApi.getImagesByStack.mockResolvedValue([stackImage]);
 
-    const { result } = renderHook(() => useStacksMode(undefined, filters, vi.fn(), false));
+    const { result } = renderHook(() => useStacksMode(filters, vi.fn(), false));
 
     act(() => {
       result.current.handleSelectStack(img(2, { stack_id: 8, image_count: 1 }), vi.fn());
@@ -102,13 +102,34 @@ describe('useStacksMode sub-stack navigation', () => {
     expect(electronApi.getImagesByStack).toHaveBeenCalledWith(8, filters);
   });
 
+  it('skips the sub-stack layer when the only sub-stack maps one-to-one with the stack', async () => {
+    const subStack = img(251, { stack_id: 12, sub_stack_id: 120, image_count: 3 });
+    const stackImage = img(252, { stack_id: 12, sub_stack_id: 120 });
+    electronApi.getSubstacksForStack.mockResolvedValue([subStack]);
+    electronApi.getImagesByStack.mockResolvedValue([stackImage]);
+
+    const { result } = renderHook(() => useStacksMode(filters, vi.fn(), false));
+
+    act(() => {
+      result.current.handleSelectStack(img(6, { stack_id: 12, image_count: 3 }), vi.fn());
+    });
+
+    await waitFor(() => {
+      expect(result.current.activeStackDisplayImages).toEqual([stackImage]);
+    });
+
+    expect(result.current.hasSubStackCards).toBe(false);
+    expect(electronApi.getImagesByStack).toHaveBeenCalledWith(12, filters);
+    expect(electronApi.getImagesBySubStack).not.toHaveBeenCalled();
+  });
+
   it('loads sub-stack images after selecting a sub-stack card', async () => {
     const subStack = img(301, { stack_id: 9, sub_stack_id: 90, image_count: 2 });
     const subStackImage = img(302, { stack_id: 9, sub_stack_id: 90 });
     electronApi.getSubstacksForStack.mockResolvedValue([subStack]);
     electronApi.getImagesBySubStack.mockResolvedValue([subStackImage]);
 
-    const { result } = renderHook(() => useStacksMode(undefined, filters, vi.fn(), false));
+    const { result } = renderHook(() => useStacksMode(filters, vi.fn(), false));
 
     act(() => {
       result.current.handleSelectStack(img(3, { stack_id: 9, image_count: 4 }), vi.fn());
@@ -142,7 +163,7 @@ describe('useStacksMode sub-stack navigation', () => {
     electronApi.getSubstacksForStack.mockResolvedValue([subStack, ungrouped]);
     electronApi.getImagesByStackUngrouped.mockResolvedValue([ungroupedImage]);
 
-    const { result } = renderHook(() => useStacksMode(undefined, filters, vi.fn(), false));
+    const { result } = renderHook(() => useStacksMode(filters, vi.fn(), false));
 
     act(() => {
       result.current.handleSelectStack(img(4, { stack_id: 10, image_count: 3 }), vi.fn());
@@ -190,7 +211,7 @@ describe('useStacksMode sub-stack navigation', () => {
       .mockResolvedValueOnce([beforeRefresh])
       .mockResolvedValueOnce([afterRefresh]);
 
-    const { result } = renderHook(() => useStacksMode(undefined, filters, vi.fn(), false));
+    const { result } = renderHook(() => useStacksMode(filters, vi.fn(), false));
 
     act(() => {
       result.current.handleSelectStack(img(5, { stack_id: 11, image_count: 1 }), vi.fn());
