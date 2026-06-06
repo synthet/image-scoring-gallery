@@ -14,6 +14,7 @@ interface ImageRow {
   score_liqe?: number;
   rating: number;
   label: string | null;
+  pick_status?: number | null;
   created_at?: string;
   thumbnail_path?: string;
   stack_id?: number | null;
@@ -22,6 +23,8 @@ interface ImageRow {
   sub_stack_key?: number;
   name?: string | null;
   image_count?: number;
+  pick_count?: number;
+  reject_count?: number;
   sort_value?: number;
   is_ungrouped_sub_stack?: boolean;
 }
@@ -42,7 +45,6 @@ interface SubStackInfo {
  * loading stack images, and rebuilding the stack cache on first enable.
  */
 export function useStacksMode(
-  _selectedFolderId: number | undefined,
   filters: FilterState,
   refreshStacks: (opts?: { preserveItems?: boolean }) => void,
   smartCoverEnabled: boolean,
@@ -64,6 +66,7 @@ export function useStacksMode(
   const loadStackImages = useCallback(async (stackId: number) => {
     setStackImagesLoading(true);
     try {
+      // Stack drill-down intentionally shows the full root stack; stacks can span folders.
       const options = { ...filters };
       const imgs = await bridge.getImagesByStack(stackId, options);
       setStackImages(imgs);
@@ -107,16 +110,27 @@ export function useStacksMode(
   const loadUngroupedSubStackImagesRef = useRef(loadUngroupedSubStackImages);
   loadUngroupedSubStackImagesRef.current = loadUngroupedSubStackImages;
 
+  const isSingleSubStackEquivalentToStack = useCallback((subs: ImageRow[], stackId: number) => {
+    if (subs.length !== 1) return false;
+    const onlySubStack = subs[0];
+    if (onlySubStack.is_ungrouped_sub_stack || onlySubStack.sub_stack_id === null || onlySubStack.sub_stack_id === undefined) {
+      return false;
+    }
+    const knownStackCount = activeStackInfo?.stackId === stackId ? activeStackInfo.imageCount : 0;
+    return knownStackCount <= 0 || (onlySubStack.image_count || 0) === knownStackCount;
+  }, [activeStackInfo]);
+
   const loadStackLanding = useCallback(async (stackId: number) => {
     setSubStacksLoading(true);
     setSubStacks([]);
     setStackImages([]);
     try {
       const subs = await bridge.getSubstacksForStack(stackId, { ...filters });
-      setSubStacks(subs);
-      if (subs.length === 0) {
+      if (subs.length === 0 || isSingleSubStackEquivalentToStack(subs, stackId)) {
+        setSubStacks([]);
         await loadStackImages(stackId);
       } else {
+        setSubStacks(subs);
         setStackImages([]);
       }
     } catch (err) {
@@ -126,7 +140,7 @@ export function useStacksMode(
     } finally {
       setSubStacksLoading(false);
     }
-  }, [filters, loadStackImages]);
+  }, [filters, isSingleSubStackEquivalentToStack, loadStackImages]);
 
   const loadStackLandingRef = useRef(loadStackLanding);
   loadStackLandingRef.current = loadStackLanding;

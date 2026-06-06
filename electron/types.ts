@@ -29,6 +29,7 @@ export interface ImageRow {
     score_liqe: number;
     rating: number;
     label: string | null;
+    pick_status?: number | null;
     created_at?: string;
     thumbnail_path?: string;
     stack_id?: number | null;
@@ -76,6 +77,8 @@ export interface StackRow extends ImageRow {
     stack_id?: number | null;
     stack_key?: number;
     image_count?: number;
+    pick_count?: number;
+    reject_count?: number;
     sort_value?: number;
 }
 
@@ -92,6 +95,8 @@ export interface SubStackRow extends ImageRow {
     level2_semantic_space?: string | null;
     policy_version?: string | null;
     image_count?: number;
+    pick_count?: number;
+    reject_count?: number;
     created_at?: string;
     is_ungrouped_sub_stack?: boolean;
 }

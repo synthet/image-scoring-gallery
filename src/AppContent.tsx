@@ -172,7 +172,7 @@ function AppContent() {
     handleSelectStack: handleSelectStackBase,
     handleSelectSubStack,
     handleImageDeleteFromStack,
-  } = useStacksMode(selectedFolderId, filters, refreshStacks, smartCoverEnabled);
+  } = useStacksMode(filters, refreshStacks, smartCoverEnabled);
 
   // Keep refs up to date for WebSocket callbacks
   stacksModeRef.current = stacksMode;

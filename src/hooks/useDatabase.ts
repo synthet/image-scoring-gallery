@@ -31,11 +31,14 @@ interface ImageRow {
     score_liqe: number;
     rating: number;
     label: string | null;
+    pick_status?: number | null;
     created_at?: string;
     thumbnail_path?: string;
     stack_id?: number | null;
     stack_key?: number;
     image_count?: number;
+    pick_count?: number;
+    reject_count?: number;
     sort_value?: number;
 }
 

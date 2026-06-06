@@ -48,6 +48,11 @@ describe('db.getStacks keyword filter', () => {
     expect(sql).toContain('WHERE ik.image_id = i.id');
     expect(sql).toContain('LOWER(kd.keyword_display) LIKE LOWER(?)');
     expect(sql).toContain('LOWER(kd.keyword_norm) LIKE LOWER(?)');
+    expect(sql).toContain('COUNT(*) FILTER (WHERE CASE');
+    expect(sql).toContain("ci.label = 'Red' THEN -1");
+    expect(sql).toContain("ci.label IN ('Green', 'Blue', 'Purple') THEN 1");
+    expect(sql).toContain('CASE WHEN CASE');
+    expect(sql).toContain("i.label IN ('Green', 'Blue', 'Purple') THEN 1");
 
     // Two for cache branch + two for non-stack branch.
     const likeParams = (params as unknown[]).filter(p => p === '%bird%');
@@ -100,6 +105,9 @@ describe('db.getSubstacksForStack', () => {
     expect(sql).toContain('FROM image_keywords ik');
     expect(sql).toContain('ss.id AS sub_stack_id');
     expect(sql).toContain('rep.file_path');
+    expect(sql).toContain('SUM(CASE WHEN pick_status = 1 THEN 1 ELSE 0 END)::bigint AS pick_count');
+    expect(sql).toContain('SUM(CASE WHEN pick_status = -1 THEN 1 ELSE 0 END)::bigint AS reject_count');
+    expect(sql).toContain('rep.pick_status');
 
     expect(params).toEqual([
       5,
@@ -166,6 +174,9 @@ describe('db.getSubstacksForStack', () => {
     expect(ungroupedSql).toContain('i.sub_stack_id IS NULL');
     expect(ungroupedSql).toContain("'Ungrouped' AS name");
     expect(ungroupedSql).toContain('TRUE AS is_ungrouped_sub_stack');
+    expect(ungroupedSql).toContain('oc.pick_count');
+    expect(ungroupedSql).toContain('oc.reject_count');
+    expect(ungroupedSql).toContain('rep.pick_status');
     expect(ungroupedParams).toEqual([5, 2, '%bird%', '%bird%', 5]);
   });
 
@@ -199,6 +210,7 @@ describe('db.getImagesBySubStack', () => {
     expect(sql).toContain('i.rating >= ?');
     expect(sql).toContain('i.label = ?');
     expect(sql).toContain('FROM image_keywords ik');
+    expect(sql).toContain('i.pick_status');
     expect(params).toEqual([
       12,
       2,
@@ -217,6 +229,22 @@ describe('db.getImagesBySubStack', () => {
     );
 
     await expect(getImagesBySubStack(12)).resolves.toEqual([]);
+  });
+
+  it('falls back when images.pick_status is not present', async () => {
+    queryMock
+      .mockRejectedValueOnce(Object.assign(new Error('column i.pick_status does not exist'), { code: '42703' }))
+      .mockResolvedValueOnce([]);
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await expect(getImagesBySubStack(12)).resolves.toEqual([]);
+
+    expect(warnSpy).toHaveBeenCalled();
+    expect(queryMock).toHaveBeenCalledTimes(2);
+    const [fallbackSql] = queryMock.mock.calls[1];
+    expect(fallbackSql).toContain("i.label = 'Red' THEN -1");
+    expect(fallbackSql).toContain("i.label IN ('Green', 'Blue', 'Purple') THEN 1");
+    expect(fallbackSql).toContain('END AS pick_status');
   });
 });
 
@@ -240,6 +268,7 @@ describe('db.getImagesByStackUngrouped', () => {
     expect(sql).toContain('i.rating >= ?');
     expect(sql).toContain('i.label = ?');
     expect(sql).toContain('FROM image_keywords ik');
+    expect(sql).toContain('i.pick_status');
     expect(params).toEqual([
       5,
       2,
