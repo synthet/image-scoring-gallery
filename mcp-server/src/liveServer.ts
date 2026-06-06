@@ -82,9 +82,10 @@ export async function startGalleryMcpLiveServer(
                 const { server: sessionServer } = createGalleryMcpServer({ mode: "live", hooks });
                 const transport = new SSEServerTransport("/mcp/messages", res);
                 transports.set(transport.sessionId, { transport, mcpServer: sessionServer });
+                // Session cleanup only — do not call sessionServer.close() here.
+                // Protocol.connect() wraps onclose; server.close() → transport.close() → onclose again (stack overflow).
                 transport.onclose = () => {
                     transports.delete(transport.sessionId);
-                    void sessionServer.close().catch(() => undefined);
                 };
 
                 await sessionServer.connect(transport);
@@ -162,8 +163,7 @@ export async function startGalleryMcpLiveServer(
         port: boundPort,
         sseUrl,
         close: async () => {
-            for (const session of transports.values()) {
-                await session.transport.close().catch(() => undefined);
+            for (const session of [...transports.values()]) {
                 await session.mcpServer.close().catch(() => undefined);
             }
             transports.clear();
