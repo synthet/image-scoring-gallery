@@ -46,9 +46,8 @@ Do **not** add `is-be-*` keys in this repo — use sibling **image-scoring-backe
 | **`is-ui-local`** | stdio | No — `gallery_status`, logs, config |
 | **`is-ui-api`** | stdio | Backend WebUI for `api_*` |
 | **`is-ui-live`** | SSE (Electron) | Yes — `npm run dev` or `ENABLE_GALLERY_MCP_SSE=1` |
-| **`is-ui-full`** | stdio | Legacy monolithic local+api (disabled in example) |
 
-Backend (sibling **image-scoring-backend**): **`is-be-mcp`** (preferred), **`is-be-diag`**, **`is-be-jobs`**, **`is-be-data`**, **`is-be-webui`** — see backend [AGENTS.md](https://github.com/synthet/image-scoring-backend/blob/main/AGENTS.md).
+Backend (sibling **image-scoring-backend**): **`is-be-mcp`** + optional **`is-be-webui`** — see backend [AGENTS.md](https://github.com/synthet/image-scoring-backend/blob/main/AGENTS.md).
 
 - Live SSE: default `http://127.0.0.1:9373/mcp/sse`; see **`gallery-mcp.lock`** after Electron starts.
 - Optional auth: **`GALLERY_MCP_TOKEN`**.
