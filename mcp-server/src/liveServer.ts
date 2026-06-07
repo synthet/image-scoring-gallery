@@ -9,6 +9,7 @@ import getRawBody from "raw-body";
 
 import { createGalleryMcpServer } from "./createGalleryMcpServer.js";
 import type { GalleryLiveHooks } from "./tools/liveIpc.js";
+import { UI_LIVE } from "./names.js";
 
 const DEFAULT_PORT = 9373;
 const LOCK_FILENAME = "gallery-mcp.lock";
@@ -120,7 +121,7 @@ export async function startGalleryMcpLiveServer(
                 res.writeHead(200, { "Content-Type": "application/json" });
                 res.end(
                     JSON.stringify({
-                        server: "image-scoring-gallery-live",
+                        server: UI_LIVE,
                         expected_sse_url: `http://127.0.0.1:${boundPort}/mcp/sse`,
                     }),
                 );

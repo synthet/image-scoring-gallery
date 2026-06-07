@@ -5,7 +5,7 @@ From [AGENTS.md](../AGENTS.md), [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md), a
 ## Setup
 
 - `npm install`
-- `npm install` and `npm run build` under `mcp-server/` once if using **imgscore-el-gallery** MCP
+- `npm install` and `npm run build` under `mcp-server/` once if using gallery MCP (`is-ui-*`; copy `.cursor/mcp.example.json` → `.cursor/mcp.json`)
 - PostgreSQL: typically via sibling **image-scoring-backend** `docker compose up -d` when using local `pg` mode
 
 ## Diagnostics
@@ -38,8 +38,8 @@ From [AGENTS.md](../AGENTS.md), [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md), a
 
 ## MCP / support
 
-- Primary: **imgscore-el-gallery** — start with `gallery_status` when documented in AGENTS.md
-- Optional deep backend triage: **imgscore-el-stdio** (Python `modules.mcp_server` from sibling backend clone)
+- Primary: **`is-ui-local`** / **`is-ui-router`** — start with `gallery_status` (see AGENTS.md)
+- Backend triage: sibling **`is-be-mcp`** (`search` → `dispatch`)
 
 ## Cross-repo
 

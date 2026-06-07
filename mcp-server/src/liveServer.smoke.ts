@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { startGalleryMcpLiveServer } from "./liveServer.js";
 import { toolsForMode } from "./createGalleryMcpServer.js";
+import { UI_LIVE } from "./names.js";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -19,7 +20,7 @@ async function main() {
         const resp = await fetch(`${server.sseUrl.replace("/mcp/sse", "")}/mcp-status`);
         assert.equal(resp.status, 200);
         const body = (await resp.json()) as { server: string };
-        assert.equal(body.server, "image-scoring-gallery-live");
+        assert.equal(body.server, UI_LIVE);
     } finally {
         await server.close();
     }

@@ -54,7 +54,7 @@ Start with **[`docs/CANONICAL_SOURCES.md`](docs/CANONICAL_SOURCES.md)** (what is
 - `electron/main.ts` — Electron main process, IPC handlers
 - `electron/apiService.ts` — HTTP client to Python FastAPI backend
 - `src/` — React frontend (Vite + TypeScript)
-- `mcp-server/` — Consolidated stdio MCP (`imgscore-el-gallery`): local tools, optional FastAPI + Electron CDP
+- `mcp-server/` — Domain-split MCP (`is-ui-router`, `is-ui-local`, `is-ui-api`, `is-ui-live`): local tools, optional FastAPI + Electron CDP
 
 ## Backend Integration Points
 

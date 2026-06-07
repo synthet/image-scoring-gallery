@@ -4,7 +4,7 @@
 
 | Path | Purpose | Scope | Status | Upstream authority | Recommended action |
 |------|---------|--------|--------|--------------------|--------------------|
-| [AGENTS.md](../AGENTS.md) | Commands, MCP keys, Cursor Cloud notes | gallery, MCP | active | package.json, backend AGENTS.md | Keep `imgscore-el-stdio` wording aligned with backend AGENTS.md |
+| [AGENTS.md](../AGENTS.md) | Commands, MCP keys, Cursor Cloud notes | gallery, MCP | active | package.json, backend AGENTS.md | Keep `is-ui-*` / `is-be-mcp` wording aligned with backend AGENTS.md |
 | [CLAUDE.md](../CLAUDE.md) | Orientation, backlog, integration | cross-repo | active | CANONICAL_SOURCES | Link `.agent/*` hubs |
 | [.agent/PROJECT_GUIDE.md](PROJECT_GUIDE.md) | Agent navigation | docs-only | active | — | Point to AGENT_INFRA_INVENTORY |
 | [.agent/SKILL_INVENTORY.md](SKILL_INVENTORY.md) | Skills index (AST09) | governance | active | `.cursor/skills/` | None |

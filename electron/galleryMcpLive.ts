@@ -30,7 +30,7 @@ export async function startGalleryMcpLiveFromElectron(options: {
         port,
         hooks: { getWindowStatus: options.getWindowStatus },
     });
-    console.log(`[Main] image-scoring-gallery-live MCP at ${galleryMcpLive?.sseUrl ?? "unknown"}`);
+    console.log(`[Main] is-ui-live MCP at ${galleryMcpLive?.sseUrl ?? "unknown"}`);
 }
 
 export async function stopGalleryMcpLiveFromElectron(): Promise<void> {

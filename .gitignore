@@ -48,6 +48,9 @@ git_status.txt
 
 .mcp.json
 
+# Operator-local Cursor MCP config (use .cursor/mcp.example.json)
+.cursor/mcp.json
+
 # Test coverage
 coverage/
 coverage_report*.txt

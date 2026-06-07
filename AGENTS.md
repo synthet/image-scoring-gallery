@@ -19,30 +19,57 @@ Project skills live only under [`.cursor/skills/`](.cursor/skills/) (no `.claude
 
 ## MCP Configuration
 
-Each repo defines an **stdio + live SSE** pair in [`.cursor/mcp.json`](.cursor/mcp.json). Keys use prefix **`image-scoring-`**.
+Domain-split MCP. **Naming:** `is-` = image scoring; **`is-ui-*`** = this repo (gallery); **`is-be-*`** = sibling backend.
+
+**Canonical contract (backend):** [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/MCP_SEARCH_DISPATCH.md)
+
+### Setup (operator-local)
+
+1. Copy [`.cursor/mcp.example.json`](.cursor/mcp.example.json) → **`.cursor/mcp.json`** (gitignored; never commit your local file).
+2. `cd mcp-server && npm install && npm run build`
+3. Reload MCP in Cursor.
+
+Do **not** add `is-be-*` keys in this repo — use sibling **image-scoring-backend** workspace for backend triage.
+
+### Gallery-first workflow
+
+1. **`is-ui-router`** → **`ui_find(query)`** when tool choice is unclear
+2. **`is-ui-local`** → `gallery_status`, logs, config
+3. **`is-ui-api`** → `api_*` when backend WebUI is up
+4. **`is-ui-live`** → `cdp_*`, IPC when Electron is running
+
+**Backend pipeline triage** (sibling workspace): **`is-be-mcp`** → `search` → `dispatch`.
 
 | Cursor server key | Transport | Requires running app? |
 |-------------------|-----------|------------------------|
-| **`image-scoring-gallery-stdio`** | stdio (Node `mcp-server`) | No — logs, config, `gallery_status`, `api_*` |
-| **`image-scoring-gallery-live`** | SSE (Electron-hosted) | Yes — `npm run dev` or `ENABLE_GALLERY_MCP_SSE=1` |
+| **`is-ui-router`** | stdio | No — `ui_find`, `ui_domains`, `ui_card` |
+| **`is-ui-local`** | stdio | No — `gallery_status`, logs, config |
+| **`is-ui-api`** | stdio | Backend WebUI for `api_*` |
+| **`is-ui-live`** | SSE (Electron) | Yes — `npm run dev` or `ENABLE_GALLERY_MCP_SSE=1` |
+| **`is-ui-full`** | stdio | Legacy monolithic local+api (disabled in example) |
 
-Backend pair (sibling **image-scoring-backend**): **`image-scoring-backend-stdio`**, **`image-scoring-backend-webui`**, optional **`image-scoring-backend-postgres`**.
+Backend (sibling **image-scoring-backend**): **`is-be-mcp`** (preferred), **`is-be-diag`**, **`is-be-jobs`**, **`is-be-data`**, **`is-be-webui`** — see backend [AGENTS.md](https://github.com/synthet/image-scoring-backend/blob/main/AGENTS.md).
 
-- Build MCP once: `npm install && npm run build` under `mcp-server/`.
 - Live SSE: default `http://127.0.0.1:9373/mcp/sse`; see **`gallery-mcp.lock`** after Electron starts.
 - Optional auth: **`GALLERY_MCP_TOKEN`**.
 
-User `~/.cursor/mcp.json`: cross-repo tools only — **do not** duplicate `image-scoring-*` there.
+User `~/.cursor/mcp.json`: cross-repo tools only — **do not** duplicate `is-ui-*` / `is-be-*` there.
+
+**Legacy keys:** remove obsolete gallery/backend MCP server keys from user `~/.cursor/mcp.json` (pre-2026-06 naming).
 
 ### Requirements
-- **`image-scoring-gallery-stdio`**: Node; `mcp-server/` built.
-- **`image-scoring-gallery-live`**: Electron dev (`ELECTRON_IS_DEV=1`) or `ENABLE_GALLERY_MCP_SSE=1`.
+
+- **`is-ui-router`** / **`is-ui-local`** / **`is-ui-api`**: Node; `mcp-server/dist/*Index.js` built.
+- **`is-ui-live`**: Electron dev (`ELECTRON_IS_DEV=1`) or `ENABLE_GALLERY_MCP_SSE=1`.
 - **Database:** PostgreSQL (local `pg`) and/or backend API SQL mode; configure `database` in `config.json` (see `docs/architecture/02-database-design.md`).
 
 ## Tools for Agents
-- **`image-scoring-gallery-stdio`**: Start with **`gallery_status`**; then `api_*` when backend WebUI is up.
-- **`image-scoring-gallery-live`**: `cdp_*`, `gallery_window_status`, `gallery_ipc_ping` when Electron is running.
-- **`image-scoring-backend-stdio`**: Full Python DB/job catalog — see backend **`AGENTS.md`** (backend workspace or multi-root).
+
+- **`is-ui-router`**: **`ui_find`** — discover tools across gallery profiles.
+- **`is-ui-local`**: Start with **`gallery_status`**; then logs and config.
+- **`is-ui-api`**: **`api_health`**, **`api_*`** when backend WebUI is up.
+- **`is-ui-live`**: **`cdp_*`**, **`gallery_window_status`**, **`gallery_ipc_ping`** when Electron is running.
+- **`is-be-mcp`** (backend workspace): **`search`**, **`dispatch`** for pipeline/DB deep triage.
 
 ### mcp-kanban (optional, user MCP)
 
