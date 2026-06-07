@@ -1,0 +1,312 @@
+{
+  "version": 1,
+  "repo": "gallery",
+  "field_weights": {
+    "name": 3,
+    "tags": 2,
+    "description": 1,
+    "examples": 2
+  },
+  "domains": {
+    "api": {
+      "server": "is-ui-api",
+      "tool_count": 5
+    },
+    "live": {
+      "server": "is-ui-live",
+      "tool_count": 5
+    },
+    "local": {
+      "server": "is-ui-local",
+      "tool_count": 4
+    }
+  },
+  "profile_tools": {
+    "local": [
+      "gallery_status",
+      "get_electron_config",
+      "get_electron_logs",
+      "get_system_stats"
+    ],
+    "api": [
+      "api_health",
+      "api_job_status",
+      "api_probe",
+      "api_run_stages",
+      "api_runner_status"
+    ],
+    "live": [
+      "cdp_console_logs",
+      "cdp_evaluate",
+      "cdp_screenshot",
+      "gallery_ipc_ping",
+      "gallery_window_status"
+    ],
+    "full": [
+      "api_health",
+      "api_job_status",
+      "api_probe",
+      "api_run_stages",
+      "api_runner_status",
+      "cdp_console_logs",
+      "cdp_evaluate",
+      "cdp_screenshot",
+      "gallery_ipc_ping",
+      "gallery_status",
+      "gallery_window_status",
+      "get_electron_config",
+      "get_electron_logs",
+      "get_system_stats"
+    ]
+  },
+  "tools": [
+    {
+      "name": "api_health",
+      "repo": "gallery",
+      "domain": "api",
+      "server": "is-ui-api",
+      "description": "Requires python_api reachable (see gallery_status). Check FastAPI: health + status payloads (models, GPU).",
+      "tags": [
+        "health",
+        "backend",
+        "fastapi"
+      ],
+      "examples": [
+        "is python webui up",
+        "backend health check"
+      ],
+      "risk": "read_only",
+      "args_summary": "()"
+    },
+    {
+      "name": "api_job_status",
+      "repo": "gallery",
+      "domain": "api",
+      "server": "is-ui-api",
+      "description": "Requires python_api. Recent jobs or one job: job_id is jobs.id / workflow run_id (e.g. GET /api/jobs/296).",
+      "tags": [
+        "jobs",
+        "runs",
+        "status"
+      ],
+      "examples": [
+        "recent jobs",
+        "job details by id"
+      ],
+      "risk": "read_only",
+      "args_summary": "(job_id?)"
+    },
+    {
+      "name": "api_probe",
+      "repo": "gallery",
+      "domain": "api",
+      "server": "is-ui-api",
+      "description": "Requires python_api. Timed GET on backend base URL; status, elapsed_ms, body preview. path must start with /, no ..",
+      "tags": [
+        "probe",
+        "http",
+        "debug"
+      ],
+      "examples": [
+        "test api endpoint",
+        "timed get request"
+      ],
+      "risk": "read_only",
+      "args_summary": "(path, timeout_ms?)"
+    },
+    {
+      "name": "api_run_stages",
+      "repo": "gallery",
+      "domain": "api",
+      "server": "is-ui-api",
+      "description": "Requires python_api. GET /api/runs/{run_id}/stages — pipeline stages (run_id = jobs.id).",
+      "tags": [
+        "runs",
+        "stages",
+        "pipeline"
+      ],
+      "examples": [
+        "pipeline stages for run"
+      ],
+      "risk": "read_only",
+      "args_summary": "(run_id)"
+    },
+    {
+      "name": "api_runner_status",
+      "repo": "gallery",
+      "domain": "api",
+      "server": "is-ui-api",
+      "description": "Requires python_api. Scoring / tagging / clustering runner status from FastAPI.",
+      "tags": [
+        "runners",
+        "scoring",
+        "tagging"
+      ],
+      "examples": [
+        "scoring runner status via api"
+      ],
+      "risk": "read_only",
+      "args_summary": "()"
+    },
+    {
+      "name": "cdp_console_logs",
+      "repo": "gallery",
+      "domain": "live",
+      "server": "is-ui-live",
+      "description": "Requires electron_cdp. Collect renderer console output for duration_ms (default 2000, max 10000).",
+      "tags": [
+        "cdp",
+        "console",
+        "renderer",
+        "logs"
+      ],
+      "examples": [
+        "renderer console errors"
+      ],
+      "risk": "read_only",
+      "args_summary": "(duration_ms?)"
+    },
+    {
+      "name": "cdp_evaluate",
+      "repo": "gallery",
+      "domain": "live",
+      "server": "is-ui-live",
+      "description": "Requires electron_cdp. Run JS in the renderer page context; inspect DOM/state.",
+      "tags": [
+        "cdp",
+        "javascript",
+        "renderer"
+      ],
+      "examples": [
+        "evaluate js in renderer",
+        "inspect react state"
+      ],
+      "risk": "read_only",
+      "args_summary": "(expression)"
+    },
+    {
+      "name": "cdp_screenshot",
+      "repo": "gallery",
+      "domain": "live",
+      "server": "is-ui-live",
+      "description": "Requires electron_cdp (gallery_status). Screenshot via CDP; PNG image. Dev Electron with remote debugging (default 9222; override ELECTRON_CDP_URL / ELECTRON_REMOTE_DEBUGGING_PORT).",
+      "tags": [
+        "cdp",
+        "screenshot",
+        "electron",
+        "ui"
+      ],
+      "examples": [
+        "screenshot gallery window"
+      ],
+      "risk": "read_only",
+      "args_summary": "(fullPage?)"
+    },
+    {
+      "name": "gallery_ipc_ping",
+      "repo": "gallery",
+      "domain": "live",
+      "server": "is-ui-live",
+      "description": "Requires is-ui-live. Round-trip ping from MCP live server through Electron main process hooks.",
+      "tags": [
+        "ipc",
+        "live",
+        "ping"
+      ],
+      "examples": [
+        "test gallery live mcp ipc"
+      ],
+      "risk": "read_only",
+      "args_summary": "()"
+    },
+    {
+      "name": "gallery_status",
+      "repo": "gallery",
+      "domain": "local",
+      "server": "is-ui-local",
+      "description": "Probe capabilities: python_api (FastAPI /api/health via resolved backend URL) and electron_cdp (DevTools /json). Use first to see whether api_* vs cdp_* tools are likely to work.",
+      "tags": [
+        "capabilities",
+        "probe",
+        "api",
+        "cdp"
+      ],
+      "examples": [
+        "is backend reachable",
+        "can I use api tools"
+      ],
+      "risk": "read_only",
+      "args_summary": "()"
+    },
+    {
+      "name": "gallery_window_status",
+      "repo": "gallery",
+      "domain": "live",
+      "server": "is-ui-live",
+      "description": "Requires is-ui-live (Electron running). Main window visibility, bounds, and focus state from the Electron main process.",
+      "tags": [
+        "electron",
+        "window",
+        "ipc"
+      ],
+      "examples": [
+        "is gallery window visible"
+      ],
+      "risk": "read_only",
+      "args_summary": "()"
+    },
+    {
+      "name": "get_electron_config",
+      "repo": "gallery",
+      "domain": "local",
+      "server": "is-ui-local",
+      "description": "Read the config.json file from the root of the Electron project.",
+      "tags": [
+        "config",
+        "gallery",
+        "settings"
+      ],
+      "examples": [
+        "read gallery config.json"
+      ],
+      "risk": "read_only",
+      "args_summary": "()"
+    },
+    {
+      "name": "get_electron_logs",
+      "repo": "gallery",
+      "domain": "local",
+      "server": "is-ui-local",
+      "description": "Read the latest Electron app session logs. Optionally specify lines to read.",
+      "tags": [
+        "logs",
+        "electron",
+        "session"
+      ],
+      "examples": [
+        "gallery app logs",
+        "electron session log tail"
+      ],
+      "risk": "read_only",
+      "args_summary": "(lines?)"
+    },
+    {
+      "name": "get_system_stats",
+      "repo": "gallery",
+      "domain": "local",
+      "server": "is-ui-local",
+      "description": "Get system stats (CPU, memory, uptime). Does not probe network; use gallery_status for API/CDP reachability.",
+      "tags": [
+        "system",
+        "cpu",
+        "memory"
+      ],
+      "examples": [
+        "host memory usage",
+        "system stats"
+      ],
+      "risk": "read_only",
+      "args_summary": "()"
+    }
+  ]
+}

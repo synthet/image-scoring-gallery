@@ -2620,7 +2620,7 @@ async function startFullApplication(): Promise<void> {
             bounds: mainWindow && !mainWindow.isDestroyed() ? mainWindow.getBounds() : null,
         }),
     }).catch((err) => {
-        console.warn('[Main] image-scoring-gallery-live MCP failed to start:', err);
+        console.warn('[Main] is-ui-live MCP failed to start:', err);
     });
 
     // Non-blocking: Postgres/API can take connectionTimeoutMillis (e.g. 10s) when Docker/DB is down.

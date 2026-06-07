@@ -27,6 +27,15 @@ jobs:
       - name: Run unit tests
         run: npm run test:run
 
+      - name: Lint MCP doc vocabulary
+        run: python scripts/lint_mcp_doc_vocabulary.py --error
+
+      - name: Build gallery MCP server
+        run: npm run build --prefix mcp-server
+
+      - name: Gallery MCP unit tests
+        run: npm run test:unit --prefix mcp-server
+
       - name: Check renderer/electron type sync
         run: npm run check:type-sync
 
