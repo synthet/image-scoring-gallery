@@ -1,5 +1,5 @@
 {
-  "_comment": "Merge into gallery .cursor/mcp.json (copy from mcp.example.json). Build first: cd mcp-server && npm install && npm run build. Remove legacy image-scoring-gallery-* keys.",
+  "_comment": "Merge into gallery .cursor/mcp.json (copy from mcp.example.json). Build first: cd mcp-server && npm install && npm run build.",
   "mcpServers": {
     "is-ui-router": {
       "command": "node",
@@ -18,11 +18,6 @@
       "headers": {
         "Authorization": "Bearer ${env:GALLERY_MCP_TOKEN}"
       }
-    },
-    "is-ui-full": {
-      "command": "node",
-      "args": ["${workspaceFolder}/mcp-server/dist/index.js"],
-      "disabled": true
     }
   }
 }
