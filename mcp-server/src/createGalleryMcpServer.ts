@@ -98,3 +98,20 @@ export function createGalleryMcpServer(options: CreateGalleryMcpServerOptions = 
 
     return { server: mcpServer, toolDefs, profile };
 }
+
+export async function executeGalleryTool(
+    name: string,
+    args: Record<string, unknown>,
+    hooks: GalleryLiveHooks = {},
+): Promise<{ content: { type: string; text?: string; data?: string; mimeType?: string }[]; isError?: boolean }> {
+    const coreTools = toolNames(coreToolDefs);
+    const apiTools = toolNames(apiToolDefs);
+    const cdpTools = toolNames(cdpToolDefs);
+    const liveIpcTools = toolNames(createLiveIpcToolDefs());
+
+    if (coreTools.has(name)) return await handleCoreTool(name, args);
+    if (apiTools.has(name)) return await handleApiTool(name, args);
+    if (cdpTools.has(name)) return await handleCdpTool(name, args);
+    if (liveIpcTools.has(name)) return await handleLiveIpcTool(name, args, hooks);
+    throw new Error(`Unknown tool: ${name}`);
+}

@@ -6,7 +6,8 @@
     "type": "module",
     "scripts": {
         "build": "tsc",
-        "test:unit": "npm run build && node --test dist/names.test.js",
+        "test:unit": "npm run build && node --test dist/names.test.js dist/dispatch.test.js",
+        "build:registry": "npm run build && node scripts/build_action_registry.mjs",
         "start": "node dist/index.js",
         "start:live": "node dist/liveServer.js",
         "test:live-smoke": "npm run build && node dist/liveServer.smoke.js"

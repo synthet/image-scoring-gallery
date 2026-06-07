@@ -19,33 +19,35 @@ Project skills live only under [`.cursor/skills/`](.cursor/skills/) (no `.claude
 
 ## MCP Configuration
 
-Domain-split MCP. **Naming:** `is-` = image scoring; **`is-ui-*`** = this repo (gallery); **`is-be-*`** = sibling backend.
+Compact **search + dispatch** is the default gallery agent surface. **Naming:** `is-` = image scoring; **`is-ui-*`** = this repo; **`is-be-*`** = sibling backend.
 
-**Canonical contract (backend):** [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/MCP_SEARCH_DISPATCH.md)
+**Canonical contract:** [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/MCP_SEARCH_DISPATCH.md) (shared workflow; gallery registry: `mcp-server/action_registry.json`).
 
 ### Setup (operator-local)
 
-1. Copy [`.cursor/mcp.example.json`](.cursor/mcp.example.json) → **`.cursor/mcp.json`** (gitignored; never commit your local file).
-2. `cd mcp-server && npm install && npm run build`
+1. Copy [`.cursor/mcp.example.json`](.cursor/mcp.example.json) → **`.cursor/mcp.json`** (gitignored).
+2. `cd mcp-server && npm install && npm run build:registry`
 3. Reload MCP in Cursor.
 
-Do **not** add `is-be-*` keys in this repo — use sibling **image-scoring-backend** workspace for backend triage.
+Do **not** add `is-be-*` keys in this repo — use sibling **image-scoring-backend** for backend triage.
 
-### Gallery-first workflow
+### Workflow
 
-1. **`is-ui-router`** → **`ui_find(query)`** when tool choice is unclear
-2. **`is-ui-local`** → `gallery_status`, logs, config
-3. **`is-ui-api`** → `api_*` when backend WebUI is up
-4. **`is-ui-live`** → `cdp_*`, IPC when Electron is running
+```text
+search("gallery status")
+dispatch("local.gallery_status", {})
+search("backend health")
+dispatch("api.api_health", {})
+```
 
-**Backend pipeline triage** (sibling workspace): **`is-be-mcp`** → `search` → `dispatch`.
+**Backend pipeline triage** (sibling workspace): same **`search`** → **`dispatch`** on **`is-be-mcp`** / **`is-be-webui`**.
 
 | Cursor server key | Transport | Requires running app? |
 |-------------------|-----------|------------------------|
-| **`is-ui-router`** | stdio | No — `ui_find`, `ui_domains`, `ui_card` |
-| **`is-ui-local`** | stdio | No — `gallery_status`, logs, config |
-| **`is-ui-api`** | stdio | Backend WebUI for `api_*` |
-| **`is-ui-live`** | SSE (Electron) | Yes — `npm run dev` or `ENABLE_GALLERY_MCP_SSE=1` |
+| **`is-ui-mcp`** | stdio | No — **`search`**, **`dispatch`** |
+| **`is-ui-live`** | SSE (Electron) | Yes — live IPC/CDP actions via dispatch |
+
+**Not in default config:** `is-ui-router`, `is-ui-local`, `is-ui-api` (debug entrypoints under `mcp-server/dist/*Index.js` only).
 
 Backend (sibling **image-scoring-backend**): **`is-be-mcp`** + optional **`is-be-webui`** — see backend [AGENTS.md](https://github.com/synthet/image-scoring-backend/blob/main/AGENTS.md).
 
@@ -54,21 +56,17 @@ Backend (sibling **image-scoring-backend**): **`is-be-mcp`** + optional **`is-be
 
 User `~/.cursor/mcp.json`: cross-repo tools only — **do not** duplicate `is-ui-*` / `is-be-*` there.
 
-**Legacy keys:** remove obsolete gallery/backend MCP server keys from user `~/.cursor/mcp.json` (pre-2026-06 naming).
-
 ### Requirements
 
-- **`is-ui-router`** / **`is-ui-local`** / **`is-ui-api`**: Node; `mcp-server/dist/*Index.js` built.
+- **`is-ui-mcp`**: Node; `mcp-server/dist/compactIndex.js` built.
 - **`is-ui-live`**: Electron dev (`ELECTRON_IS_DEV=1`) or `ENABLE_GALLERY_MCP_SSE=1`.
 - **Database:** PostgreSQL (local `pg`) and/or backend API SQL mode; configure `database` in `config.json` (see `docs/architecture/02-database-design.md`).
 
 ## Tools for Agents
 
-- **`is-ui-router`**: **`ui_find`** — discover tools across gallery profiles.
-- **`is-ui-local`**: Start with **`gallery_status`**; then logs and config.
-- **`is-ui-api`**: **`api_health`**, **`api_*`** when backend WebUI is up.
-- **`is-ui-live`**: **`cdp_*`**, **`gallery_window_status`**, **`gallery_ipc_ping`** when Electron is running.
-- **`is-be-mcp`** (backend workspace): **`search`**, **`dispatch`** for pipeline/DB deep triage.
+- **`is-ui-mcp`**: **`search`**, **`dispatch`** — gallery logs, config, API probes, and (when reachable) CDP helpers.
+- **`is-ui-live`**: attach when Electron dev is running; dispatch live actions (`live.gallery_window_status`, `live.cdp_screenshot`, …).
+- **`is-be-mcp`** (backend workspace): pipeline/DB deep triage with the same contract.
 
 ### mcp-kanban (optional, user MCP)
 
