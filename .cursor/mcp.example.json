@@ -24,13 +24,6 @@
       "headers": {
         "Authorization": "Bearer ${env:GALLERY_MCP_TOKEN}"
       }
-    },
-    "is-ui-full": {
-      "command": "node",
-      "args": [
-        "${workspaceFolder}/mcp-server/dist/index.js"
-      ],
-      "disabled": true
     }
   }
 }
