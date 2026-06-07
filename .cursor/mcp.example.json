@@ -1,22 +1,10 @@
 {
-  "_comment": "Copy to .cursor/mcp.json (gitignored). Build: cd mcp-server && npm install && npm run build. Do not add is-be-* here — use sibling image-scoring-backend workspace.",
+  "_comment": "Copy to .cursor/mcp.json (gitignored). Build: cd mcp-server && npm install && npm run build:registry. Add is-ui-live when Electron dev is running (npm run dev). Legacy profile servers (is-ui-router/local/api) remain in mcp-server/ for debug only — not in default config.",
   "mcpServers": {
-    "is-ui-router": {
+    "is-ui-mcp": {
       "command": "node",
       "args": [
-        "${workspaceFolder}/mcp-server/dist/routerIndex.js"
-      ]
-    },
-    "is-ui-local": {
-      "command": "node",
-      "args": [
-        "${workspaceFolder}/mcp-server/dist/localIndex.js"
-      ]
-    },
-    "is-ui-api": {
-      "command": "node",
-      "args": [
-        "${workspaceFolder}/mcp-server/dist/apiIndex.js"
+        "${workspaceFolder}/mcp-server/dist/compactIndex.js"
       ]
     },
     "is-ui-live": {

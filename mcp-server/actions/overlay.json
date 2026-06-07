@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "field_weights": {
+    "action_id": 4.0,
+    "title": 3.0,
+    "aliases": 2.5,
+    "tags": 2.0,
+    "intent_examples": 2.5,
+    "description": 1.0,
+    "argument_names": 1.5
+  },
+  "actions": {
+    "gallery_status": {
+      "title": "Gallery capabilities probe",
+      "tags": ["capabilities", "probe", "api", "cdp"],
+      "aliases": ["gallery status", "is backend reachable"],
+      "intent_examples": ["is backend reachable", "can I use api tools", "gallery status"]
+    },
+    "get_electron_logs": {
+      "title": "Electron session logs",
+      "tags": ["logs", "electron", "session"],
+      "aliases": ["electron logs", "gallery logs"],
+      "intent_examples": ["gallery app logs", "electron session log tail"]
+    },
+    "get_electron_config": {
+      "title": "Gallery config.json",
+      "tags": ["config", "gallery", "settings"],
+      "aliases": ["read gallery config"],
+      "intent_examples": ["read gallery config.json"]
+    },
+    "get_system_stats": {
+      "title": "Host system stats",
+      "tags": ["system", "cpu", "memory"],
+      "aliases": ["system stats"],
+      "intent_examples": ["host memory usage", "system stats"]
+    },
+    "api_health": {
+      "title": "Backend API health",
+      "tags": ["health", "backend", "fastapi"],
+      "aliases": ["api health", "webui health"],
+      "intent_examples": ["is python webui up", "backend health check"]
+    },
+    "api_job_status": {
+      "title": "Recent jobs or job details",
+      "tags": ["jobs", "runs", "status"],
+      "aliases": ["job status", "recent jobs"],
+      "intent_examples": ["recent jobs", "job details by id"]
+    },
+    "api_run_stages": {
+      "title": "Run pipeline stages",
+      "tags": ["runs", "stages", "pipeline"],
+      "aliases": ["run stages"],
+      "intent_examples": ["pipeline stages for run"]
+    },
+    "api_probe": {
+      "title": "Timed API GET probe",
+      "tags": ["probe", "http", "debug"],
+      "aliases": ["api probe"],
+      "intent_examples": ["test api endpoint", "timed get request"]
+    },
+    "api_runner_status": {
+      "title": "Backend runner status",
+      "tags": ["runners", "scoring", "tagging"],
+      "aliases": ["runner status via api"],
+      "intent_examples": ["scoring runner status via api"]
+    },
+    "cdp_screenshot": {
+      "title": "Renderer screenshot",
+      "tags": ["cdp", "screenshot", "electron", "ui"],
+      "aliases": ["screenshot gallery"],
+      "intent_examples": ["screenshot gallery window"]
+    },
+    "cdp_evaluate": {
+      "title": "Evaluate JS in renderer",
+      "tags": ["cdp", "javascript", "renderer"],
+      "aliases": ["cdp evaluate"],
+      "intent_examples": ["evaluate js in renderer", "inspect react state"]
+    },
+    "cdp_console_logs": {
+      "title": "Renderer console logs",
+      "tags": ["cdp", "console", "renderer", "logs"],
+      "aliases": ["renderer console"],
+      "intent_examples": ["renderer console errors"]
+    },
+    "gallery_window_status": {
+      "title": "Gallery window status",
+      "tags": ["electron", "window", "ipc"],
+      "aliases": ["window status"],
+      "intent_examples": ["is gallery window visible"]
+    },
+    "gallery_ipc_ping": {
+      "title": "Live MCP IPC ping",
+      "tags": ["ipc", "live", "ping"],
+      "aliases": ["gallery ipc ping"],
+      "intent_examples": ["test gallery live mcp ipc"]
+    }
+  }
+}

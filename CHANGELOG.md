@@ -4,6 +4,17 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.15.0] - 2026-06-07
+
+### Added
+
+- **Gallery MCP compact dispatch**: `is-ui-mcp` exposes `search` / `dispatch` over a BM25 action registry (`mcp-server/action_registry.json`); `compactIndex.js` entrypoint and `createGalleryCompactMcpServer` with unit tests.
+- **Action registry build**: `npm run build:registry` generates the gallery action catalog from MCP tool definitions.
+
+### Changed
+
+- **MCP config templates**: Default `.cursor/mcp.example.json` uses `is-ui-mcp` (compact) and `is-ui-live` (SSE); AGENTS.md and agent coordination docs aligned with backend compact contract.
+
 ## [7.14.0] - 2026-05-31
 
 ### Added
