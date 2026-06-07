@@ -23,7 +23,7 @@ When the app shows connection errors or empty data: verify **backend URL**, **lo
 2. **`npm run doctor`** — reports config, lock, and HTTP probe results (`scripts/doctor.mjs`).
 3. **`config.json`:** `database.engine` (`postgres` vs `api`), `config.api.url` / `config.api.port` overrides.
 4. **Backend:** start WebUI from backend repo (`run_webui.bat` or `python webui.py` in WSL); confirm port (often 7860).
-5. **Optional MCP:** `gallery_status` via **imgscore-el-gallery** (see AGENTS.md).
+5. **Optional MCP:** `gallery_status` via **`is-ui-local`** (see AGENTS.md).
 
 ## Common failure modes
 

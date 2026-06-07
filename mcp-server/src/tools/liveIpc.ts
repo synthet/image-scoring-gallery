@@ -1,4 +1,5 @@
 import type { ToolDef, ToolResult } from "./core.js";
+import { UI_LIVE } from "../names.js";
 
 export interface GalleryLiveHooks {
     getWindowStatus?: () => Promise<Record<string, unknown>>;
@@ -9,13 +10,13 @@ export function createLiveIpcToolDefs(): ToolDef[] {
         {
             name: "gallery_window_status",
             description:
-                "Requires image-scoring-gallery-live (Electron running). Main window visibility, bounds, and focus state from the Electron main process.",
+                `Requires ${UI_LIVE} (Electron running). Main window visibility, bounds, and focus state from the Electron main process.`,
             inputSchema: { type: "object", properties: {} },
         },
         {
             name: "gallery_ipc_ping",
             description:
-                "Requires image-scoring-gallery-live. Round-trip ping from MCP live server through Electron main process hooks.",
+                `Requires ${UI_LIVE}. Round-trip ping from MCP live server through Electron main process hooks.`,
             inputSchema: { type: "object", properties: {} },
         },
     ];
@@ -32,7 +33,7 @@ export async function handleLiveIpcTool(
                 content: [
                     {
                         type: "text",
-                        text: "gallery_window_status requires Electron main-process hooks (image-scoring-gallery-live SSE).",
+                        text: `gallery_window_status requires Electron main-process hooks (${UI_LIVE} SSE).`,
                     },
                 ],
                 isError: true,
@@ -50,7 +51,7 @@ export async function handleLiveIpcTool(
                     text: JSON.stringify(
                         {
                             ok: true,
-                            transport: "image-scoring-gallery-live",
+                            transport: UI_LIVE,
                             pid: process.pid,
                             timestamp: new Date().toISOString(),
                         },
