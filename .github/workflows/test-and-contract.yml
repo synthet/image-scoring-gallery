@@ -30,6 +30,9 @@ jobs:
       - name: Lint MCP doc vocabulary
         run: python scripts/lint_mcp_doc_vocabulary.py --error
 
+      - name: Install gallery MCP server dependencies
+        run: npm ci --prefix mcp-server
+
       - name: Build gallery MCP server
         run: npm run build --prefix mcp-server
 
