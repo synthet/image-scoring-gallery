@@ -1414,6 +1414,8 @@ async function startFullApplication(): Promise<void> {
                     toWindowsLocalFsPath,
                     fetchBackupPlanFromApi: (roughFillRatio, maxPerCluster) =>
                         fetchBackendBackupPlan(backupConfig, roughFillRatio, maxPerCluster),
+                    onDedupProgress: (current, total, detail) =>
+                        sendProgress({ phase: 'deduplicating', current, total, detail }),
                 });
             } catch (e) {
                 console.error('[Main] Backup: failed to build plan:', e);

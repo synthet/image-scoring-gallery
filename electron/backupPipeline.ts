@@ -45,6 +45,8 @@ export type BackupPlanBuildOptions = {
         deduplicatedCount: number;
         warnings: string[];
     } | null>;
+    /** Progress callback for the (potentially long) embedding-dedup pass. */
+    onDedupProgress?: (current: number, total: number, detail: string) => void;
 };
 
 export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<BackupPlanBuildResult> {
@@ -58,6 +60,7 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         isUnresolvedSyncLayout,
         toWindowsLocalFsPath,
         fetchBackupPlanFromApi,
+        onDedupProgress,
     } = options;
 
     const warnings: string[] = [];
@@ -102,6 +105,7 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
             backupConfig.diversityLambda,
             backupConfig.pairBatchSize,
             dedupDeps,
+            onDedupProgress,
         );
         warnings.push(...dedupResult.warnings);
 
