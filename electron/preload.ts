@@ -13,6 +13,8 @@ import type {
     BackupTargetInfo,
     BackupProgress,
     BackupResult,
+    BackupPreviewInfo,
+    BackupRunOptions,
     SyncCandidate,
     ImagePhaseStatus,
     SubStackRow,
@@ -291,8 +293,15 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('backup:check-target', targetPath);
         return unwrapEnvelope<BackupTargetInfo | null>(response);
     },
-    backupRun: async (targetPath: string) => {
-        const response = await ipcRenderer.invoke('backup:run', { targetPath });
+    backupPreview: async (targetPath: string) => {
+        const response = await ipcRenderer.invoke('backup:preview', targetPath);
+        return unwrapEnvelope<BackupPreviewInfo | null>(response);
+    },
+    backupRun: async (targetPath: string, options?: { confirmMassDelete?: boolean }) => {
+        const response = await ipcRenderer.invoke('backup:run', {
+            targetPath,
+            confirmMassDelete: options?.confirmMassDelete,
+        });
         return unwrapEnvelope<BackupResult>(response);
     },
     onBackupTargetSelected: (callback: (targetPath: string) => void) => {

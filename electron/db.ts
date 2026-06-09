@@ -2239,10 +2239,9 @@ export async function deleteImage(id: number): Promise<boolean> {
 import { ScoredImageForBackup } from './types';
 
 /**
- * Get all scored images (score_general > 0) for backup planning.
- * Selection / threshold logic is handled by the proportional algorithm in backupSpace.ts.
+ * Get scored images for backup planning at or above minScore (score_general 0–1).
  */
-export async function getAllScoredImagesForBackup(): Promise<ScoredImageForBackup[]> {
+export async function getAllScoredImagesForBackup(minScore = 0): Promise<ScoredImageForBackup[]> {
     const sql = `
         SELECT
             i.id,
@@ -2257,25 +2256,96 @@ export async function getAllScoredImagesForBackup(): Promise<ScoredImageForBacku
             AND POSITION('/thumbnails/' IN fp.path) = 0
         LEFT JOIN image_exif e ON e.image_id = i.id
         LEFT JOIN image_xmp xm ON xm.image_id = i.id
-        WHERE i.score_general > 0
+        WHERE i.score_general >= ?
         ORDER BY i.score_general DESC NULLS LAST
     `;
-    const rows = await query(sql, []) as any[];
+    const rows = await query(sql, [minScore]) as ScoredImageForBackup[];
     return rows;
 }
 
+export type BackupLayoutDetail = {
+    id: number;
+    exif_model: string | null;
+    exif_lens_model: string | null;
+};
+
+/** Batch EXIF fields needed for backup destination layout. */
+export async function getImageDetailsBatch(ids: number[]): Promise<Map<number, BackupLayoutDetail>> {
+    const out = new Map<number, BackupLayoutDetail>();
+    if (ids.length === 0) return out;
+
+    const placeholders = ids.map(() => '?').join(', ');
+    const sql = `
+        SELECT
+            i.id,
+            COALESCE(ex.model, ex.make) as exif_model,
+            ex.lens_model as exif_lens_model
+        FROM images i
+        LEFT JOIN image_exif ex ON i.id = ex.image_id
+        WHERE i.id IN (${placeholders})
+    `;
+    const rows = await query<BackupLayoutDetail>(sql, ids);
+    for (const row of rows) {
+        out.set(row.id, row);
+    }
+    return out;
+}
+
+/** Parse pgvector text form "[0.1,0.2,...]" into Float32Array. */
+function parsePgVectorEmbedding(raw: unknown): Float32Array | undefined {
+    if (raw == null) return undefined;
+    if (raw instanceof Buffer || raw instanceof Uint8Array) {
+        return new Float32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
+    }
+    const text = String(raw).trim();
+    if (!text.startsWith('[')) return undefined;
+    const inner = text.slice(1, -1);
+    if (!inner) return undefined;
+    const parts = inner.split(',').map((s) => parseFloat(s.trim()));
+    if (parts.some((n) => !Number.isFinite(n))) return undefined;
+    return new Float32Array(parts);
+}
+
+/** Default-space embeddings for backup MMR (mobilenet_v2_imagenet_gap). */
+export async function getEmbeddingsBatch(ids: number[]): Promise<Map<number, Float32Array>> {
+    const out = new Map<number, Float32Array>();
+    if (ids.length === 0) return out;
+
+    const placeholders = ids.map(() => '?').join(', ');
+    const sql = `
+        SELECT ie.image_id, ie.embedding::text AS embedding
+        FROM image_embeddings ie
+        JOIN embedding_spaces es ON es.id = ie.embedding_space_id
+        WHERE ie.image_id IN (${placeholders})
+          AND es.code = 'mobilenet_v2_imagenet_gap'
+    `;
+    try {
+        const rows = await query<{ image_id: number; embedding: string }>(sql, ids);
+        for (const row of rows) {
+            const vec = parsePgVectorEmbedding(row.embedding);
+            if (vec) out.set(row.image_id, vec);
+        }
+    } catch (e) {
+        console.error('[DB] getEmbeddingsBatch failed:', e);
+    }
+    return out;
+}
+
+export type SimilarPairsQueryResult = {
+    pairs: Array<{ id_a: number; id_b: number; similarity: number }>;
+    error?: string;
+};
+
 /**
  * Find pairs of similar images within a specific set of IDs using pgvector.
- * Returns pairs with similarity >= threshold.
+ * Returns pairs with similarity >= threshold; error set when the query fails.
  */
-export async function getSimilarPairsInGroup(imageIds: number[], threshold: number): Promise<Array<{ id_a: number; id_b: number; similarity: number }>> {
-    if (imageIds.length < 2) return [];
+export async function getSimilarPairsInGroup(
+    imageIds: number[],
+    threshold: number,
+): Promise<SimilarPairsQueryResult> {
+    if (imageIds.length < 2) return { pairs: [] };
 
-    // Use a temporary table or values list for larger sets of IDs to avoid param limits if needed,
-    // but for backup filtering batches of a few hundreds/thousands should be fine with IN if partitioned.
-    // However, Postgres ANY($1) is better. Since we use ? -> $n, we'll try IN (?, ?, ...) first
-    // like the rest of the file does.
-    
     const placeholders = imageIds.map(() => '?').join(', ');
     const sql = `
         SELECT 
@@ -2284,19 +2354,22 @@ export async function getSimilarPairsInGroup(imageIds: number[], threshold: numb
             (1 - (e1.embedding <=> e2.embedding)) as similarity
         FROM image_embeddings e1
         JOIN image_embeddings e2 ON e1.image_id < e2.image_id
-        WHERE e1.image_id IN (${placeholders}) 
+        JOIN embedding_spaces es ON es.id = e1.embedding_space_id AND es.id = e2.embedding_space_id
+        WHERE es.code = 'mobilenet_v2_imagenet_gap'
+          AND e1.image_id IN (${placeholders}) 
           AND e2.image_id IN (${placeholders})
           AND (1 - (e1.embedding <=> e2.embedding)) >= ?
     `;
 
-    // Flatten parameters: [ids..., ids..., threshold]
     const params = [...imageIds, ...imageIds, threshold];
-    
+
     try {
-        return await query<{ id_a: number; id_b: number; similarity: number }>(sql, params);
+        const pairs = await query<{ id_a: number; id_b: number; similarity: number }>(sql, params);
+        return { pairs };
     } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
         console.error('[DB] getSimilarPairsInGroup failed:', e);
-        return [];
+        return { pairs: [], error: message };
     }
 }
 

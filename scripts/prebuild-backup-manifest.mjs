@@ -5,6 +5,10 @@
  * Layout: each file's path relative to the target root becomes `relPath` (same as Electron backup).
  * `id` is 0, `score` is 0, `hash` is "" — the next real Backup run will refresh rows for paths it copies.
  *
+ * WARNING: If `backup.pruneStaleFiles` is true in gallery config.json, a scored backup run may
+ * permanently delete files on disk that are not in the new selection. Default is false (additive).
+ * After prebuild, keep `pruneStaleFiles: false` unless you intend to mirror-prune the archive.
+ *
  * Usage:
  *   node scripts/prebuild-backup-manifest.mjs <targetFolder> [--dry-run] [--force]
  *

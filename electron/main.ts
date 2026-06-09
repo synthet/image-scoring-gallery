@@ -20,7 +20,8 @@ import {
     BackupResult,
     BackupManifest,
     BackupManifestEntry,
-    type ScoredImageForBackup,
+    type BackupPreviewInfo,
+    type BackupRunOptions,
     type SyncCandidate,
     type SyncPreviewResult,
     type SyncRunResult,
@@ -36,10 +37,16 @@ import { collapseMalformedThumbnailSegments, absolutizeThumbnailPath } from './t
 import {
     getVolumeFreeBytes,
     getVolumeCapacityBytes,
-    removeStaleBackupFiles,
+    analyzeStaleManifestEntries,
+    syncStaleBackupEntries,
     selectPlanProportional,
     xmpSidecarPath,
 } from './backupSpace';
+import {
+    loadBackupConfig,
+    requiresStaleDeleteConfirmation,
+} from './backupConfig';
+import { buildBackupPlan } from './backupPipeline';
 import { toWindowsLocalFsPath } from './pathWinWsl';
 import {
     assertSyncPreviewAllowed,
@@ -1174,6 +1181,139 @@ async function startFullApplication(): Promise<void> {
         '.jpg', '.jpeg', '.png', '.nef', '.arw', '.cr2', '.dng', '.heic', '.webp', '.tiff', '.tif', '.raw', '.orf', '.rw2'
     ]);
 
+    async function loadBackupManifest(targetPath: string): Promise<{ manifest: BackupManifest; manifestPath: string }> {
+        const manifestPath = path.join(targetPath, 'manifest.json');
+        let manifest: BackupManifest = { updatedAt: new Date().toISOString(), images: [] };
+        if (fs.existsSync(manifestPath)) {
+            try {
+                const content = await fs.promises.readFile(manifestPath, 'utf-8');
+                manifest = JSON.parse(content);
+            } catch { /* ignore corrupted manifest */ }
+        }
+        return { manifest, manifestPath };
+    }
+
+    /**
+     * Atomically persist the manifest: write to a temp file, fsync, rotate the previous
+     * manifest to `.bak`, then rename into place. The manifest is the only record of what is
+     * backed up; a crash mid-write must never corrupt or truncate it.
+     */
+    async function writeManifestAtomic(manifestPath: string, manifest: BackupManifest): Promise<void> {
+        const tmpPath = `${manifestPath}.tmp`;
+        const data = JSON.stringify(manifest, null, 2);
+        const handle = await fs.promises.open(tmpPath, 'w');
+        try {
+            await handle.writeFile(data, 'utf-8');
+            await handle.sync();
+        } finally {
+            await handle.close();
+        }
+        // Rotate the existing manifest to .bak before replacing it (best-effort).
+        if (fs.existsSync(manifestPath)) {
+            await fs.promises.copyFile(manifestPath, `${manifestPath}.bak`).catch(() => {});
+        }
+        await fs.promises.rename(tmpPath, manifestPath);
+    }
+
+    async function resolveBackupVolumeStats(targetPath: string): Promise<{ freeBytes: number; capacityBytes: number }> {
+        let freeBytes = await getVolumeFreeBytes(targetPath);
+        let capacityBytes = await getVolumeCapacityBytes(targetPath);
+        if (freeBytes === null || capacityBytes === null) {
+            console.warn('[Main] Backup: could not read disk space; using unlimited budget.');
+            freeBytes = freeBytes ?? Number.MAX_SAFE_INTEGER;
+            capacityBytes = capacityBytes ?? Number.MAX_SAFE_INTEGER;
+        }
+        return { freeBytes, capacityBytes };
+    }
+
+    async function fetchBackendBackupPlan(
+        backupConfig: ReturnType<typeof loadBackupConfig>,
+        roughFillRatio: number,
+        maxPerCluster: number,
+    ) {
+        if (!(await apiService.isAvailable())) return null;
+        try {
+            const planRes = await apiService.fetchBackupPlan({
+                min_score: backupConfig.minScore,
+                diversity_lambda: backupConfig.diversityLambda,
+                max_per_cluster: maxPerCluster,
+                rough_fill_ratio: roughFillRatio,
+                pair_batch_size: backupConfig.pairBatchSize,
+            });
+            const planData = planRes.data as import('./apiTypes').BackupPlanData | undefined;
+            if (!planRes.success || !planData?.items?.length) {
+                return null;
+            }
+            return {
+                imageIds: new Set(planData.items.map((item) => item.image_id)),
+                deduplicatedCount: planData.deduplicated_count ?? 0,
+                warnings: planData.warnings ?? [],
+            };
+        } catch {
+            return null;
+        }
+    }
+
+    async function computeBackupPreview(targetPath: string): Promise<BackupPreviewInfo> {
+        const appConfig = loadAppConfig(getConfigPath(__dirname));
+        const backupConfig = loadBackupConfig(appConfig.backup as Record<string, unknown> | undefined);
+        const { manifest } = await loadBackupManifest(targetPath);
+        const { freeBytes, capacityBytes } = await resolveBackupVolumeStats(targetPath);
+
+        const planBuild = await buildBackupPlan({
+            targetPath,
+            backupConfig,
+            freeBytes,
+            capacityBytes,
+            normalizeCameraModel,
+            normalizeLensFolderName,
+            isUnresolvedSyncLayout,
+            toWindowsLocalFsPath,
+            fetchBackupPlanFromApi: (roughFillRatio, maxPerCluster) =>
+                fetchBackendBackupPlan(backupConfig, roughFillRatio, maxPerCluster),
+        });
+
+        const desiredRelPaths = new Set(planBuild.planned.map((p) => p.relPath));
+        const staleStats = analyzeStaleManifestEntries(manifest, desiredRelPaths, {
+            allowPrebuildDelete: false,
+        });
+        const wouldDeleteFiles = backupConfig.pruneStaleFiles ? staleStats.wouldDeleteFiles : 0;
+
+        // Estimate destination copies that would be deleted for insufficient space.
+        // Only copies already present on disk (in the manifest) can actually be deleted.
+        let wouldDeleteDroppedForSpace = 0;
+        if (backupConfig.pruneDroppedForSpace) {
+            const currentFreeBytes = await getVolumeFreeBytes(targetPath) ?? freeBytes;
+            const { droppedRelPaths } = selectPlanProportional(
+                planBuild.planned,
+                currentFreeBytes,
+                capacityBytes,
+                { diversityLambda: backupConfig.diversityLambda },
+            );
+            const onDisk = new Set(manifest.images.map((m) => m.relPath));
+            wouldDeleteDroppedForSpace = droppedRelPaths.filter((rel) => onDisk.has(rel)).length;
+        }
+
+        const staleNeedsConfirm = backupConfig.pruneStaleFiles
+            && requiresStaleDeleteConfirmation(wouldDeleteFiles, manifest.images.length);
+        const droppedNeedsConfirm = backupConfig.pruneDroppedForSpace
+            && requiresStaleDeleteConfirmation(wouldDeleteDroppedForSpace, manifest.images.length);
+
+        return {
+            minScore: backupConfig.minScore,
+            candidateCount: planBuild.allScored.length,
+            plannedCount: planBuild.planned.length,
+            manifestCount: manifest.images.length,
+            pruneStaleFiles: backupConfig.pruneStaleFiles,
+            pruneDroppedForSpace: backupConfig.pruneDroppedForSpace,
+            wouldDeleteFiles,
+            wouldDeleteDroppedForSpace,
+            prebuildProtectedCount: staleStats.prebuildProtectedCount,
+            requiresConfirm: staleNeedsConfirm || droppedNeedsConfirm,
+            manifestPrunedCount: staleStats.staleManifestCount,
+        };
+    }
+
     ipcMain.handle('backup:check-target', wrapIpcHandler(async (_, targetPath: string): Promise<BackupTargetInfo | null> => {
         if (!targetPath) return null;
         const manifestPath = path.join(targetPath, 'manifest.json');
@@ -1196,11 +1336,24 @@ async function startFullApplication(): Promise<void> {
         }
     }));
 
+    ipcMain.handle('backup:preview', wrapIpcHandler(async (_, targetPath: string): Promise<BackupPreviewInfo | null> => {
+        if (!targetPath) return null;
+        try {
+            return await computeBackupPreview(targetPath);
+        } catch (e) {
+            console.error('[Main] Backup preview failed:', e);
+            return null;
+        }
+    }));
+
     ipcMain.handle('backup:run', wrapIpcHandler(async (_event, arg1) => {
-        const targetPath =
+        const runOptions: BackupRunOptions =
             arg1 && typeof arg1 === 'object' && 'targetPath' in (arg1 as object)
-                ? (arg1 as { targetPath: string }).targetPath
-                : arg1 as string;
+                ? (arg1 as BackupRunOptions)
+                : { targetPath: arg1 as string };
+
+        const targetPath = runOptions.targetPath;
+        const confirmMassDelete = runOptions.confirmMassDelete === true;
 
         if (!targetPath || typeof targetPath !== 'string') {
             throw new Error('Backup target path is required');
@@ -1220,181 +1373,78 @@ async function startFullApplication(): Promise<void> {
             mainWindow?.webContents.send('backup:progress', progress);
         };
 
+        const emptyResult = (errors: string[] = [], warnings: string[] = []): BackupResult => ({
+            copied: 0,
+            skipped: 0,
+            deduplicated: 0,
+            errors,
+            staleRemoved: 0,
+            manifestPruned: 0,
+            prebuildProtected: 0,
+            droppedForSpace: 0,
+            warnings: warnings.length > 0 ? warnings : undefined,
+        });
+
         try {
-            const manifestPath = path.join(targetPath, 'manifest.json');
-            let manifest: BackupManifest = { updatedAt: new Date().toISOString(), images: [] };
-            if (fs.existsSync(manifestPath)) {
-                try {
-                    const content = await fs.promises.readFile(manifestPath, 'utf-8');
-                    manifest = JSON.parse(content);
-                } catch { /* ignore corrupted manifest */ }
-            }
+            const appConfig = loadAppConfig(getConfigPath(__dirname));
+            const backupConfig = loadBackupConfig(
+                appConfig.backup as Record<string, unknown> | undefined,
+            );
+            const { manifest, manifestPath } = await loadBackupManifest(targetPath);
 
-            sendProgress({ phase: 'scanning', current: 0, total: 0, detail: 'Querying scored images...' });
+            sendProgress({
+                phase: 'scanning',
+                current: 0,
+                total: 0,
+                detail: `Querying scored images (min score ${backupConfig.minScore})...`,
+            });
 
-            let allScored: ScoredImageForBackup[] = [];
+            const { freeBytes, capacityBytes } = await resolveBackupVolumeStats(targetPath);
+
+            let planBuild;
             try {
-                allScored = await db.getAllScoredImagesForBackup();
+                planBuild = await buildBackupPlan({
+                    targetPath,
+                    backupConfig,
+                    freeBytes,
+                    capacityBytes,
+                    normalizeCameraModel,
+                    normalizeLensFolderName,
+                    isUnresolvedSyncLayout,
+                    toWindowsLocalFsPath,
+                    fetchBackupPlanFromApi: (roughFillRatio, maxPerCluster) =>
+                        fetchBackendBackupPlan(backupConfig, roughFillRatio, maxPerCluster),
+                });
             } catch (e) {
-                console.error('[Main] Backup: failed to query images:', e);
-                return { copied: 0, skipped: 0, deduplicated: 0, errors: [String(e)], staleRemoved: 0, droppedForSpace: 0 };
+                console.error('[Main] Backup: failed to build plan:', e);
+                return emptyResult([String(e)]);
             }
 
-            const totalImages = allScored.length;
-            if (totalImages === 0) {
+            const warnings = [...planBuild.warnings];
+            if (planBuild.allScored.length === 0) {
                 sendProgress({ phase: 'done', current: 0, total: 0, detail: 'No scored images found' });
-                return { copied: 0, skipped: 0, deduplicated: 0, errors: [], staleRemoved: 0, droppedForSpace: 0 };
+                return emptyResult([], warnings);
             }
 
-            // ── Estimate space pressure for dynamic similarity thresholds ──
-            let freeBytes = await getVolumeFreeBytes(targetPath);
-            let capacityBytes = await getVolumeCapacityBytes(targetPath);
-            if (freeBytes === null || capacityBytes === null) {
-                console.warn('[Main] Backup: could not read disk space; using unlimited budget.');
-                freeBytes = freeBytes ?? Number.MAX_SAFE_INTEGER;
-                capacityBytes = capacityBytes ?? Number.MAX_SAFE_INTEGER;
-            }
-            const AVG_RAW_BYTES = 30 * 1024 * 1024;
-            const bufferBytes = capacityBytes < Number.MAX_SAFE_INTEGER ? capacityBytes * 0.02 : 0;
-            const usableEstimate = Math.max(0, freeBytes - bufferBytes);
-            const roughFillRatio = Math.min(1, usableEstimate / (totalImages * AVG_RAW_BYTES));
-
-            // ── Group by date, dynamic per-folder deduplication ──
-            const groups = new Map<string, typeof allScored>();
-            for (const img of allScored) {
-                const date = img.path.match(/(\d{4}-\d{2}-\d{2})/)?.[1] ?? 'unknown';
-                if (!groups.has(date)) groups.set(date, []);
-                groups.get(date)!.push(img);
-            }
-
-            sendProgress({ phase: 'deduplicating', current: 0, total: groups.size, detail: `Analyzing ${totalImages} images in ${groups.size} groups...` });
-
-            const selectedImages = new Set<number>();
-            const rejectedImages = new Set<number>();
-            let groupIdx = 0;
-
-            for (const [date, group] of groups.entries()) {
-                groupIdx++;
-                sendProgress({ phase: 'deduplicating', current: groupIdx, total: groups.size, detail: `Grouping ${date} (${group.length} images)...` });
-
-                // Dynamic similarity threshold: base from space pressure, adjusted by burst density.
-                const stackedCount = group.filter(img => img.stack_id != null).length;
-                const burstRatio = group.length > 0 ? stackedCount / group.length : 0;
-                const baseSimilarity = 0.85 + 0.13 * Math.min(1, Math.max(0, roughFillRatio));
-                const folderThreshold = Math.max(0.80, Math.min(0.99, baseSimilarity - burstRatio * 0.05));
-                console.log(`[Backup] Dedup ${date}: ${group.length} imgs, burstRatio=${burstRatio.toFixed(2)}, threshold=${folderThreshold.toFixed(3)}`);
-
-                const imageIds = group.map(img => img.id);
-                const similarPairs = await db.getSimilarPairsInGroup(imageIds, folderThreshold);
-
-                // Build adjacency list for clusters
-                const adj = new Map<number, number[]>();
-                for (const pair of similarPairs) {
-                    if (!adj.has(pair.id_a)) adj.set(pair.id_a, []);
-                    if (!adj.has(pair.id_b)) adj.set(pair.id_b, []);
-                    adj.get(pair.id_a)!.push(pair.id_b);
-                    adj.get(pair.id_b)!.push(pair.id_a);
-                }
-
-                const visited = new Set<number>();
-                for (const img of group) {
-                    if (visited.has(img.id)) continue;
-
-                    const cluster = [img.id];
-                    const queue = [img.id];
-                    visited.add(img.id);
-
-                    while (queue.length > 0) {
-                        const curr = queue.shift()!;
-                        const neighbors = adj.get(curr) || [];
-                        for (const next of neighbors) {
-                            if (!visited.has(next)) {
-                                visited.add(next);
-                                cluster.push(next);
-                                queue.push(next);
-                            }
-                        }
-                    }
-
-                    const clusterDocs = group.filter(i => cluster.includes(i.id));
-                    clusterDocs.sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0));
-                    selectedImages.add(clusterDocs[0].id);
-                    for (let i = 1; i < clusterDocs.length; i++) {
-                        rejectedImages.add(clusterDocs[i].id);
-                    }
-                }
-            }
-
-            // ── Plan layout + stat files (including XMP sidecars) ──
-
-            const toBackup = allScored.filter(img => selectedImages.has(img.id));
             sendProgress({
                 phase: 'calculating',
                 current: 0,
-                total: Math.max(1, toBackup.length),
-                detail: `Preparing ${toBackup.length} files (layout + disk budget)...`,
+                total: Math.max(1, planBuild.planned.length),
+                detail: `Preparing ${planBuild.planned.length} files (layout + disk budget)...`,
             });
 
-            const planned: import('./backupSpace').BackupPlannedItem[] = [];
+            const planned = planBuild.planned;
             const errors: string[] = [];
-            let skipped = 0;
+            let skipped = planBuild.skippedLayout;
 
-            for (const img of toBackup) {
-                const fileName = path.basename(img.path);
-                const details = await db.getImageDetails(img.id);
-                const camera = normalizeCameraModel(details?.exif_model);
-                const lens = normalizeLensFolderName(details?.exif_lens_model);
-                if (isUnresolvedSyncLayout(camera, lens)) {
-                    console.warn(
-                        `[Backup] Skip (missing camera/lens for layout): ${img.path} exif_model=${details?.exif_model ?? '—'} exif_lens_model=${details?.exif_lens_model ?? '—'}`
-                    );
-                    skipped++;
-                    continue;
-                }
-                const dateMatch = img.path.match(/(\d{4}-\d{2}-\d{2})/);
-                const dateStr = dateMatch ? dateMatch[1] : 'unknown';
-                const year = dateStr.split('-')[0];
-
-                const relDir = path.join(camera, lens, year, dateStr);
-                const relPath = path.join(relDir, fileName);
-                const destPath = path.join(targetPath, relPath);
-                const sourcePath = toWindowsLocalFsPath(img.path);
-
-                let stats;
-                try {
-                    stats = await fs.promises.stat(sourcePath);
-                } catch (e) {
-                    errors.push(`${fileName}: ${e instanceof Error ? e.message : String(e)}`);
-                    continue;
-                }
-
-                // Stat XMP sidecar (best effort)
-                let sourceXmpSize = 0;
-                try {
-                    const xmpStats = await fs.promises.stat(xmpSidecarPath(sourcePath));
-                    sourceXmpSize = xmpStats.size;
-                } catch { /* no sidecar */ }
-
-                planned.push({
-                    img,
-                    sourcePath,
-                    relPath,
-                    destPath,
-                    fileName,
-                    score: img.composite_score || 0,
-                    sourceSize: stats.size,
-                    sourceXmpSize,
-                    skipCopy: false,
-                    skipCopyXmp: sourceXmpSize === 0,
-                    leafFolder: dateStr,
-                });
-            }
-
-            // ── Remove stale files (+ their sidecars) ──
             const desiredRelPaths = new Set(planned.map((p) => p.relPath));
-            const staleRemoved = await removeStaleBackupFiles(targetPath, manifest, desiredRelPaths);
+            const stalePreview = analyzeStaleManifestEntries(manifest, desiredRelPaths, {
+                allowPrebuildDelete: backupConfig.pruneStaleFiles && confirmMassDelete,
+            });
+            const wouldDeleteFiles = backupConfig.pruneStaleFiles ? stalePreview.wouldDeleteFiles : 0;
 
-            // ── Determine skip-copy for image + sidecar ──
+            // Resolve skip-copy flags first — selectPlanProportional needs them for accurate
+            // space budgeting (skip-copy items already on disk don't consume the free-space budget).
             for (const p of planned) {
                 const manifestEntry = manifest.images.find((m: BackupManifestEntry) => m.relPath === p.relPath);
                 if (fs.existsSync(p.destPath) && manifestEntry) {
@@ -1412,7 +1462,6 @@ async function startFullApplication(): Promise<void> {
                     p.skipCopy = false;
                 }
 
-                // Sidecar skip-copy: compare destination sidecar size to source
                 if (p.sourceXmpSize > 0) {
                     const destXmp = xmpSidecarPath(p.destPath);
                     try {
@@ -1424,26 +1473,63 @@ async function startFullApplication(): Promise<void> {
                 }
             }
 
-            // ── Proportional per-folder selection ──
-            // Re-read free bytes after stale cleanup (may have freed space).
-            freeBytes = await getVolumeFreeBytes(targetPath) ?? freeBytes;
+            const currentFreeBytes = await getVolumeFreeBytes(targetPath) ?? freeBytes;
 
             const { selected: finalPlan, droppedRelPaths } = selectPlanProportional(
                 planned,
-                freeBytes,
-                capacityBytes
+                currentFreeBytes,
+                capacityBytes,
+                { diversityLambda: backupConfig.diversityLambda },
             );
 
-            let droppedForSpace = 0;
-            for (const rel of droppedRelPaths) {
-                const abs = path.join(targetPath, rel);
-                await fs.promises.unlink(abs).catch(() => {});
-                await fs.promises.unlink(xmpSidecarPath(abs)).catch(() => {});
-                manifest.images = manifest.images.filter((m: BackupManifestEntry) => m.relPath !== rel);
-                droppedForSpace++;
+            // Destination copies dropped for space that already exist on disk are the only
+            // files a space-prune can actually delete.
+            const onDiskRelPaths = new Set(manifest.images.map((m: BackupManifestEntry) => m.relPath));
+            const droppedOnDisk = backupConfig.pruneDroppedForSpace
+                ? droppedRelPaths.filter((rel) => onDiskRelPaths.has(rel))
+                : [];
+
+            // ---- Confirmation gates: evaluate ALL destructive actions before deleting anything ----
+            if (
+                backupConfig.pruneStaleFiles
+                && requiresStaleDeleteConfirmation(wouldDeleteFiles, manifest.images.length)
+                && !confirmMassDelete
+            ) {
+                throw new Error(
+                    `Backup would permanently delete ${wouldDeleteFiles} files from the destination. `
+                    + 'Re-run with confirmation or set backup.pruneStaleFiles to false in config.json.',
+                );
+            }
+            if (
+                backupConfig.pruneDroppedForSpace
+                && requiresStaleDeleteConfirmation(droppedOnDisk.length, manifest.images.length)
+                && !confirmMassDelete
+            ) {
+                throw new Error(
+                    `Backup would permanently delete ${droppedOnDisk.length} existing destination files `
+                    + 'dropped for insufficient disk space. Re-run with confirmation or set '
+                    + 'backup.pruneDroppedForSpace to false in config.json.',
+                );
             }
 
-            // ── Copy files + sidecars ──
+            const { manifestPruned, filesRemoved, prebuildProtectedCount } = await syncStaleBackupEntries(
+                targetPath,
+                manifest,
+                desiredRelPaths,
+                backupConfig.pruneStaleFiles,
+                confirmMassDelete,
+            );
+
+            const droppedForSpace = droppedRelPaths.length;
+            if (backupConfig.pruneDroppedForSpace) {
+                for (const rel of droppedOnDisk) {
+                    const abs = path.join(targetPath, rel);
+                    await fs.promises.unlink(abs).catch(() => {});
+                    await fs.promises.unlink(xmpSidecarPath(abs)).catch(() => {});
+                    manifest.images = manifest.images.filter((m: BackupManifestEntry) => m.relPath !== rel);
+                }
+            }
+
             sendProgress({ phase: 'copying', current: 0, total: finalPlan.length, detail: 'Starting file transfer...' });
 
             let copied = 0;
@@ -1473,7 +1559,7 @@ async function startFullApplication(): Promise<void> {
                             relPath,
                             score: img.composite_score || 0,
                             size: stats.size,
-                            hash: img.image_hash || ''
+                            hash: img.image_hash || '',
                         };
                         if (manifestIdx >= 0) manifest.images[manifestIdx] = item;
                         else manifest.images.push(item);
@@ -1483,7 +1569,6 @@ async function startFullApplication(): Promise<void> {
                         skipped++;
                     }
 
-                    // Copy XMP sidecar if present and changed
                     if (p.sourceXmpSize > 0 && !p.skipCopyXmp) {
                         const srcXmp = xmpSidecarPath(p.sourcePath);
                         const dstXmp = xmpSidecarPath(destPath);
@@ -1492,7 +1577,6 @@ async function startFullApplication(): Promise<void> {
                         });
                     }
 
-                    // Clean up orphaned destination sidecar if source sidecar is gone
                     if (p.sourceXmpSize === 0) {
                         await fs.promises.unlink(xmpSidecarPath(destPath)).catch(() => {});
                     }
@@ -1503,11 +1587,21 @@ async function startFullApplication(): Promise<void> {
 
             sendProgress({ phase: 'cleaning', current: 1, total: 1, detail: 'Writing manifest...' });
             manifest.updatedAt = new Date().toISOString();
-            await fs.promises.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+            await writeManifestAtomic(manifestPath, manifest);
 
             const detailParts = [`Backup complete: ${copied} copied, ${skipped} skipped.`];
-            if (staleRemoved > 0) detailParts.push(`${staleRemoved} removed (no longer selected).`);
-            if (droppedForSpace > 0) detailParts.push(`${droppedForSpace} dropped (proportional selection; lower scores dropped first).`);
+            if (manifestPruned > 0) detailParts.push(`${manifestPruned} manifest entries updated.`);
+            if (filesRemoved > 0) detailParts.push(`${filesRemoved} files deleted (mirror prune).`);
+            if (prebuildProtectedCount > 0) {
+                detailParts.push(`${prebuildProtectedCount} prebuild files kept on disk.`);
+            }
+            if (droppedForSpace > 0) {
+                detailParts.push(
+                    backupConfig.pruneDroppedForSpace
+                        ? `${droppedForSpace} dropped for insufficient space (deleted from destination).`
+                        : `${droppedForSpace} not copied (insufficient space; existing files kept).`,
+                );
+            }
             sendProgress({
                 phase: 'done',
                 current: finalPlan.length,
@@ -1517,10 +1611,13 @@ async function startFullApplication(): Promise<void> {
             return {
                 copied,
                 skipped,
-                deduplicated: rejectedImages.size,
+                deduplicated: planBuild.rejectedCount,
                 errors,
-                staleRemoved,
+                staleRemoved: filesRemoved,
+                manifestPruned,
+                prebuildProtected: prebuildProtectedCount,
                 droppedForSpace,
+                warnings: warnings.length > 0 ? warnings : undefined,
             };
         } finally {
             isBackupRunning = false;

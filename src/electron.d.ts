@@ -31,6 +31,7 @@ import type {
     AppConfig,
     BackupProgress,
     BackupResult,
+    BackupPreviewInfo,
     BackupTargetInfo,
     DuplicateResponse,
     ExportImageContext,
@@ -56,6 +57,7 @@ import type {
 
 export type {
     AppConfig,
+    BackupPreviewInfo,
     BackupProgress,
     BackupResult,
     BackupTargetInfo,
@@ -168,7 +170,11 @@ declare global {
 
             // ── Backup ──────────────────────────────────────────────────
             backupCheckTarget: (targetPath: string) => Promise<BackupTargetInfo | null>;
-            backupRun: (targetPath: string) => Promise<BackupResult>;
+            backupPreview: (targetPath: string) => Promise<BackupPreviewInfo | null>;
+            backupRun: (
+                targetPath: string,
+                options?: { confirmMassDelete?: boolean },
+            ) => Promise<BackupResult>;
             onBackupTargetSelected: (callback: (targetPath: string) => void) => () => void;
             onBackupProgress: (callback: (data: BackupProgress) => void) => () => void;
 

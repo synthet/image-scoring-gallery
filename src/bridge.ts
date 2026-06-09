@@ -396,6 +396,20 @@ function createHttpBridge(): Window['electron'] {
         syncRun: (sourcePath, pickedCandidates) => post<SyncRunResult>('/sync/run', { sourcePath, pickedCandidates }),
 
         backupCheckTarget: () => Promise.resolve(null),
+        backupPreview: () =>
+            Promise.resolve({
+                minScore: 0.5,
+                candidateCount: 0,
+                plannedCount: 0,
+                manifestCount: 0,
+                pruneStaleFiles: false,
+                pruneDroppedForSpace: false,
+                wouldDeleteFiles: 0,
+                wouldDeleteDroppedForSpace: 0,
+                prebuildProtectedCount: 0,
+                requiresConfirm: false,
+                manifestPrunedCount: 0,
+            }),
         backupRun: () =>
             Promise.resolve({
                 copied: 0,
@@ -403,7 +417,10 @@ function createHttpBridge(): Window['electron'] {
                 deduplicated: 0,
                 errors: ['Not available in browser mode'],
                 staleRemoved: 0,
+                manifestPruned: 0,
+                prebuildProtected: 0,
                 droppedForSpace: 0,
+                warnings: undefined,
             }),
         onBackupTargetSelected: noop,
         onBackupProgress: noop,
