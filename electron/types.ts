@@ -208,8 +208,8 @@ export interface AppConfig {
         /** Destination root where synced photos are stored (e.g. "D:\\Photos"). */
         destinationRoot?: string;
     };
-    /** @deprecated Backup thresholds are now computed dynamically (see backupSpace.ts). */
-    backup?: Record<string, unknown>;
+    /** @deprecated Legacy open record; use BackupSettings for typed keys. */
+    backup?: BackupSettings & Record<string, unknown>;
     [key: string]: unknown;
 }
 
@@ -282,6 +282,39 @@ export interface BackupManifest {
     images: BackupManifestEntry[];
 }
 
+export interface BackupSettings {
+    minScore?: number;
+    diversityLambda?: number;
+    maxPerCluster?: number;
+    crossDayDedup?: boolean;
+    pairBatchSize?: number;
+    pruneStaleFiles?: boolean;
+    pruneDroppedForSpace?: boolean;
+}
+
+export interface BackupPreviewInfo {
+    minScore: number;
+    candidateCount: number;
+    plannedCount: number;
+    manifestCount: number;
+    pruneStaleFiles: boolean;
+    pruneDroppedForSpace: boolean;
+    /** Files that would be deleted when pruneStaleFiles is enabled. */
+    wouldDeleteFiles: number;
+    /** Destination copies that would be deleted for insufficient space (pruneDroppedForSpace). */
+    wouldDeleteDroppedForSpace: number;
+    /** Prebuild manifest rows (id 0) protected from deletion unless confirmed. */
+    prebuildProtectedCount: number;
+    requiresConfirm: boolean;
+    manifestPrunedCount: number;
+}
+
+export interface BackupRunOptions {
+    targetPath: string;
+    /** Required when prune would delete > threshold files. */
+    confirmMassDelete?: boolean;
+}
+
 export interface ScoredImageForBackup {
     id: number;
     path: string;
@@ -304,10 +337,16 @@ export interface BackupResult {
     skipped: number;
     deduplicated: number;
     errors: string[];
-    /** Files deleted from the backup because they are no longer in the current selection. */
+    /** Files deleted from disk because they are no longer in the selection (pruneStaleFiles). */
     staleRemoved: number;
-    /** Candidates removed so the highest-scored copies fit in free space (see rotation in `backupSpace.ts`). */
+    /** Manifest rows removed that are not in the current plan. */
+    manifestPruned: number;
+    /** Prebuild (id 0) entries kept on disk despite being stale. */
+    prebuildProtected: number;
+    /** Candidates not copied/deleted on disk when over budget (see pruneDroppedForSpace). */
     droppedForSpace: number;
+    /** Non-fatal issues (e.g. similarity query failures). */
+    warnings?: string[];
 }
 
 // -- Pipeline phase types --

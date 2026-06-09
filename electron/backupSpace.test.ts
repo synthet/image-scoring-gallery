@@ -1,12 +1,25 @@
 import path from 'path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
     BACKUP_BUFFER_FRACTION,
+    analyzeStaleManifestEntries,
+    pruneStaleManifestEntries,
+    syncStaleBackupEntries,
     selectPlanProportional,
     xmpSidecarPath,
     type BackupPlannedItem,
 } from './backupSpace';
-import type { ScoredImageForBackup } from './types';
+import type { BackupManifest, ScoredImageForBackup } from './types';
+
+vi.mock('fs', () => ({
+    default: {
+        promises: {
+            unlink: vi.fn().mockResolvedValue(undefined),
+        },
+    },
+}));
+
+import fs from 'fs';
 
 function img(id: number, score: number): ScoredImageForBackup {
     return {
@@ -186,5 +199,82 @@ describe('selectPlanProportional', () => {
         const { selected, droppedRelPaths } = selectPlanProportional(items, 50_000, 100_000);
         expect(selected).toHaveLength(3);
         expect(droppedRelPaths).toEqual([]);
+    });
+});
+
+// ── stale manifest / prune safety ───────────────────────────
+
+function manifest(...entries: Array<{ id: number; relPath: string }>): BackupManifest {
+    return {
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        images: entries.map((e) => ({
+            id: e.id,
+            relPath: e.relPath,
+            score: 0.8,
+            size: 1000,
+            hash: '',
+        })),
+    };
+}
+
+describe('pruneStaleManifestEntries', () => {
+    it('removes manifest rows not in the plan without touching disk', () => {
+        const m = manifest({ id: 1, relPath: 'a/1.jpg' }, { id: 2, relPath: 'a/2.jpg' });
+        const pruned = pruneStaleManifestEntries(m, new Set(['a/1.jpg']));
+        expect(pruned).toBe(1);
+        expect(m.images).toHaveLength(1);
+        expect(m.images[0].relPath).toBe('a/1.jpg');
+    });
+});
+
+describe('analyzeStaleManifestEntries', () => {
+    it('protects prebuild entries (id 0) from deletion unless allowed', () => {
+        const m = manifest({ id: 0, relPath: 'old/a.jpg' }, { id: 5, relPath: 'old/b.jpg' });
+        const stats = analyzeStaleManifestEntries(m, new Set(['new/c.jpg']), { allowPrebuildDelete: false });
+        expect(stats.staleManifestCount).toBe(2);
+        expect(stats.wouldDeleteFiles).toBe(1);
+        expect(stats.prebuildProtectedCount).toBe(1);
+    });
+
+    it('counts prebuild entries as deletable when allowPrebuildDelete is true', () => {
+        const m = manifest({ id: 0, relPath: 'old/a.jpg' });
+        const stats = analyzeStaleManifestEntries(m, new Set([]), { allowPrebuildDelete: true });
+        expect(stats.wouldDeleteFiles).toBe(1);
+        expect(stats.prebuildProtectedCount).toBe(0);
+    });
+});
+
+describe('syncStaleBackupEntries', () => {
+    beforeEach(() => {
+        vi.mocked(fs.promises.unlink).mockClear();
+    });
+
+    it('does not unlink files when pruneFiles is false', async () => {
+        const m = manifest({ id: 5, relPath: 'old/b.jpg' });
+        const result = await syncStaleBackupEntries('/target', m, new Set([]), false, false);
+        expect(result.filesRemoved).toBe(0);
+        expect(result.manifestPruned).toBe(1);
+        expect(fs.promises.unlink).not.toHaveBeenCalled();
+    });
+
+    it('unlinks scored stale files when pruneFiles is true', async () => {
+        const m = manifest({ id: 5, relPath: 'old/b.jpg' });
+        const result = await syncStaleBackupEntries('/target', m, new Set([]), true, false);
+        expect(result.filesRemoved).toBe(1);
+        expect(fs.promises.unlink).toHaveBeenCalled();
+    });
+
+    it('does not unlink prebuild entries unless confirmMassDelete', async () => {
+        const m = manifest({ id: 0, relPath: 'old/a.jpg' }, { id: 5, relPath: 'old/b.jpg' });
+        const result = await syncStaleBackupEntries('/target', m, new Set([]), true, false);
+        expect(result.filesRemoved).toBe(1);
+        expect(result.prebuildProtectedCount).toBe(1);
+    });
+
+    it('unlinks prebuild entries when prune and confirmMassDelete', async () => {
+        const m = manifest({ id: 0, relPath: 'old/a.jpg' });
+        const result = await syncStaleBackupEntries('/target', m, new Set([]), true, true);
+        expect(result.filesRemoved).toBe(1);
+        expect(result.prebuildProtectedCount).toBe(0);
     });
 });
