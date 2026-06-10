@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { FilterState } from '../components/Sidebar/FilterPanel';
 import { bridge } from '../bridge';
+import { toImageQueryFilters } from '../utils/keywordFilters';
 
 interface ImageRow {
   id: number;
@@ -67,7 +68,7 @@ export function useStacksMode(
     setStackImagesLoading(true);
     try {
       // Stack drill-down intentionally shows the full root stack; stacks can span folders.
-      const options = { ...filters };
+      const options = toImageQueryFilters(filters);
       const imgs = await bridge.getImagesByStack(stackId, options);
       setStackImages(imgs);
     } catch (err) {
@@ -83,7 +84,7 @@ export function useStacksMode(
   const loadSubStackImages = useCallback(async (subStackId: number) => {
     setSubStackImagesLoading(true);
     try {
-      const imgs = await bridge.getImagesBySubStack(subStackId, { ...filters });
+      const imgs = await bridge.getImagesBySubStack(subStackId, toImageQueryFilters(filters));
       setSubStackImages(imgs);
     } catch (err) {
       console.error('Failed to load sub-stack images', err);
@@ -98,7 +99,7 @@ export function useStacksMode(
   const loadUngroupedSubStackImages = useCallback(async (stackId: number) => {
     setSubStackImagesLoading(true);
     try {
-      const imgs = await bridge.getImagesByStackUngrouped(stackId, { ...filters });
+      const imgs = await bridge.getImagesByStackUngrouped(stackId, toImageQueryFilters(filters));
       setSubStackImages(imgs);
     } catch (err) {
       console.error('Failed to load ungrouped stack images', err);
@@ -125,7 +126,7 @@ export function useStacksMode(
     setSubStacks([]);
     setStackImages([]);
     try {
-      const subs = await bridge.getSubstacksForStack(stackId, { ...filters });
+      const subs = await bridge.getSubstacksForStack(stackId, toImageQueryFilters(filters));
       if (subs.length === 0 || isSingleSubStackEquivalentToStack(subs, stackId)) {
         setSubStacks([]);
         await loadStackImages(stackId);

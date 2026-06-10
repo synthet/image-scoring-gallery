@@ -368,7 +368,7 @@ function createHttpBridge(): Window['electron'] {
             return {
                 os: { platform: 'browser', release: '', arch: '', uptime: 0 },
                 versions: { electron: 'N/A (browser)', node: 'N/A', chrome: navigator.userAgent, v8: 'N/A' },
-                database: { engine: 'firebird', connected: true, host: window.location.hostname, database: 'via server' },
+                database: { engine: 'postgres', connected: true, host: window.location.hostname, database: 'via server' },
                 api: { url: apiCfg.url, connected: apiConnected },
                 memory: null,
             };
@@ -378,10 +378,6 @@ function createHttpBridge(): Window['electron'] {
 
         // Event listeners are Electron menu/dialog-driven; no-ops in browser mode.
         onOpenSettings: noop,
-        onOpenDuplicates: noop,
-        // Deprecated: "Runs" view/menu removed; retained as a no-op for compatibility.
-        onOpenRuns: noop,
-        onOpenEmbeddings: noop,
         onOpenDiagnostics: noop,
         onOpenSearch: noop,
         onImportFolderSelected: noop,
@@ -401,6 +397,7 @@ function createHttpBridge(): Window['electron'] {
                 minScore: 0.5,
                 candidateCount: 0,
                 plannedCount: 0,
+                plannedComputed: false,
                 manifestCount: 0,
                 pruneStaleFiles: false,
                 pruneDroppedForSpace: false,

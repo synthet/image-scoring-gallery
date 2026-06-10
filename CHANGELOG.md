@@ -4,6 +4,21 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.16.0] - 2026-06-09
+
+### Added
+
+- **Birds species sub-filter**: When the keyword filter is `birds`, a second dropdown filters by `species:*` keywords (`src/utils/keywordFilters.ts` with tests); the effective keyword flows through grid queries, stacks mode, text search, and persisted browser state. The BioCLIP `birds:species-exhausted` marker is hidden from keyword lists.
+- **Nikon lens quad parsing**: `parseNikonLensQuad` / `formatFocalToken` in `electron/lensFolderName.ts` produce canonical lens folder names aligned with backend `modules/lens_folder_name.py`.
+
+### Changed
+
+- **Backup selection is gallery-only**: The backup pipeline computes its plan locally (batch image details via `getImageDetailsBatch`, bundled folder/stack endpoint) instead of calling the removed backend `/api/backup/plan`; plan API types dropped from `electron/apiTypes.ts`.
+
+### Fixed
+
+- **Backup safety**: Prevent mass-deletion during prune, fix null-stack selection, and write the manifest atomically; deduplicate progress events during plan build.
+
 ## [7.15.0] - 2026-06-07
 
 ### Added

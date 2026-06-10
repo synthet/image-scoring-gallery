@@ -31,7 +31,7 @@ Primary implementation: `runSyncFromSource` in `electron/main.ts`.
 ## File selection and layout
 
 - **Extensions:** Only **`.nef`** files are collected from the source tree (`SYNC_EXTENSIONS`). Other RAW types are ignored unless the code is extended.
-- **Destination relative path:** `camera / lens / year / shoot-date / filename`, with camera and lens derived from EXIF (see `normalizeCameraModel`, `normalizeLensFolderName`).
+- **Destination relative path:** `camera / lens / year / shoot-date / filename`, with camera and lens derived from EXIF (see `normalizeCameraModel`, `normalizeLensFolderName`). Lens folders use short `…mm` tokens; Nikon numeric quads (`35 35 1.8 1.8`) normalize to `35mm`. See [backup-feature.md](../../architecture/backup-feature.md) § Lens folder naming.
 
 ## Preview vs full sync
 

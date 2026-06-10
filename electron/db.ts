@@ -2263,6 +2263,15 @@ export async function getAllScoredImagesForBackup(minScore = 0): Promise<ScoredI
     return rows;
 }
 
+/** Cheap candidate count (no joins/dedup) for the backup pre-flight fast path. */
+export async function countScoredImagesForBackup(minScore = 0): Promise<number> {
+    const rows = await query<{ c: number }>(
+        `SELECT COUNT(*) AS c FROM images WHERE score_general >= ?`,
+        [minScore],
+    );
+    return Number(rows[0]?.c ?? 0);
+}
+
 export type BackupLayoutDetail = {
     id: number;
     exif_model: string | null;

@@ -4,21 +4,18 @@ Canonical specification for the **Backup** feature in **image-scoring-gallery** 
 
 ## Overview
 
-Backup exports high-quality originals from the indexed gallery database to a user-chosen folder (often an external drive). It applies **score filtering**, **stack pre-filter**, **embedding similarity dedup** with **MMR multi-keep** per cluster, optional **cross-day dedup**, and **MMR-aware disk budgeting**. Selection runs **locally in Electron**; when the Python backend is reachable, **`POST /api/backup/plan`** may supply the candidate set (gallery falls back to local logic on failure).
+Backup exports high-quality originals from the indexed gallery database to a user-chosen folder (often an external drive). It applies **score filtering**, **stack pre-filter**, **embedding similarity dedup** with **MMR multi-keep** per cluster, optional **cross-day dedup**, and **MMR-aware disk budgeting**. Selection runs **entirely locally in Electron** — it is the single source of truth (the former backend `/api/backup/plan` endpoint was removed to avoid two implementations drifting).
 
 **Default behavior is additive:** existing files on the destination are kept unless **`pruneStaleFiles`** or **`pruneDroppedForSpace`** are explicitly enabled in config.
 
 ```mermaid
 flowchart LR
   query[query_scored_images]
-  backendPlan[optional_backend_plan]
   dedup[local_dedup_by_day]
   layout[plan_camera_lens_paths]
   space[selectPlanProportional_MMR]
   copy[copy_and_manifest]
-  query --> backendPlan
-  backendPlan -->|fallback| dedup
-  backendPlan --> layout
+  query --> dedup
   dedup --> layout
   layout --> space --> copy
 ```
@@ -48,9 +45,7 @@ Use **`minScore: 0.7`** for a curated export; **`0` or `0.5`** for broader archi
 1. Load `manifest.json` (or empty).
 2. Query **`getAllScoredImagesForBackup(minScore)`** — includes `capture_date`, `stack_id`.
 3. Estimate disk pressure → dynamic similarity threshold + effective `maxPerCluster`.
-4. **Selection** (one of):
-   - **Backend:** `POST /api/backup/plan` when API health check passes.
-   - **Local:** [`deduplicateByDateGroups`](../../electron/backupSelection.ts) — stack pre-filter (top 2 per stack), batched pair queries, BFS clusters, MMR multi-keep; optional `applyCrossDayDedup`.
+4. **Selection** — [`deduplicateByDateGroups`](../../electron/backupSelection.ts): stack pre-filter (top 2 per real stack; unstacked images kept as singletons), batched pair queries, BFS clusters, MMR multi-keep; optional `applyCrossDayDedup`.
 5. Batch **`getImageDetailsBatch`** + **`getEmbeddingsBatch`** for layout and space MMR.
 6. Plan paths `camera/lens/year/date/basename`; skip unresolved `_unknown_camera` / `_unknown_lens`.
 7. **`syncStaleBackupEntries`** — remove manifest rows not in the current plan; **unlink files only when `pruneStaleFiles: true`**. Prebuild entries (`id: 0`) are never unlinked unless the user confirms a mass delete.
@@ -73,7 +68,7 @@ Use **`minScore: 0.7`** for a curated export; **`0` or `0.5`** for broader archi
 
 Mass delete confirmation is required when **either** stale file deletes **or** space-dropped on-disk deletes exceed **100** files or **10%** of the manifest (`requiresStaleDeleteConfirmation`). The pre-flight (`BackupPreviewInfo`) reports both `wouldDeleteFiles` and `wouldDeleteDroppedForSpace`.
 
-> **Selection note:** images with `stack_id = NULL` are distinct photos the culling phase did not group; the per-date stack pre-filter keeps each as its own singleton and never trims them against one another (only real shared `stack_id` groups are capped at the top 2). Mirrored in backend `_stack_prefilter`.
+> **Selection note:** images with `stack_id = NULL` are distinct photos the culling phase did not group; the per-date stack pre-filter keeps each as its own singleton and never trims them against one another (only real shared `stack_id` groups are capped at the top 2).
 
 Audit tool: [`scripts/audit-backup-manifest-diff.mjs`](../../scripts/audit-backup-manifest-diff.mjs).
 
@@ -103,15 +98,9 @@ Audit tool: [`scripts/audit-backup-manifest-diff.mjs`](../../scripts/audit-backu
 | `backup:progress` | `BackupProgress` |
 | `backup:check-target` | manifest summary |
 
-**`BackupPreviewInfo`:** `minScore`, `candidateCount`, `plannedCount`, `manifestCount`, `wouldDeleteFiles`, `requiresConfirm`, etc.
+**`BackupPreviewInfo`:** `minScore`, `candidateCount`, `plannedCount`, `plannedComputed`, `manifestCount`, `wouldDeleteFiles`, `wouldDeleteDroppedForSpace`, `requiresConfirm`, etc. With additive defaults the pre-flight uses a **fast path** (`plannedComputed: false`) that only counts candidates; the exact plan is computed at run time. The full plan is built in preview only when a prune flag is enabled (for accurate delete counts).
 
 **`BackupResult`:** `copied`, `skipped`, `deduplicated`, `errors`, `staleRemoved`, `manifestPruned`, `prebuildProtected`, `droppedForSpace`, optional **`warnings`**.
-
----
-
-## Backend API (optional)
-
-**`POST /api/backup/plan`** — [`modules/backup_plan.py`](https://github.com/synthet/image-scoring-backend/blob/main/modules/backup_plan.py) in sibling **image-scoring-backend**. Same selection semantics; gallery uses local modules when API is down.
 
 ---
 
@@ -125,7 +114,33 @@ Audit tool: [`scripts/audit-backup-manifest-diff.mjs`](../../scripts/audit-backu
 | `electron/backupDiversity.ts` | MMR selection |
 | `electron/backupSpace.ts` | Disk budget, stale manifest sync, optional file prune |
 | `electron/db.ts` | Queries, embeddings batch |
+| `electron/lensFolderName.ts` | Canonical lens folder segment (`…mm`; Nikon quad parsing) |
 | `src/components/Backup/BackupModal.tsx` | UI + pre-flight + mass-delete confirm |
+
+---
+
+## Lens folder naming
+
+Backup and Sync layout uses **`camera / lens / year / date / filename`**. The **lens** segment is a short focal-length token:
+
+| EXIF `lens_model` example | Folder segment |
+|---------------------------|----------------|
+| `NIKKOR 35mm f/1.8` | `35mm` |
+| `28-105mm f/3.5-4.5` | `28-105mm` |
+| `35 35 1.8 1.8` (Nikon D-era numeric quad) | `35mm` |
+| `28 105 3.5 4.5` | `28-105mm` |
+
+Parsed by [`electron/lensFolderName.ts`](../../electron/lensFolderName.ts) (`normalizeLensFolderName`). Python parity: [`modules/lens_folder_name.py`](https://github.com/synthet/image-scoring-backend/blob/main/modules/lens_folder_name.py).
+
+Aperture is **not** part of the folder name — two 50mm primes (`f/1.4` and `f/1.8`) both use `50mm`.
+
+**Legacy trees** with duplicate numeric folders (e.g. `D90/35 35 1.8 1.8/` alongside `D90/35mm/`): merge with sibling backend script (dry-run first):
+
+```bash
+python scripts/maintenance/merge_numeric_lens_folders.py --root "H:/Photos" --dry-run
+```
+
+Rewrites `manifest.json` `relPath` prefixes when a manifest is present at the backup root.
 
 ---
 
@@ -135,4 +150,3 @@ Audit tool: [`scripts/audit-backup-manifest-diff.mjs`](../../scripts/audit-backu
 - `electron/backupSelection.test.ts`
 - `electron/backupDiversity.test.ts`
 - `electron/backupSpace.test.ts` (includes prune safety regression tests)
-- Backend: `tests/test_backup_plan.py`

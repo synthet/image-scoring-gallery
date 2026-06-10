@@ -141,9 +141,6 @@ declare global {
             getDiagnostics: () => Promise<DiagnosticsReport>;
             getProcessMemoryInfo: () => Promise<ProcessMemorySnapshot | null>;
             onOpenSettings: (callback: () => void) => () => void;
-            onOpenDuplicates: (callback: () => void) => () => void;
-            onOpenRuns: (callback: () => void) => () => void;
-            onOpenEmbeddings: (callback: () => void) => () => void;
             onOpenDiagnostics: (callback: () => void) => () => void;
             onOpenSearch: (callback: () => void) => () => void;
             onImportFolderSelected: (callback: (folderPath: string) => void) => () => void;

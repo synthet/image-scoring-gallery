@@ -20,7 +20,6 @@ import type {
     TagPropagationRequest,
     ClusteringStartRequest,
     FindDuplicatesRequest,
-    BackupPlanRequest,
     SimilarSearchParams,
     SimilarSearchResult,
     TextSearchParams,
@@ -282,10 +281,6 @@ export class ApiService {
 
     findDuplicates(opts?: FindDuplicatesRequest) {
         return this.post<ApiResponse>('/api/similarity/duplicates', opts ?? {}, LONG_TIMEOUT);
-    }
-
-    fetchBackupPlan(opts?: BackupPlanRequest) {
-        return this.post<ApiResponse>('/api/backup/plan', opts ?? {}, LONG_TIMEOUT);
     }
 
     searchSimilar(opts: SimilarSearchParams) {

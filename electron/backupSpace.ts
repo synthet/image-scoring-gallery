@@ -172,22 +172,6 @@ export async function syncStaleBackupEntries(
     };
 }
 
-/** @deprecated Use syncStaleBackupEntries — kept for tests migrating off delete-by-default behavior. */
-export async function removeStaleBackupFiles(
-    targetPath: string,
-    manifest: BackupManifest,
-    desiredRelPaths: Set<string>,
-): Promise<number> {
-    const { filesRemoved } = await syncStaleBackupEntries(
-        targetPath,
-        manifest,
-        desiredRelPaths,
-        true,
-        true,
-    );
-    return filesRemoved;
-}
-
 export type SelectPlanOptions = {
     /** When set and < 1, global backfill uses MMR instead of pure score. */
     diversityLambda?: number;

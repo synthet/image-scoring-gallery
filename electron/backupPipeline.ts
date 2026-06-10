@@ -37,14 +37,6 @@ export type BackupPlanBuildOptions = {
     normalizeLensFolderName: (lens?: string | null) => string;
     isUnresolvedSyncLayout: (camera: string, lens: string) => boolean;
     toWindowsLocalFsPath: (p: string) => string;
-    fetchBackupPlanFromApi?: (
-        roughFillRatio: number,
-        maxPerCluster: number,
-    ) => Promise<{
-        imageIds: Set<number>;
-        deduplicatedCount: number;
-        warnings: string[];
-    } | null>;
     /** Progress callback for the (potentially long) embedding-dedup pass. */
     onDedupProgress?: (current: number, total: number, detail: string) => void;
 };
@@ -59,7 +51,6 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         normalizeLensFolderName,
         isUnresolvedSyncLayout,
         toWindowsLocalFsPath,
-        fetchBackupPlanFromApi,
         onDedupProgress,
     } = options;
 
@@ -82,61 +73,49 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         groups.get(date)!.push(img);
     }
 
-    let toBackup: ScoredImageForBackup[] = [];
-    let rejectedCount = 0;
+    const dedupDeps = {
+        fetchPairs: (ids: number[], threshold: number) => db.getSimilarPairsInGroup(ids, threshold),
+        fetchEmbeddings: (ids: number[]) => db.getEmbeddingsBatch(ids),
+    };
 
-    const apiPlan = fetchBackupPlanFromApi
-        ? await fetchBackupPlanFromApi(roughFillRatio, maxPerCluster)
-        : null;
-    if (apiPlan) {
-        toBackup = allScored.filter((img) => apiPlan.imageIds.has(img.id));
-        rejectedCount = apiPlan.deduplicatedCount;
-        warnings.push(...apiPlan.warnings);
-    } else {
-        const dedupDeps = {
-            fetchPairs: (ids: number[], threshold: number) => db.getSimilarPairsInGroup(ids, threshold),
-            fetchEmbeddings: (ids: number[]) => db.getEmbeddingsBatch(ids),
-        };
+    const dedupResult = await deduplicateByDateGroups(
+        groups,
+        roughFillRatio,
+        maxPerCluster,
+        backupConfig.diversityLambda,
+        backupConfig.pairBatchSize,
+        dedupDeps,
+        onDedupProgress,
+    );
+    warnings.push(...dedupResult.warnings);
 
-        const dedupResult = await deduplicateByDateGroups(
-            groups,
-            roughFillRatio,
+    let selectedImages = dedupResult.selectedIds;
+    let rejectedCount = dedupResult.rejectedCount;
+    let toBackup = allScored.filter((img) => selectedImages.has(img.id));
+
+    if (backupConfig.crossDayDedup && toBackup.length > 1) {
+        const layoutDetailsCross = await db.getImageDetailsBatch(toBackup.map((img) => img.id));
+        const layoutById = new Map<number, { camera: string; lens: string }>();
+        for (const img of toBackup) {
+            const details = layoutDetailsCross.get(img.id);
+            layoutById.set(img.id, {
+                camera: normalizeCameraModel(details?.exif_model),
+                lens: normalizeLensFolderName(details?.exif_lens_model),
+            });
+        }
+
+        const crossResult = await applyCrossDayDedup(
+            toBackup,
+            layoutById,
             maxPerCluster,
             backupConfig.diversityLambda,
             backupConfig.pairBatchSize,
             dedupDeps,
-            onDedupProgress,
         );
-        warnings.push(...dedupResult.warnings);
-
-        let selectedImages = dedupResult.selectedIds;
-        rejectedCount = dedupResult.rejectedCount;
-        toBackup = allScored.filter((img) => selectedImages.has(img.id));
-
-        if (backupConfig.crossDayDedup && toBackup.length > 1) {
-            const layoutDetailsCross = await db.getImageDetailsBatch(toBackup.map((img) => img.id));
-            const layoutById = new Map<number, { camera: string; lens: string }>();
-            for (const img of toBackup) {
-                const details = layoutDetailsCross.get(img.id);
-                layoutById.set(img.id, {
-                    camera: normalizeCameraModel(details?.exif_model),
-                    lens: normalizeLensFolderName(details?.exif_lens_model),
-                });
-            }
-
-            const crossResult = await applyCrossDayDedup(
-                toBackup,
-                layoutById,
-                maxPerCluster,
-                backupConfig.diversityLambda,
-                backupConfig.pairBatchSize,
-                dedupDeps,
-            );
-            warnings.push(...crossResult.warnings);
-            selectedImages = crossResult.selectedIds;
-            rejectedCount += crossResult.rejectedCount;
-            toBackup = toBackup.filter((img) => selectedImages.has(img.id));
-        }
+        warnings.push(...crossResult.warnings);
+        selectedImages = crossResult.selectedIds;
+        rejectedCount += crossResult.rejectedCount;
+        toBackup = toBackup.filter((img) => selectedImages.has(img.id));
     }
 
     const layoutDetails = await db.getImageDetailsBatch(toBackup.map((img) => img.id));
