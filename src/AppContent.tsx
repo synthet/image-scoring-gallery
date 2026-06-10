@@ -35,6 +35,12 @@ import {
   readGalleryBrowserSnapshot,
   writeGalleryBrowserSnapshot,
 } from './utils/galleryBrowserPersistence';
+import {
+  formatSpeciesLabel,
+  getEffectiveKeyword,
+  partitionKeywords,
+  toImageQueryFilters,
+} from './utils/keywordFilters';
 
 function AppContent() {
   const [filters, setFilters] = useState<FilterState>({ minRating: 0, sortBy: 'capture_date', order: 'DESC' });
@@ -80,6 +86,20 @@ function AppContent() {
 
   const { folders, loading: foldersLoading, refresh: refreshFolders } = useFolders();
   const { keywords, loading: keywordsLoading, fetch: fetchKeywords } = useKeywords();
+  const { speciesKeywords, generalKeywords } = useMemo(
+    () => partitionKeywords(keywords),
+    [keywords],
+  );
+
+  const keywordSelectStyle = {
+    background: '#333',
+    color: '#eee',
+    border: '1px solid #555',
+    padding: '6px',
+    borderRadius: 4,
+    width: '100%',
+    cursor: 'pointer',
+  } as const;
 
   const {
     isSettingsOpen, setIsSettingsOpen,
@@ -121,15 +141,8 @@ function AppContent() {
   });
 
   const queryFilters = useMemo(
-    () => ({
-      minRating: filters.minRating,
-      colorLabel: filters.colorLabel,
-      keyword: filters.keyword,
-      sortBy: filters.sortBy,
-      order: filters.order,
-      capturedDate: filters.capturedDate,
-    }),
-    [filters.minRating, filters.colorLabel, filters.keyword, filters.sortBy, filters.order, filters.capturedDate],
+    () => toImageQueryFilters(filters),
+    [filters],
   );
 
   const imageFilters = useMemo(
@@ -348,7 +361,7 @@ function AppContent() {
     () =>
       filters.minRating > 0
       || Boolean(filters.colorLabel)
-      || Boolean(filters.keyword?.trim())
+      || Boolean(getEffectiveKeyword(filters)?.trim())
       || Boolean(filters.capturedDate),
     [filters],
   );
@@ -589,16 +602,38 @@ function AppContent() {
                 aria-label={isSearchOpen ? 'Also require keyword' : 'Filter by keyword'}
                 title={isSearchOpen ? 'AND filter: results must also have this keyword' : undefined}
                 value={filters.keyword || ''}
-                onChange={(e) => setFilters({ ...filters, keyword: e.target.value || undefined })}
+                onChange={(e) => {
+                  const keyword = e.target.value || undefined;
+                  setFilters({ ...filters, keyword, speciesKeyword: undefined });
+                }}
                 onFocus={fetchKeywords}
-                style={{ background: '#333', color: '#eee', border: '1px solid #555', padding: '6px', borderRadius: 4, width: '100%', cursor: 'pointer' }}
+                style={keywordSelectStyle}
                 disabled={keywordsLoading}
               >
                 <option value="">{isSearchOpen ? 'Any keyword' : 'All Keywords'}</option>
-                {keywords.map((kw) => (
+                {generalKeywords.map((kw) => (
                   <option key={kw} value={kw}>{kw}</option>
                 ))}
               </select>
+
+              {filters.keyword === 'birds' && (
+                <select
+                  aria-label="Filter by species"
+                  value={filters.speciesKeyword || ''}
+                  onChange={(e) => setFilters({
+                    ...filters,
+                    speciesKeyword: e.target.value || undefined,
+                  })}
+                  onFocus={fetchKeywords}
+                  style={keywordSelectStyle}
+                  disabled={keywordsLoading}
+                >
+                  <option value="">All species</option>
+                  {speciesKeywords.map((kw) => (
+                    <option key={kw} value={kw}>{formatSpeciesLabel(kw)}</option>
+                  ))}
+                </select>
+              )}
 
               <select
                 aria-label={isSearchOpen ? 'Then sort by' : 'Sort by'}

@@ -15,6 +15,7 @@ import { useSemanticTextSearch } from '../../hooks/useSemanticTextSearch';
 import type { SearchResultNavItem } from '../../hooks/useImageOpener';
 import type { FilterState } from '../Sidebar/FilterPanel';
 import { buildTextSearchParams } from '../../utils/textSearchParams';
+import { getEffectiveKeyword } from '../../utils/keywordFilters';
 import { GalleryThumbnail } from '../Gallery/GalleryThumbnail';
 import { SearchProgressOverlay } from './SearchProgressOverlay';
 import styles from './SearchPage.module.css';
@@ -133,7 +134,8 @@ function ActiveFilterChips({
     if (scopeLabel) chips.push(`Scope: ${scopeLabel}`);
     if (filters.minRating > 0) chips.push(`Rating ≥ ${filters.minRating}`);
     if (filters.colorLabel) chips.push(`Label: ${filters.colorLabel}`);
-    if (filters.keyword?.trim()) chips.push(`Keyword: ${filters.keyword.trim()}`);
+    const effectiveKeyword = getEffectiveKeyword(filters);
+    if (effectiveKeyword?.trim()) chips.push(`Keyword: ${effectiveKeyword.trim()}`);
     if (filters.capturedDate?.trim()) chips.push(`Date: ${filters.capturedDate.trim()}`);
     if (filters.sortBy && filters.sortBy !== 'score_general') {
         chips.push(`Then: ${filters.sortBy} ${filters.order ?? 'DESC'}`);
@@ -240,6 +242,7 @@ export function SearchPage({
                 minRating: filters.minRating,
                 colorLabel: filters.colorLabel,
                 keyword: filters.keyword,
+                speciesKeyword: filters.speciesKeyword,
                 capturedDate: filters.capturedDate,
                 sortBy: filters.sortBy,
                 order: filters.order,

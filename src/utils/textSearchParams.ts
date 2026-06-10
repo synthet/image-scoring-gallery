@@ -1,5 +1,6 @@
 import type { TextSearchParams } from '../../electron/apiTypes';
 import type { FilterState } from '../components/Sidebar/FilterPanel';
+import { getEffectiveKeyword } from './keywordFilters';
 
 const TEXT_SEARCH_SORT_ALLOWLIST = new Set([
     'capture_date',
@@ -31,7 +32,7 @@ export function buildTextSearchParams(
         min_similarity: options.min_similarity,
         min_rating: filters.minRating > 0 ? filters.minRating : undefined,
         color_label: filters.colorLabel,
-        keyword: filters.keyword?.trim() || undefined,
+        keyword: getEffectiveKeyword(filters)?.trim() || undefined,
         captured_date: filters.capturedDate?.trim() || undefined,
     };
 

@@ -1226,39 +1226,33 @@ async function startFullApplication(): Promise<void> {
         return { freeBytes, capacityBytes };
     }
 
-    async function fetchBackendBackupPlan(
-        backupConfig: ReturnType<typeof loadBackupConfig>,
-        roughFillRatio: number,
-        maxPerCluster: number,
-    ) {
-        if (!(await apiService.isAvailable())) return null;
-        try {
-            const planRes = await apiService.fetchBackupPlan({
-                min_score: backupConfig.minScore,
-                diversity_lambda: backupConfig.diversityLambda,
-                max_per_cluster: maxPerCluster,
-                rough_fill_ratio: roughFillRatio,
-                pair_batch_size: backupConfig.pairBatchSize,
-            });
-            const planData = planRes.data as import('./apiTypes').BackupPlanData | undefined;
-            if (!planRes.success || !planData?.items?.length) {
-                return null;
-            }
-            return {
-                imageIds: new Set(planData.items.map((item) => item.image_id)),
-                deduplicatedCount: planData.deduplicated_count ?? 0,
-                warnings: planData.warnings ?? [],
-            };
-        } catch {
-            return null;
-        }
-    }
 
     async function computeBackupPreview(targetPath: string): Promise<BackupPreviewInfo> {
         const appConfig = loadAppConfig(getConfigPath(__dirname));
         const backupConfig = loadBackupConfig(appConfig.backup as Record<string, unknown> | undefined);
         const { manifest } = await loadBackupManifest(targetPath);
         const { freeBytes, capacityBytes } = await resolveBackupVolumeStats(targetPath);
+
+        // Fast path: with additive defaults (no pruning) the pre-flight needs no deletion
+        // accounting, so skip the expensive embedding-dedup plan build entirely. The exact
+        // selection is computed during the run, which reports progress. This keeps the modal
+        // responsive instead of blocking on a full pgvector dedup pass.
+        if (!backupConfig.pruneStaleFiles && !backupConfig.pruneDroppedForSpace) {
+            return {
+                minScore: backupConfig.minScore,
+                candidateCount: await db.countScoredImagesForBackup(backupConfig.minScore),
+                plannedCount: 0,
+                plannedComputed: false,
+                manifestCount: manifest.images.length,
+                pruneStaleFiles: false,
+                pruneDroppedForSpace: false,
+                wouldDeleteFiles: 0,
+                wouldDeleteDroppedForSpace: 0,
+                prebuildProtectedCount: 0,
+                requiresConfirm: false,
+                manifestPrunedCount: 0,
+            };
+        }
 
         const planBuild = await buildBackupPlan({
             targetPath,
@@ -1269,8 +1263,6 @@ async function startFullApplication(): Promise<void> {
             normalizeLensFolderName,
             isUnresolvedSyncLayout,
             toWindowsLocalFsPath,
-            fetchBackupPlanFromApi: (roughFillRatio, maxPerCluster) =>
-                fetchBackendBackupPlan(backupConfig, roughFillRatio, maxPerCluster),
         });
 
         const desiredRelPaths = new Set(planBuild.planned.map((p) => p.relPath));
@@ -1303,6 +1295,7 @@ async function startFullApplication(): Promise<void> {
             minScore: backupConfig.minScore,
             candidateCount: planBuild.allScored.length,
             plannedCount: planBuild.planned.length,
+            plannedComputed: true,
             manifestCount: manifest.images.length,
             pruneStaleFiles: backupConfig.pruneStaleFiles,
             pruneDroppedForSpace: backupConfig.pruneDroppedForSpace,
@@ -1412,8 +1405,6 @@ async function startFullApplication(): Promise<void> {
                     normalizeLensFolderName,
                     isUnresolvedSyncLayout,
                     toWindowsLocalFsPath,
-                    fetchBackupPlanFromApi: (roughFillRatio, maxPerCluster) =>
-                        fetchBackendBackupPlan(backupConfig, roughFillRatio, maxPerCluster),
                     onDedupProgress: (current, total, detail) =>
                         sendProgress({ phase: 'deduplicating', current, total, detail }),
                 });

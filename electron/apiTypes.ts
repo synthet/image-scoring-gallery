@@ -107,29 +107,6 @@ export interface FindDuplicatesRequest {
     limit?: number | null;
 }
 
-// ── Backup plan ─────────────────────────────────────────────────────────────
-
-export interface BackupPlanRequest {
-    min_score?: number;
-    diversity_lambda?: number;
-    max_per_cluster?: number;
-    folder_path?: string | null;
-    rough_fill_ratio?: number;
-    pair_batch_size?: number;
-}
-
-export interface BackupPlanItem {
-    image_id: number;
-    score: number;
-    reason: string;
-}
-
-export interface BackupPlanData {
-    items: BackupPlanItem[];
-    deduplicated_count: number;
-    warnings: string[];
-}
-
 // ── Similar Images ──────────────────────────────────────────────────────────
 
 export interface SimilarSearchParams {

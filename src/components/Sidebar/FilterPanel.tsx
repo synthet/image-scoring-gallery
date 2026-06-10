@@ -1,11 +1,14 @@
 import React from 'react';
 import styles from './FilterPanel.module.css';
 import { CalendarPicker } from './CalendarPicker';
+import { getEffectiveKeyword } from '../../utils/keywordFilters';
 
 export interface FilterState {
     minRating: number;
     colorLabel?: string;
     keyword?: string;
+    /** UI-only: second-level species filter when keyword is `birds`. */
+    speciesKeyword?: string;
     sortBy?: string;
     order?: 'ASC' | 'DESC';
     capturedDate?: string;
@@ -18,6 +21,7 @@ interface FilterPanelProps {
 }
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange, folderId }) => {
+    const effectiveKeyword = getEffectiveKeyword(filters);
 
     const handleRatingChange = (r: number) => {
         onChange({ ...filters, minRating: r });
@@ -85,7 +89,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange, fol
                     folderId={folderId}
                     minRating={filters.minRating}
                     colorLabel={filters.colorLabel}
-                    keyword={filters.keyword}
+                    keyword={effectiveKeyword}
                 />
             </div>
         </div>

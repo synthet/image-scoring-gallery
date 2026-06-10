@@ -197,7 +197,7 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                             <div style={{ fontWeight: 600, marginBottom: 8, color: '#ddd' }}>Pre-flight</div>
                             <div>Min score: <strong>{preview.minScore}</strong></div>
                             <div>Scored candidates: <strong>{preview.candidateCount.toLocaleString()}</strong></div>
-                            <div>Planned for this run: <strong>{preview.plannedCount.toLocaleString()}</strong></div>
+                            <div>Planned for this run: <strong>{preview.plannedComputed ? preview.plannedCount.toLocaleString() : 'computed during backup'}</strong></div>
                             <div>Manifest entries: <strong>{preview.manifestCount.toLocaleString()}</strong></div>
                             {!preview.pruneStaleFiles && preview.manifestPrunedCount > 0 && (
                                 <div style={{ color: '#888', marginTop: 4 }}>

@@ -296,6 +296,8 @@ export interface BackupPreviewInfo {
     minScore: number;
     candidateCount: number;
     plannedCount: number;
+    /** False when the exact plan was deferred to run time (additive fast path). */
+    plannedComputed: boolean;
     manifestCount: number;
     pruneStaleFiles: boolean;
     pruneDroppedForSpace: boolean;

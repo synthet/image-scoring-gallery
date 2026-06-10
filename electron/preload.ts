@@ -246,28 +246,6 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.removeListener('open-settings', handler);
         };
     },
-    onOpenDuplicates: (callback: () => void) => {
-        const handler = () => callback();
-        ipcRenderer.on('open-duplicates', handler);
-        return () => {
-            ipcRenderer.removeListener('open-duplicates', handler);
-        };
-    },
-    onOpenRuns: (callback: () => void) => {
-        // Deprecated: "Runs" navigation has been removed from the UI/menu.
-        // Keep this shim for backward compatibility with existing renderer callers.
-        void callback;
-        return () => {
-            // no-op cleanup
-        };
-    },
-    onOpenEmbeddings: (callback: () => void) => {
-        const handler = () => callback();
-        ipcRenderer.on('open-embeddings', handler);
-        return () => {
-            ipcRenderer.removeListener('open-embeddings', handler);
-        };
-    },
     onOpenDiagnostics: (callback: () => void) => {
         const handler = () => callback();
         ipcRenderer.on('open-diagnostics', handler);

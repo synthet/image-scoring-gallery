@@ -10,7 +10,7 @@ export type GalleryBrowserPersistedState = {
   stacksMode: boolean;
   activeStackId: number | null;
   activeSubStackId: number | null;
-  currentView: 'gallery' | 'duplicates' | 'embeddings';
+  currentView: 'gallery';
   filters: FilterState;
   smartCoverEnabled: boolean;
 };
@@ -37,10 +37,8 @@ export function folderIdExistsInTree(folders: Folder[], id: number): boolean {
   return walk(folders);
 }
 
-function coerceView(v: unknown): 'gallery' | 'duplicates' | 'embeddings' | null {
+function coerceView(v: unknown): 'gallery' | null {
   if (v === 'gallery') return 'gallery';
-  // Unfinished Tools views are disabled; never restore them from session storage.
-  if (v === 'duplicates' || v === 'embeddings') return 'gallery';
   return null;
 }
 
@@ -52,6 +50,7 @@ function coerceFilters(raw: unknown): FilterState {
     minRating: typeof o.minRating === 'number' && o.minRating >= 0 && o.minRating <= 5 ? o.minRating : DEFAULT_FILTERS.minRating,
     colorLabel: typeof o.colorLabel === 'string' ? o.colorLabel : undefined,
     keyword: typeof o.keyword === 'string' ? o.keyword : undefined,
+    speciesKeyword: typeof o.speciesKeyword === 'string' ? o.speciesKeyword : undefined,
     sortBy: typeof o.sortBy === 'string' ? o.sortBy : DEFAULT_FILTERS.sortBy,
     order,
     capturedDate: typeof o.capturedDate === 'string' ? o.capturedDate : undefined,
