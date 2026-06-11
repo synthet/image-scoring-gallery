@@ -158,6 +158,9 @@ export interface SearchPageProps {
     folderIds?: number[];
     includeSubfolders: boolean;
     filters: FilterState;
+    /** When set (e.g. from Keywords), pre-fills the query and runs search once. */
+    initialQuery?: string;
+    onInitialQueryApplied?: () => void;
     onOpenImage: (imageId: number, searchResults: SearchResultNavItem[]) => void;
 }
 
@@ -166,6 +169,8 @@ export function SearchPage({
     folderIds,
     includeSubfolders,
     filters,
+    initialQuery,
+    onInitialQueryApplied,
     onOpenImage,
 }: SearchPageProps) {
     const folderPath = folderIds?.length ? undefined : currentFolder?.path;
@@ -236,6 +241,24 @@ export function SearchPage({
         inputRef.current?.focus();
     }, []);
 
+    useEffect(() => {
+        const q = initialQuery?.trim();
+        if (!q) return;
+        setQueryText(q);
+        setHasSearched(true);
+        void search(
+            buildTextSearchParams(
+                q,
+                { folderPath, folderIds },
+                filters,
+                { limit, min_similarity: minSim },
+            ),
+        );
+        onInitialQueryApplied?.();
+        // Apply launch query once when navigating from Keywords (or similar).
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialQuery]);
+
     const filterKey = useMemo(
         () =>
             JSON.stringify({
@@ -291,12 +314,15 @@ export function SearchPage({
         inputRef.current?.focus();
     }, [cancel]);
 
-    const results = data?.results ?? [];
+    const results = useMemo(
+        () => data?.results ?? [],
+        [data?.results],
+    );
     const [thumbnailPaths, setThumbnailPaths] = useState<Record<number, string>>({});
 
     useEffect(() => {
         if (!results.length) {
-            setThumbnailPaths({});
+            setThumbnailPaths((prev) => (Object.keys(prev).length === 0 ? prev : {}));
             return;
         }
         let cancelled = false;

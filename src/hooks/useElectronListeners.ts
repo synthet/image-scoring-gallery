@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { bridge } from '../bridge';
 
+export type ToolView = null | 'search' | 'keywords';
+
 /**
  * Registers Electron IPC menu listeners and exposes the modal/view state they control.
  *
@@ -12,13 +14,14 @@ export function useElectronListeners() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [toolView, setToolView] = useState<ToolView>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importFolderPath, setImportFolderPath] = useState('');
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [syncSourcePath, setSyncSourcePath] = useState('');
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [backupTargetPath, setBackupTargetPath] = useState('');
+
   useEffect(() => {
     const cleanupSettings = bridge.onOpenSettings(() => {
       setIsSettingsOpen(true);
@@ -29,7 +32,11 @@ export function useElectronListeners() {
     });
 
     const cleanupSearch = bridge.onOpenSearch(() => {
-      setIsSearchOpen(true);
+      setToolView('search');
+    });
+
+    const cleanupKeywords = bridge.onOpenKeywords(() => {
+      setToolView('keywords');
     });
 
     const cleanupImport = bridge.onImportFolderSelected((path) => {
@@ -55,6 +62,7 @@ export function useElectronListeners() {
       cleanupSettings();
       cleanupDiagnostics();
       cleanupSearch();
+      cleanupKeywords();
       cleanupImport();
       cleanupSync();
       cleanupBackup();
@@ -62,13 +70,25 @@ export function useElectronListeners() {
     };
   }, [addNotification]);
 
+  const isSearchOpen = toolView === 'search';
+  const isKeywordsOpen = toolView === 'keywords';
+  const isToolViewOpen = toolView !== null;
+
+  const setIsSearchOpen = (open: boolean) => {
+    setToolView(open ? 'search' : null);
+  };
+
   return {
     isSettingsOpen,
     setIsSettingsOpen,
     isDiagnosticsOpen,
     setIsDiagnosticsOpen,
+    toolView,
+    setToolView,
     isSearchOpen,
     setIsSearchOpen,
+    isKeywordsOpen,
+    isToolViewOpen,
     isImportModalOpen,
     setIsImportModalOpen,
     importFolderPath,

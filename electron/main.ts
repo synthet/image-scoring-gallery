@@ -665,6 +665,15 @@ const rebuildApplicationMenu = () => {
                     },
                 },
                 {
+                    label: 'Keywords',
+                    enabled: !folderMode,
+                    click: () => {
+                        if (mainWindow) {
+                            mainWindow.webContents.send('open-keywords');
+                        }
+                    },
+                },
+                {
                     label: 'Scoring...',
                     enabled: !folderMode,
                     click: () => {
@@ -1030,6 +1039,14 @@ async function startFullApplication(): Promise<void> {
 
     ipcMain.handle('db:get-keywords', wrapIpcHandler(async () => {
         return await db.getKeywords();
+    }));
+
+    ipcMain.handle('db:get-keyword-cloud', wrapIpcHandler(async (_, options: {
+        kind: 'general' | 'species';
+        limit?: number;
+        folderId?: number;
+    }) => {
+        return await db.getKeywordCloud(options);
     }));
 
     ipcMain.handle('api:similarity:find-duplicates', wrapIpcHandler(async (_, options) => {

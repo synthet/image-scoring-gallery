@@ -11,10 +11,17 @@ export interface ImageQueryOptions {
     minRating?: number;
     colorLabel?: string;
     keyword?: string;
+    keywordExact?: boolean;
     sortBy?: string;
     order?: 'ASC' | 'DESC';
     smartCover?: boolean;
     capturedDate?: string;
+}
+
+export interface KeywordCloudEntry {
+    keyword_norm: string;
+    keyword_display: string;
+    count: number;
 }
 
 export interface ImageRow {

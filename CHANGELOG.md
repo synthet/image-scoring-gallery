@@ -4,6 +4,17 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.17.0] - 2026-06-10
+
+### Added
+
+- **Keywords Hub**: Tool view with general and species tag clouds (`KeywordsHubPage`, `TagCloud`), keyword drill-down grid, and optional folder scope.
+- **`getKeywordCloud` IPC**: Main-process query over `keywords_dim` / `image_keywords` with preload, web dev route, and Vitest coverage.
+
+### Changed
+
+- **Semantic search**: Search page passes the effective keyword filter (including birds species sub-filter) into text search params.
+
 ## [7.16.0] - 2026-06-09
 
 ### Added

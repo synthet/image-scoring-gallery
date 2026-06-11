@@ -139,12 +139,11 @@ export function useImageOpener({
 
   const viewerImages = useMemo(() => getViewerList(), [getViewerList]);
 
-  const openImageFromSearch = useCallback(async (
+  const openImageFromList = useCallback(async (
     id: number,
-    results: SearchResultNavItem[],
+    list: ImageRow[],
   ): Promise<boolean> => {
-    const navList = searchResultsToImageRows(results);
-    const idx = navList.findIndex((img) => img.id === id);
+    const idx = list.findIndex((img) => img.id === id);
     if (idx < 0) {
       return openImageById(id);
     }
@@ -156,17 +155,25 @@ export function useImageOpener({
         return false;
       }
 
-      setViewerListOverride(navList);
+      setViewerListOverride(list);
       setPendingOpenImageId(null);
       setCurrentImageIndex(idx);
-      setOpeningImage({ ...navList[idx], ...details } as ImageRow);
+      setOpeningImage({ ...list[idx], ...details } as ImageRow);
       return true;
     } catch (err) {
-      console.error('Failed to open search result:', err);
+      console.error('Failed to open image from list:', err);
       addNotification('Failed to open image', 'error');
       return false;
     }
-  }, [searchResultsToImageRows, openImageById, addNotification]);
+  }, [openImageById, addNotification]);
+
+  const openImageFromSearch = useCallback(async (
+    id: number,
+    results: SearchResultNavItem[],
+  ): Promise<boolean> => {
+    const navList = searchResultsToImageRows(results);
+    return openImageFromList(id, navList);
+  }, [searchResultsToImageRows, openImageFromList]);
 
   useEffect(() => {
     if (!pendingOpenImageId || viewerListOverride) return;
@@ -206,6 +213,7 @@ export function useImageOpener({
     handleNavigateImage,
     openImageById,
     openImageFromSearch,
+    openImageFromList,
     handleImageDelete,
     closeViewer,
   };

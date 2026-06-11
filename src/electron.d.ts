@@ -43,6 +43,7 @@ import type {
     ImageQueryOptions,
     ImageRow,
     ImageUpdates,
+    KeywordCloudEntry,
     SubStackRow,
 
     SyncCandidate,
@@ -71,6 +72,7 @@ export type {
     ImageQueryOptions,
     ImageRow,
     ImageUpdates,
+    KeywordCloudEntry,
     SubStackRow,
     SyncCandidate,
     SyncPreviewResult,
@@ -98,6 +100,11 @@ declare global {
             }) => Promise<string[]>;
             getFolders: () => Promise<FolderRow[]>;
             getKeywords: () => Promise<string[]>;
+            getKeywordCloud: (options: {
+                kind: 'general' | 'species';
+                limit?: number;
+                folderId?: number;
+            }) => Promise<KeywordCloudEntry[]>;
             findNearDuplicates: (options?: { threshold?: number; folder_path?: string; limit?: number }) => Promise<DuplicateResponse>;
             searchSimilarImages: (options: { imageId: number; limit?: number; folderId?: number; folderPath?: string; minSimilarity?: number }) => Promise<{ query_image_id: number; results: Array<Record<string, unknown>>; count: number; error?: string }>;
             searchByText: (options: import('../electron/apiTypes').TextSearchParams) => Promise<TextSearchResponse>;
@@ -143,6 +150,7 @@ declare global {
             onOpenSettings: (callback: () => void) => () => void;
             onOpenDiagnostics: (callback: () => void) => () => void;
             onOpenSearch: (callback: () => void) => () => void;
+            onOpenKeywords: (callback: () => void) => () => void;
             onImportFolderSelected: (callback: (folderPath: string) => void) => () => void;
             importRun: (folderPath: string) => Promise<{
                 added: number;
