@@ -107,6 +107,14 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('db:get-keywords');
         return unwrapEnvelope<string[]>(response);
     },
+    getKeywordCloud: async (options: {
+        kind: 'general' | 'species';
+        limit?: number;
+        folderId?: number;
+    }) => {
+        const response = await ipcRenderer.invoke('db:get-keyword-cloud', options);
+        return unwrapEnvelope<import('./types').KeywordCloudEntry[]>(response);
+    },
     findNearDuplicates: async (options?: { threshold?: number; folder_path?: string; limit?: number }) => {
         // Find duplicates doesn't use standard DB envelope
         return await ipcRenderer.invoke('api:similarity:find-duplicates', options) as DuplicateResponse;
@@ -258,6 +266,13 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.on('open-search', handler);
         return () => {
             ipcRenderer.removeListener('open-search', handler);
+        };
+    },
+    onOpenKeywords: (callback: () => void) => {
+        const handler = () => callback();
+        ipcRenderer.on('open-keywords', handler);
+        return () => {
+            ipcRenderer.removeListener('open-keywords', handler);
         };
     },
     onImportFolderSelected: (callback: (folderPath: string) => void) => {

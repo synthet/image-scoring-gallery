@@ -13,6 +13,7 @@ interface ImageQueryOptions {
     minRating?: number;
     colorLabel?: string;
     keyword?: string;
+    keywordExact?: boolean;
     sortBy?: string;
     order?: 'ASC' | 'DESC';
     smartCover?: boolean;

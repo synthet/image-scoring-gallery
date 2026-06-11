@@ -230,6 +230,8 @@ function createHttpBridge(): Window['electron'] {
 
         getKeywords: () => get('/db/keywords'),
 
+        getKeywordCloud: (options) => get('/db/keyword-cloud', options as Record<string, unknown>),
+
         findNearDuplicates: (options?) => post('/db/near-duplicates', options ?? {}),
 
         searchSimilarImages: (options) => post('/db/similar', options),
@@ -380,6 +382,7 @@ function createHttpBridge(): Window['electron'] {
         onOpenSettings: noop,
         onOpenDiagnostics: noop,
         onOpenSearch: noop,
+        onOpenKeywords: noop,
         onImportFolderSelected: noop,
         onImportProgress: noop,
         onShowNotification: noop,
@@ -487,6 +490,7 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
     getImages: () => Promise.resolve([]),
     getFolders: () => Promise.resolve([]),
     getKeywords: () => Promise.resolve([]),
+    getKeywordCloud: () => Promise.resolve([]),
     getStacks: () => Promise.resolve([]),
     getStackCount: () => Promise.resolve(0),
     getImagesByStack: () => Promise.resolve([]),

@@ -169,6 +169,20 @@ export function createServerApp(deps: ServerDeps) {
         } catch (e) { fail(res, e); }
     }));
 
+    router.get('/db/keyword-cloud', wrap(async (req, res) => {
+        try {
+            const kind = req.query.kind === 'species' ? 'species' : 'general';
+            const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
+            const folderId = req.query.folderId !== undefined ? Number(req.query.folderId) : undefined;
+            const result = await dbModule.getKeywordCloud({
+                kind,
+                limit: Number.isFinite(limit) ? limit : undefined,
+                folderId: Number.isFinite(folderId) ? folderId : undefined,
+            });
+            ok(res, result);
+        } catch (e) { fail(res, e); }
+    }));
+
     router.get('/scoring/sort-options', wrap(async (_req, res) => {
         try {
             const result = await resolveSortOptions(apiService, galleryProjectRoot);

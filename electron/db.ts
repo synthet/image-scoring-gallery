@@ -302,13 +302,42 @@ function pushFolderFilter(
     }
 }
 
+function pushKeywordFilter(
+    whereParts: string[],
+    params: (string | number | null)[],
+    keyword: string | undefined,
+    imageIdRef: string,
+    keywordExact?: boolean,
+) {
+    if (!keyword) return;
+
+    if (keywordExact) {
+        whereParts.push(`EXISTS (
+            SELECT 1 FROM image_keywords ik
+            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
+            WHERE ik.image_id = ${imageIdRef}
+            AND LOWER(kd.keyword_norm) = LOWER(?)
+        )`);
+        params.push(keyword);
+        return;
+    }
+
+    whereParts.push(`EXISTS (
+        SELECT 1 FROM image_keywords ik
+        JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
+        WHERE ik.image_id = ${imageIdRef}
+        AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
+    )`);
+    params.push(`%${keyword}%`, `%${keyword}%`);
+}
+
 function pushImageAttributeFilters(
     whereParts: string[],
     params: (string | number | null)[],
-    options: Pick<ImageQueryOptions, 'minRating' | 'colorLabel' | 'keyword' | 'capturedDate'>,
+    options: Pick<ImageQueryOptions, 'minRating' | 'colorLabel' | 'keyword' | 'keywordExact' | 'capturedDate'>,
     imageAlias = 'i',
 ) {
-    const { minRating, colorLabel, keyword, capturedDate } = options;
+    const { minRating, colorLabel, keyword, keywordExact, capturedDate } = options;
 
     if (minRating !== undefined && minRating > 0) {
         whereParts.push(`${imageAlias}.rating >= ?`);
@@ -320,15 +349,7 @@ function pushImageAttributeFilters(
         params.push(colorLabel);
     }
 
-    if (keyword) {
-        whereParts.push(`EXISTS (
-            SELECT 1 FROM image_keywords ik
-            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
-            WHERE ik.image_id = ${imageAlias}.id
-            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
-        )`);
-        params.push(`%${keyword}%`, `%${keyword}%`);
-    }
+    pushKeywordFilter(whereParts, params, keyword, `${imageAlias}.id`, keywordExact);
 
     if (capturedDate) {
         whereParts.push(`${castDate(CAPTURE_TS)} = ?`);
@@ -337,7 +358,7 @@ function pushImageAttributeFilters(
 }
 
 export async function getImageCount(options: ImageQueryOptions = {}): Promise<number> {
-    const { folderId, folderIds, minRating, colorLabel, keyword, capturedDate } = options;
+    const { folderId, folderIds, minRating, colorLabel, keyword, keywordExact, capturedDate } = options;
     const params: (string | number | null)[] = [];
     const whereParts: string[] = [];
 
@@ -353,15 +374,7 @@ export async function getImageCount(options: ImageQueryOptions = {}): Promise<nu
         params.push(colorLabel);
     }
 
-    if (keyword) {
-        whereParts.push(`EXISTS (
-            SELECT 1 FROM image_keywords ik
-            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
-            WHERE ik.image_id = images.id
-            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
-        )`);
-        params.push(`%${keyword}%`, `%${keyword}%`);
-    }
+    pushKeywordFilter(whereParts, params, keyword, 'images.id', keywordExact);
 
     if (capturedDate) {
         whereParts.push(`EXISTS (
@@ -388,6 +401,7 @@ export interface ImageQueryOptions {
     minRating?: number;
     colorLabel?: string;
     keyword?: string;
+    keywordExact?: boolean;
     sortBy?: string;
     order?: 'ASC' | 'DESC';
     smartCover?: boolean;
@@ -403,6 +417,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
         minRating,
         colorLabel,
         keyword,
+        keywordExact,
         sortBy = 'score_general',
         order = 'DESC',
         capturedDate
@@ -422,15 +437,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
         params.push(colorLabel);
     }
 
-    if (keyword) {
-        whereParts.push(`EXISTS (
-            SELECT 1 FROM image_keywords ik
-            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
-            WHERE ik.image_id = i.id
-            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
-        )`);
-        params.push(`%${keyword}%`, `%${keyword}%`);
-    }
+    pushKeywordFilter(whereParts, params, keyword, 'i.id', keywordExact);
 
     if (capturedDate) {
         whereParts.push(`${castDate(CAPTURE_TS)} = ?`);
@@ -508,6 +515,65 @@ export async function getKeywords(): Promise<string[]> {
         return result;
     } catch (e) {
         console.error('[DB] getKeywords failed:', e);
+        return [];
+    }
+}
+
+export interface KeywordCloudEntry {
+    keyword_norm: string;
+    keyword_display: string;
+    count: number;
+}
+
+const SPECIES_PREFIX = 'species:';
+
+export async function getKeywordCloud(options: {
+    kind: 'general' | 'species';
+    limit?: number;
+    folderId?: number;
+}): Promise<KeywordCloudEntry[]> {
+    const { kind, limit = 200, folderId } = options;
+    const isSpecies = kind === 'species';
+    const speciesPred = isSpecies ? 'kd.keyword_norm LIKE ?' : 'kd.keyword_norm NOT LIKE ?';
+    const speciesArg = `${SPECIES_PREFIX}%`;
+
+    const whereParts: string[] = [speciesPred];
+    const params: (string | number | null)[] = [speciesArg];
+
+    let joinImages = '';
+    if (folderId) {
+        joinImages = 'JOIN images i ON ik.image_id = i.id';
+        whereParts.push('i.folder_id = ?');
+        params.push(folderId);
+    }
+
+    const whereSql = whereParts.join(' AND ');
+    const safeLimit = Math.max(1, Math.min(limit, 1000));
+
+    const sql = `
+        SELECT kd.keyword_norm, kd.keyword_display,
+               COUNT(DISTINCT ik.image_id) AS count
+        FROM keywords_dim kd
+        JOIN image_keywords ik ON kd.keyword_id = ik.keyword_id
+        ${joinImages}
+        WHERE ${whereSql}
+        GROUP BY kd.keyword_id, kd.keyword_norm, kd.keyword_display
+        ORDER BY count DESC
+        LIMIT ?
+    `;
+
+    try {
+        const rows = await query<{ keyword_norm: string; keyword_display: string; count: number }>(
+            sql,
+            [...params, safeLimit],
+        );
+        return rows.map((r) => ({
+            keyword_norm: r.keyword_norm,
+            keyword_display: r.keyword_display,
+            count: Number(r.count) || 0,
+        }));
+    } catch (e) {
+        console.error('[DB] getKeywordCloud failed:', e);
         return [];
     }
 }
@@ -1428,7 +1494,7 @@ export async function rebuildStackCache(context: { smartCover?: boolean } = {}):
 }
 
 export async function getStacks(options: StackQueryOptions = {}): Promise<unknown[]> {
-    const { limit = 50, offset = 0, folderId, folderIds, minRating, colorLabel, keyword, sortBy = 'score_general', order = 'DESC', capturedDate } = options;
+    const { limit = 50, offset = 0, folderId, folderIds, minRating, colorLabel, keyword, keywordExact, sortBy = 'score_general', order = 'DESC', capturedDate } = options;
     // `options.smartCover` is forwarded from the UI for future representative/cover selection; not used in SQL yet.
 
     await ensureStackCacheTable();
@@ -1467,23 +1533,23 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
     }
 
     if (keyword) {
-        // Filter stacks where at least one member image has this keyword
+        const kwPred = keywordExact
+            ? 'LOWER(kd.keyword_norm) = LOWER(?)'
+            : '(LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))';
         wherePartsCache.push(`EXISTS (
             SELECT 1 FROM images ci
             JOIN image_keywords ik ON ik.image_id = ci.id
             JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
             WHERE ci.stack_id = sc.stack_id
-            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
+            AND ${kwPred}
         )`);
-        topParams.push(`%${keyword}%`, `%${keyword}%`);
+        if (keywordExact) {
+            topParams.push(keyword);
+        } else {
+            topParams.push(`%${keyword}%`, `%${keyword}%`);
+        }
 
-        wherePartsNonStack.push(`EXISTS (
-            SELECT 1 FROM image_keywords ik
-            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
-            WHERE ik.image_id = i.id
-            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
-        )`);
-        botParams.push(`%${keyword}%`, `%${keyword}%`);
+        pushKeywordFilter(wherePartsNonStack, botParams, keyword, 'i.id', keywordExact);
     }
 
     if (capturedDate) {
@@ -1594,7 +1660,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
 }
 
 export async function getImagesByStack(stackId: number | null, options: ImageQueryOptions = {}): Promise<unknown[]> {
-    const { limit = 200, offset = 0, folderId, minRating, colorLabel, keyword, sortBy = 'score_general', order = 'DESC', capturedDate } = options;
+    const { limit = 200, offset = 0, folderId, minRating, colorLabel, keyword, keywordExact, sortBy = 'score_general', order = 'DESC', capturedDate } = options;
     const params: (string | number | null)[] = [];
     const whereParts: string[] = [];
 
@@ -1618,15 +1684,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
         params.push(colorLabel);
     }
 
-    if (keyword) {
-        whereParts.push(`EXISTS (
-            SELECT 1 FROM image_keywords ik
-            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
-            WHERE ik.image_id = i.id
-            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
-        )`);
-        params.push(`%${keyword}%`, `%${keyword}%`);
-    }
+    pushKeywordFilter(whereParts, params, keyword, 'i.id', keywordExact);
 
     if (capturedDate) {
         whereParts.push(`${castDate(CAPTURE_TS)} = ?`);
@@ -1776,14 +1834,14 @@ async function queryWithOptionalPickStatus<T>(
 }
 
 export async function getSubstacksForStack(stackId: number, options: ImageQueryOptions = {}): Promise<SubStackRow[]> {
-    const { minRating, colorLabel, keyword, capturedDate } = options;
+    const { minRating, colorLabel, keyword, keywordExact, capturedDate } = options;
     const params: (string | number | null)[] = [stackId];
     const whereParts: string[] = [
         'i.stack_id = ?',
         'i.sub_stack_id IS NOT NULL',
     ];
 
-    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, capturedDate });
+    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, keywordExact, capturedDate });
 
     const filteredWhere = whereParts.join(' AND ');
     const buildSql = (includePickStatus: boolean) => `
@@ -1890,14 +1948,14 @@ export async function getSubstacksForStack(stackId: number, options: ImageQueryO
 }
 
 async function getUngroupedSubStackCardForStack(stackId: number, options: ImageQueryOptions = {}): Promise<SubStackRow | null> {
-    const { minRating, colorLabel, keyword, capturedDate } = options;
+    const { minRating, colorLabel, keyword, keywordExact, capturedDate } = options;
     const params: (string | number | null)[] = [stackId];
     const whereParts: string[] = [
         'i.stack_id = ?',
         'i.sub_stack_id IS NULL',
     ];
 
-    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, capturedDate });
+    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, keywordExact, capturedDate });
 
     const buildSql = (includePickStatus: boolean) => `
         WITH filtered_orphans AS (
@@ -1988,13 +2046,14 @@ export async function getImagesBySubStack(subStackId: number, options: ImageQuer
         minRating,
         colorLabel,
         keyword,
+        keywordExact,
         sortBy = 'score_general',
         order = 'DESC',
         capturedDate,
     } = options;
     const params: (string | number | null)[] = [subStackId];
     const whereParts = ['i.sub_stack_id = ?'];
-    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, capturedDate });
+    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, keywordExact, capturedDate });
     const whereClause = 'WHERE ' + whereParts.join(' AND ');
 
     const sortParts = buildImageSortSql(sortBy);
@@ -2053,13 +2112,14 @@ export async function getImagesByStackUngrouped(stackId: number, options: ImageQ
         minRating,
         colorLabel,
         keyword,
+        keywordExact,
         sortBy = 'score_general',
         order = 'DESC',
         capturedDate,
     } = options;
     const params: (string | number | null)[] = [stackId];
     const whereParts = ['i.stack_id = ?', 'i.sub_stack_id IS NULL'];
-    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, capturedDate });
+    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, keywordExact, capturedDate });
     const whereClause = 'WHERE ' + whereParts.join(' AND ');
 
     const sortParts = buildImageSortSql(sortBy);
@@ -2115,7 +2175,7 @@ export async function getImagesByStackUngrouped(stackId: number, options: ImageQ
 }
 
 export async function getStackCount(options: StackQueryOptions = {}): Promise<number> {
-    const { folderId, folderIds, minRating, colorLabel, keyword, capturedDate } = options;
+    const { folderId, folderIds, minRating, colorLabel, keyword, keywordExact, capturedDate } = options;
     const params: (string | number | null)[] = [];
     const whereParts: string[] = [];
 
@@ -2131,15 +2191,7 @@ export async function getStackCount(options: StackQueryOptions = {}): Promise<nu
         params.push(colorLabel);
     }
 
-    if (keyword) {
-        whereParts.push(`EXISTS (
-            SELECT 1 FROM image_keywords ik
-            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
-            WHERE ik.image_id = i.id
-            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
-        )`);
-        params.push(`%${keyword}%`, `%${keyword}%`);
-    }
+    pushKeywordFilter(whereParts, params, keyword, 'i.id', keywordExact);
 
     if (capturedDate) {
         whereParts.push(`EXISTS (
@@ -2392,8 +2444,9 @@ export async function getDatesWithShots(options: {
     minRating?: number;
     colorLabel?: string;
     keyword?: string;
+    keywordExact?: boolean;
 } = {}): Promise<string[]> {
-    const { folderId, folderIds, minRating, colorLabel, keyword } = options;
+    const { folderId, folderIds, minRating, colorLabel, keyword, keywordExact } = options;
     const params: (string | number | null)[] = [];
     const whereParts: string[] = [];
 
@@ -2409,15 +2462,7 @@ export async function getDatesWithShots(options: {
         params.push(colorLabel);
     }
 
-    if (keyword) {
-        whereParts.push(`EXISTS (
-            SELECT 1 FROM image_keywords ik
-            JOIN keywords_dim kd ON ik.keyword_id = kd.keyword_id
-            WHERE ik.image_id = i.id
-            AND (LOWER(kd.keyword_display) LIKE LOWER(?) OR LOWER(kd.keyword_norm) LIKE LOWER(?))
-        )`);
-        params.push(`%${keyword}%`, `%${keyword}%`);
-    }
+    pushKeywordFilter(whereParts, params, keyword, 'i.id', keywordExact);
 
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
 

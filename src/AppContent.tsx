@@ -16,6 +16,7 @@ import { SyncModal } from './components/Sync/SyncModal';
 import { BackupModal } from './components/Backup/BackupModal';
 import { SimilarSearchDrawer } from './components/Viewer/SimilarSearchDrawer';
 import { SearchPage } from './components/Search/SearchPage';
+import { KeywordsHubPage } from './components/Keywords/KeywordsHubPage';
 import { Loader2, ChevronRight, RefreshCw, PanelLeft } from 'lucide-react';
 import { useOperationStore } from './store/useOperationStore';
 import { bridge } from './bridge';
@@ -104,7 +105,9 @@ function AppContent() {
   const {
     isSettingsOpen, setIsSettingsOpen,
     isDiagnosticsOpen, setIsDiagnosticsOpen,
-    isSearchOpen, setIsSearchOpen,
+    isSearchOpen,
+    toolView, setToolView,
+    isToolViewOpen,
     isImportModalOpen, setIsImportModalOpen,
     importFolderPath, setImportFolderPath,
     isSyncModalOpen, setIsSyncModalOpen,
@@ -116,6 +119,7 @@ function AppContent() {
   const [isSimilarDrawerOpen, setIsSimilarDrawerOpen] = useState(false);
   const [similarSearchImageId, setSimilarSearchImageId] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [pendingSearchQuery, setPendingSearchQuery] = useState<string | undefined>();
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1100px)');
@@ -322,6 +326,7 @@ function AppContent() {
     handleNavigateImage,
     openImageById,
     openImageFromSearch,
+    openImageFromList,
     viewerImages,
     handleImageDelete,
     closeViewer,
@@ -366,9 +371,11 @@ function AppContent() {
     [filters],
   );
 
-  const headerTitle = isSearchOpen
+  const headerTitle = toolView === 'search'
     ? 'Semantic Search'
-    : activeUngroupedSubStack
+    : toolView === 'keywords'
+      ? 'Keywords'
+      : activeUngroupedSubStack
       ? (activeSubStackInfo?.name || 'Ungrouped')
       : activeSubStackId !== null
         ? (activeSubStackInfo?.name || `Sub-stack #${activeSubStackId}`)
@@ -473,32 +480,31 @@ function AppContent() {
 
   const canGalleryNavigateBack = useMemo(
     () =>
-      isSearchOpen
+      isToolViewOpen
         ? true
         : activeSubStackId !== null || activeUngroupedSubStack || activeStackId !== null || selectedFolderId !== undefined,
-    [isSearchOpen, activeSubStackId, activeUngroupedSubStack, activeStackId, selectedFolderId],
+    [isToolViewOpen, activeSubStackId, activeUngroupedSubStack, activeStackId, selectedFolderId],
   );
 
   return (
     <>
       <MainLayout
         sidebarOpen={sidebarOpen}
-        breadcrumbs={isSearchOpen ? null : breadcrumbsNode}
+        breadcrumbs={isToolViewOpen ? null : breadcrumbsNode}
         header={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {!isSearchOpen && (
-              <button
-                type="button"
-                className="sidebarToggle"
-                aria-label="Toggle filters sidebar"
-                title="Toggle filters sidebar"
-                onClick={() => setSidebarOpen((open) => !open)}
-              >
-                <PanelLeft size={16} />
-              </button>
-            )}
+            <button
+              type="button"
+              className="sidebarToggle"
+              aria-label="Toggle filters sidebar"
+              title="Toggle filters sidebar"
+              aria-expanded={sidebarOpen}
+              onClick={() => setSidebarOpen((open) => !open)}
+            >
+              <PanelLeft size={16} />
+            </button>
             <h2 style={{ margin: 0, fontSize: '1.2em' }}>{headerTitle}</h2>
-            {!isSearchOpen && (
+            {!isToolViewOpen && (
             <span style={{ fontSize: '0.9em', color: 'var(--text-secondary)' }}>
               ({currentTotal} {currentTotalLabel})
             </span>
@@ -535,13 +541,13 @@ function AppContent() {
                   type="button"
                   disabled={!canGalleryNavigateBack}
                   onClick={() => {
-                    if (isSearchOpen) {
-                      setIsSearchOpen(false);
+                    if (isToolViewOpen) {
+                      setToolView(null);
                     } else {
                       handleNavigateToParent();
                     }
                   }}
-                  aria-label={isSearchOpen ? 'Back to gallery' : 'Back to previous folder'}
+                  aria-label={isToolViewOpen ? 'Back to gallery' : 'Back to previous folder'}
                   style={{
                     width: '100%',
                     padding: '10px',
@@ -554,12 +560,12 @@ function AppContent() {
                     borderLeft: canGalleryNavigateBack ? '4px solid #fff' : '4px solid #555',
                   }}
                 >
-                  {isSearchOpen ? 'Back to Gallery' : 'Back'}
+                  {isToolViewOpen ? 'Back to Gallery' : 'Back'}
                 </button>
             </div>
 
             <div style={{ padding: '0 0 10px 0', display: 'flex', flexDirection: 'column', gap: 5 }}>
-              {!isSearchOpen && (
+              {!isToolViewOpen && (
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '6px', background: '#333', borderRadius: 4, border: '1px solid #555',
@@ -584,7 +590,7 @@ function AppContent() {
                   padding: '6px', background: '#333', borderRadius: 4, border: '1px solid #555',
                 }}>
                   <span style={{ fontSize: '12px', color: '#ccc' }}>
-                    {isSearchOpen ? 'Include subfolders in search' : 'Show Subfolders'}
+                    {isToolViewOpen ? (toolView === 'keywords' ? 'Include subfolders' : 'Include subfolders in search') : 'Show Subfolders'}
                   </span>
                   <button
                     role="switch"
@@ -598,6 +604,7 @@ function AppContent() {
                 </div>
               )}
 
+              {toolView !== 'keywords' && (
               <select
                 aria-label={isSearchOpen ? 'Also require keyword' : 'Filter by keyword'}
                 title={isSearchOpen ? 'AND filter: results must also have this keyword' : undefined}
@@ -615,8 +622,9 @@ function AppContent() {
                   <option key={kw} value={kw}>{kw}</option>
                 ))}
               </select>
+              )}
 
-              {filters.keyword === 'birds' && (
+              {toolView !== 'keywords' && filters.keyword === 'birds' && (
                 <select
                   aria-label="Filter by species"
                   value={filters.speciesKeyword || ''}
@@ -669,9 +677,11 @@ function AppContent() {
               flexDirection: 'column',
               minHeight: 0,
             }}>
-              {isSearchOpen && (
+              {isToolViewOpen && (
                 <div style={{ fontSize: '11px', color: '#888', marginBottom: 8, lineHeight: 1.4 }}>
-                  Search scope: select a folder below or leave unselected for the whole library.
+                  {toolView === 'keywords'
+                    ? 'Scope: select a folder below or leave unselected for the whole library.'
+                    : 'Search scope: select a folder below or leave unselected for the whole library.'}
                 </div>
               )}
               {foldersLoading ? <div>Loading folders...</div> : (
@@ -682,14 +692,30 @@ function AppContent() {
         }
         content={
           <div style={{ height: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            {isSearchOpen ? (
+            {toolView === 'search' ? (
               <SearchPage
                 currentFolder={currentFolder}
                 folderIds={subfolderIds}
                 includeSubfolders={includeSubfolders}
                 filters={filters}
+                initialQuery={pendingSearchQuery}
+                onInitialQueryApplied={() => setPendingSearchQuery(undefined)}
                 onOpenImage={(id, searchResults) => {
                   void openImageFromSearch(id, searchResults);
+                }}
+              />
+            ) : toolView === 'keywords' ? (
+              <KeywordsHubPage
+                currentFolder={currentFolder}
+                folderIds={subfolderIds}
+                includeSubfolders={includeSubfolders}
+                filters={filters}
+                onOpenImage={(id, images) => {
+                  void openImageFromList(id, images);
+                }}
+                onSemanticSearch={(query) => {
+                  setPendingSearchQuery(query);
+                  setToolView('search');
                 }}
               />
             ) : (

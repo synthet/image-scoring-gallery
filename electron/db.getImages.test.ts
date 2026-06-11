@@ -77,6 +77,15 @@ describe('db.getImages SQL construction', () => {
     expect(params).toEqual(['%birds%', '%birds%', 8, 0]);
   });
 
+  it('uses exact keyword_norm match when keywordExact is true', async () => {
+    await getImages({ keyword: 'species:cardinal', keywordExact: true, limit: 10, offset: 0 });
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain('LOWER(kd.keyword_norm) = LOWER(?)');
+    expect(sql).not.toContain('LOWER(kd.keyword_display) LIKE');
+    expect(params).toEqual(['species:cardinal', 10, 0]);
+  });
+
   it('builds filters and applies explicit pagination params', async () => {
     await getImages({
       folderIds: [2, 7],
