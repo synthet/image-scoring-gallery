@@ -2,6 +2,8 @@
 
 **Source of truth (algorithms, API, DB):** **[image-scoring-backend `docs/features/planned/embeddings/`](https://github.com/synthet/image-scoring-backend/tree/main/docs/plans/embedding)** — start with [`EMBEDDING_APPLICATIONS.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/planned/embeddings/EMBEDDING_APPLICATIONS.md) and [`EMBEDDING_APPLICATIONS_INDEX.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/planned/embeddings/EMBEDDING_APPLICATIONS_INDEX.md). Do not duplicate long backend prose here.
 
+**Which spaces the gallery actually reads:** [technical/EMBEDDING_SPACES.md](../../../technical/EMBEDDING_SPACES.md) — default is `mobilenet_v2_imagenet_gap`; optional culling towers (`dinov2_reg_base_image`, `siglip2_base_image`, `openai_clip_vit_l14_image`, …) are backend opt-in only.
+
 This folder holds **one idea per file** for **Electron / React / IPC / UX** only (what the desktop app wires up). Each page should link back to the matching backend spec.
 
 ---

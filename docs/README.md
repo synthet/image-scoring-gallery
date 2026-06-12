@@ -24,6 +24,7 @@ The backend owns REST API contracts, database schema, and pipeline phase termino
 - [architecture/import-discovery-alignment.md](architecture/import-discovery-alignment.md) - gallery Import vs backend Discovery alignment.
 - [architecture/backup-feature.md](architecture/backup-feature.md) - Backup/import alignment with backend.
 - [technical/PIPELINE_TERMINOLOGY.md](technical/PIPELINE_TERMINOLOGY.md) - local mirror of backend stage labels and renderer constants.
+- [technical/EMBEDDING_SPACES.md](technical/EMBEDDING_SPACES.md) - which backend embedding spaces the gallery reads (default MobileNet vs opt-in culling towers).
 - [design/FRONTEND_UX_SPEC.md](design/FRONTEND_UX_SPEC.md) - frontend visual design and UI specifications.
 - [design/DESIGN_SYSTEM.md](design/DESIGN_SYSTEM.md) - local design system conventions and token mapping.
 
@@ -67,6 +68,7 @@ The backend owns REST API contracts, database schema, and pipeline phase termino
 
 - [reports/README.md](reports/README.md) - reports index.
 - [reports/05-nef-raw-fallback-incident-2026-04-19.md](reports/05-nef-raw-fallback-incident-2026-04-19.md) - NEF incident snapshot.
+- [reports/07-pipeline-input-size-study-2026-05.md](reports/07-pipeline-input-size-study-2026-05.md) - Backend pipeline input-size study; gallery impact (thumbnails, stacks, tags).
 
 ## Activity Log
 

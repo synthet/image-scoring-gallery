@@ -46,7 +46,7 @@ Use **`minScore: 0.7`** for a curated export; **`0` or `0.5`** for broader archi
 2. Query **`getAllScoredImagesForBackup(minScore)`** — includes `capture_date`, `stack_id`.
 3. Estimate disk pressure → dynamic similarity threshold + effective `maxPerCluster`.
 4. **Selection** — [`deduplicateByDateGroups`](../../electron/backupSelection.ts): stack pre-filter (top 2 per real stack; unstacked images kept as singletons), batched pair queries, BFS clusters, MMR multi-keep; optional `applyCrossDayDedup`.
-5. Batch **`getImageDetailsBatch`** + **`getEmbeddingsBatch`** for layout and space MMR.
+5. Batch **`getImageDetailsBatch`** + **`getEmbeddingsBatch`** for layout and space MMR (default space `mobilenet_v2_imagenet_gap` only — see [technical/EMBEDDING_SPACES.md](../technical/EMBEDDING_SPACES.md)).
 6. Plan paths `camera/lens/year/date/basename`; skip unresolved `_unknown_camera` / `_unknown_lens`.
 7. **`syncStaleBackupEntries`** — remove manifest rows not in the current plan; **unlink files only when `pruneStaleFiles: true`**. Prebuild entries (`id: 0`) are never unlinked unless the user confirms a mass delete.
 8. Incremental skip via manifest size match.
