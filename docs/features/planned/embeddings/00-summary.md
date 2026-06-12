@@ -16,5 +16,7 @@ For a detailed breakdown of each feature's UI integration, refer to the [Embeddi
 
 All features rely on the **Python backend** (REST, WebSocket, optional MCP) and **local IPC**; the gallery does not run embedding ML in the renderer. Database access uses PostgreSQL (or `api` SQL mode), not Firebird.
 
+**Embedding space scope:** Local backup/dedup reads **`mobilenet_v2_imagenet_gap`** only. Backend optional culling towers (DINOv2, SigLIP2, OpenAI CLIP L/14, OpenCLIP L/14) are not used by the gallery unless future UI adds multi-space support — see [technical/EMBEDDING_SPACES.md](../../../technical/EMBEDDING_SPACES.md).
+
 ---
 **Next Steps:** See the [Detailed Index](README.md) to explore the technical spec for each individual frontend UI feature.

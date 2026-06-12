@@ -15,7 +15,9 @@ This document analyzes the impact of the proposed [DB_VECTORS_REFACTOR.md](https
 ## Detailed Analysis
 
 ### 1. Multi-Type Vectors (Primary Goal)
-The gallery application does not currently perform its own similarity search or query the `image_embedding` column directly in the Electron main process. Since the refactor plan includes a "dual-read/dual-write" strategy, the gallery remains compatible by default.
+Backup MMR/dedup reads **`image_embeddings`** for the default space `mobilenet_v2_imagenet_gap` via [`electron/db.ts`](../../electron/db.ts) — not optional 768-d culling towers. See [EMBEDDING_SPACES.md](EMBEDDING_SPACES.md) for the full registry and gallery scope.
+
+The gallery does not run general similarity search in-process (that goes through backend REST). Legacy `images.image_embedding` is not queried directly. Multi-space pgvector tables remain backend-owned; gallery stays compatible as long as default-space rows exist for backup.
 
 ### 2. Keywords Normalization (Phase A0)
 The gallery relies on the denormalized `images.keywords` column for filtering in `getImages`, `getStacks`, and `getImagesByStack`.
