@@ -2620,6 +2620,65 @@ async function startFullApplication(): Promise<void> {
         return await apiService.getStackAnalytics(stackId);
     }));
 
+    ipcMain.handle('api:get-agent-cull-groups', wrapIpcHandler(async (_, params?: {
+        stackId?: number;
+        subStackId?: number;
+        status?: string;
+        limit?: number;
+        offset?: number;
+    }) => {
+        return await apiService.getAgentCullGroups(params);
+    }));
+
+    ipcMain.handle('api:get-agent-cull-group', wrapIpcHandler(async (_, groupId: number) => {
+        return await apiService.getAgentCullGroup(groupId);
+    }));
+
+    ipcMain.handle('api:run-agent-cull-review', wrapIpcHandler(async (_, body: {
+        stackId: number;
+        subStackId?: number | null;
+        dryRun?: boolean;
+        force?: boolean;
+        agent?: string;
+    }) => {
+        return await apiService.runAgentCullReview(body);
+    }));
+
+    ipcMain.handle('api:apply-agent-cull-candidates', wrapIpcHandler(async (_, groupId: number, body?: {
+        recommendationIds?: number[];
+        actor?: string;
+        note?: string;
+    }) => {
+        return await apiService.applyAgentCullCandidates(groupId, body);
+    }));
+
+    ipcMain.handle('api:approve-agent-cull-group', wrapIpcHandler(async (_, groupId: number, body?: {
+        recommendationIds?: number[];
+        actor?: string;
+        note?: string;
+    }) => {
+        return await apiService.approveAgentCullGroup(groupId, body);
+    }));
+
+    ipcMain.handle('api:reject-agent-cull-group', wrapIpcHandler(async (_, groupId: number, body?: {
+        recommendationIds?: number[];
+        actor?: string;
+        note?: string;
+    }) => {
+        return await apiService.rejectAgentCullGroup(groupId, body);
+    }));
+
+    ipcMain.handle('api:rollback-agent-cull-recommendation', wrapIpcHandler(async (_, recommendationId: number, body?: {
+        actor?: string;
+        note?: string;
+    }) => {
+        return await apiService.rollbackAgentCullRecommendation(recommendationId, body);
+    }));
+
+    ipcMain.handle('api:update-image-pick-status', wrapIpcHandler(async (_, imageId: number, pickStatus: -1 | 0 | 1) => {
+        return await apiService.updateImagePickStatus(imageId, pickStatus);
+    }));
+
     // Scoring
     ipcMain.handle('api:scoring-start', wrapIpcHandler(async (_, opts) => {
         return await apiService.startScoring(opts);
