@@ -196,6 +196,41 @@ declare global {
                     perStackLimit?: number;
                 }) => Promise<Record<string, unknown>>;
                 getStackAnalytics: (stackId: number) => Promise<Record<string, unknown>>;
+                getAgentCullGroups: (params?: {
+                    stackId?: number;
+                    subStackId?: number;
+                    status?: string;
+                    limit?: number;
+                    offset?: number;
+                }) => Promise<{ groups: Record<string, unknown>[] }>;
+                getAgentCullGroup: (groupId: number) => Promise<Record<string, unknown>>;
+                runAgentCullReview: (body: {
+                    stackId: number;
+                    subStackId?: number | null;
+                    dryRun?: boolean;
+                    force?: boolean;
+                    agent?: string;
+                }) => Promise<Record<string, unknown>>;
+                applyAgentCullCandidates: (groupId: number, body?: {
+                    recommendationIds?: number[];
+                    actor?: string;
+                    note?: string;
+                }) => Promise<Record<string, unknown>>;
+                approveAgentCullGroup: (groupId: number, body?: {
+                    recommendationIds?: number[];
+                    actor?: string;
+                    note?: string;
+                }) => Promise<Record<string, unknown>>;
+                rejectAgentCullGroup: (groupId: number, body?: {
+                    recommendationIds?: number[];
+                    actor?: string;
+                    note?: string;
+                }) => Promise<Record<string, unknown>>;
+                rollbackAgentCullRecommendation: (recommendationId: number, body?: {
+                    actor?: string;
+                    note?: string;
+                }) => Promise<Record<string, unknown>>;
+                updateImagePickStatus: (imageId: number, pickStatus: -1 | 0 | 1) => Promise<Record<string, unknown>>;
 
                 // Scoring
                 startScoring: (opts: BackendScoringStartRequest) => Promise<BackendApiResponse>;
