@@ -60,8 +60,25 @@ describe('GalleryGrid pick/reject status marks', () => {
         expect(screen.getByText('Picked')).toBeTruthy();
     });
 
-    it('does not show status marks in stack image view', () => {
+    it('shows status marks in flat stack image view', () => {
         render(<GalleryGrid images={[pickedImage]} activeStackId={26888} activeSubStackId={null} />);
+
+        expect(screen.getByText('Picked')).toBeTruthy();
+    });
+
+    it('shows Rejected in flat stack image view when pick_status is -1', () => {
+        const rejectedImage = {
+            ...pickedImage,
+            pick_status: -1,
+            label: null,
+        };
+        render(<GalleryGrid images={[rejectedImage]} activeStackId={26888} activeSubStackId={null} />);
+
+        expect(screen.getByText('Rejected')).toBeTruthy();
+    });
+
+    it('does not show status marks in folder image view', () => {
+        render(<GalleryGrid images={[pickedImage]} activeStackId={null} activeSubStackId={null} />);
 
         expect(screen.queryByText('Picked')).toBeNull();
     });

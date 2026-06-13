@@ -49,6 +49,14 @@ describe('db.getKeywordCloud', () => {
     expect(params[params.length - 1]).toBe(5);
   });
 
+  it('excludes birds:species-exhausted system marker', async () => {
+    await getKeywordCloud({ kind: 'general' });
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain('kd.keyword_norm <> ?');
+    expect(params).toContain('birds:species-exhausted');
+  });
+
   it('scopes counts to folder when folderId is provided', async () => {
     await getKeywordCloud({ kind: 'general', folderId: 42 });
 
