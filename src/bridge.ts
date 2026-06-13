@@ -142,7 +142,6 @@ const FOLDER_API_STUB: Window['electron']['api'] = {
         images_today: 0,
         error: 'folder mode',
     }),
-    getCullingAnalytics: async () => ({ scope: 'library', error: 'folder mode' }),
     getStackAnalytics: async () => ({ scope: 'stack', error: 'folder mode' }),
     startScoring: async () => ({ success: false, message: 'folder mode' }),
     stopScoring: async () => ({ success: false, message: 'folder mode' }),
@@ -431,12 +430,6 @@ function createHttpBridge(): Window['electron'] {
             getStatus: () => get('/backend/status'),
             getStats: () => get('/backend/stats'),
             getScoringSortOptions: () => get<Array<{ value: string; label: string; group: string }>>('/scoring/sort-options'),
-            getCullingAnalytics: (params?: { folderPath?: string; folderId?: number; perStackLimit?: number }) =>
-                get<Record<string, unknown>>('/backend/analytics/culling', {
-                    folder_path: params?.folderPath,
-                    folder_id: params?.folderId,
-                    per_stack_limit: params?.perStackLimit,
-                }),
             getStackAnalytics: (stackId: number) =>
                 get<Record<string, unknown>>(`/backend/analytics/stacks/${stackId}`),
 
