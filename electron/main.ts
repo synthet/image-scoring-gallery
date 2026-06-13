@@ -632,7 +632,7 @@ const rebuildApplicationMenu = () => {
                     label: 'Reveal in Explorer',
                     enabled: !!currentSelectionPath || !!currentExportImageContext?.sourcePath,
                     click: () => {
-                        const pathToReveal = currentExportImageContext?.sourcePath || currentSelectionPath;
+                        const pathToReveal = currentSelectionPath || currentExportImageContext?.sourcePath;
                         if (pathToReveal) {
                             shell.showItemInFolder(pathToReveal);
                         }
