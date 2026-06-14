@@ -190,11 +190,6 @@ declare global {
                 getStatus: () => Promise<BackendStatusResponse>;
                 getStats: () => Promise<BackendDatabaseStats>;
                 getScoringSortOptions: () => Promise<Array<{ value: string; label: string; group: string }>>;
-                getCullingAnalytics: (params?: {
-                    folderPath?: string;
-                    folderId?: number;
-                    perStackLimit?: number;
-                }) => Promise<Record<string, unknown>>;
                 getStackAnalytics: (stackId: number) => Promise<Record<string, unknown>>;
 
                 // Scoring
