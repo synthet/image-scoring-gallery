@@ -68,7 +68,7 @@ The backend owns REST API contracts, database schema, and pipeline phase termino
 
 - [reports/README.md](reports/README.md) - reports index.
 - [reports/05-nef-raw-fallback-incident-2026-04-19.md](reports/05-nef-raw-fallback-incident-2026-04-19.md) - NEF incident snapshot.
-- [reports/07-pipeline-input-size-study-2026-05.md](reports/07-pipeline-input-size-study-2026-05.md) - Backend pipeline input-size study; gallery impact (thumbnails, stacks, tags).
+- [reports/07-pipeline-input-size-study-2026-05.md](reports/07-pipeline-input-size-study-2026-05.md) - Backend input-size study; gallery impact; backlog [#138](https://github.com/synthet/image-scoring-gallery/issues/138).
 
 ## Activity Log
 
