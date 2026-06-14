@@ -27,3 +27,4 @@ IPC: `api:get-culling-analytics`, `api:get-stack-analytics` via `electron/apiSer
 ## Related
 
 - Backend **pipeline input-size study** (embedding resolution vs burst grouping): [reports/07-pipeline-input-size-study-2026-05.md](../../reports/07-pipeline-input-size-study-2026-05.md) — stack quality in the gallery depends on backend clustering/embeddings, not renderer pixel budget.
+- Gallery follow-up when policy is signed off: [#138](https://github.com/synthet/image-scoring-gallery/issues/138) (`cross-repo`, Backlog).

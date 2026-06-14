@@ -4,6 +4,24 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.18.0] - 2026-06-14
+
+### Added
+
+- **Agent-assisted cull review panel**: `AgentCullReviewPanel` in Culling Analytics with IPC (`electron/main.ts`, preload, `apiService`), types, and Vitest coverage for backend agent-review API.
+- **Dry-run review from panel**: Run discovery + dry-run apply from the UI; stale-state fingerprint handling and 409 UX when group state changed (#135, #136).
+
+### Changed
+
+- **OpenAPI contract**: Regenerated `api-contract/openapi.json` and `electron/api.generated.ts` for backend agent-review endpoints (#137).
+
+### Fixed
+
+- **Calendar timezone**: `CalendarPicker` uses local date boundaries instead of UTC drift.
+- **Stack analytics banner**: Stack member count chips on culling analytics cards.
+- **Health-check GET**: Bridge uses GET for backend health probe.
+- **Species-exhausted filter**: `birds:species-exhausted` marker hidden from keyword cloud queries.
+
 ## [7.17.0] - 2026-06-10
 
 ### Added

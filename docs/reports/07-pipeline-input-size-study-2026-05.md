@@ -15,6 +15,23 @@
 
 Artifacts: `reports/clip-culling/input-size/` in the backend repo (`native_input_sizes.json`, NPZ caches, `SUMMARY.md`).
 
+## Backlog tracking (GitHub Project)
+
+Study execution is tracked on the [cross-repo Project board](https://github.com/users/synthet/projects/1).
+
+| Repo | Issue | Role | Board stage (2026-06-10) |
+|------|-------|------|--------------------------|
+| Backend | [#260](https://github.com/synthet/image-scoring-backend/issues/260) | Epic — NPZ sweeps + unified pixel policy | Backlog |
+| Backend | [#261](https://github.com/synthet/image-scoring-backend/issues/261) | Phase 1 — PyTorch embed + base IQA | **Ready** |
+| Backend | [#262](https://github.com/synthet/image-scoring-backend/issues/262) | Phase 2 — MUSIQ + TOPIQ/ARNIQA @1024 | Backlog |
+| Backend | [#263](https://github.com/synthet/image-scoring-backend/issues/263) | Phase 3 — keywords + BLIP captions | Backlog |
+| Backend | [#264](https://github.com/synthet/image-scoring-backend/issues/264) | Phase 5 — ViT preprocess override (conditional) | Backlog |
+| Backend | [#265](https://github.com/synthet/image-scoring-backend/issues/265) | Phase 6 — policy sign-off | Backlog |
+| Backend | [#266](https://github.com/synthet/image-scoring-backend/issues/266) | Optional — MobileNet NPZ grid | Backlog |
+| **Gallery** | [**#138**](https://github.com/synthet/image-scoring-gallery/issues/138) | Cross-repo — monitor policy for thumbnail impact | Backlog |
+
+Claim backend work via `/task-claim 261` (or sibling issues). Gallery **#138** activates after backend Phase 6 drafts `UNIFIED_INPUT_POLICY.md`. See [00-backlog-workflow.md](../project/00-backlog-workflow.md).
+
 ## What the study measures
 
 The backend study sweeps **long-edge pixel budget** (thumbnail vs file decode, RAW→JPEG square size, optional ViT preprocess override) across:
@@ -55,6 +72,8 @@ The backend study sweeps **long-edge pixel budget** (thumbnail vs file decode, R
 - [architecture/01-system-overview.md](../architecture/01-system-overview.md) — `media://` thumbnail serving
 - [CANONICAL_SOURCES.md](../CANONICAL_SOURCES.md) — backend authority map
 
-## Status (2026-05-31)
+## Status (2026-06-10)
 
-Backend harness extended (embedding, IQA, tagging, caption tracks); Phase 0 native sizes recorded; full NPZ/eval grid **pending** detached WSL run. Re-check this page when [UNIFIED_INPUT_POLICY_2026-05-31.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/UNIFIED_INPUT_POLICY_2026-05-31.md) contains per-track best configs (not placeholder).
+Backend harness extended (embedding, IQA, tagging, caption tracks); Phase 0 native sizes recorded; full NPZ/eval grid **pending** detached WSL run ([backend #261](https://github.com/synthet/image-scoring-backend/issues/261) is **Ready** on the Project board).
+
+Re-check this page when [UNIFIED_INPUT_POLICY_2026-05-31.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/UNIFIED_INPUT_POLICY_2026-05-31.md) contains per-track best configs (not placeholder), then close or update [gallery #138](https://github.com/synthet/image-scoring-gallery/issues/138).

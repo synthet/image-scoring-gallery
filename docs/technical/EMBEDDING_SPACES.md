@@ -70,7 +70,7 @@ Planned embedding UI ([features/planned/embeddings/](../features/planned/embeddi
 
 ## Related gallery docs
 
-- [Pipeline input-size study (gallery)](../reports/07-pipeline-input-size-study-2026-05.md) — how backend pixel budget affects stacks/thumbnails; no gallery code change until backend policy sign-off.
+- [Pipeline input-size study (gallery)](../reports/07-pipeline-input-size-study-2026-05.md) — pixel budget vs stacks/thumbnails; gallery [#138](https://github.com/synthet/image-scoring-gallery/issues/138), backend [#260](https://github.com/synthet/image-scoring-backend/issues/260).
 - [Embedding Applications hub](../features/planned/embeddings/README.md) — planned UI features (MobileNet-centric).
 - [Single Bird Species per Image (BioCLIP top‑1)](../features/planned/species-conflict-resolution.md) — the bird-species phase that populates `bioclip_2_image`; planned `top_k=1` change so each bird image gets one `species:*` keyword.
 - [Backup feature](../architecture/backup-feature.md) — MMR dedup uses default-space embeddings.
