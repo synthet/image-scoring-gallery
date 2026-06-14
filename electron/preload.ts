@@ -305,7 +305,11 @@ contextBridge.exposeInMainWorld('electron', {
         };
     },
     onBackupProgress: (callback: (progress: BackupProgress) => void) => {
-        ipcRenderer.on('backup:progress', (_, progress) => callback(progress));
+        const handler = (_: unknown, progress: BackupProgress) => callback(progress);
+        ipcRenderer.on('backup:progress', handler);
+        return () => {
+            ipcRenderer.removeListener('backup:progress', handler);
+        };
     },
     importRun: async (folderPath: string) => {
         const response = await ipcRenderer.invoke('import:run', folderPath);
@@ -410,6 +414,65 @@ contextBridge.exposeInMainWorld('electron', {
         },
         getStackAnalytics: async (stackId: number) => {
             const r = await ipcRenderer.invoke('api:get-stack-analytics', stackId);
+            return unwrapEnvelope<Record<string, unknown>>(r);
+        },
+        getAgentCullGroups: async (params?: {
+            stackId?: number;
+            subStackId?: number;
+            status?: string;
+            limit?: number;
+            offset?: number;
+        }) => {
+            const r = await ipcRenderer.invoke('api:get-agent-cull-groups', params);
+            return unwrapEnvelope<{ groups: Record<string, unknown>[] }>(r);
+        },
+        getAgentCullGroup: async (groupId: number) => {
+            const r = await ipcRenderer.invoke('api:get-agent-cull-group', groupId);
+            return unwrapEnvelope<Record<string, unknown>>(r);
+        },
+        runAgentCullReview: async (body: {
+            stackId: number;
+            subStackId?: number | null;
+            dryRun?: boolean;
+            force?: boolean;
+            agent?: string;
+        }) => {
+            const r = await ipcRenderer.invoke('api:run-agent-cull-review', body);
+            return unwrapEnvelope<Record<string, unknown>>(r);
+        },
+        applyAgentCullCandidates: async (groupId: number, body?: {
+            recommendationIds?: number[];
+            actor?: string;
+            note?: string;
+        }) => {
+            const r = await ipcRenderer.invoke('api:apply-agent-cull-candidates', groupId, body);
+            return unwrapEnvelope<Record<string, unknown>>(r);
+        },
+        approveAgentCullGroup: async (groupId: number, body?: {
+            recommendationIds?: number[];
+            actor?: string;
+            note?: string;
+        }) => {
+            const r = await ipcRenderer.invoke('api:approve-agent-cull-group', groupId, body);
+            return unwrapEnvelope<Record<string, unknown>>(r);
+        },
+        rejectAgentCullGroup: async (groupId: number, body?: {
+            recommendationIds?: number[];
+            actor?: string;
+            note?: string;
+        }) => {
+            const r = await ipcRenderer.invoke('api:reject-agent-cull-group', groupId, body);
+            return unwrapEnvelope<Record<string, unknown>>(r);
+        },
+        rollbackAgentCullRecommendation: async (recommendationId: number, body?: {
+            actor?: string;
+            note?: string;
+        }) => {
+            const r = await ipcRenderer.invoke('api:rollback-agent-cull-recommendation', recommendationId, body);
+            return unwrapEnvelope<Record<string, unknown>>(r);
+        },
+        updateImagePickStatus: async (imageId: number, pickStatus: -1 | 0 | 1) => {
+            const r = await ipcRenderer.invoke('api:update-image-pick-status', imageId, pickStatus);
             return unwrapEnvelope<Record<string, unknown>>(r);
         },
 

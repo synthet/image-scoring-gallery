@@ -385,9 +385,9 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 }
             }, 'substack');
         } else {
-            return renderImageCard(item, () => onSelect && onSelect(item), activeSubStackId !== null && activeSubStackId !== undefined);
+            return renderImageCard(item, () => onSelect && onSelect(item), activeStackId != null);
         }
-    }, [activeStackId, activeSubStackId, displayData, isStacksView, isSubStacksView, renderStackCard, renderImageCard, onSelectStack, onSelectSubStack, onSelect]);
+    }, [activeStackId, displayData, isStacksView, isSubStacksView, renderStackCard, renderImageCard, onSelectStack, onSelectSubStack, onSelect]);
 
     const endReachedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const handleEndReached = useCallback(() => {

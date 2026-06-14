@@ -47,6 +47,8 @@ The custom `media://` protocol serves local files for thumbnails and images. URL
 
 Path handling is security-sensitive. Preserve validation and regression tests when changing it.
 
+Thumbnail **pixel dimensions** are produced by the backend (`modules/thumbnails.py`, default max edge 512). Ongoing backend research on ideal ML input size may change thumb generation later; gallery reads paths only. See [reports/07-pipeline-input-size-study-2026-05.md](../reports/07-pipeline-input-size-study-2026-05.md).
+
 ## RAW / NEF Preview Flow
 
 RAW/NEF display can use multiple paths:

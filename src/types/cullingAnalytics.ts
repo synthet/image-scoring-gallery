@@ -19,6 +19,7 @@ export interface CullingAnalyticsResponse {
     composite?: CullingCompositeStats;
     warnings?: string[];
     member_count?: number;
+    decisions?: { pick?: number; reject?: number; neutral?: number };
     [key: string]: unknown;
 }
 

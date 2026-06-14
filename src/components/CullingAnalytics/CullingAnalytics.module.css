@@ -82,3 +82,49 @@
     background: rgba(244, 71, 71, 0.15);
     color: #f48771;
 }
+
+.bannerTitle {
+    width: 100%;
+    font-weight: 600;
+    color: #ddd;
+}
+
+.bannerSummary {
+    width: 100%;
+    color: #ccc;
+}
+
+.bannerMeta {
+    width: 100%;
+    color: #888;
+    font-size: 11px;
+}
+
+.recommendationList {
+    width: 100%;
+    margin: 4px 0 0;
+    padding-left: 18px;
+    color: #ccc;
+}
+
+.actionRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.actionBtn {
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #555;
+    background: #333;
+    color: #ddd;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.actionBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

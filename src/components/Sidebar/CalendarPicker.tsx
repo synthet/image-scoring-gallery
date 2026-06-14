@@ -21,7 +21,9 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({
     colorLabel,
     keyword,
 }) => {
-    const [viewDate, setViewDate] = useState(() => (value ? new Date(value) : new Date()));
+    // Parse YYYY-MM-DD as local time; a bare date string parses as UTC midnight,
+    // which shifts to the previous local day west of UTC.
+    const [viewDate, setViewDate] = useState(() => (value ? new Date(value + 'T00:00:00') : new Date()));
     const [activeDates, setActiveDates] = useState<Set<string>>(new Set());
     const [isOpen, setIsOpen] = useState(false);
     const activeOpsCount = useOperationStore((s) => s.activeOps.size);
@@ -100,7 +102,7 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({
 
     const isSelected = (day: number) => {
         if (!value) return false;
-        const d = new Date(value);
+        const d = new Date(value + 'T00:00:00');
         return d.getFullYear() === viewDate.getFullYear() &&
                d.getMonth() === viewDate.getMonth() &&
                d.getDate() === day;
@@ -169,7 +171,11 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({
                         <button className={styles.todayBtn} onClick={() => {
                             const now = new Date();
                             setViewDate(now);
-                            handleDateSelect(now.getDate());
+                            // Build from `now` directly — handleDateSelect would read the
+                            // pre-update viewDate for year/month (setState is async).
+                            const formatted = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                            onChange(formatted);
+                            setIsOpen(false);
                         }}>Today</button>
                     </div>
                 </div>

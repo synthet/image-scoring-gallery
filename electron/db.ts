@@ -526,6 +526,8 @@ export interface KeywordCloudEntry {
 }
 
 const SPECIES_PREFIX = 'species:';
+/** System marker when BioCLIP finds no species — hidden from tag cloud (see keywordFilters.ts). */
+const BIRDS_SPECIES_EXHAUSTED_KEYWORD = 'birds:species-exhausted';
 
 export async function getKeywordCloud(options: {
     kind: 'general' | 'species';
@@ -537,8 +539,8 @@ export async function getKeywordCloud(options: {
     const speciesPred = isSpecies ? 'kd.keyword_norm LIKE ?' : 'kd.keyword_norm NOT LIKE ?';
     const speciesArg = `${SPECIES_PREFIX}%`;
 
-    const whereParts: string[] = [speciesPred];
-    const params: (string | number | null)[] = [speciesArg];
+    const whereParts: string[] = [speciesPred, 'kd.keyword_norm <> ?'];
+    const params: (string | number | null)[] = [speciesArg, BIRDS_SPECIES_EXHAUSTED_KEYWORD];
 
     let joinImages = '';
     if (folderId) {

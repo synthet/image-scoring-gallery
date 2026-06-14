@@ -1205,6 +1205,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/keywords/cloud": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Keyword tag cloud (counts by keyword)
+         * @description Returns keywords with usage counts for a tag-cloud UI, ordered by count desc.
+         *
+         *             ``kind=species`` returns only ``species:*`` keywords (Birds page); ``kind=general``
+         *             returns all non-species keywords (Keywords page). Optionally scope to a folder path.
+         *
+         *             Each entry: ``{keyword_norm, keyword_display, count}``. Always HTTP 200; on failure
+         *             or empty catalog, ``keywords`` is an empty list.
+         */
+        get: operations["get_keyword_cloud_endpoint_api_keywords_cloud_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/duplicates/find": {
         parameters: {
             query?: never;
@@ -1469,6 +1495,26 @@ export interface paths {
          *             This endpoint replaces direct DB access from the Electron app.
          */
         get: operations["query_images_api_images_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/images/{image_id}/auditlog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Audit trail for image phase status changes
+         * @description Recent auditlog rows for image_phase_status (record_id = image_id).
+         */
+        get: operations["get_image_auditlog_api_images__image_id__auditlog_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1888,6 +1934,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/culling/agent-review/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List agent cull review groups
+         * @description Postgres-only. Metadata-only removal candidate reviews for stack/substack units.
+         */
+        get: operations["list_agent_cull_groups_api_culling_agent_review_groups_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/culling/agent-review/groups/{group_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get agent cull review group with recommendations */
+        get: operations["get_agent_cull_group_api_culling_agent_review_groups__group_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/culling/agent-review/schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Agent cull review response schema metadata */
+        get: operations["get_agent_cull_schema_api_culling_agent_review_schema_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/culling/agent-review/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Discover eligible agent cull review units */
+        post: operations["discover_agent_cull_units_api_culling_agent_review_discover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/culling/agent-review/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run agent cull review for one stack/substack unit */
+        post: operations["run_agent_cull_review_api_culling_agent_review_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/culling/agent-review/groups/{group_id}/apply-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark safe remove recommendations as agent_remove_candidate (metadata only) */
+        post: operations["apply_agent_cull_candidates_api_culling_agent_review_groups__group_id__apply_candidates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/culling/agent-review/groups/{group_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Operator approve agent removal recommendations */
+        post: operations["approve_agent_cull_group_api_culling_agent_review_groups__group_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/culling/agent-review/groups/{group_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Operator reject agent removal recommendations */
+        post: operations["reject_agent_cull_group_api_culling_agent_review_groups__group_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/culling/agent-review/recommendations/{recommendation_id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rollback recommendation candidate status */
+        post: operations["rollback_agent_cull_recommendation_api_culling_agent_review_recommendations__recommendation_id__rollback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/import/register": {
         parameters: {
             query?: never;
@@ -2195,6 +2397,26 @@ export interface paths {
          *             - `force_refresh` (optional, default false): Bypass cache.
          */
         get: operations["get_folder_phase_status_api_folders_phase_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/folders/{folder_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get folder by id
+         * @description Returns a single folder row: id, path, parent_id, is_fully_scored, created_at, and a live image_count from images.folder_id (not the deprecated folders.image_count column).
+         */
+        get: operations["get_folder_by_id_endpoint_api_folders__folder_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3100,6 +3322,50 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AgentCullDiscoverRequest */
+        AgentCullDiscoverRequest: {
+            /** Folder Path */
+            folder_path?: string | null;
+            /** Folder Id */
+            folder_id?: number | null;
+            /** Stack Id */
+            stack_id?: number | null;
+            /** Sub Stack Id */
+            sub_stack_id?: number | null;
+            /**
+             * Limit
+             * @default 50
+             */
+            limit: number;
+        };
+        /** AgentCullRecommendationIdsRequest */
+        AgentCullRecommendationIdsRequest: {
+            /** Recommendation Ids */
+            recommendation_ids?: number[] | null;
+            /**
+             * Actor
+             * @default operator
+             */
+            actor: string;
+            /** Note */
+            note?: string | null;
+        };
+        /** AgentCullRunRequest */
+        AgentCullRunRequest: {
+            /** Stack Id */
+            stack_id: number;
+            /** Sub Stack Id */
+            sub_stack_id?: number | null;
+            /** Dry Run */
+            dry_run?: boolean | null;
+            /**
+             * Force
+             * @default false
+             */
+            force: boolean;
+            /** Agent */
+            agent?: string | null;
+        };
         /**
          * ApiResponse
          * @description Standard API response model for operation results.
@@ -3156,21 +3422,22 @@ export interface components {
          * @description Request model for starting a bird species classification job.
          *
          *     Only images that already have the 'birds' keyword are processed — all others are
-         *     automatically skipped. Top predicted species are stored as 'species:Common Name'
-         *     keywords using BioCLIP 2 (zero-shot, MIT license).
+         *     automatically skipped. The single highest-scoring species (BioCLIP 2 argmax) is
+         *     stored as a 'species:Common Name' keyword (zero-shot, MIT license). Pass top_k > 1
+         *     to store multiple candidates instead.
          *
          *     Example:
          *         {
          *             "input_path": "D:/Photos/2024",
          *             "threshold": 0.1,
-         *             "top_k": 3,
+         *             "top_k": 1,
          *             "overwrite": false
          *         }
          * @example {
          *       "input_path": "D:/Photos/2024",
          *       "overwrite": false,
          *       "threshold": 0.1,
-         *       "top_k": 3
+         *       "top_k": 1
          *     }
          */
         BirdSpeciesStartRequest: {
@@ -3239,9 +3506,9 @@ export interface components {
             threshold: number;
             /**
              * Top K
-             * @description Maximum number of species to store per image.
-             * @default 3
-             * @example 3
+             * @description Maximum number of species to store per image. Default 1 keeps only the highest-scoring species (BioCLIP argmax).
+             * @default 1
+             * @example 1
              */
             top_k: number;
             /**
@@ -4808,10 +5075,6 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
         };
         /** ValidationRepairPreviewRequest */
         ValidationRepairPreviewRequest: {
@@ -7601,6 +7864,70 @@ export interface operations {
             };
         };
     };
+    get_keyword_cloud_endpoint_api_keywords_cloud_get: {
+        parameters: {
+            query?: {
+                /** @description species | general */
+                kind?: string;
+                /** @description Maximum keywords to return */
+                limit?: number;
+                /** @description Scope keywords to images under this folder path */
+                folder_path?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     find_duplicates_legacy_api_duplicates_find_post: {
         parameters: {
             query?: never;
@@ -8283,6 +8610,8 @@ export interface operations {
                 label?: string | null;
                 /** @description Keyword to filter by (partial match) */
                 keyword?: string | null;
+                /** @description When true, match the keyword exactly instead of a substring (e.g. tag-cloud clicks) */
+                keyword_exact?: boolean;
                 /** @description Minimum general score */
                 min_score_general?: number;
                 /** @description Minimum aesthetic score */
@@ -8293,9 +8622,76 @@ export interface operations {
                 folder_path?: string | null;
                 /** @description Filter by stack ID */
                 stack_id?: number | null;
+                /** @description Filter by image_phase_status as phase_code:status (e.g. keywords:not_started) */
+                phase_status?: string | null;
+                /** @description When true, only images with score_general null or <= 0 */
+                unscored_only?: boolean;
+                /** @description Phase marked done/skipped but data missing (e.g. keywords) */
+                data_gap?: string | null;
             };
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_image_auditlog_api_images__image_id__auditlog_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                image_id: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -9607,6 +10003,550 @@ export interface operations {
             };
         };
     };
+    list_agent_cull_groups_api_culling_agent_review_groups_get: {
+        parameters: {
+            query?: {
+                stack_id?: number | null;
+                sub_stack_id?: number | null;
+                status?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_agent_cull_group_api_culling_agent_review_groups__group_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_agent_cull_schema_api_culling_agent_review_schema_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    discover_agent_cull_units_api_culling_agent_review_discover_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentCullDiscoverRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    run_agent_cull_review_api_culling_agent_review_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentCullRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    apply_agent_cull_candidates_api_culling_agent_review_groups__group_id__apply_candidates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentCullRecommendationIdsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    approve_agent_cull_group_api_culling_agent_review_groups__group_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentCullRecommendationIdsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reject_agent_cull_group_api_culling_agent_review_groups__group_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentCullRecommendationIdsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rollback_agent_cull_recommendation_api_culling_agent_review_recommendations__recommendation_id__rollback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recommendation_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentCullRecommendationIdsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     import_register_api_import_register_post: {
         parameters: {
             query?: never;
@@ -10463,6 +11403,65 @@ export interface operations {
             };
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_folder_by_id_endpoint_api_folders__folder_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                folder_id: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -12802,6 +13801,8 @@ export interface operations {
                 /** @description Comma-separated labels */
                 label?: string | null;
                 keyword?: string | null;
+                /** @description When true, match the keyword exactly instead of a substring */
+                keyword_exact?: boolean;
                 min_score_general?: number;
                 min_score_aesthetic?: number;
                 min_score_technical?: number;
