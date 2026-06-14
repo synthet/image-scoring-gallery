@@ -426,8 +426,8 @@ function createHttpBridge(): Window['electron'] {
         onBackupProgress: noop,
 
         api: {
-            healthCheck: () => post('/backend/health'),
-            isAvailable: async () => { try { await post('/backend/health'); return true; } catch { return false; } },
+            healthCheck: () => get('/backend/health'),
+            isAvailable: async () => { try { await get('/backend/health'); return true; } catch { return false; } },
             getStatus: () => get('/backend/status'),
             getStats: () => get('/backend/stats'),
             getScoringSortOptions: () => get<Array<{ value: string; label: string; group: string }>>('/scoring/sort-options'),

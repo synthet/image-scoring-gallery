@@ -89,7 +89,7 @@ export class ApiService {
     // ── Generic HTTP ────────────────────────────────────────────────────────
 
     private async request<T>(
-        method: 'GET' | 'POST',
+        method: 'GET' | 'POST' | 'PATCH',
         apiPath: string,
         options?: {
             body?: unknown;
@@ -128,7 +128,7 @@ export class ApiService {
                 signal: controller.signal,
             };
 
-            if (method === 'POST' && options?.body !== undefined) {
+            if ((method === 'POST' || method === 'PATCH') && options?.body !== undefined) {
                 fetchOptions.body = JSON.stringify(options.body);
             }
 
@@ -162,6 +162,10 @@ export class ApiService {
 
     private post<T>(apiPath: string, body?: unknown, timeout?: number) {
         return this.request<T>('POST', apiPath, { body, timeout });
+    }
+
+    private patch<T>(apiPath: string, body?: unknown, timeout?: number) {
+        return this.request<T>('PATCH', apiPath, { body, timeout });
     }
 
     // ── Health & Status ─────────────────────────────────────────────────────
@@ -386,6 +390,92 @@ export class ApiService {
 
     getStackAnalytics(stackId: number) {
         return this.get<CullingAnalyticsResponse>(`/api/analytics/stacks/${stackId}`);
+    }
+
+    getAgentCullGroups(params?: {
+        stackId?: number;
+        subStackId?: number;
+        status?: string;
+        limit?: number;
+        offset?: number;
+    }) {
+        return this.get<{ groups: Record<string, unknown>[] }>('/api/culling/agent-review/groups', {
+            stack_id: params?.stackId,
+            sub_stack_id: params?.subStackId,
+            status: params?.status,
+            limit: params?.limit,
+            offset: params?.offset,
+        });
+    }
+
+    getAgentCullGroup(groupId: number) {
+        return this.get<Record<string, unknown>>(`/api/culling/agent-review/groups/${groupId}`);
+    }
+
+    runAgentCullReview(body: {
+        stackId: number;
+        subStackId?: number | null;
+        dryRun?: boolean;
+        force?: boolean;
+        agent?: string;
+    }) {
+        return this.post<Record<string, unknown>>('/api/culling/agent-review/run', {
+            stack_id: body.stackId,
+            sub_stack_id: body.subStackId ?? undefined,
+            dry_run: body.dryRun,
+            force: body.force ?? false,
+            agent: body.agent,
+        }, LONG_TIMEOUT);
+    }
+
+    applyAgentCullCandidates(groupId: number, body?: { recommendationIds?: number[]; actor?: string; note?: string }) {
+        return this.post<Record<string, unknown>>(
+            `/api/culling/agent-review/groups/${groupId}/apply-candidates`,
+            {
+                recommendation_ids: body?.recommendationIds,
+                actor: body?.actor ?? 'operator',
+                note: body?.note,
+            },
+        );
+    }
+
+    approveAgentCullGroup(groupId: number, body?: { recommendationIds?: number[]; actor?: string; note?: string }) {
+        return this.post<Record<string, unknown>>(
+            `/api/culling/agent-review/groups/${groupId}/approve`,
+            {
+                recommendation_ids: body?.recommendationIds,
+                actor: body?.actor ?? 'operator',
+                note: body?.note,
+            },
+        );
+    }
+
+    rejectAgentCullGroup(groupId: number, body?: { recommendationIds?: number[]; actor?: string; note?: string }) {
+        return this.post<Record<string, unknown>>(
+            `/api/culling/agent-review/groups/${groupId}/reject`,
+            {
+                recommendation_ids: body?.recommendationIds,
+                actor: body?.actor ?? 'operator',
+                note: body?.note,
+            },
+        );
+    }
+
+    rollbackAgentCullRecommendation(recommendationId: number, body?: { actor?: string; note?: string }) {
+        return this.post<Record<string, unknown>>(
+            `/api/culling/agent-review/recommendations/${recommendationId}/rollback`,
+            {
+                actor: body?.actor ?? 'operator',
+                note: body?.note,
+            },
+        );
+    }
+
+    updateImagePickStatus(imageId: number, pickStatus: -1 | 0 | 1) {
+        return this.patch<Record<string, unknown>>(`/api/images/${imageId}`, {
+            pick_status: pickStatus,
+            write_sidecar: false,
+        });
     }
 
     /** Returns combined status for all runners (scoring + tagging). */

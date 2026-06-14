@@ -50,6 +50,21 @@ export function StackAnalyticsBanner({ stackId }: Props) {
     const warnings = data.warnings ?? [];
 
     const chips: { text: string; warn?: boolean }[] = [];
+    const decisions = data.decisions;
+    if (decisions) {
+        const pick = Number(decisions.pick ?? 0);
+        const reject = Number(decisions.reject ?? 0);
+        const neutral = Number(decisions.neutral ?? 0);
+        if (pick > 0) {
+            chips.push({ text: `Pick ${pick}` });
+        }
+        if (reject > 0) {
+            chips.push({ text: `Reject ${reject}`, warn: true });
+        }
+        if (neutral > 0) {
+            chips.push({ text: `Neutral ${neutral}` });
+        }
+    }
     if (gap !== undefined && gap !== null) {
         chips.push({ text: `Top gap: ${Number(gap).toFixed(3)}` });
     }

@@ -28,6 +28,7 @@ import { useGalleryWebSocket } from './hooks/useGalleryWebSocket';
 import { isSortOptionValue, useScoringSortOptions } from './hooks/useScoringSortOptions';
 
 import { StackAnalyticsBanner } from './components/CullingAnalytics/StackAnalyticsBanner';
+import { AgentCullReviewPanel } from './components/CullingAnalytics/AgentCullReviewPanel';
 import breadcrumbStyles from './styles/breadcrumbs.module.css';
 import toggleStyles from './styles/toggle.module.css';
 import {
@@ -732,6 +733,9 @@ function AppContent() {
                   </div>
                 )}
                 {activeStackId !== null && <StackAnalyticsBanner stackId={activeStackId} />}
+                {activeStackId !== null && (
+                  <AgentCullReviewPanel stackId={activeStackId} subStackId={activeSubStackId} />
+                )}
                 <GalleryGrid
                   key={`${selectedFolderId ?? 'all'}-${activeStackId ?? 'none'}-${activeSubStackId ?? 'none'}-${activeUngroupedSubStack ? 'ungrouped' : 'grouped'}-${stacksMode ? 'stacks' : 'images'}-${hasSubStackCards ? 'substacks' : 'flat'}`}
                   images={currentImages}
