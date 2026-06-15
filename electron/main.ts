@@ -2042,8 +2042,16 @@ async function startFullApplication(): Promise<void> {
                             const year = dateStr.substring(0, 4);
                             const destFileEarly = path.join(destRoot, camera, lens, year, dateStr, fileName);
                             if (await fs.promises.stat(destFileEarly).then(() => true, () => false)) {
-                                skippedCount++;
-                                return;
+                                // The dest file exists on disk, but only treat it as "already
+                                // synced" if it is actually indexed. A prior run may have copied
+                                // the file and then failed before importing it; in that case we
+                                // must fall through to the normal path so it gets imported rather
+                                // than skipped forever by this below-threshold fast path.
+                                const existsByPath = await db.findImageByFilePath(destFileEarly);
+                                if (existsByPath) {
+                                    skippedCount++;
+                                    return;
+                                }
                             }
                         }
 
