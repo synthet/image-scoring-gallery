@@ -1,9 +1,9 @@
 ---
-description: Gallery docs wiki mirror of Cursor documentation rule
+description: Gallery OKF-style docs wiki mirror of Cursor documentation rule
 globs: "docs/**"
 alwaysApply: false
 ---
 
 # Documentation wiki (image-scoring-gallery)
 
-When editing under the docs folder, read docs/WIKI_SCHEMA.md and docs/CANONICAL_SOURCES.md. Update docs/README.md and docs/log.md after structural wiki changes. Same expectations as .cursor/rules/documentation.mdc.
+When editing under the docs folder, read docs/WIKI_SCHEMA.md and docs/CANONICAL_SOURCES.md. Every docs Markdown page must retain OKF-style YAML frontmatter (`type`, `title`, `description`, `resource`, `tags`, `timestamp`) before the H1; keep `resource` equal to the repository-relative path and refresh metadata when the page meaning, path, or structure changes. Update docs/README.md and docs/log.md after structural wiki changes. Same expectations as .cursor/rules/documentation.mdc.

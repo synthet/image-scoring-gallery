@@ -1,14 +1,14 @@
 ---
 name: docs-wiki
 description: >-
-  Expert knowledge for maintaining docs/ as an LLM wiki. Page types, naming,
-  cross-referencing, index format, log format, and category conventions.
+  Expert knowledge for maintaining docs/ as an OKF-style LLM wiki. Frontmatter,
+  page types, naming, cross-referencing, index format, log format, and category conventions.
   Triggers: wiki maintenance, docs update, documentation audit, wiki ingest/lint/query.
 ---
 
 # Docs Wiki Skill
 
-Maintain `docs/` as an incrementally-built, LLM-maintained wiki of interlinked markdown pages.
+Maintain `docs/` as an incrementally-built, OKF-style, LLM-maintained wiki of interlinked markdown concept pages.
 
 ## When to Apply
 
@@ -24,6 +24,23 @@ Maintain `docs/` as an incrementally-built, LLM-maintained wiki of interlinked m
 | `docs/README.md` | **Index** — content catalog, grouped by category, links + one-line descriptions |
 | `docs/log.md` | **Activity log** — reverse-chronological record of all wiki operations |
 | Category subdirectories | One per page type (see table below) |
+
+## OKF Frontmatter Contract
+
+Every `docs/**/*.md` page is an OKF-style concept and must start with YAML frontmatter, followed by a blank line and the Markdown H1.
+
+Required fields:
+
+| Field | Rule |
+|-------|------|
+| `type` | Concept class such as `Index`, `Guide`, `Architecture`, `Implemented Feature`, `Planned Feature`, `Report`, `Technical Reference`, `Backlog`, or `Log`. |
+| `title` | Human-readable title; normally matches the H1. |
+| `description` | One concise sentence that can be shown in search results or agent routing. |
+| `resource` | Repository-relative path to the Markdown file; update it when moving/renaming pages. |
+| `tags` | Inline list containing `gallery-docs` plus useful folder/topic tags. |
+| `timestamp` | UTC ISO-8601 timestamp refreshed when metadata, meaning, or structure changes materially. |
+
+When creating or moving pages, update frontmatter before index/log work. When only fixing links or typos, refresh `timestamp` only if the page meaning or metadata changed.
 
 ## Page Types
 
@@ -66,10 +83,19 @@ Follow the existing format exactly:
 
 ## Page Conventions
 
-- Start with `# Title`. No YAML frontmatter.
+- Start with OKF YAML frontmatter, then `# Title`.
 - First paragraph is a one-sentence summary.
 - Standard markdown links only — no `[[wikilinks]]`.
 - Kebab-case filenames, numbered prefixes for ordered sequences.
+
+## Validation Expectations
+
+After structural docs work, verify:
+
+- Every `docs/**/*.md` file has the required OKF fields.
+- `resource` equals the repository-relative file path.
+- `tags` is an inline list and includes `gallery-docs`.
+- New or moved pages are represented in `docs/README.md` and, where applicable, local section indexes.
 
 ## Relationship to SDLC Commands
 

@@ -1,3 +1,12 @@
+---
+type: "Report"
+title: "Code Review + Design Review (2026-02-09)"
+description: "Reviewed:"
+resource: "docs/reports/02-code-review-2026-02.md"
+tags: ["gallery-docs", "reports"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Code Review + Design Review (2026-02-09)
 
 ## Scope and Method

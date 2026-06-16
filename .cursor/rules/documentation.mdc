@@ -1,5 +1,5 @@
 ---
-description: Conventions for maintaining docs/ as a wiki — cross-references, index updates, log entries, page structure
+description: Conventions for maintaining docs/ as an OKF-style wiki — frontmatter, cross-references, indexes, logs, page structure
 globs: "docs/**"
 alwaysApply: false
 ---
@@ -12,11 +12,17 @@ These conventions apply when creating, updating, or reorganizing pages in `docs/
 ## Authority (read first)
 
 - **[docs/CANONICAL_SOURCES.md](../../docs/CANONICAL_SOURCES.md)** — integration and backend canonical links.
-- **[docs/WIKI_SCHEMA.md](../../docs/WIKI_SCHEMA.md)** — folder taxonomy, naming, and docs/log.md rules.
+- **[docs/WIKI_SCHEMA.md](../../docs/WIKI_SCHEMA.md)** — OKF frontmatter contract, folder taxonomy, naming, and docs/log.md rules.
 
 ## Page structure
 
-- Every page starts with a `# Title` header. No YAML frontmatter.
+- Every page starts with YAML frontmatter, followed by a blank line and then a `# Title` header.
+- Required frontmatter fields for `docs/**/*.md`: `type`, `title`, `description`, `resource`, `tags`, `timestamp`.
+- `resource` must be the repository-relative Markdown path and must change when a page moves.
+- `title` should match the page H1 unless there is a specific reason to expose a shorter machine-readable title.
+- `description` should be a concise one-sentence summary suitable for search results and agent routing.
+- `tags` should include `gallery-docs` plus useful folder/topic tags.
+- `timestamp` should be UTC ISO-8601 and refreshed when the page's meaning, metadata, or structure changes materially.
 - First paragraph after the title is a one-sentence summary of the page's purpose.
 - Use standard markdown links with relative paths. Never use `[[wikilink]]` syntax.
 
@@ -31,9 +37,10 @@ These conventions apply when creating, updating, or reorganizing pages in `docs/
 
 After creating, renaming, or removing a page:
 
-1. Update `docs/README.md` — add or update the entry in the correct category section.
-2. Maintain the existing format: `- [Title](relative/path.md) - One-line description`.
-3. Keep numbered ordering within each category.
+1. Add or refresh the OKF frontmatter for every affected page.
+2. Update `docs/README.md` — add or update the entry in the correct category section.
+3. Maintain the existing format: `- [Title](relative/path.md) - One-line description`.
+4. Keep numbered ordering within each category.
 
 ## Activity log
 
@@ -74,3 +81,4 @@ Map to existing category subdirectories:
 
 - When updating a page, check date or version references. If information contradicts current code, fix it or add a dated note.
 - Pages with "Last evaluated" markers should be re-evaluated when the referenced area changes.
+- Run or emulate the OKF frontmatter validation from `docs/WIKI_SCHEMA.md` after structural docs work: every `docs/**/*.md` page should have required fields, and `resource` should match its file path.

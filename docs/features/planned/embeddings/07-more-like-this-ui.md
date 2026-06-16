@@ -1,3 +1,12 @@
+---
+type: "Planned Feature"
+title: "07 - More Like This UI (Frontend)"
+description: "Status: Implemented"
+resource: "docs/features/planned/embeddings/07-more-like-this-ui.md"
+tags: ["embeddings", "features", "gallery-docs", "planned"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # 07 - More Like This UI (Frontend)
 
 *Status: **Implemented***

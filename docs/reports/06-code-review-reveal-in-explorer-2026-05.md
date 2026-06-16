@@ -1,3 +1,12 @@
+---
+type: "Report"
+title: "Code Review — Reveal in Explorer + CullingInsightsPanel removal (2026-05-23)"
+description: "PR #93 (feat/culling-analytics, merged into main as e9893c2)."
+resource: "docs/reports/06-code-review-reveal-in-explorer-2026-05.md"
+tags: ["gallery-docs", "reports"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Code Review — Reveal in Explorer + CullingInsightsPanel removal (2026-05-23)
 
 ## Scope

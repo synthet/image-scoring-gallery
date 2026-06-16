@@ -1,3 +1,12 @@
+---
+type: "Architecture"
+title: "Backup feature specification (Gallery)"
+description: "Canonical specification for the Backup feature in image-scoring-gallery (Electron main process, DB layer, preload, BackupModal). File references are repo-relative."
+resource: "docs/architecture/backup-feature.md"
+tags: ["architecture", "gallery-docs"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Backup feature specification (Gallery)
 
 Canonical specification for the **Backup** feature in **image-scoring-gallery** (Electron main process, DB layer, preload, `BackupModal`). File references are repo-relative.

@@ -1,3 +1,12 @@
+---
+type: "Implemented Feature"
+title: "Database engine modes"
+description: "Purpose: Query and update library metadata either directly against PostgreSQL (database.engine: \"pg\") or via the backend’s SQL-over-HTTP bridge (database.engine: \"api\"), using one "
+resource: "docs/features/implemented/03-database-engine-modes.md"
+tags: ["features", "gallery-docs", "implemented"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Database engine modes
 
 **Purpose:** Query and update library metadata either **directly against PostgreSQL** (`database.engine: "pg"`) or via the backend’s **SQL-over-HTTP** bridge (`database.engine: "api"`), using one abstraction in the renderer.

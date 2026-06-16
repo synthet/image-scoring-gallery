@@ -1,3 +1,12 @@
+---
+type: "Guide"
+title: "Lint Recommendations"
+description: "Quick reference for ESLint fixes. For the full audit with detailed findings by file, see ESLint Audit (Mar 2026)."
+resource: "docs/guides/01-lint-recommendations.md"
+tags: ["gallery-docs", "guides"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Lint Recommendations
 
 Quick reference for ESLint fixes. For the full audit with detailed findings by file, see [ESLint Audit (Mar 2026)](../reports/03-eslint-audit-2026-03.md).

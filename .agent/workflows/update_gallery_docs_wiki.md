@@ -1,10 +1,10 @@
 ---
-description: Update gallery docs / wiki
+description: Update gallery OKF-style docs / wiki
 ---
 
 ## Purpose
 
-Maintain **gallery** `docs/` with correct authority boundaries (backend owns API/schema).
+Maintain **gallery** `docs/` as an OKF-style Markdown concept bundle with correct authority boundaries (backend owns API/schema).
 
 ## When to use
 
@@ -21,8 +21,10 @@ Maintain **gallery** `docs/` with correct authority boundaries (backend owns API
 
 1. Prefer **relative** links inside this repo.
 2. Use **full GitHub URLs** to **image-scoring-backend** for API, DB, and pipeline authority.
-3. Update [docs/README.md](../../docs/README.md) / indexes when adding navigable pages.
-4. Append [docs/log.md](../../docs/log.md).
+3. Preserve or add OKF frontmatter on every touched `docs/**/*.md` page (`type`, `title`, `description`, `resource`, `tags`, `timestamp`).
+4. Keep `resource` equal to the repository-relative Markdown path.
+5. Update [docs/README.md](../../docs/README.md) / indexes when adding navigable pages.
+6. Append [docs/log.md](../../docs/log.md).
 
 ## Do not
 
