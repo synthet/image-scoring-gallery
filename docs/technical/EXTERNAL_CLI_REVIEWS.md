@@ -1,3 +1,12 @@
+---
+type: "Technical Reference"
+title: "External CLI reviews (subagent-orchestrator)"
+description: "Optional review-only second opinions from Codex or Gemini CLI for this gallery workspace."
+resource: "docs/technical/EXTERNAL_CLI_REVIEWS.md"
+tags: ["gallery-docs", "technical"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # External CLI reviews (subagent-orchestrator)
 
 Optional **review-only** second opinions from **Codex** or **Gemini CLI** for this gallery workspace.

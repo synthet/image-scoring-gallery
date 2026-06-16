@@ -1,3 +1,12 @@
+---
+type: "Architecture"
+title: "System Overview"
+description: "Driftara Gallery is an Electron + React + TypeScript + Vite desktop app for browsing libraries produced by Vexlum Scoring."
+resource: "docs/architecture/01-system-overview.md"
+tags: ["architecture", "gallery-docs"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # System Overview
 
 Driftara Gallery is an **Electron + React + TypeScript + Vite** desktop app for browsing libraries produced by **Vexlum Scoring**.

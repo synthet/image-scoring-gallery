@@ -1,3 +1,12 @@
+---
+type: "Planning"
+title: "Backlog governance (retired alias)"
+description: "The canonical task queue is the GitHub Project board:"
+resource: "docs/project/BACKLOG_GOVERNANCE.md"
+tags: ["gallery-docs", "project"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Backlog governance (retired alias)
 
 The canonical task queue is the **GitHub Project board**:

@@ -1,3 +1,12 @@
+---
+type: "Guide"
+title: "Development"
+description: "Run commands from the gallery repo root."
+resource: "docs/DEVELOPMENT.md"
+tags: ["gallery-docs"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Development
 
 Run commands from the gallery repo root.

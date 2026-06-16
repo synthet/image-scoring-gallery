@@ -1,3 +1,12 @@
+---
+type: "Index"
+title: "Guides"
+description: "Development workflows and maintenance recommendations."
+resource: "docs/guides/README.md"
+tags: ["gallery-docs", "guides", "index"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Guides
 
 Development workflows and maintenance recommendations.

@@ -1,3 +1,12 @@
+---
+type: "Implemented Feature"
+title: "Desktop shell and navigation"
+description: "Purpose: Run the gallery as an Electron desktop app with a Vite renderer: window lifecycle, menus, optional WebUI-only shell mode, and navigation across gallery grid, viewer, impor"
+resource: "docs/features/implemented/02-desktop-shell-and-navigation.md"
+tags: ["features", "gallery-docs", "implemented"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Desktop shell and navigation
 
 **Purpose:** Run the gallery as an **Electron** desktop app with a **Vite** renderer: window lifecycle, menus, optional **WebUI-only** shell mode, and navigation across gallery grid, viewer, import, semantic search, and settings.

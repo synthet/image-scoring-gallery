@@ -1,3 +1,12 @@
+---
+type: "Backlog"
+title: "Integration TODO"
+description: "This backlog separates backend-owned contract work from gallery implementation work. The canonical project/task queue may still live outside this file; use this page as an integrat"
+resource: "docs/integration/TODO.md"
+tags: ["backlog", "gallery-docs", "integration"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Integration TODO
 
 This backlog separates backend-owned contract work from gallery implementation work. The canonical project/task queue may still live outside this file; use this page as an integration handoff map.

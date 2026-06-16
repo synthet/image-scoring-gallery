@@ -1,3 +1,12 @@
+---
+type: "Index"
+title: "Reports"
+description: "Code reviews, design audits, and quality assessments."
+resource: "docs/reports/README.md"
+tags: ["gallery-docs", "index", "reports"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Reports
 
 Code reviews, design audits, and quality assessments.

@@ -1,3 +1,12 @@
+---
+type: "Planned Feature"
+title: "Single Bird Species per Image (BioCLIP top‑1)"
+description: "Status: Planned (proposal)"
+resource: "docs/features/planned/species-conflict-resolution.md"
+tags: ["features", "gallery-docs", "planned"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Single Bird Species per Image (BioCLIP top‑1)
 
 *Status: **Planned (proposal)***

@@ -1,3 +1,12 @@
+---
+type: "Report"
+title: "Pipeline input-size study — gallery cross-reference (May 2026)"
+description: "Purpose: Record how the sibling image-scoring-backend pipeline-wide input-size research affects Driftara Gallery display quality, stacks/culling UX, and when gallery code might nee"
+resource: "docs/reports/07-pipeline-input-size-study-2026-05.md"
+tags: ["gallery-docs", "reports"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Pipeline input-size study — gallery cross-reference (May 2026)
 
 **Purpose:** Record how the sibling **image-scoring-backend** pipeline-wide input-size research affects Driftara Gallery display quality, stacks/culling UX, and when gallery code might need coordinated changes.

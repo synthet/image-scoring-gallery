@@ -1,3 +1,12 @@
+---
+type: "Index"
+title: "Features Implemented"
+description: "Catalog of shipped desktop behavior. Backend API/schema/pipeline contracts remain owned by image-scoring-backend; link to backend authority instead of restating fields or phase def"
+resource: "docs/features/implemented/INDEX.md"
+tags: ["features", "gallery-docs", "implemented", "index"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Features Implemented
 
 Catalog of shipped desktop behavior. Backend API/schema/pipeline contracts remain owned by **image-scoring-backend**; link to backend authority instead of restating fields or phase definitions.

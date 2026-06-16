@@ -1,3 +1,12 @@
+---
+type: "Index"
+title: "Project planning — index"
+description: "See also: Documentation index"
+resource: "docs/project/INDEX.md"
+tags: ["gallery-docs", "index", "project"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Project planning — index
 
 | Document | Description |

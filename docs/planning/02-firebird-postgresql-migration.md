@@ -1,3 +1,12 @@
+---
+type: "Planning"
+title: "Refined Cross-Repo Migration Plan: Firebird -> PostgreSQL + pgvector"
+description: "Date: 2026-03-08 (plan created), 2026-03-30 (all phases completed)"
+resource: "docs/planning/02-firebird-postgresql-migration.md"
+tags: ["gallery-docs", "planning"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Refined Cross-Repo Migration Plan: Firebird -> PostgreSQL + pgvector
 
 Date: 2026-03-08 (plan created), 2026-03-30 (all phases completed)

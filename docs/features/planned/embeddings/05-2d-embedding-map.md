@@ -1,3 +1,12 @@
+---
+type: "Planned Feature"
+title: "05 - 2D Embedding Map (Frontend)"
+description: "Status: In Progress (Scaffolded on March 28, 2026)"
+resource: "docs/features/planned/embeddings/05-2d-embedding-map.md"
+tags: ["embeddings", "features", "gallery-docs", "planned"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # 05 - 2D Embedding Map (Frontend)
 
 *Status: **In Progress (Scaffolded on March 28, 2026)***

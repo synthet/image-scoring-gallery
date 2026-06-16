@@ -1,6 +1,45 @@
+---
+type: "Documentation"
+title: "Wiki schema — image-scoring-gallery docs/"
+description: "This repo keeps docs/ as a small wiki aligned with image-scoring-backend habits: indexed sections, relative links, and an activity log."
+resource: "docs/WIKI_SCHEMA.md"
+tags: ["gallery-docs"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Wiki schema — image-scoring-gallery `docs/`
 
 This repo keeps `docs/` as a small wiki aligned with **image-scoring-backend** habits: indexed sections, relative links, and an activity log.
+
+The docs tree is also structured as an **Open Knowledge Format (OKF)-style bundle**: every Markdown page is a concept file with lightweight YAML frontmatter, the file path is the stable concept identity, section `README.md`/`INDEX.md` pages provide progressive-disclosure navigation, normal Markdown links express relationships, and `log.md` records chronological change history.
+
+## OKF concept frontmatter
+
+Every `docs/**/*.md` file starts with YAML frontmatter containing the repo's OKF interoperability surface:
+
+| Field | Required | Purpose |
+|-------|----------|---------|
+| `type` | Yes | Concept class, such as `Index`, `Guide`, `Architecture`, `Implemented Feature`, `Planned Feature`, `Report`, `Technical Reference`, `Backlog`, or `Log`. |
+| `title` | Yes | Human-readable page title, usually matching the first H1. |
+| `description` | Yes | Short summary that agents and search tools can show without reading the full page. |
+| `resource` | Yes | Repository-relative path to the Markdown file; this mirrors the file-path concept identity. |
+| `tags` | Yes | Small list of queryable tags. Include `gallery-docs` plus folder/topic tags. |
+| `timestamp` | Yes | Last documentation-structure or content refresh timestamp in UTC ISO-8601 form. |
+
+Example:
+
+```yaml
+---
+type: "Guide"
+title: "Testing and Coverage"
+description: "Vitest and coverage notes for renderer and Electron-facing tests."
+resource: "docs/guides/03-testing-and-coverage.md"
+tags: ["gallery-docs", "guides"]
+timestamp: 2026-06-16T00:00:00Z
+---
+```
+
+When a page moves, update `resource` and all relative links in the same change. When a page's meaning changes materially, refresh `description`, `tags`, and `timestamp`.
 
 ## Page types and folders
 

@@ -1,3 +1,12 @@
+---
+type: "Report"
+title: "NEF Extraction Tier-1 Failure Incident (2026-04-19)"
+description: "This note preserves the previous implementation-facing analysis that had been stored in docs/features/implemented/01-nef-raw-fallback.md."
+resource: "docs/reports/05-nef-raw-fallback-incident-2026-04-19.md"
+tags: ["gallery-docs", "reports"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # NEF Extraction Tier-1 Failure Incident (2026-04-19)
 
 ## Incident Summary

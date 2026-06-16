@@ -1,8 +1,29 @@
+---
+type: "Index"
+title: "Driftara Gallery Documentation"
+description: "This is the documentation hub for image-scoring-gallery, the Electron + React + TypeScript desktop app for browsing Vexlum Scoring libraries."
+resource: "docs/README.md"
+tags: ["gallery-docs", "index"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Driftara Gallery Documentation
 
 This is the documentation hub for **image-scoring-gallery**, the Electron + React + TypeScript desktop app for browsing Vexlum Scoring libraries.
 
 The backend owns REST API contracts, database schema, and pipeline phase terminology. The gallery owns Electron architecture, IPC/preload boundaries, renderer behavior, API-client usage, and desktop workflows.
+
+## OKF Bundle Shape
+
+`docs/` is organized as an Open Knowledge Format (OKF)-style bundle:
+
+- Every Markdown file is a concept with YAML frontmatter (`type`, `title`, `description`, `resource`, `tags`, `timestamp`).
+- The repository-relative path in `resource` is the concept identity.
+- Section `README.md` and `INDEX.md` files are navigation indexes for progressive disclosure.
+- Relative Markdown links encode relationships between concepts.
+- [log.md](log.md) is the chronological history for documentation maintenance.
+
+See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenance workflow.
 
 ## Backend Authority
 

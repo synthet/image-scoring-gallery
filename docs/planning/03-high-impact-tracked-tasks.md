@@ -1,3 +1,12 @@
+---
+type: "Planning"
+title: "High-Impact Next Steps - Tracked Tasks"
+description: "Source: TODO.md → Highest-Impact Next Steps (Recommended Sequence)."
+resource: "docs/planning/03-high-impact-tracked-tasks.md"
+tags: ["gallery-docs", "planning"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # High-Impact Next Steps - Tracked Tasks
 
 Source: `TODO.md` → **Highest-Impact Next Steps (Recommended Sequence)**.

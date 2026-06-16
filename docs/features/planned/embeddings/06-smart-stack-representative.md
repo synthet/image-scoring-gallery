@@ -1,3 +1,12 @@
+---
+type: "Planned Feature"
+title: "06 - Smart Stack Representative (Frontend)"
+description: "Status: In Progress (Preference + request threading scaffolded on March 28, 2026)"
+resource: "docs/features/planned/embeddings/06-smart-stack-representative.md"
+tags: ["embeddings", "features", "gallery-docs", "planned"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # 06 - Smart Stack Representative (Frontend)
 
 *Status: **In Progress (Preference + request threading scaffolded on March 28, 2026)***

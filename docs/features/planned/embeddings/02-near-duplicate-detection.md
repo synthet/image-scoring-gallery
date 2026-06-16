@@ -1,3 +1,12 @@
+---
+type: "Planned Feature"
+title: "02 - Near-Duplicate Detection (Frontend)"
+description: "Status: Implemented"
+resource: "docs/features/planned/embeddings/02-near-duplicate-detection.md"
+tags: ["embeddings", "features", "gallery-docs", "planned"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # 02 - Near-Duplicate Detection (Frontend)
 
 *Status: **Implemented***

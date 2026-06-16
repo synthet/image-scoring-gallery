@@ -1,3 +1,12 @@
+---
+type: "Design Reference"
+title: "UX/UI Design Visual Specification"
+description: "This document outlines the visual design, user experience, and UI specifications for the Driftara Gallery (image-scoring-gallery) frontend application."
+resource: "docs/design/FRONTEND_UX_SPEC.md"
+tags: ["design", "gallery-docs"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # UX/UI Design Visual Specification
 
 This document outlines the visual design, user experience, and UI specifications for the **Driftara Gallery** (`image-scoring-gallery`) frontend application.

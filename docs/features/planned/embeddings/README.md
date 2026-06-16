@@ -1,3 +1,12 @@
+---
+type: "Index"
+title: "Embedding Applications — gallery hub"
+description: "Source of truth (algorithms, API, DB): image-scoring-backend docs/features/planned/embeddings/ — start with EMBEDDINGAPPLICATIONS.md and EMBEDDINGAPPLICATIONSINDEX.md. Do not dupli"
+resource: "docs/features/planned/embeddings/README.md"
+tags: ["embeddings", "features", "gallery-docs", "index", "planned"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Embedding Applications — gallery hub
 
 **Source of truth (algorithms, API, DB):** **[image-scoring-backend `docs/features/planned/embeddings/`](https://github.com/synthet/image-scoring-backend/tree/main/docs/plans/embedding)** — start with [`EMBEDDING_APPLICATIONS.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/planned/embeddings/EMBEDDING_APPLICATIONS.md) and [`EMBEDDING_APPLICATIONS_INDEX.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/planned/embeddings/EMBEDDING_APPLICATIONS_INDEX.md). Do not duplicate long backend prose here.

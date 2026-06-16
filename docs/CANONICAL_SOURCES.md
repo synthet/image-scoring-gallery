@@ -1,3 +1,12 @@
+---
+type: "Documentation"
+title: "Canonical Sources"
+description: "Use this map before changing integration contracts, renderer labels, database access, IPC boundaries, or RAW/export behavior."
+resource: "docs/CANONICAL_SOURCES.md"
+tags: ["gallery-docs"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Canonical Sources
 
 Use this map before changing integration contracts, renderer labels, database access, IPC boundaries, or RAW/export behavior.

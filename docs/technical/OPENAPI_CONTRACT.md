@@ -1,3 +1,12 @@
+---
+type: "Technical Reference"
+title: "OpenAPI Contract (Gallery Consumer)"
+description: "Driftara Gallery does not define its own REST OpenAPI spec. The canonical contract is owned by image-scoring-backend:"
+resource: "docs/technical/OPENAPI_CONTRACT.md"
+tags: ["gallery-docs", "technical"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # OpenAPI Contract (Gallery Consumer)
 
 Driftara Gallery does **not** define its own REST OpenAPI spec. The canonical contract is owned by **image-scoring-backend**:

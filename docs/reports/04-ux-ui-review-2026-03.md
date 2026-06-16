@@ -1,3 +1,12 @@
+---
+type: "Report"
+title: "UX/UI Review — Driftara Gallery (2026-03)"
+description: "This review covers the primary desktop workflow:"
+resource: "docs/reports/04-ux-ui-review-2026-03.md"
+tags: ["gallery-docs", "reports"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # UX/UI Review — Driftara Gallery (2026-03)
 
 ## Scope

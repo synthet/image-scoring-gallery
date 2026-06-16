@@ -1,3 +1,12 @@
+---
+type: "Index"
+title: "Planned Features"
+description: "Documentation for features not yet implemented."
+resource: "docs/features/planned/README.md"
+tags: ["features", "gallery-docs", "index", "planned"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Planned Features
 
 Documentation for features not yet implemented.

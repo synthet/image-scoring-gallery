@@ -1,3 +1,12 @@
+---
+type: "Index"
+title: "Planning"
+description: "Roadmap, migration plans, and task tracking."
+resource: "docs/planning/README.md"
+tags: ["gallery-docs", "index", "planning"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Planning
 
 Roadmap, migration plans, and task tracking.

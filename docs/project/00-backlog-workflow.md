@@ -1,3 +1,12 @@
+---
+type: "Planning"
+title: "Backlog workflow — claiming work, tracking status, keeping the queue truthful"
+description: "The canonical task queue is the GitHub Project board:"
+resource: "docs/project/00-backlog-workflow.md"
+tags: ["gallery-docs", "project"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Backlog workflow — claiming work, tracking status, keeping the queue truthful
 
 The canonical task queue is the **GitHub Project board**:

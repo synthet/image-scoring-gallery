@@ -1,3 +1,12 @@
+---
+type: "Planning"
+title: "Gradio → Electron Migration Plan: Processing Workspace"
+description: "Last Updated: Mar 15, 2026."
+resource: "docs/planning/04-gradio-to-electron-processing-migration.md"
+tags: ["gallery-docs", "planning"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Gradio → Electron Migration Plan: Processing Workspace
 
 Last Updated: Mar 15, 2026.

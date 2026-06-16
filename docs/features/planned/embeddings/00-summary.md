@@ -1,3 +1,12 @@
+---
+type: "Planned Feature"
+title: "Integrating image_embedding Features into Electron App"
+description: "Based on the backend embedding applications plan for leveraging MobileNetV2 1280-d feature vectors, this document summarizes how the image-scoring-gallery frontend will expose thes"
+resource: "docs/features/planned/embeddings/00-summary.md"
+tags: ["embeddings", "features", "gallery-docs", "planned"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Integrating `image_embedding` Features into Electron App
 
 Based on the [backend embedding applications](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/planned/embeddings/EMBEDDING_APPLICATIONS.md) plan for leveraging MobileNetV2 1280-d feature vectors, this document summarizes how the `image-scoring-gallery` frontend will expose these capabilities.

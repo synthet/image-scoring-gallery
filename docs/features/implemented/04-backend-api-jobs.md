@@ -1,3 +1,12 @@
+---
+type: "Implemented Feature"
+title: "Backend API and jobs (Electron integration)"
+description: "Purpose: Start and monitor scoring, tagging, clustering, and pipeline work on the Python WebUI from the Electron main process, and surface job queue / recent jobs / scope tree data"
+resource: "docs/features/implemented/04-backend-api-jobs.md"
+tags: ["features", "gallery-docs", "implemented"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Backend API and jobs (Electron integration)
 
 **Purpose:** Start and monitor **scoring**, **tagging**, **clustering**, and **pipeline** work on the Python WebUI from the Electron main process, and surface **job queue** / **recent jobs** / **scope tree** data in the UI.

@@ -1,3 +1,12 @@
+---
+type: "Technical Reference"
+title: "Database Refactor Compatibility Analysis"
+description: "This document analyzes the impact of the proposed DBVECTORSREFACTOR.md on the image-scoring-gallery (Electron) application."
+resource: "docs/technical/DATABASE_REFACTOR_ANALYSIS.md"
+tags: ["gallery-docs", "technical"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Database Refactor Compatibility Analysis
 
 ## Overview

@@ -1,3 +1,12 @@
+---
+type: "Planned Feature"
+title: "01 - Diversity-Aware Selection (Frontend)"
+description: "Status: Implemented"
+resource: "docs/features/planned/embeddings/01-diversity-selection.md"
+tags: ["embeddings", "features", "gallery-docs", "planned"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # 01 - Diversity-Aware Selection (Frontend)
 
 *Status: **Implemented***
