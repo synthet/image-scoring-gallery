@@ -4,6 +4,14 @@ import type {
     AgentCullReviewGroupDetail,
     AgentCullReviewGroupSummary,
 } from '../../types/agentCullReview';
+import {
+    analyticsChipClassName,
+    formatAgentActionError,
+    friendlyAgentCandidateStatus,
+    friendlyAgentDecision,
+    friendlyAgentError,
+    friendlyAgentGroupStatus,
+} from './analyticsChipLabels';
 import styles from './CullingAnalytics.module.css';
 
 interface Props {
@@ -18,30 +26,10 @@ interface Props {
  * endpoints instead return `{ ok: false, error }` with HTTP 200, so we match
  * the raw string for known codes. See gallery issue #136.
  */
-const KNOWN_ERRORS: Record<string, string> = {
-    stale_group_state:
-        'Picks changed since this review was generated. Re-run the dry-run review to refresh recommendations before applying.',
-    dry_run_group:
-        'This is a dry-run review — candidates can’t be marked. Re-run the review without dry-run to apply.',
-    agent_review_disabled: 'Agent cull review is disabled in the backend configuration.',
-};
-
-function friendlyAgentError(raw: string): string {
-    for (const [code, msg] of Object.entries(KNOWN_ERRORS)) {
-        if (raw.includes(code)) return msg;
-    }
-    // HTTP 409 without a recognized body still means the group went stale.
-    if (raw.includes('HTTP 409') || raw.includes(' 409')) return KNOWN_ERRORS.stale_group_state;
-    return raw;
-}
 
 /** Extracts an error code from a `{ ok: false, error }` action result, if present. */
 function resultError(result: unknown): string | null {
-    if (result && typeof result === 'object') {
-        const r = result as { ok?: boolean; error?: string };
-        if (r.ok === false) return r.error ?? 'unknown_error';
-    }
-    return null;
+    return formatAgentActionError(result);
 }
 
 async function loadReviewData(stackId: number, subStackId: number | null | undefined) {
@@ -196,7 +184,7 @@ export function AgentCullReviewPanel({ stackId, subStackId = null }: Props) {
                     Dry run
                 </span>
             )}
-            <span className={styles.chip}>Status: {latest.status}</span>
+            <span className={styles.chip}>Status: {friendlyAgentGroupStatus(latest.status)}</span>
             {latest.group_confidence != null && (
                 <span className={styles.chip}>
                     Confidence: {Number(latest.group_confidence).toFixed(2)}
@@ -227,12 +215,18 @@ export function AgentCullReviewPanel({ stackId, subStackId = null }: Props) {
                         <li key={rec.id} data-testid={`agent-cull-rec-${rec.image_id}`}>
                             <strong>Image {rec.image_id}</strong>
                             {' — '}
-                            {rec.final_decision}
+                            {friendlyAgentDecision(rec.final_decision)}
                             {rec.confidence != null && ` (${Number(rec.confidence).toFixed(2)})`}
                             {rec.reason && `: ${rec.reason}`}
-                            {rec.candidate_status !== 'none' && (
-                                <span className={styles.chip}> {rec.candidate_status}</span>
-                            )}
+                            {rec.candidate_status !== 'none' && (() => {
+                                const candidate = friendlyAgentCandidateStatus(rec.candidate_status);
+                                return (
+                                    <span className={analyticsChipClassName(styles, candidate.warn)}>
+                                        {' '}
+                                        {candidate.text}
+                                    </span>
+                                );
+                            })()}
                             <div className={styles.actionRow}>
                                 {rec.final_decision === 'remove' && (
                                     <button
