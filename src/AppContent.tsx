@@ -795,6 +795,7 @@ function AppContent() {
                 onDelete={handleImageDelete}
                 onOpenImageById={openImageById}
                 onOpenFolder={(folderId) => {
+                  setToolView(null);
                   handleNavigateToFolder(folderId);
                   closeViewer();
                 }}

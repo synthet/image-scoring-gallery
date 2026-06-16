@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { CullingAnalyticsResponse } from '../../types/cullingAnalytics';
+import {
+    analyticsChipClassName,
+    formatAnalyticsWarning,
+    formatDecisionChip,
+    type AnalyticsChip,
+} from './analyticsChipLabels';
 import styles from './CullingAnalytics.module.css';
 
 interface Props {
@@ -49,39 +55,56 @@ export function StackAnalyticsBanner({ stackId }: Props) {
     const emb = data.embeddings as { avg_cosine_similarity?: number; visually_mixed?: boolean } | undefined;
     const warnings = data.warnings ?? [];
 
-    const chips: { text: string; warn?: boolean }[] = [];
+    const chips: AnalyticsChip[] = [];
     const decisions = data.decisions;
     if (decisions) {
         const pick = Number(decisions.pick ?? 0);
         const reject = Number(decisions.reject ?? 0);
         const neutral = Number(decisions.neutral ?? 0);
         if (pick > 0) {
-            chips.push({ text: `Pick ${pick}` });
+            chips.push(formatDecisionChip('pick', pick));
         }
         if (reject > 0) {
-            chips.push({ text: `Reject ${reject}`, warn: true });
+            chips.push(formatDecisionChip('reject', reject));
         }
         if (neutral > 0) {
-            chips.push({ text: `Neutral ${neutral}` });
+            chips.push(formatDecisionChip('neutral', neutral));
         }
     }
     if (gap !== undefined && gap !== null) {
-        chips.push({ text: `Top gap: ${Number(gap).toFixed(3)}` });
+        chips.push({
+            key: 'score-gap',
+            text: `Top score gap: ${Number(gap).toFixed(2)}`,
+        });
     }
     if (emb?.avg_cosine_similarity !== undefined) {
         chips.push({
-            text: `Visual sim: ${Number(emb.avg_cosine_similarity).toFixed(2)}`,
+            key: 'visual-sim',
+            text: `Visual similarity: ${Number(emb.avg_cosine_similarity).toFixed(2)}`,
             warn: Boolean(emb.visually_mixed),
         });
     }
     if (exposure?.likely_burst) {
-        chips.push({ text: 'Likely burst' });
+        chips.push({ key: 'likely-burst', text: 'Likely burst' });
     }
+
+    const seenWarnings = new Set<string>();
+    const addWarningChip = (raw: string) => {
+        if (seenWarnings.has(raw)) return;
+        seenWarnings.add(raw);
+        const formatted = formatAnalyticsWarning(raw);
+        chips.push({
+            key: `warning-${raw}`,
+            text: formatted.text,
+            warn: formatted.warn,
+        });
+    };
+
     for (const w of exposure?.warnings ?? []) {
-        chips.push({ text: w, warn: true });
+        addWarningChip(w);
     }
-    for (const w of warnings.slice(0, 2)) {
-        chips.push({ text: w, warn: true });
+    for (const w of warnings) {
+        addWarningChip(w);
     }
 
     if (chips.length === 0) {
@@ -91,7 +114,7 @@ export function StackAnalyticsBanner({ stackId }: Props) {
     return (
         <div className={styles.banner} role="status" aria-label="Stack analytics">
             {chips.map((c) => (
-                <span key={c.text} className={c.warn ? styles.chipWarn : styles.chip}>
+                <span key={c.key} className={analyticsChipClassName(styles, c.warn)}>
                     {c.text}
                 </span>
             ))}

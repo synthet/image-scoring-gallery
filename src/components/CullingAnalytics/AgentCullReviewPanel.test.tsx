@@ -192,6 +192,36 @@ describe('AgentCullReviewPanel', () => {
         expect(err.textContent).toMatch(/dry-run review/i);
     });
 
+    it('surfaces skip_reason for no_eligible_unit from run action', async () => {
+        const runAgentCullReview = vi.fn().mockResolvedValue({
+            ok: false,
+            error: 'no_eligible_unit',
+            skip_reason: 'group_too_large',
+        });
+        Object.defineProperty(window, 'electron', {
+            configurable: true,
+            value: {
+                api: {
+                    getAgentCullGroups: vi.fn().mockResolvedValue({ groups: [] }),
+                    runAgentCullReview,
+                    getAgentCullGroup: vi.fn(),
+                    approveAgentCullGroup: vi.fn(),
+                    rejectAgentCullGroup: vi.fn(),
+                    rollbackAgentCullRecommendation: vi.fn(),
+                    applyAgentCullCandidates: vi.fn(),
+                    updateImagePickStatus: vi.fn(),
+                },
+            },
+        });
+
+        render(<AgentCullReviewPanel stackId={1} subStackId={3} />);
+        const runBtn = await screen.findByTestId('agent-cull-run-review');
+        fireEvent.click(runBtn);
+        const err = await screen.findByTestId('agent-cull-error');
+        expect(err.textContent).toMatch(/configured max size/i);
+        expect(err.textContent).not.toContain('no_eligible_unit');
+    });
+
     it('calls IPC approve bridge without delete', async () => {
         const approve = vi.fn().mockResolvedValue({ updated: 1 });
         const getAgentCullGroup = vi.fn().mockResolvedValue({

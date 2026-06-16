@@ -4,6 +4,19 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+### Fixed
+
+- **Sync no longer strands photos**: The below-threshold quick-skip in `runSyncFromSource` skipped any file whose destination already existed on disk without checking the database, so files copied by an interrupted import were skipped on every subsequent Sync and never imported. Sync now verifies DB membership before skipping and falls through to import on-disk-but-unindexed files. Re-running Sync recovers previously stranded dates (#142, #143).
+- **Reveal in Explorer respects selection**: When both a sidebar folder and a viewer image are active, Reveal in Explorer opens the selected folder instead of the image, matching the menu's enabled condition (#117, #140).
+
+### Removed
+
+- **Culling analytics IPC surface**: Retired the internal culling-analytics IPC channels; supported non-IPC analytics helpers remain (#141).
+
+### Changed
+
+- **OpenAPI contract**: Re-synced `api-contract/openapi.json` and `electron/api.generated.ts` with the backend snapshot (149 paths) to keep the CI contract-drift gate passing.
+
 ## [7.18.0] - 2026-06-14
 
 ### Added
