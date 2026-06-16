@@ -9,6 +9,10 @@ Use for periodic maintenance or when docs feel stale or disorganized. Finds stru
 
 ## Steps
 
+0. **Run automated OKF lint** (from sibling **image-scoring-backend** repo root):
+   - `python scripts/okf_lint.py ../image-scoring-gallery/docs --profile vexlum --bundle-name docs`
+   Use findings as the starting point for manual review below.
+
 1. **Orphan scan** — List all `.md` files under `docs/`. Check each against `docs/README.md` index entries. Report pages not listed in the index.
 2. **OKF frontmatter scan** — Verify every `docs/**/*.md` page has `type`, `title`, `description`, `resource`, `tags`, `timestamp`; confirm `resource` matches the repository-relative path.
 3. **Broken links** — Scan all pages for markdown links. Verify link targets exist (relative paths resolved from the linking file). Report broken links.

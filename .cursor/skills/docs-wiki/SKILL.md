@@ -39,8 +39,17 @@ Required fields:
 | `resource` | Repository-relative path to the Markdown file; update it when moving/renaming pages. |
 | `tags` | Inline list containing `gallery-docs` plus useful folder/topic tags. |
 | `timestamp` | UTC ISO-8601 timestamp refreshed when metadata, meaning, or structure changes materially. |
+| `okf_version` | Recommended: `0.1` per [backend OKF_ADOPTION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/OKF_ADOPTION.md). |
 
 When creating or moving pages, update frontmatter before index/log work. When only fixing links or typos, refresh `timestamp` only if the page meaning or metadata changed.
+
+## Automated lint
+
+From sibling **image-scoring-backend** clone:
+
+```bash
+python scripts/okf_lint.py ../image-scoring-gallery/docs --profile vexlum --bundle-name docs
+```
 
 ## Page Types
 
@@ -90,9 +99,10 @@ Follow the existing format exactly:
 
 ## Validation Expectations
 
-After structural docs work, verify:
+After structural docs work:
 
-- Every `docs/**/*.md` file has the required OKF fields.
+- Run `python scripts/okf_lint.py ../image-scoring-gallery/docs --profile vexlum` from the sibling backend clone.
+- Every `docs/**/*.md` concept file has the required OKF fields (`log.md` exempt).
 - `resource` equals the repository-relative file path.
 - `tags` is an inline list and includes `gallery-docs`.
 - New or moved pages are represented in `docs/README.md` and, where applicable, local section indexes.

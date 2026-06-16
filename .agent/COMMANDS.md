@@ -34,6 +34,10 @@ From [AGENTS.md](../AGENTS.md), [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md), a
 ## Docs / wiki
 
 - [docs/CANONICAL_SOURCES.md](../docs/CANONICAL_SOURCES.md), [docs/WIKI_SCHEMA.md](../docs/WIKI_SCHEMA.md)
+- OKF profile authority: [backend OKF_ADOPTION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/OKF_ADOPTION.md)
+- OKF lint (sibling backend): `python scripts/okf_lint.py ../image-scoring-gallery/docs --profile vexlum --bundle-name docs`
+- CI: gallery `test-and-contract.yml` runs the same lint via cloned backend
+- Slash commands: `/wiki-ingest`, `/wiki-lint`, `/wiki-query`
 - After wiki edits: append [docs/log.md](../docs/log.md)
 
 ## MCP / support
