@@ -1,3 +1,12 @@
+---
+type: "Implemented Feature"
+title: "NEF/RAW preview fallback"
+description: "Purpose: Show Nikon NEF and other RAW files in the desktop viewer when a normal bitmap path is unavailable, using a tiered strategy (embedded preview, LibRaw/exiftool paths, then b"
+resource: "docs/features/implemented/01-nef-raw-fallback.md"
+tags: ["features", "gallery-docs", "implemented"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # NEF/RAW preview fallback
 
 **Purpose:** Show **Nikon NEF** and other RAW files in the desktop viewer when a normal bitmap path is unavailable, using a tiered strategy (embedded preview, LibRaw/exiftool paths, then backend JPEG).

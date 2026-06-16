@@ -1,3 +1,12 @@
+---
+type: "Guide"
+title: "API Backend Configuration"
+description: "This gallery can discover the Python backend automatically, but you can also pin or redirect it with config.json."
+resource: "docs/guides/02-api-backend-config.md"
+tags: ["gallery-docs", "guides"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # API Backend Configuration
 
 This gallery can discover the Python backend automatically, but you can also pin or redirect it with `config.json`.

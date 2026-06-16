@@ -1,3 +1,12 @@
+---
+type: "Index"
+title: "Architecture"
+description: "Core system design and high-level technical overviews."
+resource: "docs/architecture/README.md"
+tags: ["architecture", "gallery-docs", "index"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Architecture
 
 Core system design and high-level technical overviews.

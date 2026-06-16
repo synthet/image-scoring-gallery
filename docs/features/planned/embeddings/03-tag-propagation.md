@@ -1,3 +1,12 @@
+---
+type: "Planned Feature"
+title: "03 - Tag Propagation (Frontend)"
+description: "Status: Planned"
+resource: "docs/features/planned/embeddings/03-tag-propagation.md"
+tags: ["embeddings", "features", "gallery-docs", "planned"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # 03 - Tag Propagation (Frontend)
 
 *Status: **Planned***

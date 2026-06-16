@@ -1,3 +1,12 @@
+---
+type: "Planned Feature"
+title: "Windows Native Image Gallery Viewer - Implementation Plan"
+description: "A native Windows application (C++/Win32) that provides fast, native file browsing for images stored in the scoringhistory.db database. The app mimics the Python Gallery feature but"
+resource: "docs/features/planned/01-windows-native-viewer.md"
+tags: ["features", "gallery-docs", "planned"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Windows Native Image Gallery Viewer - Implementation Plan
 
 ## Overview

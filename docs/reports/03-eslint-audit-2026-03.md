@@ -1,3 +1,12 @@
+---
+type: "Report"
+title: "ESLint Audit Report"
+description: "Date: 2026-03-04"
+resource: "docs/reports/03-eslint-audit-2026-03.md"
+tags: ["gallery-docs", "reports"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # ESLint Audit Report
 
 **Date:** 2026-03-04  

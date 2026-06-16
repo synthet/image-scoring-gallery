@@ -1,3 +1,12 @@
+---
+type: "Planned Feature"
+title: "04 - Outlier Detection (Frontend)"
+description: "Status: Planned"
+resource: "docs/features/planned/embeddings/04-outlier-detection.md"
+tags: ["embeddings", "features", "gallery-docs", "planned"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # 04 - Outlier Detection (Frontend)
 
 *Status: **Planned***

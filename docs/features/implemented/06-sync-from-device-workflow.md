@@ -1,3 +1,12 @@
+---
+type: "Implemented Feature"
+title: "Sync from device (Electron workflow)"
+description: "End-to-end behavior of File → Sync in Driftara Gallery: filesystem scan, optional copy into the configured photo tree, direct PostgreSQL registration, and backend pipeline submissi"
+resource: "docs/features/implemented/06-sync-from-device-workflow.md"
+tags: ["features", "gallery-docs", "implemented"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Sync from device (Electron workflow)
 
 End-to-end behavior of **File → Sync** in Driftara Gallery: filesystem scan, optional copy into the configured photo tree, direct PostgreSQL registration, and backend pipeline submission. Use this page when debugging progress UI, IPC, or “why counts don’t match.”

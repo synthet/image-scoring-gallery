@@ -1,3 +1,12 @@
+---
+type: "Planning"
+title: "Gallery visual improvements (implementation index)"
+description: "Audit: reports/gallery-visual-review/2026-05-31.md"
+resource: "docs/planning/GALLERY_VISUAL_IMPROVEMENTS.md"
+tags: ["gallery-docs", "planning"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Gallery visual improvements (implementation index)
 
 **Audit:** [reports/gallery-visual-review/2026-05-31.md](../../reports/gallery-visual-review/2026-05-31.md)  

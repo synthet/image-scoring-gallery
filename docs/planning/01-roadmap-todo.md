@@ -1,3 +1,12 @@
+---
+type: "Planning"
+title: "Roadmap TODO — Driftara Gallery (retired)"
+description: "The canonical task queue is the GitHub Project board:"
+resource: "docs/planning/01-roadmap-todo.md"
+tags: ["gallery-docs", "planning"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Roadmap TODO — Driftara Gallery (retired)
 
 The canonical task queue is the **GitHub Project board**:
