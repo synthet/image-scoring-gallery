@@ -1,3 +1,12 @@
+---
+type: "Technical Reference"
+title: "Embedding spaces (gallery reference)"
+description: "Gallery-facing map of which backend embedding spaces exist, which the desktop app reads today, and which are backend-only opt-in towers — so agents do not assume DINOv2, SigLIP2, o"
+resource: "docs/technical/EMBEDDING_SPACES.md"
+tags: ["gallery-docs", "technical"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Embedding spaces (gallery reference)
 
 Gallery-facing map of **which backend embedding spaces exist**, **which the desktop app reads today**, and **which are backend-only opt-in towers** — so agents do not assume DINOv2, SigLIP2, or OpenAI CLIP L/14 are in the production path.

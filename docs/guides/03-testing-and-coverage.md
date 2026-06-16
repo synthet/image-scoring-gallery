@@ -1,3 +1,12 @@
+---
+type: "Guide"
+title: "Testing and Coverage Guide"
+description: "This project uses Vitest for unit/integration tests and V8 coverage reporting."
+resource: "docs/guides/03-testing-and-coverage.md"
+tags: ["gallery-docs", "guides"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Testing and Coverage Guide
 
 This project uses Vitest for unit/integration tests and V8 coverage reporting.

@@ -1,3 +1,12 @@
+---
+type: "Log"
+title: "Agent-assisted cull review — gallery worklog"
+description: "Gallery/Electron side of the agent-assisted cull review feature. Backend spec & worklog:"
+resource: "docs/specs/agent-assisted-cull-review/worklog.md"
+tags: ["agent-assisted-cull-review", "gallery-docs", "specs"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Agent-assisted cull review — gallery worklog
 
 Gallery/Electron side of the agent-assisted cull review feature. Backend spec & worklog:

@@ -1,3 +1,12 @@
+---
+type: "Implemented Feature"
+title: "JPEG export and EXIF orientation"
+description: "Purpose: Document why File → Export must produce a JPEG whose pixels match the on-screen preview and whose EXIF Orientation is 1 (or absent), so system viewers (e.g. Windows Photos"
+resource: "docs/features/implemented/05-jpeg-export-exif-orientation.md"
+tags: ["features", "gallery-docs", "implemented"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # JPEG export and EXIF orientation
 
 **Purpose:** Document why **File → Export** must produce a JPEG whose **pixels** match the on-screen preview and whose **EXIF Orientation is 1** (or absent), so system viewers (e.g. Windows Photos) do not apply a second rotation.

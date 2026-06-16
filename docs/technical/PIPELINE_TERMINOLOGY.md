@@ -1,3 +1,12 @@
+---
+type: "Technical Reference"
+title: "Pipeline terminology (Electron gallery)"
+description: "This app mirrors the canonical stage names defined in image-scoring-backend so labels match the Gradio Pipeline tab and the backend Vite SPA (/ui/)."
+resource: "docs/technical/PIPELINE_TERMINOLOGY.md"
+tags: ["gallery-docs", "technical"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Pipeline terminology (Electron gallery)
 
 This app mirrors the **canonical stage names** defined in **image-scoring-backend** so labels match the Gradio Pipeline tab and the backend Vite SPA (`/ui/`).

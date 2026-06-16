@@ -1,3 +1,12 @@
+---
+type: "Technical Reference"
+title: "Agent Coordination (stub)"
+description: "Cross-project integration rules for image-scoring-gallery ↔ image-scoring-backend are maintained in a single canonical document in the backend repo:"
+resource: "docs/technical/AGENT_COORDINATION.md"
+tags: ["gallery-docs", "technical"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Agent Coordination (stub)
 
 Cross-project integration rules for **image-scoring-gallery** ↔ **image-scoring-backend** are maintained in a **single canonical document** in the backend repo:

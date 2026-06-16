@@ -1,3 +1,12 @@
+---
+type: "Planned Feature"
+title: "08 - Python Pipeline Integration (Gradio & Headless)"
+description: "Status: In Progress"
+resource: "docs/features/planned/embeddings/08-gradio-integration.md"
+tags: ["embeddings", "features", "gallery-docs", "planned"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # 08 - Python Pipeline Integration (Gradio & Headless)
 
 *Status: **In Progress***

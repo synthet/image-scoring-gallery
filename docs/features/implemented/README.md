@@ -1,3 +1,12 @@
+---
+type: "Index"
+title: "Implemented Features"
+description: "Documentation for features that are currently implemented and in use."
+resource: "docs/features/implemented/README.md"
+tags: ["features", "gallery-docs", "implemented", "index"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Implemented Features
 
 Documentation for features that are currently implemented and in use.

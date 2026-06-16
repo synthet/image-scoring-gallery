@@ -1,3 +1,12 @@
+---
+type: "Implemented Feature"
+title: "Culling stack analytics (Driftara Gallery)"
+description: "Status: Implemented (MVP)"
+resource: "docs/features/implemented/06-culling-stack-analytics.md"
+tags: ["features", "gallery-docs", "implemented"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Culling stack analytics (Driftara Gallery)
 
 **Status:** Implemented (MVP)  

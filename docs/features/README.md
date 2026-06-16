@@ -1,3 +1,12 @@
+---
+type: "Index"
+title: "Features"
+description: "Documentation for implemented and planned features."
+resource: "docs/features/README.md"
+tags: ["features", "gallery-docs", "index"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Features
 
 Documentation for implemented and planned features.

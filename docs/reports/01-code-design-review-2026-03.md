@@ -1,3 +1,12 @@
+---
+type: "Report"
+title: "Frontend Code & Design Review Report"
+description: "Date: 2026-03-02"
+resource: "docs/reports/01-code-design-review-2026-03.md"
+tags: ["gallery-docs", "reports"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Frontend Code & Design Review Report
 ## image-scoring-gallery v3.24.1
 

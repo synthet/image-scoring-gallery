@@ -1,3 +1,12 @@
+---
+type: "Planning"
+title: "Database Connection Abstraction Layer"
+description: "> Status (2026-04): Implemented in electron/db/provider.ts. Firebird and node-firebird have been removed from the Electron app; production uses PostgresConnector (pg) or ApiConnect"
+resource: "docs/planning/db_abstraction_layer.md"
+tags: ["gallery-docs", "planning"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Database Connection Abstraction Layer
 
 > **Status (2026-04):** Implemented in **`electron/db/provider.ts`**. Firebird and `node-firebird` have been **removed** from the Electron app; production uses **`PostgresConnector`** (`pg`) or **`ApiConnector`** (HTTP SQL to the backend). This note is kept for historical context; see [02-database-design.md](../architecture/02-database-design.md) and [02-firebird-postgresql-migration.md](02-firebird-postgresql-migration.md).

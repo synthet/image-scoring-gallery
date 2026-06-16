@@ -1,3 +1,12 @@
+---
+type: "Architecture"
+title: "Database Design"
+description: "PostgreSQL + pgvector is the primary database architecture. The backend owns schema and migrations; the gallery consumes that schema from the Electron main process."
+resource: "docs/architecture/02-database-design.md"
+tags: ["architecture", "gallery-docs"]
+timestamp: 2026-06-16T00:00:00Z
+---
+
 # Database Design
 
 PostgreSQL + pgvector is the primary database architecture. The backend owns schema and migrations; the gallery consumes that schema from the Electron main process.
