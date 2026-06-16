@@ -20,7 +20,7 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | backlog-queue | `.cursor/skills/backlog-queue/SKILL.md` | Cross-repo GitHub Project board contract (claim, transition, file) | L1 | Yes | 2026-04-28 |
 | changelog-commit-push | `.cursor/skills/changelog-commit-push/SKILL.md` | CHANGELOG, commit, push | L2 | — | 2026-04-25 |
 | commit-conventions | `.cursor/skills/commit-conventions/SKILL.md` | Conventional Commits / PR titles | L1 | — | 2026-04-25 |
-| docs-wiki | `.cursor/skills/docs-wiki/SKILL.md` | `docs/` wiki conventions | L1 | — | 2026-04-25 |
+| docs-wiki | `.cursor/skills/docs-wiki/SKILL.md` | OKF-style `docs/` wiki conventions | L1 | — | 2026-06-16 |
 | gallery-electron-ts | `.cursor/skills/gallery-electron-ts/SKILL.md` | Electron / TS / db contract | L1 | — | 2026-04-25 |
 | security-review | `.cursor/skills/security-review/SKILL.md` | Pre-merge security sanity | L1 | — | 2026-04-25 |
 | subagent-review | `.cursor/skills/subagent-review/SKILL.md` | External Codex/Gemini review via subagent-orchestrator MCP | L2 | Yes | 2026-05-26 |
