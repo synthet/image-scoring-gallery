@@ -17,7 +17,8 @@ These conventions apply when creating, updating, or reorganizing pages in `docs/
 ## Page structure
 
 - Every page starts with YAML frontmatter, followed by a blank line and then a `# Title` header.
-- Required frontmatter fields for `docs/**/*.md`: `type`, `title`, `description`, `resource`, `tags`, `timestamp`.
+- Required frontmatter fields for `docs/**/*.md`: `type`, `title`, `description`, `resource`, `tags`, `timestamp`; recommend `okf_version: 0.1`.
+- Profile authority: [backend OKF_ADOPTION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/OKF_ADOPTION.md).
 - `resource` must be the repository-relative Markdown path and must change when a page moves.
 - `title` should match the page H1 unless there is a specific reason to expose a shorter machine-readable title.
 - `description` should be a concise one-sentence summary suitable for search results and agent routing.
@@ -81,4 +82,4 @@ Map to existing category subdirectories:
 
 - When updating a page, check date or version references. If information contradicts current code, fix it or add a dated note.
 - Pages with "Last evaluated" markers should be re-evaluated when the referenced area changes.
-- Run or emulate the OKF frontmatter validation from `docs/WIKI_SCHEMA.md` after structural docs work: every `docs/**/*.md` page should have required fields, and `resource` should match its file path.
+- Run OKF lint from sibling backend: `python scripts/okf_lint.py ../image-scoring-gallery/docs --profile vexlum --bundle-name docs`

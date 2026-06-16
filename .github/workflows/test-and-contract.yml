@@ -53,6 +53,24 @@ jobs:
         run: |
           echo "::warning::docs/guides/README.md is out of sync with docs/guides/*.md. Run 'node scripts/check-guides-index.mjs' and update the index links."
 
+      - name: Setup Python for OKF docs lint
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PyYAML for OKF lint
+        run: python -m pip install pyyaml
+
+      - name: Fetch backend OKF linter
+        run: git clone --depth 1 https://github.com/synthet/image-scoring-backend ../image-scoring-backend
+
+      - name: OKF lint gallery docs
+        run: >
+          python ../image-scoring-backend/scripts/okf_lint.py docs
+          --profile vexlum
+          --bundle-name docs
+          --fail-on error
+
       - name: Fetch backend OpenAPI snapshot source
         run: git clone --depth 1 https://github.com/synthet/image-scoring-backend ../image-scoring-backend
 

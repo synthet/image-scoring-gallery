@@ -4,6 +4,12 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.19.0] - 2026-06-16
+
+### Added
+
+- **OKF docs CI gate**: `test-and-contract.yml` runs shared OKF lint on `docs/` via cloned backend `scripts/okf_lint.py`; `docs/WIKI_SCHEMA.md` aligned with backend OKF profile (`okf_version`, cross-repo authority link).
+
 ### Fixed
 
 - **Sync no longer strands photos**: The below-threshold quick-skip in `runSyncFromSource` skipped any file whose destination already existed on disk without checking the database, so files copied by an interrupted import were skipped on every subsequent Sync and never imported. Sync now verifies DB membership before skipping and falls through to import on-disk-but-unindexed files. Re-running Sync recovers previously stranded dates (#142, #143).
