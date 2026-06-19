@@ -72,7 +72,12 @@ jobs:
           --fail-on error
 
       - name: Fetch backend OpenAPI snapshot source
-        run: git clone --depth 1 https://github.com/synthet/image-scoring-backend ../image-scoring-backend
+        # Reuses the clone from "Fetch backend OKF linter" above; clone only if absent
+        # (cloning into the existing path fails with exit 128).
+        run: |
+          if [ ! -d ../image-scoring-backend/.git ]; then
+            git clone --depth 1 https://github.com/synthet/image-scoring-backend ../image-scoring-backend
+          fi
 
       # Canonical gate: contract:check fails when generated contract files drift from source API types.
       # This blocks merges until contract artifacts are updated and committed.
