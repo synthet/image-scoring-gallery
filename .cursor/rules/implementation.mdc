@@ -18,5 +18,5 @@ alwaysApply: false
 
 ## Quality bar
 
-- Add or update tests when behavior changes in non-trivial ways (follow project conventions in AGENTS.md).
+- **Tests-first:** write failing test stubs from the plan/spec acceptance criteria and confirm they fail *before* implementing, then implement until they pass (see `/implement`). Never assume generated code works until it has been executed.
 - Handle errors in a way consistent with surrounding code (no silent swallowing unless intentional).

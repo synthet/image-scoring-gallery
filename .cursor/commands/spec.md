@@ -13,12 +13,12 @@ Use when starting non-trivial work. Produce a **spec** the team can review befor
 2. **Users / stakeholders** — Who benefits.
 3. **Non-goals** — What is explicitly out of scope.
 4. **User stories** — Short “As a … I want … so that …” bullets.
-5. **Acceptance criteria** — Checkable bullets (Given/When/Then or “When X, then Y”).
+5. **Acceptance criteria** — Each criterion **must** be written in **Given/When/Then** or **“When X → assert Y”** form so it maps 1:1 to a test assertion. No prose-only criteria.
 6. **Open questions** — Unknowns and decisions needed from humans.
 
 ## Done when
 
-- Criteria are testable without interpreting intent.
+- Every criterion is directly translatable to a runnable test assertion without interpretation.
 - Non-goals prevent scope creep.
 
 ## Optional
