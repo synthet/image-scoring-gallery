@@ -1,0 +1,10 @@
+{
+  "_comment": "Antigravity: copy to mcp_config.json (gitignored) or merge into Antigravity MCP settings.",
+  "mcpServers": {
+    "is-ui-mcp": {
+      "command": "node",
+      "args": ["mcp-server/dist/compactIndex.js"],
+      "cwd": "."
+    }
+  }
+}

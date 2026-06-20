@@ -13,6 +13,149 @@ interface ToolResult {
     isError?: boolean;
 }
 
+type MouseButton = "left" | "middle" | "right";
+
+function err(text: string): ToolResult {
+    return { content: [{ type: "text", text }], isError: true };
+}
+
+function okText(text: string): ToolResult {
+    return { content: [{ type: "text", text }] };
+}
+
+function clampInt(n: unknown, min: number, max: number, fallback: number): number {
+    const v = typeof n === "number" && Number.isFinite(n) ? Math.trunc(n) : fallback;
+    return Math.max(min, Math.min(max, v));
+}
+
+async function evalJson<T>(expression: string): Promise<T> {
+    const result = (await sendCdpCommand("Runtime.evaluate", {
+        expression,
+        returnByValue: true,
+        awaitPromise: true,
+    })) as {
+        result: { type: string; value?: unknown; description?: string; subtype?: string };
+        exceptionDetails?: { text: string; exception?: { description?: string } };
+    };
+
+    if (result.exceptionDetails) {
+        const errMsg = result.exceptionDetails.exception?.description || result.exceptionDetails.text;
+        throw new Error(`JS Error: ${errMsg}`);
+    }
+    return result.result.value as T;
+}
+
+async function getSelectorInfo(selector: string): Promise<{
+    exists: boolean;
+    visible: boolean;
+    box: { x: number; y: number; width: number; height: number } | null;
+    text: string | null;
+}> {
+    // Avoid JSON/string injection by passing through JSON.stringify.
+    const sel = JSON.stringify(selector);
+    const expr = `
+(() => {
+  const el = document.querySelector(${sel});
+  if (!el) return { exists: false, visible: false, box: null, text: null };
+  const r = el.getBoundingClientRect();
+  const style = window.getComputedStyle(el);
+  const visible =
+    r.width > 0 && r.height > 0 &&
+    style && style.visibility !== 'hidden' && style.display !== 'none' &&
+    style.opacity !== '0';
+  const text = (el instanceof HTMLElement) ? (el.innerText || el.textContent || '') : (el.textContent || '');
+  return {
+    exists: true,
+    visible,
+    box: { x: r.left, y: r.top, width: r.width, height: r.height },
+    text: String(text).slice(0, 5000),
+  };
+})()
+`.trim();
+    return await evalJson(expr);
+}
+
+async function focusSelector(selector: string): Promise<void> {
+    const sel = JSON.stringify(selector);
+    const expr = `
+(() => {
+  const el = document.querySelector(${sel});
+  if (!el) return { ok: false, reason: 'not_found' };
+  if (el instanceof HTMLElement && typeof el.focus === 'function') el.focus();
+  return { ok: true };
+})()
+`.trim();
+    const r = await evalJson<{ ok: boolean; reason?: string }>(expr);
+    if (!r.ok) throw new Error(`Selector not found: ${selector}`);
+}
+
+async function clickSelector(selector: string, button: MouseButton, clickCount: number): Promise<void> {
+    const info = await getSelectorInfo(selector);
+    if (!info.exists || !info.box) throw new Error(`Selector not found: ${selector}`);
+    const x = info.box.x + info.box.width / 2;
+    const y = info.box.y + info.box.height / 2;
+
+    // Best effort: ensure focus before click.
+    await focusSelector(selector).catch(() => undefined);
+
+    await sendCdpCommand("Input.dispatchMouseEvent", {
+        type: "mousePressed",
+        x,
+        y,
+        button,
+        clickCount,
+    });
+    await sendCdpCommand("Input.dispatchMouseEvent", {
+        type: "mouseReleased",
+        x,
+        y,
+        button,
+        clickCount,
+    });
+}
+
+async function pressKey(key: string): Promise<void> {
+    // Minimal keypress: keyDown + keyUp. (text will be handled by insertText path)
+    await sendCdpCommand("Input.dispatchKeyEvent", {
+        type: "keyDown",
+        key,
+    });
+    await sendCdpCommand("Input.dispatchKeyEvent", {
+        type: "keyUp",
+        key,
+    });
+}
+
+async function insertText(text: string): Promise<void> {
+    // Prefer Input.insertText when available in the target.
+    await sendCdpCommand("Input.insertText", { text });
+}
+
+async function fillSelector(selector: string, value: string, clear: boolean): Promise<void> {
+    const sel = JSON.stringify(selector);
+    const val = JSON.stringify(value);
+    const expr = `
+(() => {
+  const el = document.querySelector(${sel});
+  if (!el) return { ok: false, reason: 'not_found' };
+  const isInput = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement;
+  if (!isInput) return { ok: false, reason: 'not_fillable' };
+  el.focus();
+  if (${clear ? "true" : "false"}) el.value = '';
+  el.value = ${val};
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+  return { ok: true };
+})()
+`.trim();
+    const r = await evalJson<{ ok: boolean; reason?: string }>(expr);
+    if (!r.ok) {
+        if (r.reason === "not_found") throw new Error(`Selector not found: ${selector}`);
+        if (r.reason === "not_fillable") throw new Error(`Element is not an <input>/<textarea>: ${selector}`);
+        throw new Error(`Failed to fill selector: ${selector}`);
+    }
+}
+
 export const cdpToolDefs: ToolDef[] = [
     {
         name: "cdp_screenshot",
@@ -57,6 +200,79 @@ export const cdpToolDefs: ToolDef[] = [
             },
         },
     },
+    {
+        name: "cdp_query_selector",
+        description: "Requires electron_cdp. Query selector existence/visibility and bounding box (viewport CSS pixels).",
+        inputSchema: {
+            type: "object",
+            properties: {
+                selector: { type: "string", description: "CSS selector to query (document.querySelector)." },
+            },
+            required: ["selector"],
+        },
+    },
+    {
+        name: "cdp_click",
+        description: "Requires electron_cdp. Click the center of a selector via CDP Input.dispatchMouseEvent.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                selector: { type: "string", description: "CSS selector to click." },
+                button: { type: "string", description: "Mouse button: left|middle|right (default left)." },
+                clickCount: { type: "number", description: "Click count (default 1, max 3)." },
+            },
+            required: ["selector"],
+        },
+    },
+    {
+        name: "cdp_press",
+        description: "Requires electron_cdp. Press a key (keyDown + keyUp).",
+        inputSchema: {
+            type: "object",
+            properties: {
+                key: { type: "string", description: "Key name, e.g. Enter, Escape, ArrowLeft." },
+            },
+            required: ["key"],
+        },
+    },
+    {
+        name: "cdp_type",
+        description: "Requires electron_cdp. Type text into the currently focused element (best-effort).",
+        inputSchema: {
+            type: "object",
+            properties: {
+                text: { type: "string", description: "Text to type via CDP Input.insertText." },
+            },
+            required: ["text"],
+        },
+    },
+    {
+        name: "cdp_fill",
+        description: "Requires electron_cdp. Focus an <input>/<textarea>, set value, dispatch input/change.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                selector: { type: "string", description: "CSS selector for an <input> or <textarea>." },
+                value: { type: "string", description: "Value to set." },
+                clear: { type: "boolean", description: "If true, clear before setting (default false)." },
+            },
+            required: ["selector", "value"],
+        },
+    },
+    {
+        name: "cdp_wait_for",
+        description: "Requires electron_cdp. Wait for selector to be attached or visible.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                selector: { type: "string", description: "CSS selector to wait for." },
+                state: { type: "string", description: "attached|visible (default visible)." },
+                timeout_ms: { type: "number", description: "Timeout in ms (default 5000, max 60000)." },
+                poll_ms: { type: "number", description: "Polling interval in ms (default 100, min 50, max 1000)." },
+            },
+            required: ["selector"],
+        },
+    },
 ];
 
 export async function handleCdpTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
@@ -77,7 +293,7 @@ export async function handleCdpTool(name: string, args: Record<string, unknown>)
         if (name === "cdp_evaluate") {
             const expression = args?.expression as string;
             if (!expression) {
-                return { content: [{ type: "text", text: "Error: 'expression' parameter is required" }], isError: true };
+                return err("Error: 'expression' parameter is required");
             }
 
             const result = (await sendCdpCommand("Runtime.evaluate", {
@@ -91,12 +307,12 @@ export async function handleCdpTool(name: string, args: Record<string, unknown>)
 
             if (result.exceptionDetails) {
                 const errMsg = result.exceptionDetails.exception?.description || result.exceptionDetails.text;
-                return { content: [{ type: "text", text: `JS Error: ${errMsg}` }], isError: true };
+                return err(`JS Error: ${errMsg}`);
             }
 
             const value = result.result.value;
             const text = typeof value === "object" ? JSON.stringify(value, null, 2) : String(value ?? result.result.description ?? "undefined");
-            return { content: [{ type: "text", text }] };
+            return okText(text);
         }
 
         if (name === "cdp_console_logs") {
@@ -140,9 +356,71 @@ export async function handleCdpTool(name: string, args: Record<string, unknown>)
             });
 
             if (messages.length === 0) {
-                return { content: [{ type: "text", text: `No console messages captured in ${duration}ms` }] };
+                return okText(`No console messages captured in ${duration}ms`);
             }
-            return { content: [{ type: "text", text: messages.join("\n") }] };
+            return okText(messages.join("\n"));
+        }
+
+        if (name === "cdp_query_selector") {
+            const selector = String(args?.selector ?? "").trim();
+            if (!selector) return err("Error: 'selector' parameter is required");
+            const info = await getSelectorInfo(selector);
+            return okText(JSON.stringify(info, null, 2));
+        }
+
+        if (name === "cdp_click") {
+            const selector = String(args?.selector ?? "").trim();
+            if (!selector) return err("Error: 'selector' parameter is required");
+            const buttonRaw = String(args?.button ?? "left") as MouseButton;
+            const button: MouseButton = (buttonRaw === "middle" || buttonRaw === "right" || buttonRaw === "left") ? buttonRaw : "left";
+            const clickCount = clampInt(args?.clickCount, 1, 3, 1);
+            await clickSelector(selector, button, clickCount);
+            return okText(JSON.stringify({ ok: true }, null, 2));
+        }
+
+        if (name === "cdp_press") {
+            const key = String(args?.key ?? "").trim();
+            if (!key) return err("Error: 'key' parameter is required");
+            await pressKey(key);
+            return okText(JSON.stringify({ ok: true }, null, 2));
+        }
+
+        if (name === "cdp_type") {
+            const text = String(args?.text ?? "");
+            // allow empty string (no-op)
+            if (!text) return okText(JSON.stringify({ ok: true, typed: 0 }, null, 2));
+            await insertText(text);
+            return okText(JSON.stringify({ ok: true, typed: text.length }, null, 2));
+        }
+
+        if (name === "cdp_fill") {
+            const selector = String(args?.selector ?? "").trim();
+            if (!selector) return err("Error: 'selector' parameter is required");
+            const value = String(args?.value ?? "");
+            const clear = args?.clear === true;
+            await fillSelector(selector, value, clear);
+            return okText(JSON.stringify({ ok: true }, null, 2));
+        }
+
+        if (name === "cdp_wait_for") {
+            const selector = String(args?.selector ?? "").trim();
+            if (!selector) return err("Error: 'selector' parameter is required");
+            const stateRaw = String(args?.state ?? "visible").trim();
+            const state = stateRaw === "attached" ? "attached" : "visible";
+            const timeoutMs = clampInt(args?.timeout_ms, 0, 60000, 5000);
+            const pollMs = clampInt(args?.poll_ms, 50, 1000, 100);
+            const start = Date.now();
+            while (true) {
+                const info = await getSelectorInfo(selector);
+                const ok = state === "attached" ? info.exists : (info.exists && info.visible);
+                if (ok) {
+                    return okText(JSON.stringify({ ok: true, state, elapsed_ms: Date.now() - start }, null, 2));
+                }
+                if (Date.now() - start >= timeoutMs) {
+                    return err(`Timeout waiting for selector (${state}): ${selector}`);
+                }
+                await new Promise((r) => setTimeout(r, pollMs));
+            }
         }
 
         throw new Error(`Unknown CDP tool: ${name}`);
@@ -158,6 +436,6 @@ export async function handleCdpTool(name: string, args: Record<string, unknown>)
                 isError: true,
             };
         }
-        return { content: [{ type: "text", text: `Error: ${msg}` }], isError: true };
+        return err(`Error: ${msg}`);
     }
 }

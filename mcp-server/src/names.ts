@@ -13,6 +13,7 @@ export const UI_CARD = "ui_card";
 
 export const SEARCH = "search";
 export const DISPATCH = "dispatch";
+export const SSE_STATUS = "sse_status";
 
 export const PROFILE_SERVER: Record<string, string> = {
     mcp: UI_MCP,

@@ -73,6 +73,36 @@
       "tags": ["cdp", "console", "renderer", "logs"],
       "examples": ["renderer console errors"]
     },
+    "cdp_query_selector": {
+      "domain": "live",
+      "tags": ["cdp", "dom", "selector", "renderer"],
+      "examples": ["does this selector exist", "get element box"]
+    },
+    "cdp_click": {
+      "domain": "live",
+      "tags": ["cdp", "click", "ui", "automation"],
+      "examples": ["click a button", "click selector in gallery"]
+    },
+    "cdp_press": {
+      "domain": "live",
+      "tags": ["cdp", "keyboard", "ui", "automation"],
+      "examples": ["press Enter", "press Escape"]
+    },
+    "cdp_type": {
+      "domain": "live",
+      "tags": ["cdp", "type", "text", "ui", "automation"],
+      "examples": ["type into focused input", "enter text"]
+    },
+    "cdp_fill": {
+      "domain": "live",
+      "tags": ["cdp", "form", "input", "ui", "automation"],
+      "examples": ["fill search box", "set input value"]
+    },
+    "cdp_wait_for": {
+      "domain": "live",
+      "tags": ["cdp", "wait", "selector", "ui", "automation"],
+      "examples": ["wait for selector visible", "wait for loading to finish"]
+    },
     "gallery_window_status": {
       "domain": "live",
       "tags": ["electron", "window", "ipc"],

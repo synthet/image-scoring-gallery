@@ -81,5 +81,11 @@ Keep **sibling clone layout** in mind: backend and gallery as sibling folders so
 
 ## Optional MCP
 
-When debugging integration with a running backend, **`gallery`**
-(`gallery_status`, API probes) is described in **`AGENTS.md`**.
+When debugging integration with a running backend, **`is-ui-mcp`**
+(`search` / `dispatch`) is described in **`AGENTS.md`**.
+
+## Lessons from agent sessions
+
+See **[`docs/LESSONS_LEARNED.md`](../../docs/LESSONS_LEARNED.md)** for
+transcript-mined traps (export EXIF, sync IPC, webui.lock, input-size cross-repo).
+Before editing export or RAW paths, read the linked feature docs in that index.

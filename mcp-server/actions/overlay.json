@@ -82,6 +82,42 @@
       "aliases": ["renderer console"],
       "intent_examples": ["renderer console errors"]
     },
+    "cdp_query_selector": {
+      "title": "Query selector in renderer",
+      "tags": ["cdp", "dom", "selector", "renderer"],
+      "aliases": ["query selector", "selector info"],
+      "intent_examples": ["does this selector exist", "get element box"]
+    },
+    "cdp_click": {
+      "title": "Click selector in renderer",
+      "tags": ["cdp", "click", "ui", "automation"],
+      "aliases": ["click", "tap element"],
+      "intent_examples": ["click a button", "click selector in gallery"]
+    },
+    "cdp_press": {
+      "title": "Press key in renderer",
+      "tags": ["cdp", "keyboard", "ui", "automation"],
+      "aliases": ["press key", "key press"],
+      "intent_examples": ["press Enter", "press Escape"]
+    },
+    "cdp_type": {
+      "title": "Type text in renderer",
+      "tags": ["cdp", "type", "text", "ui", "automation"],
+      "aliases": ["type text"],
+      "intent_examples": ["type into focused input", "enter text"]
+    },
+    "cdp_fill": {
+      "title": "Fill input in renderer",
+      "tags": ["cdp", "form", "input", "ui", "automation"],
+      "aliases": ["fill input", "set input value"],
+      "intent_examples": ["fill search box", "set input value"]
+    },
+    "cdp_wait_for": {
+      "title": "Wait for selector",
+      "tags": ["cdp", "wait", "selector", "ui", "automation"],
+      "aliases": ["wait for element"],
+      "intent_examples": ["wait for loading to finish", "wait for selector visible"]
+    },
     "gallery_window_status": {
       "title": "Gallery window status",
       "tags": ["electron", "window", "ipc"],

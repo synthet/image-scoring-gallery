@@ -29,6 +29,8 @@ Compact **search + dispatch** is the default gallery agent surface. **Naming:** 
 2. `cd mcp-server && npm install && npm run build:registry`
 3. Reload MCP in Cursor.
 
+Both repos use the same Cursor entrypoint pattern: `node ${workspaceFolder}/mcp-server/dist/compactIndex.js`.
+
 Do **not** add `is-be-*` keys in this repo — use sibling **image-scoring-backend** for backend triage.
 
 ### Workflow
@@ -40,16 +42,30 @@ search("backend health")
 dispatch("api.api_health", {})
 ```
 
-**Backend pipeline triage** (sibling workspace): same **`search`** → **`dispatch`** on **`is-be-mcp`** / **`is-be-webui`**.
+**Backend pipeline triage** (sibling workspace): same **`search`** → **`dispatch`** on **`is-be-mcp`** / **`is-be-live`**.
 
 | Cursor server key | Transport | Requires running app? |
 |-------------------|-----------|------------------------|
-| **`is-ui-mcp`** | stdio | No — **`search`**, **`dispatch`** |
-| **`is-ui-live`** | SSE (Electron) | Yes — live IPC/CDP actions via dispatch |
+| **`is-ui-mcp`** | stdio | No — **`search`**, **`dispatch`**, **`sse_status`**; proxies **`live.*` IPC** to SSE when Electron is up |
+| **`is-ui-live`** | SSE (Electron) | Yes — direct live IPC/CDP actions via dispatch |
 
 **Not in default config:** `is-ui-router`, `is-ui-local`, `is-ui-api` (debug entrypoints under `mcp-server/dist/*Index.js` only).
 
-Backend (sibling **image-scoring-backend**): **`is-be-mcp`** + optional **`is-be-webui`** — see backend [AGENTS.md](https://github.com/synthet/image-scoring-backend/blob/main/AGENTS.md).
+Backend (sibling **image-scoring-backend**): **`is-be-mcp`** (stdio proxy) + optional **`is-be-live`** — see backend [AGENTS.md](https://github.com/synthet/image-scoring-backend/blob/main/AGENTS.md).
+
+### Resilient stdio proxy (aligned with backend)
+
+Both repos use the same pattern:
+
+| Repo | Always-on stdio key | Optional SSE key | SSE URL | Graceful error code |
+|------|---------------------|------------------|---------|---------------------|
+| **gallery** | **`is-ui-mcp`** | **`is-ui-live`** | `http://127.0.0.1:9373/mcp/sse` | `live_unavailable` |
+| **backend** | **`is-be-mcp`** | **`is-be-live`** | `http://127.0.0.1:7860/mcp/sse` | `webui_unavailable` |
+
+- **`search`** always runs locally on stdio.
+- **`dispatch`**: `local.*` / `api.*` stay local; **`live_ipc`** actions proxy to SSE; **`live_cdp`** runs CDP locally when Electron CDP is up (override with `MCP_LIVE_PROXY_PREFIXES=live.`).
+- Optional env: `MCP_LIVE_PROXY_ACTION_IDS`, `MCP_LIVE_PROXY_PREFIXES` (gallery); `MCP_WEBUI_PROXY_ACTION_IDS`, `MCP_WEBUI_PROXY_PREFIXES` (backend).
+- Debug probes: **`sse_status`** on both stdio servers (checks **`is-be-live`** / **`is-ui-live`** reachability).
 
 - Live SSE: default `http://127.0.0.1:9373/mcp/sse`; see **`gallery-mcp.lock`** after Electron starts.
 - Optional auth: **`GALLERY_MCP_TOKEN`**.
@@ -64,9 +80,29 @@ User `~/.cursor/mcp.json`: cross-repo tools only — **do not** duplicate `is-ui
 
 ## Tools for Agents
 
-- **`is-ui-mcp`**: **`search`**, **`dispatch`** — gallery logs, config, API probes, and (when reachable) CDP helpers.
-- **`is-ui-live`**: attach when Electron dev is running; dispatch live actions (`live.gallery_window_status`, `live.cdp_screenshot`, …).
+- **`is-ui-mcp`**: **`search`**, **`dispatch`**, **`sse_status`** — local/api always; **`live.*` IPC** proxied to SSE when reachable; **`live.cdp_*`** uses CDP directly when Electron dev is running.
+- **`is-ui-live`**: attach when Electron dev is running; dispatch live actions directly (`live.gallery_window_status`, `live.cdp_screenshot`, …).
 - **`is-be-mcp`** (backend workspace): pipeline/DB deep triage with the same contract.
+
+### CDP interaction actions (Playwright-like)
+
+When Electron dev is running with CDP enabled, `is-ui-live` exposes several CDP-based interaction actions via `dispatch`:
+
+- `live.cdp_query_selector` — existence/visibility + bounding box for a selector
+- `live.cdp_click` — click the center of a selector
+- `live.cdp_press` — keyDown + keyUp for a key (e.g. `Enter`, `Escape`)
+- `live.cdp_type` — type text into the focused element (best-effort)
+- `live.cdp_fill` — set `<input>/<textarea>` value and dispatch input/change
+- `live.cdp_wait_for` — wait for selector to be attached or visible
+
+These are discoverable through the compact surface:
+
+```text
+search("click selector")
+dispatch("live.cdp_click", {"selector":"button[data-testid='...']"})
+```
+
+**Prerequisites:** Electron must be running with remote debugging; the live MCP SSE is typically at `http://127.0.0.1:9373/mcp/sse` (see `gallery-mcp.lock`). If CDP is unreachable, these actions return a clear error pointing at the CDP base URL.
 
 ### mcp-kanban (optional, user MCP)
 

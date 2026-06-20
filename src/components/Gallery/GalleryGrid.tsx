@@ -180,7 +180,8 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         if (sortKey.startsWith('model:')) {
             const modelName = sortKey.slice('model:'.length);
             const fromOverlay = img.model_scores?.[modelName];
-            const legacyCol = (img as Record<string, unknown>)[`score_${modelName}`];
+            const flatKey = modelName === 'clip_quality_v0' ? 'clip_quality_v0_score' : `score_${modelName}`;
+            const legacyCol = (img as Record<string, unknown>)[flatKey];
             const value = fromOverlay ?? (typeof legacyCol === 'number' ? legacyCol : undefined);
             return value != null && value > 0 ? `${Math.round(value * 100)}%` : '-';
         }
@@ -209,10 +210,10 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 return img.score_ava ? `${Math.round(img.score_ava * 100)}%` : '-';
             case 'score_liqe':
                 return img.score_liqe ? `${Math.round(img.score_liqe * 100)}%` : '-';
-            case 'score_koniq':
-                return img.score_koniq ? `${Math.round(img.score_koniq * 100)}%` : '-';
-            case 'score_paq2piq':
-                return img.score_paq2piq ? `${Math.round(img.score_paq2piq * 100)}%` : '-';
+            case 'clip_quality_v0_score':
+                return (img as Record<string, unknown>).clip_quality_v0_score
+                    ? `${Math.round(Number((img as Record<string, unknown>).clip_quality_v0_score) * 100)}%`
+                    : '-';
             default:
                 return img.score_general > 0 ? `${Math.round(img.score_general * 100)}%` : '-';
         }

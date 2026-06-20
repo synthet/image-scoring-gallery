@@ -1,0 +1,15 @@
+{
+  "_comment": "Antigravity multi-root: copy to mcp_config.json when working from backend workspace root.",
+  "mcpServers": {
+    "is-be-mcp": {
+      "command": "node",
+      "args": ["mcp-server/dist/compactIndex.js"],
+      "cwd": "../image-scoring-backend"
+    },
+    "is-ui-mcp": {
+      "command": "node",
+      "args": ["mcp-server/dist/compactIndex.js"],
+      "cwd": "."
+    }
+  }
+}

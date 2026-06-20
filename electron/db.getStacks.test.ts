@@ -105,6 +105,10 @@ describe('db.getSubstacksForStack', () => {
     expect(sql).toContain('FROM image_keywords ik');
     expect(sql).toContain('ss.id AS sub_stack_id');
     expect(sql).toContain('rep.file_path');
+    expect(sql).toContain('rep.score_topiq');
+    expect(sql).toContain('rep.score_arniqa');
+    expect(sql).not.toContain('rep.score_koniq');
+    expect(sql).not.toContain('rep.score_paq2piq');
     expect(sql).toContain('SUM(CASE WHEN pick_status = 1 THEN 1 ELSE 0 END)::bigint AS pick_count');
     expect(sql).toContain('SUM(CASE WHEN pick_status = -1 THEN 1 ELSE 0 END)::bigint AS reject_count');
     expect(sql).toContain('rep.pick_status');

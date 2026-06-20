@@ -12,6 +12,8 @@ export interface FilterState {
     sortBy?: string;
     order?: 'ASC' | 'DESC';
     capturedDate?: string;
+    /** Minimum clip_quality_v0 score (0–100 in UI, converted to 0–1 for queries). */
+    minClipQualityV0?: number;
 }
 
 interface FilterPanelProps {
@@ -78,6 +80,27 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onChange, fol
                             aria-label={tooltip}
                         />
                     ))}
+                </div>
+            </div>
+
+            <div className={styles.section}>
+                <div className={styles.sectionLabel}>Min CLIP Quality</div>
+                <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={filters.minClipQualityV0 ?? 0}
+                    onChange={(e) =>
+                        onChange({
+                            ...filters,
+                            minClipQualityV0: parseInt(e.target.value, 10) || undefined,
+                        })
+                    }
+                    style={{ width: '100%' }}
+                />
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'right' }}>
+                    {filters.minClipQualityV0 ?? 0}%
                 </div>
             </div>
 

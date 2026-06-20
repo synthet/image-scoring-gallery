@@ -44,6 +44,8 @@ import type { AppConfig } from './types';
 
 const DEFAULT_TIMEOUT = 10_000;   // 10s for quick operations
 const LONG_TIMEOUT = 120_000;     // 2min for batch job starts
+/** Agent cull list/detail reads — tolerate slow backend while CLI review runs elsewhere. */
+const AGENT_CULL_READ_TIMEOUT = 30_000;
 
 /**
  * Resolves the fetch implementation at runtime.
@@ -405,11 +407,15 @@ export class ApiService {
             status: params?.status,
             limit: params?.limit,
             offset: params?.offset,
-        });
+        }, AGENT_CULL_READ_TIMEOUT);
     }
 
     getAgentCullGroup(groupId: number) {
-        return this.get<Record<string, unknown>>(`/api/culling/agent-review/groups/${groupId}`);
+        return this.get<Record<string, unknown>>(
+            `/api/culling/agent-review/groups/${groupId}`,
+            undefined,
+            AGENT_CULL_READ_TIMEOUT,
+        );
     }
 
     runAgentCullReview(body: {

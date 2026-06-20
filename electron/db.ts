@@ -86,24 +86,26 @@ function imsOverlayJoin(alias: string, aliasId: string): string {
                 MAX(CASE WHEN model_name = 'spaq'    THEN COALESCE(normalized, raw_score) END) AS score_spaq,
                 MAX(CASE WHEN model_name = 'ava'     THEN COALESCE(normalized, raw_score) END) AS score_ava,
                 MAX(CASE WHEN model_name = 'liqe'    THEN COALESCE(normalized, raw_score) END) AS score_liqe,
-                MAX(CASE WHEN model_name = 'koniq'   THEN COALESCE(normalized, raw_score) END) AS score_koniq,
-                MAX(CASE WHEN model_name = 'paq2piq' THEN COALESCE(normalized, raw_score) END) AS score_paq2piq
+                MAX(CASE WHEN model_name = 'topiq'   THEN COALESCE(normalized, raw_score) END) AS score_topiq,
+                MAX(CASE WHEN model_name = 'arniqa'  THEN COALESCE(normalized, raw_score) END) AS score_arniqa,
+                MAX(CASE WHEN model_name = 'clip_quality_v0' THEN COALESCE(normalized, raw_score) END) AS clip_quality_v0_score
             FROM image_model_scores
-            WHERE model_name IN ('spaq', 'ava', 'liqe', 'koniq', 'paq2piq')
+            WHERE model_name IN ('spaq', 'ava', 'liqe', 'topiq', 'arniqa', 'clip_quality_v0')
               AND is_shadow = FALSE
               AND status = 'success'
             GROUP BY image_id
         ) ${alias} ON ${alias}.image_id = ${aliasId}`;
 }
 
-/** Renderer-facing ``score_<model>`` projections from ``image_model_scores`` only. */
+/** Renderer-facing score projections from ``image_model_scores`` only. */
 function imsOverlaySelect(alias: string): string {
     return [
         `${alias}.score_spaq AS score_spaq`,
         `${alias}.score_ava AS score_ava`,
         `${alias}.score_liqe AS score_liqe`,
-        `${alias}.score_koniq AS score_koniq`,
-        `${alias}.score_paq2piq AS score_paq2piq`,
+        `${alias}.score_topiq AS score_topiq`,
+        `${alias}.score_arniqa AS score_arniqa`,
+        `${alias}.clip_quality_v0_score AS clip_quality_v0_score`,
     ].join(',\n            ');
 }
 
@@ -334,10 +336,10 @@ function pushKeywordFilter(
 function pushImageAttributeFilters(
     whereParts: string[],
     params: (string | number | null)[],
-    options: Pick<ImageQueryOptions, 'minRating' | 'colorLabel' | 'keyword' | 'keywordExact' | 'capturedDate'>,
+    options: Pick<ImageQueryOptions, 'minRating' | 'colorLabel' | 'keyword' | 'keywordExact' | 'capturedDate' | 'minClipQualityV0'>,
     imageAlias = 'i',
 ) {
-    const { minRating, colorLabel, keyword, keywordExact, capturedDate } = options;
+    const { minRating, colorLabel, keyword, keywordExact, capturedDate, minClipQualityV0 } = options;
 
     if (minRating !== undefined && minRating > 0) {
         whereParts.push(`${imageAlias}.rating >= ?`);
@@ -354,6 +356,18 @@ function pushImageAttributeFilters(
     if (capturedDate) {
         whereParts.push(`${castDate(CAPTURE_TS)} = ?`);
         params.push(capturedDate);
+    }
+
+    if (minClipQualityV0 !== undefined && minClipQualityV0 > 0) {
+        whereParts.push(
+            `EXISTS (SELECT 1 FROM image_model_scores ims_cq `
+            + `WHERE ims_cq.image_id = ${imageAlias}.id `
+            + `AND ims_cq.model_name = 'clip_quality_v0' `
+            + `AND ims_cq.is_shadow = FALSE `
+            + `AND ims_cq.status = 'success' `
+            + `AND COALESCE(ims_cq.normalized, ims_cq.raw_score) >= ?)`,
+        );
+        params.push(minClipQualityV0);
     }
 }
 
@@ -406,6 +420,8 @@ export interface ImageQueryOptions {
     order?: 'ASC' | 'DESC';
     smartCover?: boolean;
     capturedDate?: string; // YYYY-MM-DD
+    /** Minimum clip_quality_v0 (0–1) from image_model_scores. */
+    minClipQualityV0?: number;
 }
 
 export async function getImages(options: ImageQueryOptions = {}): Promise<unknown[]> {
@@ -420,7 +436,8 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
         keywordExact,
         sortBy = 'score_general',
         order = 'DESC',
-        capturedDate
+        capturedDate,
+        minClipQualityV0,
     } = options;
     const params: (string | number | null)[] = [];
     const whereParts: string[] = [];
@@ -442,6 +459,18 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
     if (capturedDate) {
         whereParts.push(`${castDate(CAPTURE_TS)} = ?`);
         params.push(capturedDate);
+    }
+
+    if (minClipQualityV0 !== undefined && minClipQualityV0 > 0) {
+        whereParts.push(
+            `EXISTS (SELECT 1 FROM image_model_scores ims_cq `
+            + `WHERE ims_cq.image_id = i.id `
+            + `AND ims_cq.model_name = 'clip_quality_v0' `
+            + `AND ims_cq.is_shadow = FALSE `
+            + `AND ims_cq.status = 'success' `
+            + `AND COALESCE(ims_cq.normalized, ims_cq.raw_score) >= ?)`,
+        );
+        params.push(minClipQualityV0);
     }
 
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
@@ -1750,8 +1779,8 @@ export interface SubStackRow {
     score_spaq: number;
     score_ava: number;
     score_liqe: number;
-    score_koniq?: number;
-    score_paq2piq?: number;
+    score_topiq?: number;
+    score_arniqa?: number;
     rating: number;
     label: string | null;
     pick_status?: number | null;
@@ -1778,9 +1807,10 @@ function isMissingSubStackSchemaError(error: unknown): boolean {
         || msg.includes('no such table')
         || msg.includes('no such column')
         || msg.includes('unknown column');
-    return e?.code === '42P01'
-        || e?.code === '42703'
-        || (missingObject && (msg.includes('sub_stacks') || msg.includes('sub_stack_id')));
+    const subStackObject = msg.includes('sub_stacks') || msg.includes('sub_stack_id');
+    return (e?.code === '42P01' && subStackObject)
+        || (e?.code === '42703' && subStackObject)
+        || (missingObject && subStackObject);
 }
 
 function warnMissingSubStackSchema(error: unknown): void {
@@ -1836,14 +1866,14 @@ async function queryWithOptionalPickStatus<T>(
 }
 
 export async function getSubstacksForStack(stackId: number, options: ImageQueryOptions = {}): Promise<SubStackRow[]> {
-    const { minRating, colorLabel, keyword, keywordExact, capturedDate } = options;
+    const { minRating, colorLabel, keyword, keywordExact, capturedDate, minClipQualityV0 } = options;
     const params: (string | number | null)[] = [stackId];
     const whereParts: string[] = [
         'i.stack_id = ?',
         'i.sub_stack_id IS NOT NULL',
     ];
 
-    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, keywordExact, capturedDate });
+    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, keywordExact, capturedDate, minClipQualityV0 });
 
     const filteredWhere = whereParts.join(' AND ');
     const buildSql = (includePickStatus: boolean) => `
@@ -1887,8 +1917,8 @@ export async function getSubstacksForStack(stackId: number, options: ImageQueryO
                rep.score_spaq,
                rep.score_ava,
                rep.score_liqe,
-               rep.score_koniq,
-               rep.score_paq2piq,
+               rep.score_topiq,
+               rep.score_arniqa,
                rep.rating,
                rep.label,
                rep.pick_status,
@@ -1950,14 +1980,14 @@ export async function getSubstacksForStack(stackId: number, options: ImageQueryO
 }
 
 async function getUngroupedSubStackCardForStack(stackId: number, options: ImageQueryOptions = {}): Promise<SubStackRow | null> {
-    const { minRating, colorLabel, keyword, keywordExact, capturedDate } = options;
+    const { minRating, colorLabel, keyword, keywordExact, capturedDate, minClipQualityV0 } = options;
     const params: (string | number | null)[] = [stackId];
     const whereParts: string[] = [
         'i.stack_id = ?',
         'i.sub_stack_id IS NULL',
     ];
 
-    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, keywordExact, capturedDate });
+    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, keywordExact, capturedDate, minClipQualityV0 });
 
     const buildSql = (includePickStatus: boolean) => `
         WITH filtered_orphans AS (
@@ -1998,8 +2028,8 @@ async function getUngroupedSubStackCardForStack(stackId: number, options: ImageQ
                rep.score_spaq,
                rep.score_ava,
                rep.score_liqe,
-               rep.score_koniq,
-               rep.score_paq2piq,
+               rep.score_topiq,
+               rep.score_arniqa,
                rep.rating,
                rep.label,
                rep.pick_status,
@@ -2052,10 +2082,11 @@ export async function getImagesBySubStack(subStackId: number, options: ImageQuer
         sortBy = 'score_general',
         order = 'DESC',
         capturedDate,
+        minClipQualityV0,
     } = options;
     const params: (string | number | null)[] = [subStackId];
     const whereParts = ['i.sub_stack_id = ?'];
-    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, keywordExact, capturedDate });
+    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, keywordExact, capturedDate, minClipQualityV0 });
     const whereClause = 'WHERE ' + whereParts.join(' AND ');
 
     const sortParts = buildImageSortSql(sortBy);
@@ -2118,10 +2149,11 @@ export async function getImagesByStackUngrouped(stackId: number, options: ImageQ
         sortBy = 'score_general',
         order = 'DESC',
         capturedDate,
+        minClipQualityV0,
     } = options;
     const params: (string | number | null)[] = [stackId];
     const whereParts = ['i.stack_id = ?', 'i.sub_stack_id IS NULL'];
-    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, keywordExact, capturedDate });
+    pushImageAttributeFilters(whereParts, params, { minRating, colorLabel, keyword, keywordExact, capturedDate, minClipQualityV0 });
     const whereClause = 'WHERE ' + whereParts.join(' AND ');
 
     const sortParts = buildImageSortSql(sortBy);
