@@ -103,6 +103,41 @@ describe('AgentCullReviewPanel', () => {
         expect(await screen.findByTestId('agent-cull-dry-run-badge')).toBeTruthy();
     });
 
+    it('shows progress indicator while dry-run review is in flight', async () => {
+        let resolveReview: (value: unknown) => void = () => {};
+        const runAgentCullReview = vi.fn(
+            () =>
+                new Promise((resolve) => {
+                    resolveReview = resolve;
+                }),
+        );
+        Object.defineProperty(window, 'electron', {
+            configurable: true,
+            value: {
+                api: {
+                    getAgentCullGroups: vi.fn().mockResolvedValue({ groups: [] }),
+                    getAgentCullGroup: vi.fn(),
+                    runAgentCullReview,
+                    approveAgentCullGroup: vi.fn(),
+                    rejectAgentCullGroup: vi.fn(),
+                    rollbackAgentCullRecommendation: vi.fn(),
+                    applyAgentCullCandidates: vi.fn(),
+                    updateImagePickStatus: vi.fn(),
+                },
+            },
+        });
+
+        render(<AgentCullReviewPanel stackId={1} />);
+        fireEvent.click(await screen.findByTestId('agent-cull-run-review'));
+        const progress = await screen.findByTestId('agent-cull-review-progress');
+        expect(progress.textContent).toMatch(/Agent review in progress/i);
+        expect(progress.textContent).toMatch(/30–90 seconds/i);
+        resolveReview({ ok: true, group_id: 12 });
+        await waitFor(() => {
+            expect(screen.queryByTestId('agent-cull-review-progress')).toBeNull();
+        });
+    });
+
     it('surfaces a 409 stale_group_state error with a re-run prompt (#136)', async () => {
         const apply = vi
             .fn()
@@ -220,6 +255,125 @@ describe('AgentCullReviewPanel', () => {
         const err = await screen.findByTestId('agent-cull-error');
         expect(err.textContent).toMatch(/configured max size/i);
         expect(err.textContent).not.toContain('no_eligible_unit');
+    });
+
+    it('shows friendly failure message for a failed review group', async () => {
+        Object.defineProperty(window, 'electron', {
+            configurable: true,
+            value: {
+                api: {
+                    getAgentCullGroups: vi.fn().mockResolvedValue({
+                        groups: [{
+                            id: 21,
+                            stack_id: 28794,
+                            status: 'failed',
+                            dry_run: true,
+                            error_code: 'agent_cli_auth_tier',
+                            error_message: 'IneligibleTierError',
+                        }],
+                    }),
+                    getAgentCullGroup: vi.fn().mockResolvedValue({
+                        id: 21,
+                        stack_id: 28794,
+                        status: 'failed',
+                        dry_run: true,
+                        error_code: 'agent_cli_auth_tier',
+                        error_message: 'IneligibleTierError',
+                        recommendations: [],
+                    }),
+                    runAgentCullReview: vi.fn(),
+                    approveAgentCullGroup: vi.fn(),
+                    rejectAgentCullGroup: vi.fn(),
+                    rollbackAgentCullRecommendation: vi.fn(),
+                    applyAgentCullCandidates: vi.fn(),
+                    updateImagePickStatus: vi.fn(),
+                },
+            },
+        });
+
+        render(<AgentCullReviewPanel stackId={28794} />);
+        const err = await screen.findByTestId('agent-cull-action-error');
+        expect(err.textContent).toMatch(/Antigravity/i);
+        expect(err.textContent).not.toContain('exit_code_1');
+    });
+
+    it('refreshes after a failed run that persisted a review group', async () => {
+        const runAgentCullReview = vi.fn().mockResolvedValue({
+            ok: false,
+            group_id: 21,
+            error: 'agent_cli_auth_tier',
+            error_message: 'IneligibleTierError',
+        });
+        const getAgentCullGroups = vi
+            .fn()
+            .mockResolvedValueOnce({ groups: [] })
+            .mockResolvedValue({
+                groups: [{
+                    id: 21,
+                    stack_id: 1,
+                    status: 'failed',
+                    dry_run: true,
+                    error_code: 'agent_cli_auth_tier',
+                }],
+            });
+        Object.defineProperty(window, 'electron', {
+            configurable: true,
+            value: {
+                api: {
+                    getAgentCullGroups,
+                    getAgentCullGroup: vi.fn().mockResolvedValue({
+                        id: 21,
+                        stack_id: 1,
+                        status: 'failed',
+                        dry_run: true,
+                        error_code: 'agent_cli_auth_tier',
+                        recommendations: [],
+                    }),
+                    runAgentCullReview,
+                    approveAgentCullGroup: vi.fn(),
+                    rejectAgentCullGroup: vi.fn(),
+                    rollbackAgentCullRecommendation: vi.fn(),
+                    applyAgentCullCandidates: vi.fn(),
+                    updateImagePickStatus: vi.fn(),
+                },
+            },
+        });
+
+        render(<AgentCullReviewPanel stackId={1} />);
+        fireEvent.click(await screen.findByTestId('agent-cull-run-review'));
+        await waitFor(() => {
+            expect(getAgentCullGroups).toHaveBeenCalledTimes(2);
+        });
+        const err = await screen.findByTestId('agent-cull-action-error');
+        expect(err.textContent).toMatch(/Antigravity/i);
+    });
+
+    it('shows action error after failed run even when a group_id is returned', async () => {
+        const runAgentCullReview = vi.fn().mockResolvedValue({
+            ok: false,
+            group_id: 21,
+            error: 'malformed_json',
+        });
+        Object.defineProperty(window, 'electron', {
+            configurable: true,
+            value: {
+                api: {
+                    getAgentCullGroups: vi.fn().mockResolvedValue({ groups: [] }),
+                    getAgentCullGroup: vi.fn(),
+                    runAgentCullReview,
+                    approveAgentCullGroup: vi.fn(),
+                    rejectAgentCullGroup: vi.fn(),
+                    rollbackAgentCullRecommendation: vi.fn(),
+                    applyAgentCullCandidates: vi.fn(),
+                    updateImagePickStatus: vi.fn(),
+                },
+            },
+        });
+
+        render(<AgentCullReviewPanel stackId={1} />);
+        fireEvent.click(await screen.findByTestId('agent-cull-run-review'));
+        const err = await screen.findByTestId('agent-cull-error');
+        expect(err.textContent).toMatch(/parseable JSON/i);
     });
 
     it('calls IPC approve bridge without delete', async () => {

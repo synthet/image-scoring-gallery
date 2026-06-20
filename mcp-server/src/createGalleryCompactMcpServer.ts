@@ -4,9 +4,10 @@ import {
     ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import { dispatchAction } from "./actions/dispatch.js";
 import { searchActions } from "./actions/search.js";
-import { DISPATCH, SEARCH, UI_MCP } from "./names.js";
+import { DISPATCH, SEARCH, SSE_STATUS, UI_LIVE, UI_MCP } from "./names.js";
+import { probeLiveMcp, resolveLiveSseUrl } from "./utils/liveClient.js";
+import { dispatchWithLiveProxy } from "./utils/proxyDispatch.js";
 
 interface ToolDef {
     name: string;
@@ -56,6 +57,12 @@ const compactToolDefs: ToolDef[] = [
             required: ["action_id"],
         },
     },
+    {
+        name: SSE_STATUS,
+        description:
+            "Read-only probe: whether is-ui-live SSE is reachable (gallery-mcp.lock or default 127.0.0.1:9373).",
+        inputSchema: { type: "object", properties: {} },
+    },
 ];
 
 function toolResult(text: string, isError = false) {
@@ -85,7 +92,7 @@ async function handleCompactTool(name: string, args: Record<string, unknown>) {
         if (!actionId) {
             return toolResult(JSON.stringify({ error: "action_id is required" }, null, 2), true);
         }
-        const result = await dispatchAction(
+        const result = await dispatchWithLiveProxy(
             actionId,
             (args.arguments ?? {}) as Record<string, unknown>,
             {
@@ -97,6 +104,22 @@ async function handleCompactTool(name: string, args: Record<string, unknown>) {
         );
         const isError = result.status === "error";
         return toolResult(JSON.stringify(result, null, 2), isError);
+    }
+
+    if (name === SSE_STATUS) {
+        const probe = await probeLiveMcp();
+        return toolResult(
+            JSON.stringify(
+                {
+                    ok: probe.ok,
+                    server: UI_LIVE,
+                    url: probe.url || resolveLiveSseUrl(),
+                    error: probe.error,
+                },
+                null,
+                2,
+            ),
+        );
     }
 
     throw new Error(`Unknown compact tool: ${name}`);

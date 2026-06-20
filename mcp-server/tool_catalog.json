@@ -14,7 +14,7 @@
     },
     "live": {
       "server": "is-ui-live",
-      "tool_count": 5
+      "tool_count": 11
     },
     "local": {
       "server": "is-ui-local",
@@ -36,9 +36,15 @@
       "api_runner_status"
     ],
     "live": [
+      "cdp_click",
       "cdp_console_logs",
       "cdp_evaluate",
+      "cdp_fill",
+      "cdp_press",
+      "cdp_query_selector",
       "cdp_screenshot",
+      "cdp_type",
+      "cdp_wait_for",
       "gallery_ipc_ping",
       "gallery_window_status"
     ],
@@ -48,9 +54,15 @@
       "api_probe",
       "api_run_stages",
       "api_runner_status",
+      "cdp_click",
       "cdp_console_logs",
       "cdp_evaluate",
+      "cdp_fill",
+      "cdp_press",
+      "cdp_query_selector",
       "cdp_screenshot",
+      "cdp_type",
+      "cdp_wait_for",
       "gallery_ipc_ping",
       "gallery_status",
       "gallery_window_status",
@@ -149,6 +161,25 @@
       "args_summary": "()"
     },
     {
+      "name": "cdp_click",
+      "repo": "gallery",
+      "domain": "live",
+      "server": "is-ui-live",
+      "description": "Requires electron_cdp. Click the center of a selector via CDP Input.dispatchMouseEvent.",
+      "tags": [
+        "cdp",
+        "click",
+        "ui",
+        "automation"
+      ],
+      "examples": [
+        "click a button",
+        "click selector in gallery"
+      ],
+      "risk": "read_only",
+      "args_summary": "(selector, button?, clickCount?)"
+    },
+    {
       "name": "cdp_console_logs",
       "repo": "gallery",
       "domain": "live",
@@ -185,6 +216,64 @@
       "args_summary": "(expression)"
     },
     {
+      "name": "cdp_fill",
+      "repo": "gallery",
+      "domain": "live",
+      "server": "is-ui-live",
+      "description": "Requires electron_cdp. Focus an <input>/<textarea>, set value, dispatch input/change.",
+      "tags": [
+        "cdp",
+        "form",
+        "input",
+        "ui",
+        "automation"
+      ],
+      "examples": [
+        "fill search box",
+        "set input value"
+      ],
+      "risk": "read_only",
+      "args_summary": "(selector, value, clear?)"
+    },
+    {
+      "name": "cdp_press",
+      "repo": "gallery",
+      "domain": "live",
+      "server": "is-ui-live",
+      "description": "Requires electron_cdp. Press a key (keyDown + keyUp).",
+      "tags": [
+        "cdp",
+        "keyboard",
+        "ui",
+        "automation"
+      ],
+      "examples": [
+        "press Enter",
+        "press Escape"
+      ],
+      "risk": "read_only",
+      "args_summary": "(key)"
+    },
+    {
+      "name": "cdp_query_selector",
+      "repo": "gallery",
+      "domain": "live",
+      "server": "is-ui-live",
+      "description": "Requires electron_cdp. Query selector existence/visibility and bounding box (viewport CSS pixels).",
+      "tags": [
+        "cdp",
+        "dom",
+        "selector",
+        "renderer"
+      ],
+      "examples": [
+        "does this selector exist",
+        "get element box"
+      ],
+      "risk": "read_only",
+      "args_summary": "(selector)"
+    },
+    {
       "name": "cdp_screenshot",
       "repo": "gallery",
       "domain": "live",
@@ -201,6 +290,46 @@
       ],
       "risk": "read_only",
       "args_summary": "(fullPage?)"
+    },
+    {
+      "name": "cdp_type",
+      "repo": "gallery",
+      "domain": "live",
+      "server": "is-ui-live",
+      "description": "Requires electron_cdp. Type text into the currently focused element (best-effort).",
+      "tags": [
+        "cdp",
+        "type",
+        "text",
+        "ui",
+        "automation"
+      ],
+      "examples": [
+        "type into focused input",
+        "enter text"
+      ],
+      "risk": "read_only",
+      "args_summary": "(text)"
+    },
+    {
+      "name": "cdp_wait_for",
+      "repo": "gallery",
+      "domain": "live",
+      "server": "is-ui-live",
+      "description": "Requires electron_cdp. Wait for selector to be attached or visible.",
+      "tags": [
+        "cdp",
+        "wait",
+        "selector",
+        "ui",
+        "automation"
+      ],
+      "examples": [
+        "wait for selector visible",
+        "wait for loading to finish"
+      ],
+      "risk": "read_only",
+      "args_summary": "(selector, state?, timeout_ms?, poll_ms?)"
     },
     {
       "name": "gallery_ipc_ping",

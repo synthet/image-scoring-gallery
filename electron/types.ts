@@ -16,6 +16,7 @@ export interface ImageQueryOptions {
     order?: 'ASC' | 'DESC';
     smartCover?: boolean;
     capturedDate?: string;
+    minClipQualityV0?: number;
 }
 
 export interface KeywordCloudEntry {

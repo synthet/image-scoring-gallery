@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import type {
     AgentCullRecommendation,
     AgentCullReviewGroupDetail,
@@ -11,6 +12,7 @@ import {
     friendlyAgentDecision,
     friendlyAgentError,
     friendlyAgentGroupStatus,
+    friendlyAgentReviewFailure,
 } from './analyticsChipLabels';
 import styles from './CullingAnalytics.module.css';
 
@@ -50,22 +52,75 @@ async function loadReviewData(stackId: number, subStackId: number | null | undef
     return { groups: items, detail: null };
 }
 
+function ReviewProgressBanner({ elapsedSec }: { elapsedSec: number }) {
+    return (
+        <div className={styles.reviewProgress} data-testid="agent-cull-review-progress" role="status">
+            <div className={styles.reviewProgressHeader}>
+                <Loader2 size={14} className="app-spinner" aria-hidden />
+                <span>
+                    Agent review in progress
+                    {elapsedSec > 0 ? ` (${elapsedSec}s)` : '…'}
+                </span>
+            </div>
+            <div className={styles.reviewProgressTrack} aria-hidden>
+                <div className={styles.reviewProgressFill} />
+            </div>
+            <div className={styles.reviewProgressHint}>
+                Calling the backend agent CLI — usually 30–90 seconds. You can keep browsing this stack.
+            </div>
+        </div>
+    );
+}
+
 export function AgentCullReviewPanel({ stackId, subStackId = null }: Props) {
     const [groups, setGroups] = useState<AgentCullReviewGroupSummary[]>([]);
     const [detail, setDetail] = useState<AgentCullReviewGroupDetail | null>(null);
     const [loading, setLoading] = useState(false);
     const [actionBusy, setActionBusy] = useState(false);
+    const [reviewRunning, setReviewRunning] = useState(false);
+    const [reviewElapsedSec, setReviewElapsedSec] = useState(0);
     const [error, setError] = useState<string | null>(null);
+    const reviewStartedAtRef = useRef<number | null>(null);
+    const reviewRunningRef = useRef(false);
 
-    const refresh = useCallback(async () => {
+    useEffect(() => {
+        reviewRunningRef.current = reviewRunning;
+    }, [reviewRunning]);
+
+    useEffect(() => {
+        if (!reviewRunning) {
+            reviewStartedAtRef.current = null;
+            setReviewElapsedSec(0);
+            return;
+        }
+        reviewStartedAtRef.current = Date.now();
+        setReviewElapsedSec(0);
+        const timer = window.setInterval(() => {
+            const started = reviewStartedAtRef.current;
+            if (started == null) return;
+            setReviewElapsedSec(Math.floor((Date.now() - started) / 1000));
+        }, 1000);
+        return () => window.clearInterval(timer);
+    }, [reviewRunning]);
+
+    const reviewProgress = reviewRunning ? (
+        <ReviewProgressBanner elapsedSec={reviewElapsedSec} />
+    ) : null;
+
+    const refresh = useCallback(async (options?: { clearError?: boolean; force?: boolean }) => {
+        if (reviewRunningRef.current && !options?.force) {
+            return;
+        }
         setLoading(true);
-        setError(null);
+        if (options?.clearError !== false) {
+            setError(null);
+        }
         try {
             const data = await loadReviewData(stackId, subStackId);
             setGroups(data.groups);
             setDetail(data.detail);
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'Failed to load agent review');
+            setError(friendlyAgentError(e instanceof Error ? e.message : 'Failed to load agent review'));
             setGroups([]);
             setDetail(null);
         } finally {
@@ -84,10 +139,17 @@ export function AgentCullReviewPanel({ stackId, subStackId = null }: Props) {
             const result = await fn();
             const code = resultError(result);
             if (code) {
-                setError(friendlyAgentError(code));
-                return; // keep the error visible; state is unchanged so no refresh
+                const groupId =
+                    result && typeof result === 'object' && 'group_id' in result
+                        ? (result as { group_id?: number }).group_id
+                        : undefined;
+                if (groupId) {
+                    await refresh({ clearError: false, force: true });
+                }
+                setError(code);
+                return;
             }
-            await refresh();
+            await refresh({ force: true });
         } catch (e) {
             setError(friendlyAgentError(e instanceof Error ? e.message : 'Action failed'));
         } finally {
@@ -98,9 +160,10 @@ export function AgentCullReviewPanel({ stackId, subStackId = null }: Props) {
     const handleRunReview = () => {
         const api = window.electron?.api;
         if (!api?.runAgentCullReview) return;
+        setReviewRunning(true);
         void runAction(async () =>
             api.runAgentCullReview!({ stackId, subStackId: subStackId ?? undefined, dryRun: true }),
-        );
+        ).finally(() => setReviewRunning(false));
     };
 
     const handleApprove = (rec: AgentCullRecommendation) => {
@@ -147,14 +210,15 @@ export function AgentCullReviewPanel({ stackId, subStackId = null }: Props) {
         </button>
     ) : null;
 
-    if (loading && groups.length === 0) {
+    if (loading && groups.length === 0 && !reviewRunning) {
         return <div className={styles.banner}>Agent cull review…</div>;
     }
     if (error && groups.length === 0) {
         return (
             <div className={styles.banner} data-testid="agent-cull-error">
                 <div className={styles.bannerTitle}>Agent cull review</div>
-                <div className={styles.warn}>{error}</div>
+                {reviewProgress}
+                {!reviewRunning && <div className={styles.warn}>{error}</div>}
                 <div className={styles.actionRow}>{runButton}</div>
             </div>
         );
@@ -165,9 +229,12 @@ export function AgentCullReviewPanel({ stackId, subStackId = null }: Props) {
         return (
             <div className={styles.banner} data-testid="agent-cull-review-panel">
                 <div className={styles.bannerTitle}>Agent cull review</div>
-                <div className={styles.bannerMeta}>
-                    No review yet — metadata-only, no files are deleted or moved.
-                </div>
+                {reviewProgress}
+                {!reviewRunning && (
+                    <div className={styles.bannerMeta}>
+                        No review yet — metadata-only, no files are deleted or moved.
+                    </div>
+                )}
                 <div className={styles.actionRow}>{runButton}</div>
             </div>
         );
@@ -175,6 +242,10 @@ export function AgentCullReviewPanel({ stackId, subStackId = null }: Props) {
 
     const latest = detail ?? groups[0];
     const recommendations = detail?.recommendations ?? [];
+    const groupFailureMessage =
+        latest.status === 'failed'
+            ? friendlyAgentReviewFailure(latest.error_code, latest.error_message)
+            : null;
 
     return (
         <div className={styles.banner} data-testid="agent-cull-review-panel">
@@ -194,7 +265,12 @@ export function AgentCullReviewPanel({ stackId, subStackId = null }: Props) {
             <div className={styles.bannerMeta}>
                 Metadata-only — no files are deleted or moved.
             </div>
-            {error && <div className={styles.warn} data-testid="agent-cull-action-error">{error}</div>}
+            {reviewProgress}
+            {!reviewRunning && (error || groupFailureMessage) && (
+                <div className={styles.warn} data-testid="agent-cull-action-error">
+                    {error || groupFailureMessage}
+                </div>
+            )}
             {runButton && <div className={styles.actionRow}>{runButton}</div>}
             {detail && !detail.dry_run && (
                 <div className={styles.actionRow}>

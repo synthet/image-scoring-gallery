@@ -23,4 +23,25 @@ describe("gallery MCP dispatch", () => {
         assert.equal(result.status, "error");
         assert.equal(result.code, "unknown_action");
     });
+
+    it("search finds live.cdp_click for click query", () => {
+        const result = searchActions("click selector", { limit: 10 });
+        const ids = (result.results as Array<{ action_id: string }>).map((r) => r.action_id);
+        assert.ok(ids.includes("live.cdp_click"), `expected live.cdp_click in ${ids.join(", ")}`);
+    });
+
+    it("dispatch live.cdp_click dry run validates selector arg", async () => {
+        const result = await dispatchAction("live.cdp_click", { selector: "#does-not-matter-in-dry-run" }, { dryRun: true });
+        assert.equal(result.status, "success");
+        assert.equal(result.action_id, "live.cdp_click");
+        assert.equal(result.dry_run, true);
+        // Should include validated args shape
+        assert.deepEqual((result as { validated_args?: unknown }).validated_args, { selector: "#does-not-matter-in-dry-run" });
+    });
+
+    it("dispatch live.cdp_click rejects unknown argument", async () => {
+        const result = await dispatchAction("live.cdp_click", { selector: "#x", nope: true } as unknown as Record<string, unknown>);
+        assert.equal(result.status, "error");
+        assert.equal(result.code, "validation_error");
+    });
 });

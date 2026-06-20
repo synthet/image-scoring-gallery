@@ -4,6 +4,18 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.20.0] - 2026-06-20
+
+### Added
+
+- **CLIP Quality score (`clip_quality_v0`)**: Shown in the image viewer model scores, available in the sort dropdown, and filterable via sidebar **Min CLIP Quality** (queries `image_model_scores` through IPC/DB). Grid badge resolves `model:clip_quality_v0` sort keys.
+- **Agent cull review panel**: Expanded dry-run UX, chip labels, styling, and Vitest coverage for backend agent-review flows.
+- **Gallery MCP compact**: CDP interaction tools (`browser_click`, `browser_fill`, etc.), proxy dispatch to live SSE, and expanded action registry/catalog.
+
+### Changed
+
+- **Per-model score SQL overlay**: Pivots production IQA (`topiq`, `arniqa`) plus `clip_quality_v0` instead of deprecated KonIQ/PAQ2PIQ columns; sort options exclude hidden deprecated model names.
+
 ## [7.19.0] - 2026-06-16
 
 ### Added

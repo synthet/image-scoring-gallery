@@ -31,7 +31,16 @@ export interface SortOption {
 }
 
 /** Not registered in the live backend pipeline; never show in the sort dropdown. */
-export const SORT_EXCLUDED_MODEL_NAMES = new Set(['qpt_v2']);
+export const SORT_EXCLUDED_MODEL_NAMES = new Set([
+    'qpt_v2',
+    'koniq',
+    'paq2piq',
+    'musiq',
+    'qalign',
+]);
+
+/** Auxiliary scores outside scoring.models fusion — always sortable when present. */
+export const AUXILIARY_SCORE_MODELS = ['clip_quality_v0'] as const;
 
 /** Registered model names when config does not list them (matches backend registry defaults). */
 export const REGISTERED_MODEL_NAMES = [
@@ -54,6 +63,7 @@ const SCORE_LABELS: Record<string, string> = {
     ava: 'AVA',
     paq2piq: 'PAQ2PIQ',
     koniq: 'KonIQ',
+    clip_quality_v0: 'CLIP Quality',
     general: 'General Score',
     technical: 'Technical Score',
     aesthetic: 'Aesthetic Score',
@@ -136,6 +146,11 @@ export function buildModelInfosFromConfig(
 }
 
 export function buildSortOptions(modelInfos: ScoringModelInfo[]): SortOption[] {
+    const auxiliary: SortOption[] = AUXILIARY_SCORE_MODELS.map((name) => ({
+        value: modelSortKey(name),
+        label: modelLabel(name, false),
+        group: 'model' as const,
+    }));
     return [
         ...STATIC_SORT_OPTIONS,
         ...modelInfos.map((m) => ({
@@ -143,6 +158,7 @@ export function buildSortOptions(modelInfos: ScoringModelInfo[]): SortOption[] {
             label: m.label,
             group: 'model' as const,
         })),
+        ...auxiliary.filter((opt) => !modelInfos.some((m) => m.sortKey === opt.value)),
     ];
 }
 

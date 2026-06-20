@@ -120,7 +120,37 @@ const AGENT_ERROR_LABELS: Record<string, string> = {
     agent_cli_not_found:
         'The agent CLI was not found on PATH for the backend WebUI. Install the Gemini CLI (or set culling.agent_review.agent.command in config.json to the full executable path), then restart the WebUI.',
     agent_cli_spawn_failed: 'The backend could not start the configured agent CLI.',
+    agent_cli_auth_tier:
+        'Gemini CLI rejected this client tier (individual Code Assist may no longer be supported). Re-authenticate or migrate to a supported Gemini/Antigravity plan, then restart the WebUI.',
+    agent_cli_auth_failed:
+        'The agent CLI is not authenticated for the backend WebUI. For Antigravity: install agy on the host, sign in once, mount ~/.gemini via GEMINI_CONFIG_SOURCE, or set GEMINI_API_KEY / ANTIGRAVITY_API_KEY in Docker .env. For Gemini legacy: run `gemini auth` (option 2 API key if Google sign-in is blocked).',
+    agent_cli_quota_exhausted:
+        'Gemini CLI reported quota exhaustion. Check billing/limits or retry later.',
+    exit_code_127:
+        'The agent bridge script could not run in the WebUI container (often Windows CRLF line endings in scripts/wsl/*.sh). Normalize to LF and restart the WebUI.',
+    timeout: 'The agent CLI timed out. Retry or increase culling.agent_review.agent.timeout_seconds in config.json.',
+    agent_review_load_timeout:
+        'Could not load agent review status — the backend may still be running a review. Wait a moment and try again.',
+    malformed_json: 'The agent CLI did not return parseable JSON. Retry, or check the failed review group in the backend logs.',
+    schema_invalid: 'The agent CLI returned JSON that failed validation. Check the group response in the backend logs or DB.',
 };
+
+export function friendlyAgentReviewFailure(
+    errorCode?: string | null,
+    errorMessage?: string | null,
+): string | null {
+    if (!errorCode && !errorMessage) return null;
+    if (errorCode && AGENT_ERROR_LABELS[errorCode]) {
+        return AGENT_ERROR_LABELS[errorCode];
+    }
+    if (errorCode?.startsWith('exit_code_') && errorMessage) {
+        return friendlyAgentError(errorMessage);
+    }
+    if (errorCode) {
+        return friendlyAgentError(errorCode);
+    }
+    return errorMessage ?? null;
+}
 
 export function friendlyAgentError(raw: string, skipReason?: string | null): string {
     if (skipReason && AGENT_ERROR_LABELS[skipReason]) {
@@ -135,14 +165,28 @@ export function friendlyAgentError(raw: string, skipReason?: string | null): str
     if (/errno 2/i.test(raw) && /no such file or directory/i.test(raw)) {
         return AGENT_ERROR_LABELS.agent_cli_not_found;
     }
+    if (/agent-review\/groups timed out/i.test(raw)) {
+        return AGENT_ERROR_LABELS.agent_review_load_timeout;
+    }
     return raw;
 }
 
 export function formatAgentActionError(result: unknown): string | null {
     if (!result || typeof result !== 'object') return null;
-    const r = result as { ok?: boolean; error?: string; skip_reason?: string };
+    const r = result as {
+        ok?: boolean;
+        error?: string;
+        skip_reason?: string;
+        error_message?: string;
+    };
     if (r.ok !== false) return null;
-    return friendlyAgentError(r.error ?? 'unknown_error', r.skip_reason);
+    if (r.skip_reason) {
+        return friendlyAgentError(r.error ?? 'unknown_error', r.skip_reason);
+    }
+    return (
+        friendlyAgentReviewFailure(r.error, r.error_message)
+        ?? friendlyAgentError(r.error ?? 'unknown_error', r.skip_reason)
+    );
 }
 
 export function analyticsChipClassName(

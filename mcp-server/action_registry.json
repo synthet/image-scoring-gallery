@@ -12,7 +12,7 @@
   },
   "categories": {
     "api": 5,
-    "live": 5,
+    "live": 11,
     "local": 4
   },
   "actions": [
@@ -197,6 +197,55 @@
       "handler_domain": "api"
     },
     {
+      "action_id": "live.cdp_click",
+      "title": "Click selector in renderer",
+      "description": "Requires electron_cdp. Click the center of a selector via CDP Input.dispatchMouseEvent.",
+      "category": "live",
+      "tags": [
+        "cdp",
+        "click",
+        "ui",
+        "automation"
+      ],
+      "aliases": [
+        "click",
+        "tap element"
+      ],
+      "intent_examples": [
+        "click a button",
+        "click selector in gallery"
+      ],
+      "side_effect_level": "read_only",
+      "confirmation_required": false,
+      "dry_run_supported": false,
+      "dispatch_enabled": true,
+      "version": 1,
+      "deprecated": false,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "selector": {
+            "type": "string",
+            "description": "CSS selector to click."
+          },
+          "button": {
+            "type": "string",
+            "description": "Mouse button: left|middle|right (default left)."
+          },
+          "clickCount": {
+            "type": "number",
+            "description": "Click count (default 1, max 3)."
+          }
+        },
+        "required": [
+          "selector"
+        ],
+        "additionalProperties": false
+      },
+      "legacy_tool_name": "cdp_click",
+      "handler_domain": "live_cdp"
+    },
+    {
       "action_id": "live.cdp_console_logs",
       "title": "Renderer console logs",
       "description": "Requires electron_cdp. Collect renderer console output for duration_ms (default 2000, max 10000).",
@@ -272,6 +321,139 @@
       "handler_domain": "live_cdp"
     },
     {
+      "action_id": "live.cdp_fill",
+      "title": "Fill input in renderer",
+      "description": "Requires electron_cdp. Focus an <input>/<textarea>, set value, dispatch input/change.",
+      "category": "live",
+      "tags": [
+        "cdp",
+        "form",
+        "input",
+        "ui",
+        "automation"
+      ],
+      "aliases": [
+        "fill input",
+        "set input value"
+      ],
+      "intent_examples": [
+        "fill search box",
+        "set input value"
+      ],
+      "side_effect_level": "read_only",
+      "confirmation_required": false,
+      "dry_run_supported": false,
+      "dispatch_enabled": true,
+      "version": 1,
+      "deprecated": false,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "selector": {
+            "type": "string",
+            "description": "CSS selector for an <input> or <textarea>."
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to set."
+          },
+          "clear": {
+            "type": "boolean",
+            "description": "If true, clear before setting (default false)."
+          }
+        },
+        "required": [
+          "selector",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "legacy_tool_name": "cdp_fill",
+      "handler_domain": "live_cdp"
+    },
+    {
+      "action_id": "live.cdp_press",
+      "title": "Press key in renderer",
+      "description": "Requires electron_cdp. Press a key (keyDown + keyUp).",
+      "category": "live",
+      "tags": [
+        "cdp",
+        "keyboard",
+        "ui",
+        "automation"
+      ],
+      "aliases": [
+        "press key",
+        "key press"
+      ],
+      "intent_examples": [
+        "press Enter",
+        "press Escape"
+      ],
+      "side_effect_level": "read_only",
+      "confirmation_required": false,
+      "dry_run_supported": false,
+      "dispatch_enabled": true,
+      "version": 1,
+      "deprecated": false,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Key name, e.g. Enter, Escape, ArrowLeft."
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "additionalProperties": false
+      },
+      "legacy_tool_name": "cdp_press",
+      "handler_domain": "live_cdp"
+    },
+    {
+      "action_id": "live.cdp_query_selector",
+      "title": "Query selector in renderer",
+      "description": "Requires electron_cdp. Query selector existence/visibility and bounding box (viewport CSS pixels).",
+      "category": "live",
+      "tags": [
+        "cdp",
+        "dom",
+        "selector",
+        "renderer"
+      ],
+      "aliases": [
+        "query selector",
+        "selector info"
+      ],
+      "intent_examples": [
+        "does this selector exist",
+        "get element box"
+      ],
+      "side_effect_level": "read_only",
+      "confirmation_required": false,
+      "dry_run_supported": false,
+      "dispatch_enabled": true,
+      "version": 1,
+      "deprecated": false,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "selector": {
+            "type": "string",
+            "description": "CSS selector to query (document.querySelector)."
+          }
+        },
+        "required": [
+          "selector"
+        ],
+        "additionalProperties": false
+      },
+      "legacy_tool_name": "cdp_query_selector",
+      "handler_domain": "live_cdp"
+    },
+    {
       "action_id": "live.cdp_screenshot",
       "title": "Renderer screenshot",
       "description": "Requires electron_cdp (gallery_status). Screenshot via CDP; PNG image. Dev Electron with remote debugging (default 9222; override ELECTRON_CDP_URL / ELECTRON_REMOTE_DEBUGGING_PORT).",
@@ -305,6 +487,100 @@
         "additionalProperties": false
       },
       "legacy_tool_name": "cdp_screenshot",
+      "handler_domain": "live_cdp"
+    },
+    {
+      "action_id": "live.cdp_type",
+      "title": "Type text in renderer",
+      "description": "Requires electron_cdp. Type text into the currently focused element (best-effort).",
+      "category": "live",
+      "tags": [
+        "cdp",
+        "type",
+        "text",
+        "ui",
+        "automation"
+      ],
+      "aliases": [
+        "type text"
+      ],
+      "intent_examples": [
+        "type into focused input",
+        "enter text"
+      ],
+      "side_effect_level": "read_only",
+      "confirmation_required": false,
+      "dry_run_supported": false,
+      "dispatch_enabled": true,
+      "version": 1,
+      "deprecated": false,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to type via CDP Input.insertText."
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "legacy_tool_name": "cdp_type",
+      "handler_domain": "live_cdp"
+    },
+    {
+      "action_id": "live.cdp_wait_for",
+      "title": "Wait for selector",
+      "description": "Requires electron_cdp. Wait for selector to be attached or visible.",
+      "category": "live",
+      "tags": [
+        "cdp",
+        "wait",
+        "selector",
+        "ui",
+        "automation"
+      ],
+      "aliases": [
+        "wait for element"
+      ],
+      "intent_examples": [
+        "wait for loading to finish",
+        "wait for selector visible"
+      ],
+      "side_effect_level": "read_only",
+      "confirmation_required": false,
+      "dry_run_supported": false,
+      "dispatch_enabled": true,
+      "version": 1,
+      "deprecated": false,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "selector": {
+            "type": "string",
+            "description": "CSS selector to wait for."
+          },
+          "state": {
+            "type": "string",
+            "description": "attached|visible (default visible)."
+          },
+          "timeout_ms": {
+            "type": "number",
+            "description": "Timeout in ms (default 5000, max 60000)."
+          },
+          "poll_ms": {
+            "type": "number",
+            "description": "Polling interval in ms (default 100, min 50, max 1000)."
+          }
+        },
+        "required": [
+          "selector"
+        ],
+        "additionalProperties": false
+      },
+      "legacy_tool_name": "cdp_wait_for",
       "handler_domain": "live_cdp"
     },
     {

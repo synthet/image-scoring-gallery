@@ -5,6 +5,8 @@ import {
     friendlyAgentCandidateStatus,
     friendlyAgentError,
     friendlyAgentGroupStatus,
+    friendlyAgentReviewFailure,
+    formatAgentActionError,
 } from './analyticsChipLabels';
 
 describe('formatAnalyticsWarning', () => {
@@ -76,5 +78,19 @@ describe('friendlyAgentError', () => {
         expect(
             friendlyAgentError("[Errno 2] No such file or directory: 'gemini'"),
         ).toMatch(/agent CLI was not found/i);
+    });
+
+    it('maps auth tier failures to operator guidance', () => {
+        expect(friendlyAgentReviewFailure('agent_cli_auth_tier', null)).toMatch(/Antigravity/i);
+    });
+
+    it('uses error_message from run action results', () => {
+        expect(
+            formatAgentActionError({
+                ok: false,
+                error: 'agent_cli_auth_tier',
+                error_message: 'ignored when code is mapped',
+            }),
+        ).toMatch(/Antigravity/i);
     });
 });

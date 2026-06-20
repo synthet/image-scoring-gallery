@@ -44,6 +44,10 @@ export function getEffectiveKeyword(filters: FilterState): string | undefined {
 
 /** FilterState fields mapped to image/stack query options (excludes UI-only speciesKeyword). */
 export function toImageQueryFilters(filters: FilterState) {
+    const minClipQualityV0 =
+        filters.minClipQualityV0 != null && filters.minClipQualityV0 > 0
+            ? filters.minClipQualityV0 / 100
+            : undefined;
     return {
         minRating: filters.minRating,
         colorLabel: filters.colorLabel,
@@ -51,5 +55,6 @@ export function toImageQueryFilters(filters: FilterState) {
         order: filters.order,
         capturedDate: filters.capturedDate,
         keyword: getEffectiveKeyword(filters),
+        minClipQualityV0,
     };
 }

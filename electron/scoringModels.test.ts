@@ -81,9 +81,14 @@ describe('scoringModels', () => {
             'capture_date',
             'id',
         ]);
-        expect(options.at(-1)).toEqual({
+        expect(options.at(-2)).toEqual({
             value: 'model:topiq',
             label: 'TOPIQ-NR',
+            group: 'model',
+        });
+        expect(options.at(-1)).toEqual({
+            value: 'model:clip_quality_v0',
+            label: 'CLIP Quality',
             group: 'model',
         });
     });
@@ -92,6 +97,8 @@ describe('scoringModels', () => {
         const infos = buildModelInfosFromApi([
             { name: 'topiq', enabled: true, shadow: false },
             { name: 'qpt_v2', enabled: true, shadow: false },
+            { name: 'koniq', enabled: true, shadow: false },
+            { name: 'paq2piq', enabled: true, shadow: false },
         ]);
         expect(infos.map((m) => m.name)).toEqual(['topiq']);
 

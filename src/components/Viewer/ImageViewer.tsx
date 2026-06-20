@@ -25,6 +25,9 @@ interface Image {
     score_spaq?: number;
     score_ava?: number;
     score_liqe?: number;
+    score_topiq?: number;
+    score_arniqa?: number;
+    clip_quality_v0_score?: number;
     rating: number;
     label: string | null;
     created_at?: string;
@@ -1464,6 +1467,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     {(image.score_spaq ?? 0) > 0 && <ScoreBar label="SPAQ" value={image.score_spaq ?? 0} />}
                                     {(image.score_ava ?? 0) > 0 && <ScoreBar label="AVA" value={image.score_ava ?? 0} />}
                                     {(image.score_liqe ?? 0) > 0 && <ScoreBar label="LIQE" value={image.score_liqe ?? 0} />}
+                                    {(image.score_topiq ?? 0) > 0 && <ScoreBar label="TOPIQ-NR" value={image.score_topiq ?? 0} />}
+                                    {(image.score_arniqa ?? 0) > 0 && <ScoreBar label="ARNIQA" value={image.score_arniqa ?? 0} />}
+                                    {(image.clip_quality_v0_score ?? 0) > 0 && (
+                                        <ScoreBar label="CLIP Quality" value={image.clip_quality_v0_score ?? 0} />
+                                    )}
                                 </div>
 
                                 {/* Database IDs */}

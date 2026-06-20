@@ -1,19 +1,25 @@
 {
-  "_comment": "Merge into gallery .cursor/mcp.json (copy from mcp.example.json). Build first: cd mcp-server && npm install && npm run build.",
+  "_comment": "Multi-root pair template — compact stdio only. Optional SSE keys when WebUI/Electron is running.",
   "mcpServers": {
-    "is-ui-router": {
+    "is-be-mcp": {
       "command": "node",
-      "args": ["${workspaceFolder}/mcp-server/dist/routerIndex.js"]
+      "args": ["mcp-server/dist/compactIndex.js"],
+      "cwd": "${workspaceFolder:image-scoring-backend}"
     },
-    "is-ui-local": {
+    "is-ui-mcp": {
       "command": "node",
-      "args": ["${workspaceFolder}/mcp-server/dist/localIndex.js"]
+      "args": ["mcp-server/dist/compactIndex.js"],
+      "cwd": "${workspaceFolder:image-scoring-gallery}"
     },
-    "is-ui-api": {
-      "command": "node",
-      "args": ["${workspaceFolder}/mcp-server/dist/apiIndex.js"]
+    "is-be-live": {
+      "_comment": "Optional — WebUI running only",
+      "url": "http://127.0.0.1:7860/mcp/sse",
+      "headers": {
+        "Authorization": "Bearer ${env:IMGSCORE_MCP_TOKEN}"
+      }
     },
     "is-ui-live": {
+      "_comment": "Optional — Electron dev running only",
       "url": "http://127.0.0.1:9373/mcp/sse",
       "headers": {
         "Authorization": "Bearer ${env:GALLERY_MCP_TOKEN}"
