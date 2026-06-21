@@ -1,4 +1,23 @@
 {
+  "_comment": "Claude Code MCP: copy .mcp.json.example → .mcp.json. Enable compact tools only (search/dispatch/sse_status). Backend triage via sibling is-be-mcp.",
+  "permissions": {
+    "allow": [
+      "mcp__is-ui-mcp__search",
+      "mcp__is-ui-mcp__dispatch",
+      "mcp__is-ui-mcp__sse_status"
+    ]
+  },
+  "enabledMcpjsonServers": ["is-ui-mcp"],
+  "disabledMcpjsonServers": [
+    "playwright",
+    "imgscore-el-playwright",
+    "imgscore-el-chrome-devtools",
+    "is-ui-router",
+    "is-ui-local",
+    "is-ui-api",
+    "is-ui-live",
+    "is-ui-full"
+  ],
   "hooks": {
     "PostToolUse": [
       {
