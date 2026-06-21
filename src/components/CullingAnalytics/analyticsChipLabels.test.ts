@@ -8,6 +8,10 @@ import {
     friendlyAgentGroupStatus,
     friendlyAgentReviewFailure,
     formatAgentActionError,
+    agentRecommendationTone,
+    agentRecommendationBadge,
+    isAdvisoryRecommendation,
+    formatAgentSummaryDigest,
 } from './analyticsChipLabels';
 
 describe('formatAnalyticsWarning', () => {
@@ -73,6 +77,56 @@ describe('friendlyAgent labels', () => {
             warn: false,
         });
         expect(friendlyAgentDecision('advisory')).toBe('Advisory');
+    });
+});
+
+describe('agentRecommendationTone / badge', () => {
+    it('derives tone from candidate status first, then decision', () => {
+        expect(agentRecommendationTone({ final_decision: 'remove', candidate_status: 'operator_approved' })).toBe('approved');
+        expect(agentRecommendationTone({ final_decision: 'remove', candidate_status: 'operator_rejected' })).toBe('rejected');
+        expect(agentRecommendationTone({ agent_decision: 'advisory', candidate_status: 'pick_quality_advisory' })).toBe('advisory');
+        expect(agentRecommendationTone({ final_decision: 'remove', candidate_status: 'proposed' })).toBe('remove');
+        expect(agentRecommendationTone({ final_decision: 'keep', candidate_status: 'none' })).toBe('neutral');
+    });
+
+    it('flags advisories by decision or candidate status', () => {
+        expect(isAdvisoryRecommendation({ agent_decision: 'advisory' })).toBe(true);
+        expect(isAdvisoryRecommendation({ candidate_status: 'pick_quality_advisory' })).toBe(true);
+        expect(isAdvisoryRecommendation({ agent_decision: 'remove', candidate_status: 'proposed' })).toBe(false);
+    });
+
+    it('gives a scannable headline badge per tone', () => {
+        expect(agentRecommendationBadge({ final_decision: 'remove', candidate_status: 'proposed' })).toBe('Remove');
+        expect(agentRecommendationBadge({ agent_decision: 'advisory', candidate_status: 'pick_quality_advisory' })).toBe('Advisory');
+        expect(agentRecommendationBadge({ final_decision: 'remove', candidate_status: 'operator_approved' })).toBe('Approved');
+        expect(agentRecommendationBadge({ final_decision: 'remove', candidate_status: 'operator_rejected' })).toBe('Dismissed');
+    });
+});
+
+describe('formatAgentSummaryDigest', () => {
+    it('returns empty for blank input', () => {
+        expect(formatAgentSummaryDigest(null)).toEqual({ digest: '', hasMore: false });
+        expect(formatAgentSummaryDigest('   ')).toEqual({ digest: '', hasMore: false });
+    });
+
+    it('keeps a short single sentence intact without a "more" toggle', () => {
+        expect(formatAgentSummaryDigest('Kept the sharper frame.')).toEqual({
+            digest: 'Kept the sharper frame.',
+            hasMore: false,
+        });
+    });
+
+    it('truncates to the first sentence and flags more', () => {
+        const result = formatAgentSummaryDigest(
+            'Two near-duplicate frames detected. The sharper frame is kept and the soft one is proposed for removal.',
+        );
+        expect(result.digest).toBe('Two near-duplicate frames detected.');
+        expect(result.hasMore).toBe(true);
+    });
+
+    it('strips embedded score tokens from the digest prose', () => {
+        const result = formatAgentSummaryDigest('Frame A (0.93) is sharper than frame B (0.41).');
+        expect(result.digest).not.toMatch(/0\.93|0\.41/);
     });
 });
 

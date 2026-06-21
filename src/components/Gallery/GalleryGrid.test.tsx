@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
+import type { AgentCullRecommendation } from '../../types/agentCullReview';
 
 vi.mock('../../hooks/useKeyboardLayer', () => ({
     useKeyboardLayer: vi.fn(),
@@ -107,5 +108,78 @@ describe('GalleryGrid pick/reject status marks', () => {
         );
         expect(screen.queryByText('Pick 6')).toBeNull();
         expect(screen.queryByText('Picked')).toBeNull();
+    });
+});
+
+describe('GalleryGrid agent cull overlays', () => {
+    const img = {
+        id: 100,
+        file_path: 'D:/photos/DSC_0100.NEF',
+        file_name: 'DSC_0100.NEF',
+        thumbnail_path: 'D:/photos/thumbs/DSC_0100.jpg',
+        score_general: 0.42,
+        rating: 0,
+        label: null,
+    };
+
+    const removeRec: AgentCullRecommendation = {
+        id: 7,
+        review_group_id: 1,
+        image_id: 100,
+        agent_decision: 'remove',
+        final_decision: 'remove',
+        confidence: 0.9,
+        reason: 'Duplicate frame',
+        candidate_status: 'proposed',
+    };
+
+    const advisoryRec: AgentCullRecommendation = {
+        id: 8,
+        review_group_id: 1,
+        image_id: 100,
+        agent_decision: 'advisory',
+        final_decision: 'keep',
+        candidate_status: 'pick_quality_advisory',
+    };
+
+    it('renders a Remove badge and hover actions for a removable recommendation', () => {
+        const onAgentAction = vi.fn();
+        render(
+            <GalleryGrid
+                images={[img]}
+                activeStackId={123}
+                agentRecommendations={new Map([[100, removeRec]])}
+                onAgentAction={onAgentAction}
+            />,
+        );
+
+        const badge = screen.getByTestId('agent-grid-badge-100');
+        expect(badge.textContent).toBe('Remove');
+
+        fireEvent.click(screen.getByTestId('agent-grid-approve-100'));
+        expect(onAgentAction).toHaveBeenCalledWith(removeRec, 'approve');
+
+        fireEvent.click(screen.getByTestId('agent-grid-dismiss-100'));
+        expect(onAgentAction).toHaveBeenCalledWith(removeRec, 'reject');
+    });
+
+    it('shows an Advisory badge but no approve/dismiss controls for advisories', () => {
+        render(
+            <GalleryGrid
+                images={[img]}
+                activeStackId={123}
+                agentRecommendations={new Map([[100, advisoryRec]])}
+                onAgentAction={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByTestId('agent-grid-badge-100').textContent).toBe('Advisory');
+        expect(screen.queryByTestId('agent-grid-approve-100')).toBeNull();
+        expect(screen.queryByTestId('agent-grid-dismiss-100')).toBeNull();
+    });
+
+    it('renders no agent overlay when there is no recommendation for the image', () => {
+        render(<GalleryGrid images={[img]} activeStackId={123} agentRecommendations={new Map()} />);
+        expect(screen.queryByTestId('agent-grid-badge-100')).toBeNull();
     });
 });

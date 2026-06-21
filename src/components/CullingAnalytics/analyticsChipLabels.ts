@@ -103,6 +103,93 @@ export function friendlyAgentDecision(decision: string): string {
     return AGENT_DECISION_LABELS[decision] ?? humanizeSnakeCase(decision);
 }
 
+/**
+ * Visual tone for a recommendation card / grid overlay, aligned with design tokens:
+ *  - remove   → amber/warning (suggested removal awaiting operator)
+ *  - advisory → blue/info (picked-image quality note, never removes)
+ *  - approved → green/success (operator approved the removal)
+ *  - rejected → red/danger (operator dismissed / kept in review)
+ *  - neutral  → muted (no decision yet / rolled back)
+ */
+export type AgentRecommendationTone = 'remove' | 'advisory' | 'approved' | 'rejected' | 'neutral';
+
+interface AgentRecLike {
+    agent_decision?: string | null;
+    final_decision?: string | null;
+    candidate_status?: string | null;
+}
+
+/** True when a recommendation is advisory-only (info, never approvable/removable). */
+export function isAdvisoryRecommendation(rec: AgentRecLike): boolean {
+    return rec.agent_decision === 'advisory' || rec.candidate_status === 'pick_quality_advisory';
+}
+
+export function agentRecommendationTone(rec: AgentRecLike): AgentRecommendationTone {
+    switch (rec.candidate_status) {
+        case 'operator_approved':
+            return 'approved';
+        case 'operator_rejected':
+            return 'rejected';
+        case 'rolled_back':
+            return 'neutral';
+        default:
+            break;
+    }
+    if (isAdvisoryRecommendation(rec)) return 'advisory';
+    if (rec.final_decision === 'remove') return 'remove';
+    return 'neutral';
+}
+
+/** Short, scannable label for a recommendation's headline badge. */
+export function agentRecommendationBadge(rec: AgentRecLike): string {
+    const tone = agentRecommendationTone(rec);
+    switch (tone) {
+        case 'approved':
+            return 'Approved';
+        case 'rejected':
+            return 'Dismissed';
+        case 'advisory':
+            return 'Advisory';
+        case 'remove':
+            return 'Remove';
+        default:
+            return friendlyAgentDecision(rec.final_decision ?? 'keep');
+    }
+}
+
+/**
+ * Condenses a verbose agent summary into a scannable digest: the first sentence,
+ * capped at `maxLen` chars. Returns `hasMore` when text was elided so the caller
+ * can offer a "Show full analysis" toggle. Embedded score tokens like `(0.93)`
+ * are collapsed to keep the digest prose-only.
+ */
+export function formatAgentSummaryDigest(
+    summary: string | null | undefined,
+    maxLen = 200,
+): { digest: string; hasMore: boolean } {
+    const full = (summary ?? '').trim();
+    if (!full) return { digest: '', hasMore: false };
+
+    const condensed = full.replace(/\s*\((?:score\s*)?\d+(?:\.\d+)?\)\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
+
+    // Prefer ending at the first sentence boundary when it is reasonably short.
+    const sentenceEnd = condensed.search(/[.!?](\s|$)/);
+    if (sentenceEnd >= 0 && sentenceEnd + 1 <= maxLen) {
+        const digest = condensed.slice(0, sentenceEnd + 1).trim();
+        return { digest, hasMore: digest.length < full.length };
+    }
+
+    if (condensed.length <= maxLen) {
+        return { digest: condensed, hasMore: condensed.length < full.length };
+    }
+
+    // Hard cap on a word boundary.
+    const slice = condensed.slice(0, maxLen);
+    const lastSpace = slice.lastIndexOf(' ');
+    const digest = (lastSpace > maxLen * 0.6 ? slice.slice(0, lastSpace) : slice).trim();
+    return { digest: `${digest}…`, hasMore: true };
+}
+
 /** Maps agent-review API error and skip_reason codes to operator-facing text. */
 const AGENT_ERROR_LABELS: Record<string, string> = {
     stale_group_state:

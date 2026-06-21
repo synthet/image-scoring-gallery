@@ -19,14 +19,32 @@ The **Agent cull review** banner appears when viewing a stack or substack with t
 | Piece | Location |
 |-------|----------|
 | `AgentCullReviewPanel` | `src/components/CullingAnalytics/AgentCullReviewPanel.tsx` |
-| Error labels | `src/components/CullingAnalytics/analyticsChipLabels.ts` (`friendlyAgentError`) |
+| Shared review state (panel + grid) | `src/hooks/useAgentCullReview.ts` |
+| Thumbnail overlays / hover actions | `src/components/Gallery/GalleryGrid.tsx` (`agentRecommendations`, `onAgentAction`, `highlightImageId`) |
+| Labels, tone, summary digest | `src/components/CullingAnalytics/analyticsChipLabels.ts` (`friendlyAgentError`, `agentRecommendationTone`, `formatAgentSummaryDigest`) |
 | IPC | `electron/apiService.ts` → `runAgentCullReview`, `getAgentCullGroups`, … |
 
-## Typical workflow
+The panel and the gallery grid share **one** fetch via `useAgentCullReview`, mounted once in
+`AppContent`. The panel renders recommendation **cards**; the grid renders matching **thumbnail
+overlays** (tone border, badge, hover Approve/Dismiss). Clicking a card scrolls the grid to that
+image and briefly highlights it.
+
+## Workflow
+
+The panel header shows a stepper: **Dry-run → Review → Live run → Mark candidates**.
 
 1. Open a stack with picks and rejects (sub-stack leaf or flat stack).
-2. Click **Run dry-run review**.
-3. Review recommendations; approve/reject per image or **Mark safe candidates** when not in dry-run.
+2. Click **Run dry-run review** (`dryRun: true`) → status `proposed`. Recommendations are
+   metadata-only proposals; no file is deleted or moved.
+3. **Review** each card: **Approve** a removal, **Keep in review** to dismiss, or use the overflow
+   (⋯) for **Clear pick flag** / **Roll back**. Picked-image **advisories** are info-only — they
+   never expose Approve. Use **Approve all removals** / **Dismiss all** for bulk.
+4. Click **Run live review** (`dryRun: false`) → status `validated`. Still metadata-only — this
+   records operator-facing remove **candidates**, it does not delete files.
+5. Click **Mark safe candidates** to apply (shown only on a non-dry-run group).
+
+If picks change after a review, applying returns `stale_group_state` (HTTP 409); the panel shows a
+**Re-run the dry-run review** prompt — re-run before approving/applying.
 
 ## “Gemini CLI was not found” (fixed setup)
 

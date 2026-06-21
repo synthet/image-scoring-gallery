@@ -29,6 +29,7 @@ import { isSortOptionValue, useScoringSortOptions } from './hooks/useScoringSort
 
 import { StackAnalyticsBanner } from './components/CullingAnalytics/StackAnalyticsBanner';
 import { AgentCullReviewPanel } from './components/CullingAnalytics/AgentCullReviewPanel';
+import { useAgentCullReview } from './hooks/useAgentCullReview';
 import breadcrumbStyles from './styles/breadcrumbs.module.css';
 import toggleStyles from './styles/toggle.module.css';
 import {
@@ -319,6 +320,26 @@ function AppContent() {
 
   // Current display list is shared by the grid and viewer opener so card/detail navigation stays aligned.
   const currentImages = (stacksMode && !activeStackId) ? stacks : (activeStackId ? activeStackDisplayImages : images);
+
+  // Single agent-cull-review fetch shared by the panel (cards) and the grid (thumbnail overlays).
+  const agentReview = useAgentCullReview(activeStackId ?? 0, activeSubStackId, {
+    enabled: activeStackId !== null,
+  });
+  // image_id → file name, so the panel cards show filenames instead of raw ids (no extra query).
+  const agentFileNames = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const img of currentImages) {
+      if (img?.id != null && img.file_name) map.set(img.id, img.file_name);
+    }
+    return map;
+  }, [currentImages]);
+  // Transient highlight target: clearing it after the pulse lets a re-click replay the animation.
+  const [agentHighlightImageId, setAgentHighlightImageId] = useState<number | null>(null);
+  useEffect(() => {
+    if (agentHighlightImageId == null) return;
+    const timer = window.setTimeout(() => setAgentHighlightImageId(null), 1500);
+    return () => window.clearTimeout(timer);
+  }, [agentHighlightImageId]);
 
   const {
     openingImage,
@@ -734,7 +755,13 @@ function AppContent() {
                 )}
                 {activeStackId !== null && <StackAnalyticsBanner stackId={activeStackId} />}
                 {activeStackId !== null && (
-                  <AgentCullReviewPanel stackId={activeStackId} subStackId={activeSubStackId} />
+                  <AgentCullReviewPanel
+                    stackId={activeStackId}
+                    subStackId={activeSubStackId}
+                    review={agentReview}
+                    fileNames={agentFileNames}
+                    onFocusImage={setAgentHighlightImageId}
+                  />
                 )}
                 <GalleryGrid
                   key={`${selectedFolderId ?? 'all'}-${activeStackId ?? 'none'}-${activeSubStackId ?? 'none'}-${activeUngroupedSubStack ? 'ungrouped' : 'grouped'}-${stacksMode ? 'stacks' : 'images'}-${hasSubStackCards ? 'substacks' : 'flat'}`}
@@ -770,6 +797,12 @@ function AppContent() {
                     setIsSimilarDrawerOpen(true);
                   }}
                   filterEmptyActive={hasActiveFilters && !isInitialGridLoading}
+                  agentRecommendations={activeStackId !== null ? agentReview.recommendationsByImageId : undefined}
+                  onAgentAction={(rec, action) => {
+                    if (action === 'approve') agentReview.approve(rec);
+                    else agentReview.reject(rec);
+                  }}
+                  highlightImageId={agentHighlightImageId}
                 />
                 <SimilarSearchDrawer
                   open={isSimilarDrawerOpen}

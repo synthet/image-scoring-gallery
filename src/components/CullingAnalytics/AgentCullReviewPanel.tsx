@@ -1,56 +1,45 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
-import type {
-    AgentCullRecommendation,
-    AgentCullReviewGroupDetail,
-    AgentCullReviewGroupSummary,
-} from '../../types/agentCullReview';
+import { Fragment, useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, Loader2, MoreHorizontal } from 'lucide-react';
+import type { AgentCullRecommendation, AgentCullReviewGroupDetail } from '../../types/agentCullReview';
 import {
-    analyticsChipClassName,
-    formatAgentActionError,
+    agentRecommendationBadge,
+    agentRecommendationTone,
+    formatAgentSummaryDigest,
     friendlyAgentCandidateStatus,
-    friendlyAgentDecision,
-    friendlyAgentError,
     friendlyAgentGroupStatus,
     friendlyAgentReviewFailure,
+    isAdvisoryRecommendation,
+    type AgentRecommendationTone,
 } from './analyticsChipLabels';
-import styles from './CullingAnalytics.module.css';
+import { useAgentCullReview, type AgentCullReviewState } from '../../hooks/useAgentCullReview';
+import styles from './AgentCullReviewPanel.module.css';
 
 interface Props {
     stackId: number;
     subStackId?: number | null;
+    /** Shared review state (from AppContent). When omitted the panel self-provisions via the hook. */
+    review?: AgentCullReviewState;
+    /** image_id → file name, joined from the grid's loaded images for friendly card titles. */
+    fileNames?: Map<number, string>;
+    /** Notifies the parent which image a card targets, to scroll-to + highlight the grid cell. */
+    onFocusImage?: (imageId: number) => void;
 }
 
-/**
- * Maps backend agent-review error codes to operator-facing messages. The
- * apiService embeds the HTTP status and JSON body in the thrown Error message
- * (e.g. `...returned HTTP 409: {"error":"stale_group_state"}`), and some
- * endpoints instead return `{ ok: false, error }` with HTTP 200, so we match
- * the raw string for known codes. See gallery issue #136.
- */
+const BADGE_CLASS: Record<AgentRecommendationTone, string> = {
+    remove: styles.badgeRemove,
+    advisory: styles.badgeAdvisory,
+    approved: styles.badgeApproved,
+    rejected: styles.badgeRejected,
+    neutral: styles.badgeNeutral,
+};
 
-/** Extracts an error code from a `{ ok: false, error }` action result, if present. */
-function resultError(result: unknown): string | null {
-    return formatAgentActionError(result);
-}
-
-async function loadReviewData(stackId: number, subStackId: number | null | undefined) {
-    const api = window.electron?.api;
-    if (!api?.getAgentCullGroups) {
-        return { groups: [] as AgentCullReviewGroupSummary[], detail: null as AgentCullReviewGroupDetail | null };
-    }
-    const list = await api.getAgentCullGroups({
-        stackId,
-        subStackId: subStackId ?? undefined,
-        limit: 5,
-    });
-    const items = (list?.groups ?? []) as AgentCullReviewGroupSummary[];
-    if (items.length > 0 && api.getAgentCullGroup) {
-        const full = await api.getAgentCullGroup(items[0].id);
-        return { groups: items, detail: full as AgentCullReviewGroupDetail };
-    }
-    return { groups: items, detail: null };
-}
+const TONE_CLASS: Record<AgentRecommendationTone, string> = {
+    remove: styles.toneRemove,
+    advisory: styles.toneAdvisory,
+    approved: styles.toneApproved,
+    rejected: styles.toneRejected,
+    neutral: styles.toneNeutral,
+};
 
 function ReviewProgressBanner({ elapsedSec }: { elapsedSec: number }) {
     return (
@@ -72,286 +61,409 @@ function ReviewProgressBanner({ elapsedSec }: { elapsedSec: number }) {
     );
 }
 
-export function AgentCullReviewPanel({ stackId, subStackId = null }: Props) {
-    const [groups, setGroups] = useState<AgentCullReviewGroupSummary[]>([]);
-    const [detail, setDetail] = useState<AgentCullReviewGroupDetail | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [actionBusy, setActionBusy] = useState(false);
-    const [reviewRunning, setReviewRunning] = useState(false);
-    const [reviewElapsedSec, setReviewElapsedSec] = useState(0);
-    const [error, setError] = useState<string | null>(null);
-    const reviewStartedAtRef = useRef<number | null>(null);
-    const reviewRunningRef = useRef(false);
+const WORKFLOW_STEPS = ['Dry-run', 'Review', 'Live run', 'Mark candidates'] as const;
 
-    useEffect(() => {
-        reviewRunningRef.current = reviewRunning;
-    }, [reviewRunning]);
+function currentWorkflowStep(detail: AgentCullReviewGroupDetail | null): number {
+    if (!detail) return 0;
+    if (detail.status === 'applied') return WORKFLOW_STEPS.length;
+    if (detail.dry_run) return 1;
+    return 3;
+}
 
-    useEffect(() => {
-        if (!reviewRunning) {
-            reviewStartedAtRef.current = null;
-            setReviewElapsedSec(0);
-            return;
-        }
-        reviewStartedAtRef.current = Date.now();
-        setReviewElapsedSec(0);
-        const timer = window.setInterval(() => {
-            const started = reviewStartedAtRef.current;
-            if (started == null) return;
-            setReviewElapsedSec(Math.floor((Date.now() - started) / 1000));
-        }, 1000);
-        return () => window.clearInterval(timer);
-    }, [reviewRunning]);
+function WorkflowStepper({ detail }: { detail: AgentCullReviewGroupDetail | null }) {
+    const current = currentWorkflowStep(detail);
+    return (
+        <div className={styles.stepper} data-testid="agent-cull-stepper" aria-label="Agent review workflow">
+            {WORKFLOW_STEPS.map((label, idx) => {
+                const done = idx < current;
+                const active = idx === current;
+                const cls = active ? `${styles.step} ${styles.stepActive}` : done ? `${styles.step} ${styles.stepDone}` : styles.step;
+                return (
+                    <Fragment key={label}>
+                        {idx > 0 && <span className={styles.stepConnector} aria-hidden>›</span>}
+                        <span className={cls} aria-current={active ? 'step' : undefined}>
+                            {label}
+                        </span>
+                    </Fragment>
+                );
+            })}
+        </div>
+    );
+}
 
-    const reviewProgress = reviewRunning ? (
-        <ReviewProgressBanner elapsedSec={reviewElapsedSec} />
-    ) : null;
+function ConfidencePill({ value }: { value: number }) {
+    const pct = Math.round(Math.max(0, Math.min(1, value)) * 100);
+    return (
+        <span className={styles.confidencePill} title={`Confidence ${value.toFixed(2)}`}>
+            <span className={styles.confidenceTrack} aria-hidden>
+                <span className={styles.confidenceFill} style={{ width: `${pct}%` }} />
+            </span>
+            {pct}%
+        </span>
+    );
+}
 
-    const refresh = useCallback(async (options?: { clearError?: boolean; force?: boolean }) => {
-        if (reviewRunningRef.current && !options?.force) {
-            return;
-        }
-        setLoading(true);
-        if (options?.clearError !== false) {
-            setError(null);
-        }
-        try {
-            const data = await loadReviewData(stackId, subStackId);
-            setGroups(data.groups);
-            setDetail(data.detail);
-        } catch (e) {
-            setError(friendlyAgentError(e instanceof Error ? e.message : 'Failed to load agent review'));
-            setGroups([]);
-            setDetail(null);
-        } finally {
-            setLoading(false);
-        }
-    }, [stackId, subStackId]);
+function RecommendationCard({
+    rec,
+    fileName,
+    busy,
+    onApprove,
+    onReject,
+    onRollback,
+    onNeutral,
+    onFocus,
+}: {
+    rec: AgentCullRecommendation;
+    fileName?: string;
+    busy: boolean;
+    onApprove: () => void;
+    onReject: () => void;
+    onRollback: () => void;
+    onNeutral: () => void;
+    onFocus?: (imageId: number) => void;
+}) {
+    const [reasonOpen, setReasonOpen] = useState(false);
+    const tone = agentRecommendationTone(rec);
+    const advisory = isAdvisoryRecommendation(rec);
+    const candidate = rec.candidate_status !== 'none' ? friendlyAgentCandidateStatus(rec.candidate_status) : null;
+    const title = fileName ?? `Image #${rec.image_id}`;
+    const hasReason = !!rec.reason && rec.reason.trim().length > 0;
 
-    useEffect(() => {
-        void refresh();
-    }, [refresh]);
+    return (
+        <li className={`${styles.card} ${TONE_CLASS[tone]}`} data-testid={`agent-cull-rec-${rec.image_id}`}>
+            <div className={styles.cardHeader}>
+                <button
+                    type="button"
+                    className={styles.cardName}
+                    title={`${title} — show in grid`}
+                    onClick={() => onFocus?.(rec.image_id)}
+                    data-testid={`agent-cull-rec-focus-${rec.image_id}`}
+                >
+                    {title}
+                </button>
+                <span className={`${styles.badge} ${BADGE_CLASS[tone]}`}>{agentRecommendationBadge(rec)}</span>
+                {rec.confidence != null && <ConfidencePill value={Number(rec.confidence)} />}
+            </div>
 
-    const runAction = async (fn: () => Promise<unknown>) => {
-        setActionBusy(true);
-        setError(null);
-        try {
-            const result = await fn();
-            const code = resultError(result);
-            if (code) {
-                const groupId =
-                    result && typeof result === 'object' && 'group_id' in result
-                        ? (result as { group_id?: number }).group_id
-                        : undefined;
-                if (groupId) {
-                    await refresh({ clearError: false, force: true });
-                }
-                setError(code);
-                return;
-            }
-            await refresh({ force: true });
-        } catch (e) {
-            setError(friendlyAgentError(e instanceof Error ? e.message : 'Action failed'));
-        } finally {
-            setActionBusy(false);
-        }
-    };
+            {hasReason && (
+                <div
+                    className={reasonOpen ? styles.reason : `${styles.reason} ${styles.reasonClamped}`}
+                    onClick={() => setReasonOpen((v) => !v)}
+                    title={reasonOpen ? 'Collapse' : 'Expand'}
+                >
+                    {rec.reason}
+                </div>
+            )}
 
-    const handleRunReview = () => {
-        const api = window.electron?.api;
-        if (!api?.runAgentCullReview) return;
-        setReviewRunning(true);
-        void runAction(async () =>
-            api.runAgentCullReview!({ stackId, subStackId: subStackId ?? undefined, dryRun: true }),
-        ).finally(() => setReviewRunning(false));
-    };
+            {candidate && (
+                <span
+                    className={`${styles.chip} ${candidate.warn ? styles.chipWarn : advisory ? styles.chipInfo : ''} ${styles.candidateChip}`}
+                >
+                    {candidate.text}
+                </span>
+            )}
 
-    const handleApprove = (rec: AgentCullRecommendation) => {
-        const api = window.electron?.api;
-        if (!api?.approveAgentCullGroup || !detail) return;
-        void runAction(async () => api.approveAgentCullGroup!(detail.id, { recommendationIds: [rec.id] }));
-    };
+            {!advisory && (
+                <div className={styles.actionRow}>
+                    {rec.final_decision === 'remove' && (
+                        <button
+                            type="button"
+                            className={`${styles.btn} ${styles.btnPrimary}`}
+                            disabled={busy}
+                            onClick={onApprove}
+                            data-testid={`agent-cull-approve-${rec.id}`}
+                        >
+                            Approve
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        className={styles.btn}
+                        disabled={busy}
+                        onClick={onReject}
+                        data-testid={`agent-cull-reject-${rec.id}`}
+                    >
+                        Keep in review
+                    </button>
+                    <details className={styles.overflow}>
+                        <summary className={styles.overflowSummary} aria-label="More actions">
+                            <MoreHorizontal size={14} aria-hidden />
+                        </summary>
+                        <div className={styles.overflowMenu}>
+                            <button
+                                type="button"
+                                className={styles.btn}
+                                disabled={busy}
+                                onClick={onNeutral}
+                                data-testid={`agent-cull-neutral-${rec.id}`}
+                            >
+                                Clear pick flag
+                            </button>
+                            {rec.candidate_status !== 'none' && (
+                                <button
+                                    type="button"
+                                    className={styles.btn}
+                                    disabled={busy}
+                                    onClick={onRollback}
+                                    data-testid={`agent-cull-rollback-${rec.id}`}
+                                >
+                                    Roll back
+                                </button>
+                            )}
+                        </div>
+                    </details>
+                </div>
+            )}
 
-    const handleReject = (rec: AgentCullRecommendation) => {
-        const api = window.electron?.api;
-        if (!api?.rejectAgentCullGroup || !detail) return;
-        void runAction(async () => api.rejectAgentCullGroup!(detail.id, { recommendationIds: [rec.id] }));
-    };
+            {advisory && rec.better_alternatives && rec.better_alternatives.length > 0 && onFocus && (
+                <button
+                    type="button"
+                    className={styles.linkBtn}
+                    onClick={() => onFocus(rec.better_alternatives![0])}
+                    data-testid={`agent-cull-alternatives-${rec.id}`}
+                >
+                    View suggested alternative
+                </button>
+            )}
+        </li>
+    );
+}
 
-    const handleRollback = (rec: AgentCullRecommendation) => {
-        const api = window.electron?.api;
-        if (!api?.rollbackAgentCullRecommendation) return;
-        void runAction(async () => api.rollbackAgentCullRecommendation!(rec.id));
-    };
+export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileNames, onFocusImage }: Props) {
+    const localReview = useAgentCullReview(stackId, subStackId, { enabled: !review });
+    const r = review ?? localReview;
 
-    const handleApplyCandidates = () => {
-        const api = window.electron?.api;
-        if (!api?.applyAgentCullCandidates || !detail) return;
-        void runAction(async () => api.applyAgentCullCandidates!(detail.id));
-    };
+    const [expanded, setExpanded] = useState(true);
+    const [showFull, setShowFull] = useState(false);
 
-    const handleKeepNeutral = (rec: AgentCullRecommendation) => {
-        const api = window.electron?.api;
-        if (!api?.updateImagePickStatus) return;
-        void runAction(async () => api.updateImagePickStatus!(rec.image_id, 0));
-    };
+    const {
+        groups,
+        detail,
+        recommendations,
+        loading,
+        actionBusy,
+        reviewRunning,
+        reviewElapsedSec,
+        error,
+        canRun,
+    } = r;
 
-    const canRun = !!window.electron?.api?.runAgentCullReview;
+    const removable = useMemo(
+        () => recommendations.filter((rec) => rec.final_decision === 'remove' && !isAdvisoryRecommendation(rec)),
+        [recommendations],
+    );
+    const pendingRemovable = useMemo(
+        () =>
+            removable.filter(
+                (rec) => rec.candidate_status !== 'operator_approved' && rec.candidate_status !== 'operator_rejected',
+            ),
+        [removable],
+    );
+    const advisoryCount = useMemo(
+        () => recommendations.filter((rec) => isAdvisoryRecommendation(rec)).length,
+        [recommendations],
+    );
 
-    const runButton = canRun ? (
+    const reviewProgress = reviewRunning ? <ReviewProgressBanner elapsedSec={reviewElapsedSec} /> : null;
+
+    const runDryButton = canRun ? (
         <button
             type="button"
-            className={styles.actionBtn}
+            className={styles.btn}
             disabled={actionBusy || loading}
-            onClick={handleRunReview}
+            onClick={() => r.runReview(true)}
             data-testid="agent-cull-run-review"
         >
-            {actionBusy ? 'Running…' : 'Run dry-run review'}
+            {actionBusy ? 'Running…' : groups.length === 0 ? 'Run dry-run review' : 'Re-run dry-run'}
         </button>
     ) : null;
 
     if (loading && groups.length === 0 && !reviewRunning) {
-        return <div className={styles.banner}>Agent cull review…</div>;
+        return <div className={styles.panel}><div className={styles.body}>Agent cull review…</div></div>;
     }
+
     if (error && groups.length === 0) {
         return (
-            <div className={styles.banner} data-testid="agent-cull-error">
-                <div className={styles.bannerTitle}>Agent cull review</div>
-                {reviewProgress}
-                {!reviewRunning && <div className={styles.warn}>{error}</div>}
-                <div className={styles.actionRow}>{runButton}</div>
+            <div className={styles.panel} data-testid="agent-cull-error">
+                <div className={styles.header}>
+                    <span className={styles.title}>Agent cull review</span>
+                </div>
+                <div className={styles.body}>
+                    {reviewProgress}
+                    {!reviewRunning && <div className={styles.error}>{error}</div>}
+                    <div className={styles.actionRow}>{runDryButton}</div>
+                </div>
             </div>
         );
     }
+
     if (groups.length === 0) {
-        // No review exists yet for this stack/substack — offer to run one (dry-run).
         if (!canRun) return null;
         return (
-            <div className={styles.banner} data-testid="agent-cull-review-panel">
-                <div className={styles.bannerTitle}>Agent cull review</div>
-                {reviewProgress}
-                {!reviewRunning && (
-                    <div className={styles.bannerMeta}>
-                        No review yet — metadata-only, no files are deleted or moved.
-                    </div>
-                )}
-                <div className={styles.actionRow}>{runButton}</div>
+            <div className={styles.panel} data-testid="agent-cull-review-panel">
+                <div className={styles.header}>
+                    <span className={styles.title}>Agent cull review</span>
+                </div>
+                <div className={styles.body}>
+                    {reviewProgress}
+                    {!reviewRunning && (
+                        <div className={styles.meta}>No review yet — metadata-only, no files are deleted or moved.</div>
+                    )}
+                    <div className={styles.actionRow}>{runDryButton}</div>
+                </div>
             </div>
         );
     }
 
     const latest = detail ?? groups[0];
-    const recommendations = detail?.recommendations ?? [];
     const groupFailureMessage =
-        latest.status === 'failed'
-            ? friendlyAgentReviewFailure(latest.error_code, latest.error_message)
-            : null;
+        latest.status === 'failed' ? friendlyAgentReviewFailure(latest.error_code, latest.error_message) : null;
+    const digest = formatAgentSummaryDigest(latest.summary);
+    const isDryRun = !!latest.dry_run;
+    const canRunLive = canRun && !!detail && isDryRun && latest.status !== 'failed';
 
     return (
-        <div className={styles.banner} data-testid="agent-cull-review-panel">
-            <div className={styles.bannerTitle}>Agent cull review</div>
-            {latest.dry_run && (
-                <span className={styles.chip} data-testid="agent-cull-dry-run-badge">
-                    Dry run
-                </span>
-            )}
-            <span className={styles.chip}>Status: {friendlyAgentGroupStatus(latest.status)}</span>
-            {latest.group_confidence != null && (
-                <span className={styles.chip}>
-                    Confidence: {Number(latest.group_confidence).toFixed(2)}
-                </span>
-            )}
-            {latest.summary && <div className={styles.bannerSummary}>{latest.summary}</div>}
-            <div className={styles.bannerMeta}>
-                Metadata-only — no files are deleted or moved.
+        <div className={styles.panel} data-testid="agent-cull-review-panel" role="region" aria-label="Agent cull review">
+            <div className={styles.header}>
+                <button
+                    type="button"
+                    className={styles.collapseBtn}
+                    onClick={() => setExpanded((v) => !v)}
+                    aria-expanded={expanded}
+                    data-testid="agent-cull-collapse"
+                >
+                    {expanded ? <ChevronDown size={16} className={styles.chevron} aria-hidden /> : <ChevronRight size={16} className={styles.chevron} aria-hidden />}
+                    <span className={styles.title}>Agent cull review</span>
+                </button>
+                <div className={styles.headerActions}>
+                    {runDryButton}
+                    {canRunLive && (
+                        <button
+                            type="button"
+                            className={`${styles.btn} ${styles.btnPrimary}`}
+                            disabled={actionBusy}
+                            onClick={() => r.runReview(false)}
+                            data-testid="agent-cull-run-live"
+                        >
+                            Run live review
+                        </button>
+                    )}
+                </div>
             </div>
-            {reviewProgress}
-            {!reviewRunning && (error || groupFailureMessage) && (
-                <div className={styles.warn} data-testid="agent-cull-action-error">
-                    {error || groupFailureMessage}
+
+            <div className={styles.chipRow}>
+                {isDryRun && (
+                    <span className={styles.chip} data-testid="agent-cull-dry-run-badge">
+                        Dry run
+                    </span>
+                )}
+                <span className={styles.chip}>Status: {friendlyAgentGroupStatus(latest.status)}</span>
+                {latest.group_confidence != null && (
+                    <span className={styles.chip}>Confidence: {Number(latest.group_confidence).toFixed(2)}</span>
+                )}
+                {removable.length > 0 && (
+                    <span className={`${styles.chip} ${styles.chipWarn}`}>{removable.length} removal{removable.length === 1 ? '' : 's'} suggested</span>
+                )}
+                {advisoryCount > 0 && (
+                    <span className={`${styles.chip} ${styles.chipInfo}`}>{advisoryCount} advisor{advisoryCount === 1 ? 'y' : 'ies'}</span>
+                )}
+                {pendingRemovable.length > 0 && (
+                    <span className={styles.chip}>{pendingRemovable.length} pending your review</span>
+                )}
+            </div>
+
+            <WorkflowStepper detail={detail} />
+
+            {expanded && (
+                <div className={styles.body}>
+                    {digest.digest && (
+                        <div className={styles.digest}>
+                            {showFull && latest.summary ? latest.summary : digest.digest}
+                            {digest.hasMore && (
+                                <button
+                                    type="button"
+                                    className={styles.linkBtn}
+                                    onClick={() => setShowFull((v) => !v)}
+                                    data-testid="agent-cull-show-full"
+                                >
+                                    {showFull ? 'Show less' : 'Show full analysis'}
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    <div className={styles.meta}>Metadata-only — no files are deleted or moved.</div>
+
+                    {reviewProgress}
+
+                    {!reviewRunning && (error || groupFailureMessage) && (
+                        <div className={styles.error} data-testid="agent-cull-action-error">
+                            {error || groupFailureMessage}
+                        </div>
+                    )}
+
+                    {canRunLive && (
+                        <div className={styles.liveWarn} data-testid="agent-cull-live-hint">
+                            Live review records operator-facing remove candidates. Still metadata-only — no file is deleted.
+                        </div>
+                    )}
+
+                    {detail && !detail.dry_run && (
+                        <div className={styles.actionRow}>
+                            <button
+                                type="button"
+                                className={`${styles.btn} ${styles.btnPrimary}`}
+                                disabled={actionBusy}
+                                onClick={() => r.applyCandidates()}
+                                data-testid="agent-cull-apply-candidates"
+                            >
+                                Mark safe candidates
+                            </button>
+                        </div>
+                    )}
+
+                    {pendingRemovable.length > 1 && (
+                        <div className={styles.bulkRow} data-testid="agent-cull-bulk">
+                            <span className={styles.bulkLabel}>Bulk:</span>
+                            <button
+                                type="button"
+                                className={`${styles.btn} ${styles.btnPrimary}`}
+                                disabled={actionBusy}
+                                onClick={() => r.approveAll(pendingRemovable)}
+                                data-testid="agent-cull-approve-all"
+                            >
+                                Approve all removals
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.btn}
+                                disabled={actionBusy}
+                                onClick={() => r.dismissAll(pendingRemovable)}
+                                data-testid="agent-cull-dismiss-all"
+                            >
+                                Dismiss all
+                            </button>
+                        </div>
+                    )}
+
+                    {recommendations.length > 0 && (
+                        <ul className={styles.cardList} data-testid="agent-cull-recommendations">
+                            {recommendations.map((rec) => (
+                                <RecommendationCard
+                                    key={rec.id}
+                                    rec={rec}
+                                    fileName={fileNames?.get(rec.image_id)}
+                                    busy={actionBusy}
+                                    onApprove={() => r.approve(rec)}
+                                    onReject={() => r.reject(rec)}
+                                    onRollback={() => r.rollback(rec)}
+                                    onNeutral={() => r.keepNeutral(rec)}
+                                    onFocus={onFocusImage}
+                                />
+                            ))}
+                        </ul>
+                    )}
                 </div>
-            )}
-            {runButton && <div className={styles.actionRow}>{runButton}</div>}
-            {detail && !detail.dry_run && (
-                <div className={styles.actionRow}>
-                    <button
-                        type="button"
-                        className={styles.actionBtn}
-                        disabled={actionBusy}
-                        onClick={handleApplyCandidates}
-                        data-testid="agent-cull-apply-candidates"
-                    >
-                        Mark safe candidates
-                    </button>
-                </div>
-            )}
-            {recommendations.length > 0 && (
-                <ul className={styles.recommendationList} data-testid="agent-cull-recommendations">
-                    {recommendations.map((rec) => (
-                        <li key={rec.id} data-testid={`agent-cull-rec-${rec.image_id}`}>
-                            <strong>Image {rec.image_id}</strong>
-                            {' — '}
-                            {friendlyAgentDecision(rec.final_decision)}
-                            {rec.confidence != null && ` (${Number(rec.confidence).toFixed(2)})`}
-                            {rec.reason && `: ${rec.reason}`}
-                            {rec.candidate_status !== 'none' && (() => {
-                                const candidate = friendlyAgentCandidateStatus(rec.candidate_status);
-                                return (
-                                    <span className={analyticsChipClassName(styles, candidate.warn)}>
-                                        {' '}
-                                        {candidate.text}
-                                    </span>
-                                );
-                            })()}
-                            {rec.agent_decision !== 'advisory'
-                                && rec.candidate_status !== 'pick_quality_advisory'
-                                && (
-                                    <div className={styles.actionRow}>
-                                        {rec.final_decision === 'remove' && (
-                                            <button
-                                                type="button"
-                                                className={styles.actionBtn}
-                                                disabled={actionBusy}
-                                                onClick={() => handleApprove(rec)}
-                                                data-testid={`agent-cull-approve-${rec.id}`}
-                                            >
-                                                Approve candidate
-                                            </button>
-                                        )}
-                                        <button
-                                            type="button"
-                                            className={styles.actionBtn}
-                                            disabled={actionBusy}
-                                            onClick={() => handleReject(rec)}
-                                            data-testid={`agent-cull-reject-${rec.id}`}
-                                        >
-                                            Keep in review
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={styles.actionBtn}
-                                            disabled={actionBusy}
-                                            onClick={() => handleKeepNeutral(rec)}
-                                            data-testid={`agent-cull-neutral-${rec.id}`}
-                                        >
-                                            Clear pick flag
-                                        </button>
-                                        {rec.candidate_status !== 'none' && (
-                                            <button
-                                                type="button"
-                                                className={styles.actionBtn}
-                                                disabled={actionBusy}
-                                                onClick={() => handleRollback(rec)}
-                                                data-testid={`agent-cull-rollback-${rec.id}`}
-                                            >
-                                                Roll back
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-                        </li>
-                    ))}
-                </ul>
             )}
         </div>
     );
