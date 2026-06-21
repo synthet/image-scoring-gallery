@@ -22,7 +22,7 @@ vi.mock('./db/provider', () => ({
   })),
 }));
 
-import { getImages } from './db';
+import { getImageCount, getImages } from './db';
 
 describe('db.getImages SQL construction', () => {
   beforeEach(() => {
@@ -118,5 +118,22 @@ describe('db.getImages SQL construction', () => {
       25,
       10,
     ]);
+  });
+
+  it('applies the CLIP quality threshold to image rows and counts', async () => {
+    await getImages({ minClipQualityV0: 0.7, limit: 5, offset: 0 });
+
+    const [listSql, listParams] = queryMock.mock.calls[0];
+    expect(listSql).toContain("ims_cq.model_name = 'clip_quality_v0'");
+    expect(listSql).toContain('ims_cq.image_id = i.id');
+    expect(listSql).toContain('COALESCE(ims_cq.normalized, ims_cq.raw_score) >= ?');
+    expect(listParams).toEqual([0.7, 5, 0]);
+
+    queryMock.mockResolvedValueOnce([{ count: 0 }]);
+    await getImageCount({ minClipQualityV0: 0.7 });
+
+    const [countSql, countParams] = queryMock.mock.calls[1];
+    expect(countSql).toContain('ims_cq.image_id = images.id');
+    expect(countParams).toEqual([0.7]);
   });
 });

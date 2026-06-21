@@ -333,6 +333,25 @@ function pushKeywordFilter(
     params.push(`%${keyword}%`, `%${keyword}%`);
 }
 
+function pushClipQualityFilter(
+    whereParts: string[],
+    params: (string | number | null)[],
+    minClipQualityV0: number | undefined,
+    imageIdRef: string,
+) {
+    if (minClipQualityV0 === undefined || minClipQualityV0 <= 0) return;
+
+    whereParts.push(
+        `EXISTS (SELECT 1 FROM image_model_scores ims_cq `
+        + `WHERE ims_cq.image_id = ${imageIdRef} `
+        + `AND ims_cq.model_name = 'clip_quality_v0' `
+        + `AND ims_cq.is_shadow = FALSE `
+        + `AND ims_cq.status = 'success' `
+        + `AND COALESCE(ims_cq.normalized, ims_cq.raw_score) >= ?)`,
+    );
+    params.push(minClipQualityV0);
+}
+
 function pushImageAttributeFilters(
     whereParts: string[],
     params: (string | number | null)[],
@@ -358,21 +377,11 @@ function pushImageAttributeFilters(
         params.push(capturedDate);
     }
 
-    if (minClipQualityV0 !== undefined && minClipQualityV0 > 0) {
-        whereParts.push(
-            `EXISTS (SELECT 1 FROM image_model_scores ims_cq `
-            + `WHERE ims_cq.image_id = ${imageAlias}.id `
-            + `AND ims_cq.model_name = 'clip_quality_v0' `
-            + `AND ims_cq.is_shadow = FALSE `
-            + `AND ims_cq.status = 'success' `
-            + `AND COALESCE(ims_cq.normalized, ims_cq.raw_score) >= ?)`,
-        );
-        params.push(minClipQualityV0);
-    }
+    pushClipQualityFilter(whereParts, params, minClipQualityV0, `${imageAlias}.id`);
 }
 
 export async function getImageCount(options: ImageQueryOptions = {}): Promise<number> {
-    const { folderId, folderIds, minRating, colorLabel, keyword, keywordExact, capturedDate } = options;
+    const { folderId, folderIds, minRating, colorLabel, keyword, keywordExact, capturedDate, minClipQualityV0 } = options;
     const params: (string | number | null)[] = [];
     const whereParts: string[] = [];
 
@@ -400,6 +409,8 @@ export async function getImageCount(options: ImageQueryOptions = {}): Promise<nu
         )`);
         params.push(capturedDate);
     }
+
+    pushClipQualityFilter(whereParts, params, minClipQualityV0, 'images.id');
 
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
 
@@ -461,17 +472,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
         params.push(capturedDate);
     }
 
-    if (minClipQualityV0 !== undefined && minClipQualityV0 > 0) {
-        whereParts.push(
-            `EXISTS (SELECT 1 FROM image_model_scores ims_cq `
-            + `WHERE ims_cq.image_id = i.id `
-            + `AND ims_cq.model_name = 'clip_quality_v0' `
-            + `AND ims_cq.is_shadow = FALSE `
-            + `AND ims_cq.status = 'success' `
-            + `AND COALESCE(ims_cq.normalized, ims_cq.raw_score) >= ?)`,
-        );
-        params.push(minClipQualityV0);
-    }
+    pushClipQualityFilter(whereParts, params, minClipQualityV0, 'i.id');
 
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
 
@@ -1525,7 +1526,7 @@ export async function rebuildStackCache(context: { smartCover?: boolean } = {}):
 }
 
 export async function getStacks(options: StackQueryOptions = {}): Promise<unknown[]> {
-    const { limit = 50, offset = 0, folderId, folderIds, minRating, colorLabel, keyword, keywordExact, sortBy = 'score_general', order = 'DESC', capturedDate } = options;
+    const { limit = 50, offset = 0, folderId, folderIds, minRating, colorLabel, keyword, keywordExact, sortBy = 'score_general', order = 'DESC', capturedDate, minClipQualityV0 } = options;
     // `options.smartCover` is forwarded from the UI for future representative/cover selection; not used in SQL yet.
 
     await ensureStackCacheTable();
@@ -1596,6 +1597,23 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
 
         wherePartsNonStack.push(`${castDate(CAPTURE_TS)} = ?`);
         botParams.push(capturedDate);
+    }
+
+    if (minClipQualityV0 !== undefined && minClipQualityV0 > 0) {
+        wherePartsCache.push(`EXISTS (
+            SELECT 1 FROM images ci
+            WHERE ci.stack_id = sc.stack_id
+            AND EXISTS (
+                SELECT 1 FROM image_model_scores ims_cq
+                WHERE ims_cq.image_id = ci.id
+                AND ims_cq.model_name = 'clip_quality_v0'
+                AND ims_cq.is_shadow = FALSE
+                AND ims_cq.status = 'success'
+                AND COALESCE(ims_cq.normalized, ims_cq.raw_score) >= ?
+            )
+        )`);
+        topParams.push(minClipQualityV0);
+        pushClipQualityFilter(wherePartsNonStack, botParams, minClipQualityV0, 'i.id');
     }
 
     const whereClauseCache = wherePartsCache.length > 0 ? 'WHERE ' + wherePartsCache.join(' AND ') : '';
@@ -1691,7 +1709,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
 }
 
 export async function getImagesByStack(stackId: number | null, options: ImageQueryOptions = {}): Promise<unknown[]> {
-    const { limit = 200, offset = 0, folderId, minRating, colorLabel, keyword, keywordExact, sortBy = 'score_general', order = 'DESC', capturedDate } = options;
+    const { limit = 200, offset = 0, folderId, minRating, colorLabel, keyword, keywordExact, sortBy = 'score_general', order = 'DESC', capturedDate, minClipQualityV0 } = options;
     const params: (string | number | null)[] = [];
     const whereParts: string[] = [];
 
@@ -1721,6 +1739,8 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
         whereParts.push(`${castDate(CAPTURE_TS)} = ?`);
         params.push(capturedDate);
     }
+
+    pushClipQualityFilter(whereParts, params, minClipQualityV0, 'i.id');
 
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
 
@@ -2209,7 +2229,7 @@ export async function getImagesByStackUngrouped(stackId: number, options: ImageQ
 }
 
 export async function getStackCount(options: StackQueryOptions = {}): Promise<number> {
-    const { folderId, folderIds, minRating, colorLabel, keyword, keywordExact, capturedDate } = options;
+    const { folderId, folderIds, minRating, colorLabel, keyword, keywordExact, capturedDate, minClipQualityV0 } = options;
     const params: (string | number | null)[] = [];
     const whereParts: string[] = [];
 
@@ -2237,6 +2257,8 @@ export async function getStackCount(options: StackQueryOptions = {}): Promise<nu
         )`);
         params.push(capturedDate);
     }
+
+    pushClipQualityFilter(whereParts, params, minClipQualityV0, 'i.id');
 
     const whereClause = whereParts.length > 0 ? 'WHERE ' + whereParts.join(' AND ') : '';
 

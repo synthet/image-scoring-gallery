@@ -46,8 +46,9 @@ See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenan
 - [architecture/backup-feature.md](architecture/backup-feature.md) - Backup/import alignment with backend.
 - [technical/PIPELINE_TERMINOLOGY.md](technical/PIPELINE_TERMINOLOGY.md) - local mirror of backend stage labels and renderer constants.
 - [technical/EMBEDDING_SPACES.md](technical/EMBEDDING_SPACES.md) - which backend embedding spaces the gallery reads (default MobileNet vs opt-in culling towers).
-- [design/FRONTEND_UX_SPEC.md](design/FRONTEND_UX_SPEC.md) - frontend visual design and UI specifications.
-- [design/DESIGN_SYSTEM.md](design/DESIGN_SYSTEM.md) - local design system conventions and token mapping.
+- [design/UX_UI_CONSTITUTION.md](design/UX_UI_CONSTITUTION.md) - mandatory UX/UI rules (gallery binding; shared principles in image-scoring-ui).
+- [design/FRONTEND_UX_SPEC.md](design/FRONTEND_UX_SPEC.md) - typography, spacing, layout, and CSS Modules conventions.
+- [design/DESIGN_SYSTEM.md](design/DESIGN_SYSTEM.md) - pointer to canonical palette and token package.
 
 ## Features
 

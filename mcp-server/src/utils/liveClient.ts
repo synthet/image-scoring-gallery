@@ -13,6 +13,20 @@ const DEFAULT_SSE_URL = "http://127.0.0.1:9373/mcp/sse";
 const DEFAULT_TIMEOUT_MS = 2500;
 const DEFAULT_SSE_READ_TIMEOUT_MS = 10000;
 
+export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+        return await Promise.race([
+            promise,
+            new Promise<never>((_, reject) => {
+                timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+            }),
+        ]);
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+}
+
 function defaultHeaders(): Record<string, string> {
     const token = process.env.GALLERY_MCP_TOKEN?.trim();
     if (!token) return {};
@@ -69,7 +83,11 @@ export async function probeLiveMcp(
     });
     const client = new Client({ name: "is-ui-mcp-probe", version: "2.3.0" });
     try {
-        await client.connect(transport);
+        await withTimeout(
+            client.connect(transport),
+            DEFAULT_TIMEOUT_MS,
+            `Live MCP connection timed out after ${DEFAULT_TIMEOUT_MS}ms`,
+        );
         return { ok: true, url, error: null };
     } catch (err) {
         return {
@@ -99,14 +117,17 @@ export async function callLiveTool(
     const client = new Client({ name: "is-ui-mcp-proxy", version: "2.3.0" });
     const timeoutMs = options.timeoutMs ?? DEFAULT_SSE_READ_TIMEOUT_MS;
 
-    await client.connect(transport);
     try {
-        const result = await Promise.race([
+        await withTimeout(
+            client.connect(transport),
+            DEFAULT_TIMEOUT_MS,
+            `Live MCP connection timed out after ${DEFAULT_TIMEOUT_MS}ms`,
+        );
+        const result = await withTimeout(
             client.callTool({ name, arguments: args }),
-            new Promise<never>((_, reject) => {
-                setTimeout(() => reject(new Error(`Live MCP call '${name}' timed out after ${timeoutMs}ms`)), timeoutMs);
-            }),
-        ]);
+            timeoutMs,
+            `Live MCP call '${name}' timed out after ${timeoutMs}ms`,
+        );
         return extractToolPayload(result);
     } finally {
         await client.close().catch(() => undefined);

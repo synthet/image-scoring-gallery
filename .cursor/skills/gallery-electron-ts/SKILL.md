@@ -78,6 +78,7 @@ Keep **sibling clone layout** in mind: backend and gallery as sibling folders so
 - Prefer **small, focused diffs**; avoid unrelated refactors.
 - When a change **requires** backend schema or API updates, state that clearly in
   the summary (and what must change in **image-scoring-backend**).
+- **Renderer styling** (CSS Modules, design tokens, component layout): use the **`gallery-ui`** skill (`.cursor/skills/gallery-ui/SKILL.md`).
 
 ## Optional MCP
 

@@ -1,0 +1,10 @@
+# Codex: copy to .codex/config.toml in this repo (trusted project) or merge into ~/.codex/config.toml.
+# Build: cd mcp-server && npm install && npm run build:registry
+
+[mcp_servers.is-ui-mcp]
+command = "node"
+args = ["mcp-server/dist/compactIndex.js"]
+enabled = true
+startup_timeout_sec = 30
+tool_timeout_sec = 120
+enabled_tools = ["search", "dispatch", "sse_status"]

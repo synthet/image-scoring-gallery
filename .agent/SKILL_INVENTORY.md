@@ -23,6 +23,7 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | docs-wiki | `.cursor/skills/docs-wiki/SKILL.md` | OKF-style `docs/` wiki conventions | L1 | — | 2026-06-16 |
 | eval | `.cursor/skills/eval/SKILL.md` | Capture task quality signals (test_pass_rate / first_try_success / iteration_count) → agent-memory feedback loop | L1 | Yes | 2026-06-19 |
 | gallery-electron-ts | `.cursor/skills/gallery-electron-ts/SKILL.md` | Electron / TS / db contract | L1 | — | 2026-04-25 |
+| gallery-ui | `.cursor/skills/gallery-ui/SKILL.md` | Renderer UI, CSS Modules, design tokens | L1 | — | 2026-06-21 |
 | security-review | `.cursor/skills/security-review/SKILL.md` | Pre-merge security sanity | L1 | — | 2026-04-25 |
 | subagent-review | `.cursor/skills/subagent-review/SKILL.md` | External Codex/Gemini review via subagent-orchestrator MCP | L2 | Yes | 2026-05-26 |
 
@@ -32,6 +33,7 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 
 | Skill `name` | Path | Purpose (short) | Risk | Last reviewed |
 |--------------|------|-----------------|------|---------------|
+| gallery-ui | `.agent/skills/gallery-ui/SKILL.md` | Alias → `.cursor/skills/gallery-ui` | L1 | 2026-06-21 |
 | backlog-queue | `.agent/skills/backlog-queue/SKILL.md` | Project board contract (Antigravity / generic agent mirror of canonical Cursor skill) | L1 | 2026-04-28 |
 
 ## Subagents (Cursor / Claude Code)
