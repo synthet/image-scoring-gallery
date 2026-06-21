@@ -4,6 +4,17 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.20.1] - 2026-06-21
+
+### Added
+
+- **LESSONS_LEARNED.md**: Transcript-mined design-token workflow and agent development patterns.
+
+### Changed
+
+- **Agent cull documentation**: AgentCullReviewPanel cross-refs in culling stack analytics; worklog and AGENT_COORDINATION updates.
+- **Agent infra examples**: `.mcp.json.example` and Claude settings templates for local operator setup.
+
 ## [7.20.0] - 2026-06-20
 
 ### Added
