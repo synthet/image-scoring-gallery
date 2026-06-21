@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__is-ui-mcp__search",
+      "mcp__is-ui-mcp__dispatch",
+      "mcp__is-ui-mcp__sse_status"
+    ]
+  },
+  "enabledMcpjsonServers": ["is-ui-mcp"],
+  "disabledMcpjsonServers": [
+    "playwright",
+    "imgscore-el-playwright",
+    "imgscore-el-chrome-devtools",
+    "is-ui-router",
+    "is-ui-local",
+    "is-ui-api",
+    "is-ui-live",
+    "is-ui-full"
+  ]
+}
