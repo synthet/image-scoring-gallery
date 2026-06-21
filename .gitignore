@@ -48,6 +48,9 @@ git_status.txt
 
 .mcp.json
 
+# Operator-local Claude permissions (shared defaults live in .claude/settings.json)
+.claude/settings.local.json
+
 # Operator-local Cursor MCP config (use .cursor/mcp.example.json)
 .cursor/mcp.json
 

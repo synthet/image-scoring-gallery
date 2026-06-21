@@ -23,6 +23,7 @@ vi.mock('./db/provider', () => ({
 }));
 
 import {
+  getImagesByStack,
   getImagesByStackUngrouped,
   getImagesBySubStack,
   getStacks,
@@ -58,6 +59,18 @@ describe('db.getStacks keyword filter', () => {
     const likeParams = (params as unknown[]).filter(p => p === '%bird%');
     expect(likeParams.length).toBe(4);
   });
+
+  it('applies the CLIP quality threshold to stack and singleton branches', async () => {
+    await getStacks({ minClipQualityV0: 0.65 });
+
+    const mainCall = queryMock.mock.calls.find(([sql]) => !/SELECT 1 FROM stack_cache WHERE 1=0/.test(sql as string));
+    expect(mainCall).toBeDefined();
+    const [sql, params] = mainCall!;
+    expect((sql as string).match(/ims_cq\.model_name = 'clip_quality_v0'/g)).toHaveLength(2);
+    expect(sql).toContain('ims_cq.image_id = ci.id');
+    expect(sql).toContain('ims_cq.image_id = i.id');
+    expect(params).toEqual([0.65, 0.65, 50, 0]);
+  });
 });
 
 describe('db.getStackCount keyword filter', () => {
@@ -77,6 +90,31 @@ describe('db.getStackCount keyword filter', () => {
     expect(sql).toContain('LOWER(kd.keyword_norm) LIKE LOWER(?)');
 
     expect(params).toEqual(expect.arrayContaining(['%bird%', '%bird%']));
+  });
+
+  it('applies the CLIP quality threshold before grouping stack keys', async () => {
+    await getStackCount({ minClipQualityV0: 0.8 });
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain('ims_cq.image_id = i.id');
+    expect(sql).toContain("ims_cq.model_name = 'clip_quality_v0'");
+    expect(params).toEqual([0.8]);
+  });
+});
+
+describe('db.getImagesByStack CLIP quality filter', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    queryMock.mockResolvedValue([]);
+  });
+
+  it('filters stack members by the requested threshold', async () => {
+    await getImagesByStack(12, { minClipQualityV0: 0.75 });
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain('ims_cq.image_id = i.id');
+    expect(sql).toContain("ims_cq.model_name = 'clip_quality_v0'");
+    expect(params).toEqual([12, 0.75, 200, 0]);
   });
 });
 

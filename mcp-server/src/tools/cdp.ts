@@ -141,8 +141,13 @@ async function fillSelector(selector: string, value: string, clear: boolean): Pr
   const isInput = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement;
   if (!isInput) return { ok: false, reason: 'not_fillable' };
   el.focus();
-  if (${clear ? "true" : "false"}) el.value = '';
-  el.value = ${val};
+  const prototype = el instanceof HTMLInputElement
+    ? HTMLInputElement.prototype
+    : HTMLTextAreaElement.prototype;
+  const valueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+  if (!valueSetter) return { ok: false, reason: 'missing_value_setter' };
+  if (${clear ? "true" : "false"}) valueSetter.call(el, '');
+  valueSetter.call(el, ${val});
   el.dispatchEvent(new Event('input', { bubbles: true }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
   return { ok: true };
@@ -152,6 +157,7 @@ async function fillSelector(selector: string, value: string, clear: boolean): Pr
     if (!r.ok) {
         if (r.reason === "not_found") throw new Error(`Selector not found: ${selector}`);
         if (r.reason === "not_fillable") throw new Error(`Element is not an <input>/<textarea>: ${selector}`);
+        if (r.reason === "missing_value_setter") throw new Error(`Element has no native value setter: ${selector}`);
         throw new Error(`Failed to fill selector: ${selector}`);
     }
 }

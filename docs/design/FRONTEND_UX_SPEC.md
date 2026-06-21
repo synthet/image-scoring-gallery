@@ -9,9 +9,11 @@ timestamp: 2026-06-16T00:00:00Z
 
 # UX/UI Design Visual Specification
 
+> **Mandatory rules:** [UX_UI_CONSTITUTION.md](UX_UI_CONSTITUTION.md) and [image-scoring-ui UX_UI_CONSTITUTION.md](https://github.com/synthet/image-scoring-ui/blob/main/docs/UX_UI_CONSTITUTION.md). This document covers **gallery-specific** typography, spacing, layout, and CSS architecture — not the shared palette (see [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)).
+
 This document outlines the visual design, user experience, and UI specifications for the **Driftara Gallery** (`image-scoring-gallery`) frontend application.
 
-**Palette and icons:** canonical contract in [image-scoring-ui `DESIGN_SYSTEM.md`](https://github.com/synthet/image-scoring-ui/blob/main/docs/DESIGN_SYSTEM.md) via `@synthet/image-scoring-design` **1.0.0**. Local pointer: [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
+**Palette and icons:** canonical contract in [image-scoring-ui `DESIGN_SYSTEM.md`](https://github.com/synthet/image-scoring-ui/blob/main/docs/DESIGN_SYSTEM.md) via `@synthet/image-scoring-design` **1.2.x**. Local pointer: [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
 
 ### Stack differences (gallery vs backend `/ui/`)
 
@@ -36,43 +38,10 @@ The application is built using a modern desktop stack (Electron + React + Vite).
 ---
 
 ## 2. Color Palette
-The color system is centrally managed via CSS custom properties in `src/styles/tokens.css`. It acts as the single source of truth for the gallery.
 
-### Base Surfaces
-The background colors form the structural layers of the application:
-- **Primary Background (Gallery/Content)**: `#1e1e1e` (`--color-bg-primary`)
-- **Secondary Background (Sidebar/Top Bar)**: `#252526` (`--color-bg-secondary`)
-- **Tertiary Background**: `#2d2d30` (`--color-bg-tertiary`)
-- **Elevated Surfaces (Modals/Popups)**: `#3c3c3c` (`--color-bg-elevated`)
-- **Borders**: `#474747` (`--color-border`)
+Shared semantic colors, accents, status, and Lightroom-style label tokens are defined in [image-scoring-ui DESIGN_SYSTEM.md](https://github.com/synthet/image-scoring-ui/blob/main/docs/DESIGN_SYSTEM.md). The gallery imports them via `src/styles/tokens.css`. Use `var(--color-*)` and `var(--label-*)` in CSS Modules — do not duplicate hex tables here.
 
-### Typography Colors
-- **Primary Text**: `#cccccc` (`--color-text-primary`)
-- **Secondary Text**: `#9d9d9d` (`--color-text-secondary`)
-- **Muted Text**: `#6d6d6d` (`--color-text-muted`)
-
-### Accents and Interaction
-Blue is used as the primary interactive accent color, indicating focus, selection, or primary actions.
-- **Accent Primary**: `#007acc` (`--color-accent`)
-- **Accent Hover**: `#1e8ad6` (`--color-accent-hover`)
-- **Accent Dim**: `#003f6e` (`--color-accent-dim`)
-- **Focus Ring**: `2px solid var(--color-accent)` with a `2px` offset.
-
-### Status and Semantics
-Standard semantic colors are used for status indicators, badges, and validation:
-- **Success**: `#89d185` (Border: `#2d6a2d`, BG: `#1a3320`)
-- **Warning**: `#cca700` (BG: `#332900`)
-- **Danger/Error**: `#f44747` (Border: `#7a2a2a`, BG: `#3a1515`)
-- **Info**: `#9cdcfe` (BG: `#003a5c`)
-
-### Photographic Labels (Lightroom-style)
-Specific colors are reserved for image tagging and categorizations:
-- **Red**: `#e53935`
-- **Yellow**: `#fdd835`
-- **Green**: `#43a047`
-- **Blue**: `#1e88e5`
-- **Purple**: `#8e24aa`
-- **Gold (Score/Rating)**: `#ffd700`
+Gallery-only surface tokens (e.g. `--card-bg`, `--input-bg`) live in `src/styles/tokens.local.css`.
 
 ---
 

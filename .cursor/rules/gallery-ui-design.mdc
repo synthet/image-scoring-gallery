@@ -1,0 +1,21 @@
+---
+description: Gallery renderer styling — CSS Modules, design tokens, constitution
+globs: src/**/*.{tsx,css}
+alwaysApply: false
+---
+
+# Gallery UI design
+
+When editing **`src/`** renderer files, follow the UX/UI constitution and design-token package.
+
+## Read first
+
+- [docs/design/UX_UI_CONSTITUTION.md](../../docs/design/UX_UI_CONSTITUTION.md)
+- [image-scoring-ui UX_UI_CONSTITUTION.md](https://github.com/synthet/image-scoring-ui/blob/main/docs/UX_UI_CONSTITUTION.md)
+- Skill: `.cursor/skills/gallery-ui/SKILL.md`
+
+## Rules
+
+- **CSS Modules** for new/changed UI — not new inline theme colors
+- Use `var(--color-*)` from `src/styles/tokens.css` — **no new hex literals**
+- Run `npm run design:check` when touching styles or design-package imports

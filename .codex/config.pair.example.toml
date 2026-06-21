@@ -1,0 +1,15 @@
+# Codex multi-root: merge into ~/.codex/config.toml. Adjust cwd paths for your clone layout.
+
+[mcp_servers.is-be-mcp]
+command = "node"
+args = ["mcp-server/dist/compactIndex.js"]
+cwd = "../image-scoring-backend"
+enabled = true
+enabled_tools = ["search", "dispatch", "sse_status"]
+
+[mcp_servers.is-ui-mcp]
+command = "node"
+args = ["mcp-server/dist/compactIndex.js"]
+cwd = "."
+enabled = true
+enabled_tools = ["search", "dispatch", "sse_status"]
