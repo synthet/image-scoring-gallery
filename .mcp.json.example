@@ -1,0 +1,9 @@
+{
+  "_comment": "Claude Code: copy to .mcp.json (gitignored). Build: cd mcp-server && npm install && npm run build:registry.",
+  "mcpServers": {
+    "is-ui-mcp": {
+      "command": "node",
+      "args": ["mcp-server/dist/compactIndex.js"]
+    }
+  }
+}
