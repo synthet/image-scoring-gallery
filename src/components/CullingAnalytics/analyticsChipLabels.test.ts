@@ -3,6 +3,7 @@ import {
     formatAnalyticsWarning,
     formatDecisionChip,
     friendlyAgentCandidateStatus,
+    friendlyAgentDecision,
     friendlyAgentError,
     friendlyAgentGroupStatus,
     friendlyAgentReviewFailure,
@@ -64,6 +65,14 @@ describe('friendlyAgent labels', () => {
             text: 'Remove candidate',
             warn: true,
         });
+    });
+
+    it('labels picked-image quality advisories as non-warning info', () => {
+        expect(friendlyAgentCandidateStatus('pick_quality_advisory')).toEqual({
+            text: 'Quality advisory',
+            warn: false,
+        });
+        expect(friendlyAgentDecision('advisory')).toBe('Advisory');
     });
 });
 

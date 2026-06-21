@@ -76,6 +76,7 @@ const AGENT_GROUP_STATUS_LABELS: Record<string, string> = {
 const AGENT_CANDIDATE_STATUS_LABELS: Record<string, string> = {
     proposed: 'Proposed',
     agent_remove_candidate: 'Remove candidate',
+    pick_quality_advisory: 'Quality advisory',
     operator_approved: 'Approved',
     operator_rejected: 'Rejected',
     rolled_back: 'Rolled back',
@@ -85,6 +86,7 @@ const AGENT_DECISION_LABELS: Record<string, string> = {
     remove: 'Remove',
     keep: 'Keep',
     uncertain: 'Uncertain',
+    advisory: 'Advisory',
 };
 
 export function friendlyAgentGroupStatus(status: string): string {

@@ -2,6 +2,7 @@ export type AgentCullCandidateStatus =
     | 'none'
     | 'proposed'
     | 'agent_remove_candidate'
+    | 'pick_quality_advisory'
     | 'operator_approved'
     | 'operator_rejected'
     | 'rolled_back';
@@ -21,7 +22,9 @@ export interface AgentCullRecommendation {
     id: number;
     review_group_id: number;
     image_id: number;
-    agent_decision: 'remove' | 'keep' | 'uncertain';
+    // 'advisory' marks a picked-image quality advisory; it never appears in
+    // final_decision (advisories always resolve to 'keep').
+    agent_decision: 'remove' | 'keep' | 'uncertain' | 'advisory';
     final_decision: 'remove' | 'keep' | 'uncertain';
     confidence?: number | null;
     reason?: string | null;
