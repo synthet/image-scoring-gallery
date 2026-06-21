@@ -303,48 +303,52 @@ export function AgentCullReviewPanel({ stackId, subStackId = null }: Props) {
                                     </span>
                                 );
                             })()}
-                            <div className={styles.actionRow}>
-                                {rec.final_decision === 'remove' && (
-                                    <button
-                                        type="button"
-                                        className={styles.actionBtn}
-                                        disabled={actionBusy}
-                                        onClick={() => handleApprove(rec)}
-                                        data-testid={`agent-cull-approve-${rec.id}`}
-                                    >
-                                        Approve candidate
-                                    </button>
+                            {rec.agent_decision !== 'advisory'
+                                && rec.candidate_status !== 'pick_quality_advisory'
+                                && (
+                                    <div className={styles.actionRow}>
+                                        {rec.final_decision === 'remove' && (
+                                            <button
+                                                type="button"
+                                                className={styles.actionBtn}
+                                                disabled={actionBusy}
+                                                onClick={() => handleApprove(rec)}
+                                                data-testid={`agent-cull-approve-${rec.id}`}
+                                            >
+                                                Approve candidate
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            className={styles.actionBtn}
+                                            disabled={actionBusy}
+                                            onClick={() => handleReject(rec)}
+                                            data-testid={`agent-cull-reject-${rec.id}`}
+                                        >
+                                            Keep in review
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={styles.actionBtn}
+                                            disabled={actionBusy}
+                                            onClick={() => handleKeepNeutral(rec)}
+                                            data-testid={`agent-cull-neutral-${rec.id}`}
+                                        >
+                                            Clear pick flag
+                                        </button>
+                                        {rec.candidate_status !== 'none' && (
+                                            <button
+                                                type="button"
+                                                className={styles.actionBtn}
+                                                disabled={actionBusy}
+                                                onClick={() => handleRollback(rec)}
+                                                data-testid={`agent-cull-rollback-${rec.id}`}
+                                            >
+                                                Roll back
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
-                                <button
-                                    type="button"
-                                    className={styles.actionBtn}
-                                    disabled={actionBusy}
-                                    onClick={() => handleReject(rec)}
-                                    data-testid={`agent-cull-reject-${rec.id}`}
-                                >
-                                    Keep in review
-                                </button>
-                                <button
-                                    type="button"
-                                    className={styles.actionBtn}
-                                    disabled={actionBusy}
-                                    onClick={() => handleKeepNeutral(rec)}
-                                    data-testid={`agent-cull-neutral-${rec.id}`}
-                                >
-                                    Clear pick flag
-                                </button>
-                                {rec.candidate_status !== 'none' && (
-                                    <button
-                                        type="button"
-                                        className={styles.actionBtn}
-                                        disabled={actionBusy}
-                                        onClick={() => handleRollback(rec)}
-                                        data-testid={`agent-cull-rollback-${rec.id}`}
-                                    >
-                                        Roll back
-                                    </button>
-                                )}
-                            </div>
                         </li>
                     ))}
                 </ul>
