@@ -15,6 +15,12 @@ Gallery/Electron side of the agent-assisted cull review feature. Backend spec & 
 
 ---
 
+## [2026-06-18] ingest — Gemini CLI not found (Docker operator guide)
+
+- Created [guides/04-agent-cull-review.md](../guides/04-agent-cull-review.md): Gallery operator workflow, `friendlyAgentError` codes, pointer to backend setup.
+- Updated [features/implemented/06-culling-stack-analytics.md](../features/implemented/06-culling-stack-analytics.md) with `AgentCullReviewPanel` cross-ref.
+- Backend companion: [agent-cull-review-gemini-cli.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/guides/setup/agent-cull-review-gemini-cli.md).
+
 ## 2026-06-13 — Gallery MVP: panel base + #135 / #136 / #137
 
 **Branch:** `feat/agent-cull-gallery-mvp` · **PR:** #139
@@ -75,5 +81,7 @@ electron) was clean.
 - **Feature gating:** the Run button is shown whenever the `runAgentCullReview` IPC exists; if the
   backend feature is disabled it returns `agent_review_disabled`, surfaced via #136. No dedicated
   renderer "enabled" flag yet.
-- Not in scope (future): real CLI provider runs, Postgres integration tests, physical
+- Not in scope (future): Postgres integration tests, physical
   deletion/trash workflow, export/global-filter semantics for `candidate_status`.
+- **2026-06-18:** Backend Docker Gemini CLI setup documented; `agent_cli_not_found` in Gallery
+  is a backend `command`/runtime mismatch — see [guides/04-agent-cull-review.md](../../guides/04-agent-cull-review.md).

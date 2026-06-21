@@ -13,7 +13,7 @@ Cross-project integration rules for **image-scoring-gallery** ↔ **image-scorin
 
 **[Agent Coordination — Integration Guide](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md)** (canonical copy in **image-scoring-backend**)
 
-Read that guide for shared database ownership (PostgreSQL + Alembic), FastAPI contract (`modules/api.py`), and MCP troubleshooting. Both repos use **`search` → `dispatch`** on **`is-be-mcp`** / **`is-be-webui`** (backend) and **`is-ui-mcp`** / **`is-ui-live`** (gallery).
+Read that guide for shared database ownership (PostgreSQL + Alembic), FastAPI contract (`modules/api.py`), and MCP troubleshooting. Both repos use **`search`**, **`dispatch`**, and **`sse_status`** on **`is-be-mcp`** / **`is-be-live`** (backend) and **`is-ui-mcp`** / **`is-ui-live`** (gallery). Setup: [05-mcp-compact-servers.md](../guides/05-mcp-compact-servers.md) (gallery) · [backend mcp-compact-servers.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/guides/setup/mcp-compact-servers.md).
 
 **Gallery-specific sync points:**
 
