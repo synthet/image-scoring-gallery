@@ -23,9 +23,9 @@ description: >-
 
 ## Read first
 
-1. [docs/design/UX_UI_CONSTITUTION.md](../../docs/design/UX_UI_CONSTITUTION.md) — gallery binding
+1. [docs/design/UX_UI_CONSTITUTION.md](../../../docs/design/UX_UI_CONSTITUTION.md) — gallery binding
 2. [image-scoring-ui UX_UI_CONSTITUTION.md](https://github.com/synthet/image-scoring-ui/blob/main/docs/UX_UI_CONSTITUTION.md) — shared articles
-3. [docs/design/FRONTEND_UX_SPEC.md](../../docs/design/FRONTEND_UX_SPEC.md) — typography, spacing, layout
+3. [docs/design/FRONTEND_UX_SPEC.md](../../../docs/design/FRONTEND_UX_SPEC.md) — typography, spacing, layout
 4. [image-scoring-ui DESIGN_SYSTEM.md](https://github.com/synthet/image-scoring-ui/blob/main/docs/DESIGN_SYSTEM.md)
 
 ## Design tokens

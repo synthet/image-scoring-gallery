@@ -418,4 +418,57 @@ describe('AgentCullReviewPanel', () => {
             expect(approve).toHaveBeenCalledWith(9, { recommendationIds: [42] });
         });
     });
+
+    it('keeps picked-image quality advisories display-only', async () => {
+        Object.defineProperty(window, 'electron', {
+            configurable: true,
+            value: {
+                api: {
+                    getAgentCullGroups: vi.fn().mockResolvedValue({
+                        groups: [{ id: 10, stack_id: 1, status: 'proposed', dry_run: true }],
+                    }),
+                    getAgentCullGroup: vi.fn().mockResolvedValue({
+                        id: 10,
+                        stack_id: 1,
+                        status: 'proposed',
+                        dry_run: true,
+                        recommendations: [
+                            {
+                                id: 43,
+                                review_group_id: 10,
+                                image_id: 101,
+                                agent_decision: 'advisory',
+                                final_decision: 'keep',
+                                candidate_status: 'pick_quality_advisory',
+                            },
+                            {
+                                id: 44,
+                                review_group_id: 10,
+                                image_id: 102,
+                                agent_decision: 'advisory',
+                                final_decision: 'keep',
+                                candidate_status: 'proposed',
+                            },
+                        ],
+                    }),
+                    approveAgentCullGroup: vi.fn(),
+                    rejectAgentCullGroup: vi.fn(),
+                    rollbackAgentCullRecommendation: vi.fn(),
+                    applyAgentCullCandidates: vi.fn(),
+                    updateImagePickStatus: vi.fn(),
+                },
+            },
+        });
+
+        render(<AgentCullReviewPanel stackId={1} />);
+
+        expect(await screen.findByText('Quality advisory')).toBeTruthy();
+        expect(screen.queryByTestId('agent-cull-approve-43')).toBeNull();
+        expect(screen.queryByTestId('agent-cull-reject-43')).toBeNull();
+        expect(screen.queryByTestId('agent-cull-neutral-43')).toBeNull();
+        expect(screen.queryByTestId('agent-cull-rollback-43')).toBeNull();
+        expect(screen.queryByTestId('agent-cull-reject-44')).toBeNull();
+        expect(screen.queryByTestId('agent-cull-neutral-44')).toBeNull();
+        expect(screen.queryByTestId('agent-cull-rollback-44')).toBeNull();
+    });
 });

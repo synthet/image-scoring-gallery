@@ -42,6 +42,10 @@ environment.json
 # External sub-agent run outputs (subagent-orchestrator MCP)
 .agent-runs/
 
+# Operator-local agent scratch data and one-off recovery scripts
+.agent/scratch/
+.agent/tmp/
+
 # Scratch logs
 git_log.txt
 git_status.txt
