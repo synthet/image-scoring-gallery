@@ -472,3 +472,68 @@ describe('AgentCullReviewPanel', () => {
         expect(screen.queryByTestId('agent-cull-rollback-44')).toBeNull();
     });
 });
+
+describe('AgentCullReviewPanel UX (cards, bulk, live run)', () => {
+    function mountApi(overrides: Record<string, unknown> = {}) {
+        const api = {
+            getAgentCullGroups: vi.fn().mockResolvedValue({
+                groups: [{ id: 9, stack_id: 1, status: 'proposed', dry_run: true, summary: 'Two near-duplicate frames detected. The sharper frame is kept.' }],
+            }),
+            getAgentCullGroup: vi.fn().mockResolvedValue({
+                id: 9,
+                stack_id: 1,
+                status: 'proposed',
+                dry_run: true,
+                summary: 'Two near-duplicate frames detected. The sharper frame is kept.',
+                recommendations: [
+                    { id: 1, review_group_id: 9, image_id: 100, agent_decision: 'remove', final_decision: 'remove', confidence: 0.9, reason: 'Duplicate', candidate_status: 'proposed' },
+                    { id: 2, review_group_id: 9, image_id: 101, agent_decision: 'remove', final_decision: 'remove', confidence: 0.8, reason: 'Soft focus', candidate_status: 'proposed' },
+                ],
+            }),
+            runAgentCullReview: vi.fn().mockResolvedValue({ id: 9, status: 'validated', dry_run: false }),
+            approveAgentCullGroup: vi.fn().mockResolvedValue({ updated: 2 }),
+            rejectAgentCullGroup: vi.fn().mockResolvedValue({ updated: 2 }),
+            rollbackAgentCullRecommendation: vi.fn(),
+            applyAgentCullCandidates: vi.fn(),
+            updateImagePickStatus: vi.fn(),
+            ...overrides,
+        };
+        Object.defineProperty(window, 'electron', { configurable: true, value: { api } });
+        return api;
+    }
+
+    it('shows a live-run button on a dry-run group and runs with dryRun:false', async () => {
+        const api = mountApi();
+        render(<AgentCullReviewPanel stackId={1} subStackId={3} />);
+        const liveBtn = await screen.findByTestId('agent-cull-run-live');
+        fireEvent.click(liveBtn);
+        await waitFor(() => {
+            expect(api.runAgentCullReview).toHaveBeenCalledWith({ stackId: 1, subStackId: 3, dryRun: false });
+        });
+    });
+
+    it('bulk-approves all pending removals in a single IPC call', async () => {
+        const api = mountApi();
+        render(<AgentCullReviewPanel stackId={1} />);
+        const approveAll = await screen.findByTestId('agent-cull-approve-all');
+        fireEvent.click(approveAll);
+        await waitFor(() => {
+            expect(api.approveAgentCullGroup).toHaveBeenCalledWith(9, { recommendationIds: [1, 2] });
+        });
+    });
+
+    it('renders filenames from the join map and toggles the full analysis', async () => {
+        mountApi();
+        render(
+            <AgentCullReviewPanel
+                stackId={1}
+                fileNames={new Map([[100, 'DSC_0100.NEF'], [101, 'DSC_0101.NEF']])}
+            />,
+        );
+        expect(await screen.findByText('DSC_0100.NEF')).toBeTruthy();
+        const toggle = await screen.findByTestId('agent-cull-show-full');
+        expect(toggle.textContent).toMatch(/Show full analysis/i);
+        fireEvent.click(toggle);
+        expect((await screen.findByTestId('agent-cull-show-full')).textContent).toMatch(/Show less/i);
+    });
+});

@@ -1,9 +1,35 @@
 import React, { useMemo, useCallback, useRef, useEffect, useState } from 'react';
-import { VirtuosoGrid } from 'react-virtuoso';
+import { VirtuosoGrid, type VirtuosoGridHandle } from 'react-virtuoso';
 import { Logger } from '../../services/Logger';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
 import styles from './GalleryGrid.module.css';
 import { toMediaUrl } from '../../utils/mediaUrl';
+import type { AgentCullRecommendation } from '../../types/agentCullReview';
+import {
+    agentRecommendationBadge,
+    agentRecommendationTone,
+    isAdvisoryRecommendation,
+    type AgentRecommendationTone,
+} from '../CullingAnalytics/analyticsChipLabels';
+
+/** Action a grid thumbnail can dispatch back to the agent-cull review state. */
+export type AgentGridAction = 'approve' | 'reject';
+
+const AGENT_TONE_CLASS: Record<AgentRecommendationTone, string> = {
+    remove: styles.agentToneRemove,
+    advisory: styles.agentToneAdvisory,
+    approved: styles.agentToneApproved,
+    rejected: styles.agentToneRejected,
+    neutral: styles.agentToneNeutral,
+};
+
+const AGENT_BADGE_CLASS: Record<AgentRecommendationTone, string> = {
+    remove: styles.agentBadgeRemove,
+    advisory: styles.agentBadgeAdvisory,
+    approved: styles.agentBadgeApproved,
+    rejected: styles.agentBadgeRejected,
+    neutral: styles.agentBadgeNeutral,
+};
 
 interface Image {
     id: number;
@@ -68,6 +94,12 @@ interface GalleryGridProps {
     onFindSimilar?: (image: Image) => void;
     /** Show empty copy when filters yield zero rows (not loading). */
     filterEmptyActive?: boolean;
+    /** Agent cull recommendations keyed by image id — drives thumbnail overlays. */
+    agentRecommendations?: Map<number, AgentCullRecommendation>;
+    /** Approve / dismiss a thumbnail's agent recommendation from the hover strip. */
+    onAgentAction?: (rec: AgentCullRecommendation, action: AgentGridAction) => void;
+    /** Image id to scroll to and briefly highlight (from an agent panel card click). */
+    highlightImageId?: number | null;
 }
 
 
@@ -129,8 +161,10 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     subStacksMode = false, onSelectSubStack,
     activeStackId, activeSubStackId, useGalleryThumbnail = false, onFindSimilar,
     filterEmptyActive = false,
+    agentRecommendations, onAgentAction, highlightImageId = null,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const virtuosoRef = useRef<VirtuosoGridHandle>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, image: Image } | null>(null);
 
     // Escape key handler for parent navigation (only when viewer is closed)
@@ -252,13 +286,52 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
 
     const renderImageCard = useCallback((img: Image, onClick: () => void, showPickRejectStatus = false) => {
         const labelColor = getLabelColor(img.label);
+        const rec = agentRecommendations?.get(img.id);
+        const tone = rec ? agentRecommendationTone(rec) : null;
+        const recAdvisory = rec ? isAdvisoryRecommendation(rec) : false;
+        const showAgentActions = !!rec && !!onAgentAction && rec.final_decision === 'remove' && !recAdvisory
+            && rec.candidate_status !== 'operator_approved' && rec.candidate_status !== 'operator_rejected';
+        const cardClass = [
+            styles.cardInner,
+            tone ? AGENT_TONE_CLASS[tone] : '',
+            img.id === highlightImageId ? styles.agentHighlight : '',
+        ].filter(Boolean).join(' ');
         return (
             <div
                 onClick={onClick}
                 onContextMenu={(e) => handleContextMenu(e, img)}
-                className={styles.cardInner}
+                className={cardClass}
+                data-image-id={img.id}
             >
                 <div className={styles.imageArea}>
+                    {rec && tone && (
+                        <span
+                            className={`${styles.agentBadge} ${AGENT_BADGE_CLASS[tone]}`}
+                            data-testid={`agent-grid-badge-${img.id}`}
+                        >
+                            {agentRecommendationBadge(rec)}
+                        </span>
+                    )}
+                    {showAgentActions && rec && (
+                        <div className={styles.agentActions} onClick={(e) => e.stopPropagation()}>
+                            <button
+                                type="button"
+                                className={`${styles.agentActionBtn} ${styles.agentActionApprove}`}
+                                onClick={() => onAgentAction!(rec, 'approve')}
+                                data-testid={`agent-grid-approve-${img.id}`}
+                            >
+                                Approve
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.agentActionBtn}
+                                onClick={() => onAgentAction!(rec, 'reject')}
+                                data-testid={`agent-grid-dismiss-${img.id}`}
+                            >
+                                Dismiss
+                            </button>
+                        </div>
+                    )}
                     {(img.thumbnail_path || img.file_path) ? (
                         useGalleryThumbnail ? (
                             <GalleryThumbnail
@@ -294,7 +367,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 </div>
             </div>
         );
-    }, [getScoreDisplay, getLabelColor, renderPickRejectStatus, useGalleryThumbnail]);
+    }, [getScoreDisplay, getLabelColor, renderPickRejectStatus, useGalleryThumbnail, agentRecommendations, onAgentAction, highlightImageId]);
 
     const renderStackCard = useCallback((stack: Image, onClick: () => void, kind: 'stack' | 'substack' = 'stack') => {
         const labelColor = getLabelColor(stack.label);
@@ -366,6 +439,15 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     const isSubStacksView = subStacksMode && activeStackId !== null && activeSubStackId === null;
     const displayData = isStacksView ? stacks : images;
     const endReachedHandler = isStacksView ? onStackEndReached : (isSubStacksView ? undefined : onEndReached);
+
+    // Scroll the virtualized grid to a recommendation the operator clicked in the panel.
+    useEffect(() => {
+        if (highlightImageId == null) return;
+        const index = displayData.findIndex((it) => it.id === highlightImageId);
+        if (index >= 0) {
+            virtuosoRef.current?.scrollToIndex({ index, align: 'center', behavior: 'smooth' });
+        }
+    }, [highlightImageId, displayData]);
 
     const itemContent = useCallback((index: number) => {
         const item = displayData[index];
@@ -449,6 +531,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
             }}
         >
             <VirtuosoGrid
+                ref={virtuosoRef}
                 style={{ height: '100%' }}
                 totalCount={displayData.length}
                 overscan={200}

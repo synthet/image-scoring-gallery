@@ -4,6 +4,20 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.21.0] - 2026-06-21
+
+### Added
+
+- **Agent cull grid overlays**: Thumbnail tone borders, badges, and hover Approve/Dismiss on recommendations; card click scrolls and highlights the matching image.
+- **`useAgentCullReview` hook**: Single shared fetch/state for the review panel and gallery grid (avoids duplicate IPC).
+- **Agent cull panel workflow**: Dry-run → Review → Live run → Mark candidates stepper; bulk Approve all / Dismiss all; advisory-only cards without Approve; stale-group re-run prompt.
+
+### Changed
+
+- **`AgentCullReviewPanel`**: Refactored to consume shared hook; CSS module split; filenames on cards via grid image map.
+- **`analyticsChipLabels`**: `agentRecommendationTone`, `formatAgentSummaryDigest`, and expanded error/action labels.
+- **Agent cull guide**: Documents shared hook, grid overlays, and four-step operator workflow.
+
 ## [7.20.1] - 2026-06-21
 
 ### Added

@@ -1,0 +1,479 @@
+/*
+ * Agent Cull Review panel — scan-first layout: collapsible shell, summary digest,
+ * recommendation cards, bulk actions, workflow stepper. Colors come from the shared
+ * design tokens (see UX_UI_CONSTITUTION.md); no raw hex literals.
+ */
+
+.panel {
+    margin: 0 0 var(--space-sm);
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border-muted);
+    font-size: var(--font-sm);
+    color: var(--color-text-primary);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+}
+
+.collapseBtn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--color-text-primary);
+    font-weight: 600;
+    font-size: var(--font-md);
+    cursor: pointer;
+    text-align: left;
+}
+
+.collapseBtn:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+.title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chevron {
+    flex: 0 0 auto;
+    color: var(--color-text-muted);
+}
+
+.headerActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* ── Chips ───────────────────────────────────────────────────────────── */
+
+.chipRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    padding: 0 var(--space-md) var(--space-xs);
+}
+
+.chip {
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    font-size: var(--font-xs);
+    white-space: nowrap;
+}
+
+.chipWarn {
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
+}
+
+.chipInfo {
+    background: var(--color-info-bg);
+    color: var(--color-info);
+}
+
+.chipDanger {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+}
+
+/* ── Workflow stepper ────────────────────────────────────────────────── */
+
+.stepper {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    padding: 0 var(--space-md) var(--space-xs);
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+}
+
+.step {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    border: 1px solid var(--color-border-muted);
+    white-space: nowrap;
+}
+
+.stepActive {
+    border-color: var(--color-accent);
+    color: var(--color-accent-bright);
+    background: var(--color-accent-dim);
+}
+
+.stepDone {
+    border-color: var(--color-success-border);
+    color: var(--color-success);
+}
+
+.stepConnector {
+    color: var(--color-text-muted);
+}
+
+/* ── Body / digest ───────────────────────────────────────────────────── */
+
+.body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: 0 var(--space-md) var(--space-md);
+}
+
+.digest {
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+}
+
+.fullSummary {
+    margin-top: 4px;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+
+.linkBtn {
+    padding: 0;
+    margin-left: 6px;
+    background: transparent;
+    border: none;
+    color: var(--color-accent-bright);
+    font-size: var(--font-xs);
+    cursor: pointer;
+}
+
+.linkBtn:hover {
+    text-decoration: underline;
+}
+
+.meta {
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+}
+
+.warn {
+    color: var(--color-warning);
+    font-size: var(--font-xs);
+}
+
+.error {
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: 4px;
+    background: var(--color-danger-bg);
+    border: 1px solid var(--color-danger-border);
+    color: var(--color-danger);
+    font-size: var(--font-xs);
+    line-height: 1.4;
+}
+
+.liveWarn {
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: 4px;
+    background: var(--color-warning-bg);
+    border: 1px solid var(--color-warning-border);
+    color: var(--color-warning);
+    font-size: var(--font-xs);
+    line-height: 1.4;
+}
+
+/* ── Action buttons ──────────────────────────────────────────────────── */
+
+.actionRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    align-items: center;
+}
+
+.btn {
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    font-size: var(--font-xs);
+    cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+    background: var(--color-bg-elevated);
+}
+
+.btn:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btnPrimary {
+    border-color: var(--color-accent-border);
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+}
+
+.btnPrimary:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+}
+
+.bulkRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    align-items: center;
+    padding-top: 2px;
+}
+
+.bulkLabel {
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+    margin-right: 2px;
+}
+
+/* ── Recommendation cards ────────────────────────────────────────────── */
+
+.cardList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+    border-radius: 6px;
+    border: 1px solid var(--color-border-muted);
+    border-left: 3px solid var(--color-border);
+    background: var(--color-bg-tertiary);
+}
+
+.toneRemove {
+    border-left-color: var(--color-warning);
+}
+
+.toneAdvisory {
+    border-left-color: var(--color-info);
+}
+
+.toneApproved {
+    border-left-color: var(--color-success);
+}
+
+.toneRejected {
+    border-left-color: var(--color-danger);
+}
+
+.toneNeutral {
+    border-left-color: var(--color-text-muted);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.cardName {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    background: transparent;
+    border: none;
+    padding: 0;
+    text-align: left;
+    cursor: pointer;
+}
+
+.cardName:hover {
+    color: var(--color-accent-bright);
+}
+
+.badge {
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: var(--font-xs);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badgeRemove {
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
+}
+
+.badgeAdvisory {
+    background: var(--color-info-bg);
+    color: var(--color-info);
+}
+
+.badgeApproved {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+}
+
+.badgeRejected {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+}
+
+.badgeNeutral {
+    background: var(--color-bg-elevated);
+    color: var(--color-text-secondary);
+}
+
+.confidencePill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--font-xs);
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.confidenceTrack {
+    width: 34px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--color-bg-elevated);
+    overflow: hidden;
+}
+
+.confidenceFill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--color-accent);
+}
+
+.reason {
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+}
+
+.reasonClamped {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    line-clamp: 3;
+    overflow: hidden;
+}
+
+.candidateChip {
+    align-self: flex-start;
+}
+
+/* Overflow: native disclosure keeps secondary actions in the DOM (a11y + testable). */
+.overflow {
+    position: relative;
+}
+
+.overflowSummary {
+    list-style: none;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    font-size: var(--font-xs);
+    user-select: none;
+}
+
+.overflowSummary::-webkit-details-marker {
+    display: none;
+}
+
+.overflowMenu {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-top: var(--space-xs);
+    padding: var(--space-xs);
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-elevated);
+}
+
+/* ── Review-in-progress indicator ────────────────────────────────────── */
+
+.reviewProgress {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: 4px;
+    background: var(--color-info-bg);
+    border: 1px solid var(--color-accent-border);
+}
+
+.reviewProgressHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    color: var(--color-accent-bright);
+    font-size: var(--font-sm);
+    font-weight: 500;
+}
+
+.reviewProgressTrack {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--color-bg-elevated);
+    overflow: hidden;
+}
+
+.reviewProgressFill {
+    width: 40%;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--color-accent);
+    animation: agentCullReviewIndeterminate 1.4s ease-in-out infinite;
+}
+
+.reviewProgressHint {
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+    line-height: 1.35;
+}
+
+@keyframes agentCullReviewIndeterminate {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(350%);
+    }
+}
