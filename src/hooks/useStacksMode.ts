@@ -57,6 +57,7 @@ export function useStacksMode(
   const [activeUngroupedSubStack, setActiveUngroupedSubStack] = useState(false);
   const [activeSubStackInfo, setActiveSubStackInfo] = useState<SubStackInfo | null>(null);
   const [cacheBuilt, setCacheBuilt] = useState(false);
+  const [cacheRebuilding, setCacheRebuilding] = useState(false);
   const [subStacks, setSubStacks] = useState<ImageRow[]>([]);
   const [subStacksLoading, setSubStacksLoading] = useState(false);
   const [stackImages, setStackImages] = useState<ImageRow[]>([]);
@@ -164,17 +165,49 @@ export function useStacksMode(
     loadStackLanding(activeStackId);
   }, [activeStackId, activeSubStackId, activeUngroupedSubStack, loadStackLanding, loadSubStackImages, loadUngroupedSubStackImages]);
 
-  // Rebuild stack cache when stacks mode is first enabled
+  // Ensure stack_cache exists when stacks mode is first enabled. Load stacks immediately;
+  // rebuild when the cache is empty or stale (distinct stack_id count mismatch).
   useEffect(() => {
-    if (stacksMode && !cacheBuilt) {
-      bridge.rebuildStackCache({ smartCover: smartCoverEnabled }).then((result) => {
+    if (!stacksMode || cacheBuilt) {
+      return;
+    }
+
+    let cancelled = false;
+    refreshStacks();
+
+    const ensureCache = async () => {
+      try {
+        const status = await bridge.getStackCacheStatus();
+        if (cancelled) return;
+
+        if (!status.stale) {
+          setCacheBuilt(true);
+          return;
+        }
+
+        setCacheRebuilding(true);
+        const result = await bridge.rebuildStackCache({ smartCover: smartCoverEnabled });
+        if (cancelled) return;
+
         console.log('[App] Stack cache rebuild result:', result);
         setCacheBuilt(true);
         refreshStacks();
-      }).catch(err => {
-        console.error('[App] Failed to rebuild stack cache:', err);
-      });
-    }
+      } catch (err) {
+        console.error('[App] Failed to ensure stack cache:', err);
+        if (!cancelled) {
+          setCacheBuilt(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setCacheRebuilding(false);
+        }
+      }
+    };
+
+    void ensureCache();
+    return () => {
+      cancelled = true;
+    };
   }, [stacksMode, cacheBuilt, refreshStacks, smartCoverEnabled]);
 
   // After cache exists, changing Smart Cover should rebuild so rep rows stay consistent when backend honors the flag.
@@ -308,6 +341,7 @@ export function useStacksMode(
     activeSubStackInfo,
     setActiveSubStackInfo,
     cacheBuilt,
+    cacheRebuilding,
     subStacks,
     setSubStacks,
     subStacksLoading,

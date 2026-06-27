@@ -445,6 +445,17 @@ export class ApiService {
         );
     }
 
+    deleteApprovedAgentCullCandidates(groupId: number, body: { confirm: boolean; actor?: string }) {
+        return this.post<Record<string, unknown>>(
+            `/api/culling/agent-review/groups/${groupId}/delete-approved`,
+            {
+                confirm: body.confirm,
+                actor: body.actor ?? 'operator',
+            },
+            LONG_TIMEOUT,
+        );
+    }
+
     approveAgentCullGroup(groupId: number, body?: { recommendationIds?: number[]; actor?: string; note?: string }) {
         return this.post<Record<string, unknown>>(
             `/api/culling/agent-review/groups/${groupId}/approve`,

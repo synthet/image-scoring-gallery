@@ -4,13 +4,13 @@ title: Agent cull review (Gallery operator)
 description: How the Agent cull review panel works in Driftara Gallery and what to do when the backend cannot reach the Gemini CLI.
 resource: docs/guides/04-agent-cull-review.md
 tags: [gallery-docs, guides, culling, agent-cull-review]
-timestamp: 2026-06-18T00:00:00Z
+timestamp: 2026-06-21T18:00:00Z
 okf_version: 0.1
 ---
 
 # Agent cull review (Gallery operator)
 
-The **Agent cull review** banner appears when viewing a stack or substack with the Stacks toggle on. It calls the backend `POST /api/culling/agent-review/run` (dry-run by default). No files are deleted or moved — only metadata-only removal **candidates** are proposed.
+The **Agent cull review** banner appears when viewing a stack or substack with the Stacks toggle on. It calls the backend `POST /api/culling/agent-review/run` (dry-run by default). The review itself is metadata-only — it proposes removal **candidates**; no files are deleted or moved during dry-run, live run, approve, or mark-candidates. The **only** step that touches the filesystem is the explicit, confirmation-gated **Delete approved** action (step 6 below), which permanently deletes files + DB records.
 
 **Backend setup (authoritative):** [image-scoring-backend — Agent cull review Gemini CLI setup](https://github.com/synthet/image-scoring-backend/blob/main/docs/guides/setup/agent-cull-review-gemini-cli.md)
 
@@ -35,16 +35,46 @@ The panel header shows a stepper: **Dry-run → Review → Live run → Mark can
 
 1. Open a stack with picks and rejects (sub-stack leaf or flat stack).
 2. Click **Run dry-run review** (`dryRun: true`) → status `proposed`. Recommendations are
-   metadata-only proposals; no file is deleted or moved.
-3. **Review** each card: **Approve** a removal, **Keep in review** to dismiss, or use the overflow
-   (⋯) for **Clear pick flag** / **Roll back**. Picked-image **advisories** are info-only — they
-   never expose Approve. Use **Approve all removals** / **Dismiss all** for bulk.
-4. Click **Run live review** (`dryRun: false`) → status `validated`. Still metadata-only — this
-   records operator-facing remove **candidates**, it does not delete files.
+   metadata-only proposals; no file is deleted or moved. Each card shows the image **thumbnail**
+   next to its filename.
+3. **Review** each card. On a **dry-run** group, **Approve** is hidden (the backend can't mark
+   candidates yet) — use **Keep in review** to dismiss, the overflow (⋯) for **Clear pick flag** /
+   **Roll back**, or **Dismiss all** for bulk. Picked-image **advisories** are info-only. The card
+   thumbnail (or its filename) jumps the grid to that image.
+4. Click **Run live review** (`dryRun: false`) → status `validated`. This re-runs on top of the
+   dry-run group (sent with `force`), so it no longer fails with *“A review already exists.”* Still
+   metadata-only — it records operator-facing remove **candidates**, it does not delete files. Once
+   validated, **Approve** / **Approve all removals** become available.
 5. Click **Mark safe candidates** to apply (shown only on a non-dry-run group).
+6. **(Destructive, optional)** Once you've **Approved** removals on a validated group, a red
+   **Delete N approved…** button appears. It opens a confirmation dialog listing the exact
+   filenames and warns the action is **irreversible** (files are **not** sent to the Recycle Bin —
+   the backend deletes them from inside its Linux container). Confirming calls
+   `POST /api/culling/agent-review/groups/{id}/delete-approved` (`confirm: true`), which permanently
+   removes each approved image's **file, thumbnails, and DB record** and marks the recommendation
+   `operator_deleted`. Per-image **Approve** stays reversible; this final delete is the only step
+   that touches the filesystem.
 
 If picks change after a review, applying returns `stale_group_state` (HTTP 409); the panel shows a
 **Re-run the dry-run review** prompt — re-run before approving/applying.
+
+## Picked-image quality advisories
+
+When backend `culling.agent_review.review_picked_quality` is enabled, the agent may return
+**quality advisories** on **picked** images (e.g. misfocus on a high `score_technical` hero). These
+persist as `candidate_status: pick_quality_advisory` / `agent_decision: advisory`.
+
+| Gallery signal | Meaning |
+|----------------|---------|
+| Panel chip **Quality advisory** | Info-only card — no Approve, no file changes |
+| Header chip **N advisories** | Count of advisory rows in the current group |
+| Grid blue overlay / **Advisory** badge | Same row highlighted on thumbnails |
+| **View alternative** (when present) | Focuses a sharper picked id from backend `suggested_alternatives` |
+
+Backend must use the **strict_v2** picked audit snippet (production default since 2026-06-21) or
+equivalent study mode for advisories to appear on misfocus-prone stacks. Research and operator
+verification: [reports/08-picked-advisory-gap-2026-06-21.md](../reports/08-picked-advisory-gap-2026-06-21.md)
+(backend detail: [PICKED_ADVISORY_GAP_195193_2026-06-21.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/PICKED_ADVISORY_GAP_195193_2026-06-21.md)).
 
 ## “Gemini CLI was not found” (fixed setup)
 
@@ -65,5 +95,6 @@ After backend fix, restart the WebUI container and retry **Run dry-run review** 
 ## Related
 
 - [Culling stack analytics](../features/implemented/06-culling-stack-analytics.md) — sibling analytics banner on the same views
+- [Picked advisory gap (2026-06-21)](../reports/08-picked-advisory-gap-2026-06-21.md) — backend research cross-ref + gallery verification
 - [Agent-assisted cull review worklog](../specs/agent-assisted-cull-review/worklog.md)
 - Backend spec: [agent-assisted-cull-review](https://github.com/synthet/image-scoring-backend/tree/main/docs/specs/agent-assisted-cull-review)

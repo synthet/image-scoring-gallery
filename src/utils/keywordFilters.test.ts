@@ -54,21 +54,26 @@ describe('formatSpeciesLabel', () => {
 });
 
 describe('toImageQueryFilters', () => {
-    it('omits UI-only speciesKeyword from query payload', () => {
-        const result = toImageQueryFilters({
-            ...baseFilters,
-            keyword: 'birds',
-            speciesKeyword: 'species:Cardinal',
-            minRating: 3,
-        });
-        expect(result).toEqual({
-            minRating: 3,
-            colorLabel: undefined,
-            sortBy: 'capture_date',
-            order: 'DESC',
-            capturedDate: undefined,
-            keyword: 'species:Cardinal',
-        });
-        expect(result).not.toHaveProperty('speciesKeyword');
+  it('omits UI-only speciesKeyword from query payload', () => {
+    const result = toImageQueryFilters({
+      ...baseFilters,
+      keyword: 'birds',
+      speciesKeyword: 'species:Cardinal',
+      minRating: 3,
     });
+    expect(result).toEqual({
+      minRating: 3,
+      colorLabel: undefined,
+      sortBy: 'capture_date',
+      order: 'DESC',
+      capturedDate: undefined,
+      keyword: 'species:Cardinal',
+    });
+    expect(result).not.toHaveProperty('speciesKeyword');
+  });
+
+  it('does not expose minClipQualityV0 (sidebar filter removed)', () => {
+    const result = toImageQueryFilters(baseFilters);
+    expect(result).not.toHaveProperty('minClipQualityV0');
+  });
 });

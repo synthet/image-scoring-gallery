@@ -4,7 +4,7 @@ title: "Embedding spaces (gallery reference)"
 description: "Gallery-facing map of which backend embedding spaces exist, which the desktop app reads today, and which are backend-only opt-in towers — so agents do not assume DINOv2, SigLIP2, o"
 resource: "docs/technical/EMBEDDING_SPACES.md"
 tags: ["gallery-docs", "technical"]
-timestamp: 2026-06-16T00:00:00Z
+timestamp: 2026-06-21T00:00:00Z
 ---
 
 # Embedding spaces (gallery reference)
@@ -58,7 +58,7 @@ Backend PostgreSQL stores vectors in `image_embeddings` (1280-d), `image_embeddi
 These three spaces were evaluated in the backend **2026-05-29 culling spike**. They are **registered in the DB** and **implemented in** `embedding_extractors.py`, but:
 
 - **Not generated** during normal pipeline runs.
-- Produced only when listed in backend `config.json` → `embeddings.culling_spaces` or via `scripts/backfill_culling_embeddings.py`.
+- Produced only when listed in backend `config.json` → `embeddings.culling_spaces` or via `scripts/maintenance/backfill_culling_embeddings.py`.
 - Selectable for backend **two-level culling** via `culling.two_level.level*.embedding_space` only after vectors exist.
 
 | Space | Model (backend) | Spike verdict |

@@ -71,6 +71,25 @@ describe('db.getStacks keyword filter', () => {
     expect(sql).toContain('ims_cq.image_id = i.id');
     expect(params).toEqual([0.65, 0.65, 50, 0]);
   });
+
+  it('includes folder_id on representative stack rows', async () => {
+    await getStacks();
+
+    const mainCall = queryMock.mock.calls.find(([sql]) => !/SELECT 1 FROM stack_cache WHERE 1=0/.test(sql as string));
+    expect(mainCall).toBeDefined();
+    const [sql] = mainCall!;
+    expect(sql).toContain('i.folder_id');
+  });
+
+  it('uses indexed created_at for capture_date stack sort', async () => {
+    await getStacks({ sortBy: 'capture_date', order: 'DESC', limit: 10, offset: 0 });
+
+    const mainCall = queryMock.mock.calls.find(([sql]) => !/SELECT 1 FROM stack_cache WHERE 1=0/.test(sql as string));
+    expect(mainCall).toBeDefined();
+    const [sql] = mainCall!;
+    expect(sql).toContain('i.created_at as sort_value');
+    expect(sql).not.toMatch(/COALESCE\(ex\.date_time_original.*as sort_value/i);
+  });
 });
 
 describe('db.getStackCount keyword filter', () => {
@@ -115,6 +134,13 @@ describe('db.getImagesByStack CLIP quality filter', () => {
     expect(sql).toContain('ims_cq.image_id = i.id');
     expect(sql).toContain("ims_cq.model_name = 'clip_quality_v0'");
     expect(params).toEqual([12, 0.75, 200, 0]);
+  });
+
+  it('includes folder_id in stack member rows', async () => {
+    await getImagesByStack(12);
+
+    const [sql] = queryMock.mock.calls[0];
+    expect(sql).toContain('i.folder_id');
   });
 });
 

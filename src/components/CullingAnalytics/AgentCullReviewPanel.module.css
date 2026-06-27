@@ -239,6 +239,76 @@
     background: var(--color-accent-hover);
 }
 
+.btnDanger {
+    border-color: var(--color-danger-border);
+    background: var(--color-danger);
+    color: var(--color-text-on-accent);
+}
+
+.btnDanger:hover:not(:disabled) {
+    filter: brightness(1.1);
+}
+
+/* ── Permanent-delete confirmation dialog ────────────────────────────── */
+
+.confirmOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-md);
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.confirmDialog {
+    width: min(440px, 100%);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border-radius: 8px;
+    border: 1px solid var(--color-danger-border);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.confirmTitle {
+    font-size: var(--font-md);
+    font-weight: 600;
+    color: var(--color-danger);
+}
+
+.confirmBody {
+    font-size: var(--font-sm);
+    line-height: 1.45;
+    color: var(--color-text-secondary);
+}
+
+.confirmList {
+    margin: 0;
+    padding: var(--space-xs) 0 var(--space-xs) var(--space-md);
+    overflow-y: auto;
+    list-style: disc;
+    font-size: var(--font-xs);
+    color: var(--color-text-secondary);
+}
+
+.confirmListItem {
+    margin: 2px 0;
+    word-break: break-all;
+}
+
+.confirmActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-xs);
+    padding-top: var(--space-xs);
+}
+
 .bulkRow {
     display: flex;
     flex-wrap: wrap;
@@ -262,6 +332,12 @@
     margin: 0;
     padding: 0;
     list-style: none;
+    /* Bound the list so a stack with many recommendations scrolls internally
+       instead of pushing the gallery grid off-screen (the parent is overflow:hidden). */
+    max-height: 42vh;
+    overflow-y: auto;
+    /* Room for the scrollbar so it doesn't overlap the card actions. */
+    padding-right: var(--space-xs);
 }
 
 .card {
@@ -296,6 +372,51 @@
 }
 
 .cardHeader {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+}
+
+.thumbBtn {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    border: 1px solid var(--color-border-muted);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--color-bg-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.thumbBtn:hover {
+    border-color: var(--color-accent-bright);
+}
+
+.thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.thumbFallback {
+    font-size: var(--font-xs);
+    color: var(--color-text-muted);
+}
+
+.cardHeaderText {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.cardHeaderMeta {
     display: flex;
     align-items: center;
     gap: var(--space-xs);

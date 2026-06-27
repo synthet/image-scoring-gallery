@@ -148,24 +148,12 @@ export function useImageOpener({
       return openImageById(id);
     }
 
-    try {
-      const details = await bridge.getImageDetails(id);
-      if (!details) {
-        addNotification('Unable to locate image details', 'warning');
-        return false;
-      }
-
-      setViewerListOverride(list);
-      setPendingOpenImageId(null);
-      setCurrentImageIndex(idx);
-      setOpeningImage({ ...list[idx], ...details } as ImageRow);
-      return true;
-    } catch (err) {
-      console.error('Failed to open image from list:', err);
-      addNotification('Failed to open image', 'error');
-      return false;
-    }
-  }, [openImageById, addNotification]);
+    setViewerListOverride(list);
+    setPendingOpenImageId(null);
+    setCurrentImageIndex(idx);
+    setOpeningImage(list[idx]);
+    return true;
+  }, [openImageById]);
 
   const openImageFromSearch = useCallback(async (
     id: number,

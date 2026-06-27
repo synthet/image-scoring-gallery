@@ -130,6 +130,26 @@ describe('useImages race safety (EIS-101)', () => {
         expect(result.current.images).toHaveLength(1);
     });
 
+    it('stops pagination when fetch fails (no infinite loadMore retry)', async () => {
+        electron.getImages.mockRejectedValueOnce(new Error('query timeout'));
+
+        const { result } = renderHook(() => useImages(50, undefined, undefined));
+
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+        });
+
+        expect(result.current.hasMore).toBe(false);
+        expect(result.current.loadError).toBe('query timeout');
+        expect(electron.getImages).toHaveBeenCalledTimes(1);
+
+        await act(async () => {
+            await result.current.loadMore();
+        });
+
+        expect(electron.getImages).toHaveBeenCalledTimes(1);
+    });
+
     it('resets and re-fetches when folderId changes, discarding in-flight results from old folder', async () => {
         let resolveOldFolder!: (v: ReturnType<typeof makeImage>[]) => void;
         const oldFolderPromise = new Promise<ReturnType<typeof makeImage>[]>(res => {

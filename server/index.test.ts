@@ -20,6 +20,7 @@ function createDbMock() {
     getSubstacksForStack: vi.fn(),
     getImagesBySubStack: vi.fn(),
     getStackCount: vi.fn(),
+    getStackCacheCount: vi.fn(),
     rebuildStackCache: vi.fn(),
     getFolderPathById: vi.fn(),
   };

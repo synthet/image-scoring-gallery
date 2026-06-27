@@ -260,3 +260,97 @@ describe('ImageViewer similar images', () => {
         expect(firstCall.folderPath).toBeUndefined();
     });
 });
+
+describe('ImageViewer Open Folder', () => {
+    let electron: ElectronMock;
+
+    beforeEach(() => {
+        addNotification.mockReset();
+
+        electron = {
+            getImageDetails: vi.fn().mockResolvedValue({ ...baseImage, folder_id: 5 }),
+            getImagePhaseStatuses: vi.fn().mockResolvedValue([]),
+            readExif: vi.fn().mockResolvedValue({}),
+            setCurrentExportImageContext: vi.fn().mockResolvedValue(true),
+            updateImageDetails: vi.fn().mockResolvedValue(true),
+            deleteImage: vi.fn().mockResolvedValue(true),
+            getFolders: vi.fn().mockResolvedValue([]),
+            searchSimilarImages: vi.fn().mockResolvedValue({
+                query_image_id: baseImage.id,
+                results: [],
+                count: 0,
+            }),
+            api: {
+                propagateTags: vi.fn(),
+                fixImageMetadata: vi.fn(),
+            },
+        };
+        (window as unknown as { electron: ElectronMock }).electron = electron;
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            blob: async () => new Blob(['preview'], { type: 'image/jpeg' }),
+        }));
+    });
+
+    afterEach(() => {
+        (window as unknown as { electron?: ElectronMock }).electron = undefined;
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    it('shows Open Folder when the grid row includes folder_id', async () => {
+        electron.getImageDetails.mockResolvedValue({ ...baseImage, folder_id: 72052, rating: 4 });
+        const onOpenFolder = vi.fn();
+        render(
+            <ImageViewer
+                image={{ ...baseImage, folder_id: 72052 }}
+                onClose={vi.fn()}
+                onOpenFolder={onOpenFolder}
+                allImages={[{ ...baseImage, folder_id: 72052 }]}
+                currentIndex={0}
+            />,
+        );
+
+        const button = await screen.findByRole('button', { name: /open folder/i });
+        fireEvent.click(button);
+        expect(onOpenFolder).toHaveBeenCalledWith(72052);
+    });
+
+    it('falls back to fallbackFolderId when the grid row lacks folder_id', async () => {
+        electron.getImageDetails.mockResolvedValue({ ...baseImage });
+        const onOpenFolder = vi.fn();
+        render(
+            <ImageViewer
+                image={baseImage}
+                onClose={vi.fn()}
+                onOpenFolder={onOpenFolder}
+                fallbackFolderId={99}
+                allImages={[baseImage]}
+                currentIndex={0}
+            />,
+        );
+
+        const button = await screen.findByRole('button', { name: /open folder/i });
+        fireEvent.click(button);
+        expect(onOpenFolder).toHaveBeenCalledWith(99);
+    });
+
+    it('keeps Open Folder after details load when details omit folder_id', async () => {
+        electron.getImageDetails.mockResolvedValue({ ...baseImage, rating: 4, label: 'Blue' });
+
+        render(
+            <ImageViewer
+                image={{ ...baseImage, folder_id: 72052 }}
+                onClose={vi.fn()}
+                onOpenFolder={vi.fn()}
+                allImages={[{ ...baseImage, folder_id: 72052 }]}
+                currentIndex={0}
+            />,
+        );
+
+        await waitFor(() => {
+            expect(electron.getImageDetails).toHaveBeenCalled();
+        });
+
+        expect(await screen.findByRole('button', { name: /open folder/i })).not.toBeNull();
+    });
+});

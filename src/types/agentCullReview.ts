@@ -5,6 +5,7 @@ export type AgentCullCandidateStatus =
     | 'pick_quality_advisory'
     | 'operator_approved'
     | 'operator_rejected'
+    | 'operator_deleted'
     | 'rolled_back';
 
 export type AgentCullGroupStatus =

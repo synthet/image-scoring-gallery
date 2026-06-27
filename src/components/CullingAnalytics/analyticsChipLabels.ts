@@ -79,6 +79,7 @@ const AGENT_CANDIDATE_STATUS_LABELS: Record<string, string> = {
     pick_quality_advisory: 'Quality advisory',
     operator_approved: 'Approved',
     operator_rejected: 'Rejected',
+    operator_deleted: 'Deleted',
     rolled_back: 'Rolled back',
 };
 

@@ -298,6 +298,10 @@ function createHttpBridge(): Window['electron'] {
 
         getStackCount: (options?) => get('/db/stack-count', options as Record<string, unknown> | undefined),
 
+        getStackCacheCount: () => get('/db/stack-cache-count'),
+
+        getStackCacheStatus: () => get('/db/stack-cache-status'),
+
         rebuildStackCache: (context) => post('/db/rebuild-stack-cache', context ?? {}),
 
         log: (level, message, data?) => {
@@ -493,6 +497,8 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
     getKeywordCloud: () => Promise.resolve([]),
     getStacks: () => Promise.resolve([]),
     getStackCount: () => Promise.resolve(0),
+    getStackCacheCount: () => Promise.resolve(0),
+    getStackCacheStatus: () => Promise.resolve({ cached: 0, expected: 0, stale: false }),
     getImagesByStack: () => Promise.resolve([]),
     getImagesByStackUngrouped: () => Promise.resolve([]),
     getSubstacksForStack: () => Promise.resolve([]),

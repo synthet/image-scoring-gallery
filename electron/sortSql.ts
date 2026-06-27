@@ -100,10 +100,12 @@ export function buildStackSortExpressions(
         : fallback;
 
     if (parsed.kind === 'meta' && key === 'capture_date') {
+        // ORDER BY indexed created_at (rep image for stacks); SELECT still exposes EXIF capture_date.
+        void captureTsExpr;
         return {
             parsed,
-            cacheSortCol: captureTsExpr,
-            nonStackSortCol: captureTsExpr,
+            cacheSortCol: 'i.created_at',
+            nonStackSortCol: 'i.created_at',
             joinSqlNonStack: '',
             joinParams: [],
             selectExtraNonStack: '',

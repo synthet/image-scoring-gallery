@@ -117,6 +117,8 @@ declare global {
             getSubstacksForStack: (stackId: number, options?: ImageQueryOptions) => Promise<SubStackRow[]>;
             getImagesBySubStack: (subStackId: number, options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getStackCount: (options?: ImageQueryOptions) => Promise<number>;
+            getStackCacheCount: () => Promise<number>;
+            getStackCacheStatus: () => Promise<{ cached: number; expected: number; stale: boolean }>;
             rebuildStackCache: (context?: { smartCover?: boolean }) => Promise<{ success: boolean; count: number }>;
             log: (level: string, message: string, data?: unknown) => Promise<boolean>;
             extractNefPreview: (filePath: string) => Promise<{
@@ -210,6 +212,10 @@ declare global {
                     recommendationIds?: number[];
                     actor?: string;
                     note?: string;
+                }) => Promise<Record<string, unknown>>;
+                deleteApprovedAgentCullCandidates: (groupId: number, body: {
+                    confirm: boolean;
+                    actor?: string;
                 }) => Promise<Record<string, unknown>>;
                 approveAgentCullGroup: (groupId: number, body?: {
                     recommendationIds?: number[];

@@ -162,6 +162,14 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('db:get-stack-count', options);
         return unwrapEnvelope<number>(response);
     },
+    getStackCacheCount: async () => {
+        const response = await ipcRenderer.invoke('db:get-stack-cache-count');
+        return unwrapEnvelope<number>(response);
+    },
+    getStackCacheStatus: async () => {
+        const response = await ipcRenderer.invoke('db:get-stack-cache-status');
+        return unwrapEnvelope<{ cached: number; expected: number; stale: boolean }>(response);
+    },
     rebuildStackCache: async (context?: { smartCover?: boolean }) => {
         const response = await ipcRenderer.invoke('db:rebuild-stack-cache', context ?? {});
         return unwrapEnvelope<{ success: boolean; count: number }>(response);
@@ -446,6 +454,13 @@ contextBridge.exposeInMainWorld('electron', {
             note?: string;
         }) => {
             const r = await ipcRenderer.invoke('api:apply-agent-cull-candidates', groupId, body);
+            return unwrapEnvelope<Record<string, unknown>>(r);
+        },
+        deleteApprovedAgentCullCandidates: async (groupId: number, body: {
+            confirm: boolean;
+            actor?: string;
+        }) => {
+            const r = await ipcRenderer.invoke('api:delete-approved-agent-cull', groupId, body);
             return unwrapEnvelope<Record<string, unknown>>(r);
         },
         approveAgentCullGroup: async (groupId: number, body?: {

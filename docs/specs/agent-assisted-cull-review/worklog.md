@@ -4,7 +4,7 @@ title: "Agent-assisted cull review — gallery worklog"
 description: "Gallery/Electron side of the agent-assisted cull review feature. Backend spec & worklog:"
 resource: "docs/specs/agent-assisted-cull-review/worklog.md"
 tags: ["agent-assisted-cull-review", "gallery-docs", "specs"]
-timestamp: 2026-06-16T00:00:00Z
+timestamp: 2026-06-21T18:00:00Z
 ---
 
 # Agent-assisted cull review — gallery worklog
@@ -14,6 +14,12 @@ Gallery/Electron side of the agent-assisted cull review feature. Backend spec & 
 (backend #253). Metadata-only — no physical delete/trash in any phase.
 
 ---
+
+## [2026-06-21] ingest — Picked advisory gap (gallery cross-ref)
+
+- Added [reports/08-picked-advisory-gap-2026-06-21.md](../reports/08-picked-advisory-gap-2026-06-21.md): gallery UI surfaces for `pick_quality_advisory`, operator workflow, backend verification link.
+- Updated [guides/04-agent-cull-review.md](../guides/04-agent-cull-review.md) (picked-image quality advisories section), [features/implemented/06-culling-stack-analytics.md](../features/implemented/06-culling-stack-analytics.md), [reports/README.md](../reports/README.md), [README.md](../README.md).
+- Backend authority: [PICKED_ADVISORY_GAP_195193_2026-06-21.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/PICKED_ADVISORY_GAP_195193_2026-06-21.md).
 
 ## [2026-06-18] ingest — Gemini CLI not found (Docker operator guide)
 
