@@ -28,12 +28,22 @@ export interface AgentCullReviewState {
     /** True when the IPC bridge exposes the run endpoint. */
     canRun: boolean;
     refresh: (options?: { clearError?: boolean; force?: boolean }) => Promise<void>;
-    runReview: (dryRun: boolean) => void;
+    /**
+     * Run the agent review. `force` re-runs even when a group already exists for the unit
+     * (required for the live run and any re-run, since the dry-run leaves a `proposed` group —
+     * without it the backend returns `existing_review`).
+     */
+    runReview: (dryRun: boolean, opts?: { force?: boolean }) => void;
     approve: (rec: AgentCullRecommendation) => void;
     reject: (rec: AgentCullRecommendation) => void;
     rollback: (rec: AgentCullRecommendation) => void;
     keepNeutral: (rec: AgentCullRecommendation) => void;
     applyCandidates: () => void;
+    /**
+     * IRREVERSIBLE. Permanently delete the file + DB record for every operator-approved
+     * removal in the current (validated) group. The caller must have already confirmed.
+     */
+    deleteApproved: () => void;
     /** Bulk: approve every removable recommendation in one IPC call. */
     approveAll: (recs: AgentCullRecommendation[]) => void;
     /** Bulk: dismiss (keep in review) every removable recommendation in one IPC call. */
@@ -147,12 +157,12 @@ export function useAgentCullReview(
         }
     }, [refresh]);
 
-    const runReview = useCallback((dryRun: boolean) => {
+    const runReview = useCallback((dryRun: boolean, opts?: { force?: boolean }) => {
         const api = window.electron?.api;
         if (!api?.runAgentCullReview) return;
         setReviewRunning(true);
         void runAction(async () =>
-            api.runAgentCullReview!({ stackId, subStackId: subStackId ?? undefined, dryRun }),
+            api.runAgentCullReview!({ stackId, subStackId: subStackId ?? undefined, dryRun, force: opts?.force }),
         ).finally(() => setReviewRunning(false));
     }, [runAction, stackId, subStackId]);
 
@@ -184,6 +194,12 @@ export function useAgentCullReview(
         const api = window.electron?.api;
         if (!api?.applyAgentCullCandidates || !detail) return;
         void runAction(async () => api.applyAgentCullCandidates!(detail.id));
+    }, [detail, runAction]);
+
+    const deleteApproved = useCallback(() => {
+        const api = window.electron?.api;
+        if (!api?.deleteApprovedAgentCullCandidates || !detail) return;
+        void runAction(async () => api.deleteApprovedAgentCullCandidates!(detail.id, { confirm: true }));
     }, [detail, runAction]);
 
     const approveAll = useCallback((recs: AgentCullRecommendation[]) => {
@@ -232,6 +248,7 @@ export function useAgentCullReview(
         rollback,
         keepNeutral,
         applyCandidates,
+        deleteApproved,
         approveAll,
         dismissAll,
     };

@@ -256,6 +256,20 @@ export function createServerApp(deps: ServerDeps) {
         } catch (e) { fail(res, e); }
     }));
 
+    router.get('/db/stack-cache-count', wrap(async (_req, res) => {
+        try {
+            const result = await dbModule.getStackCacheCount();
+            ok(res, result);
+        } catch (e) { fail(res, e); }
+    }));
+
+    router.get('/db/stack-cache-status', wrap(async (_req, res) => {
+        try {
+            const result = await dbModule.getStackCacheStatus();
+            ok(res, result);
+        } catch (e) { fail(res, e); }
+    }));
+
     // DB: rebuild stack cache
     router.post('/db/rebuild-stack-cache', wrap(async (req, res) => {
         try {

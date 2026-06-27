@@ -21,6 +21,8 @@ interface Props {
     review?: AgentCullReviewState;
     /** image_id → file name, joined from the grid's loaded images for friendly card titles. */
     fileNames?: Map<number, string>;
+    /** image_id → thumbnail media URL, so cards can show the picture being proposed. */
+    thumbnails?: Map<number, string>;
     /** Notifies the parent which image a card targets, to scroll-to + highlight the grid cell. */
     onFocusImage?: (imageId: number) => void;
 }
@@ -106,6 +108,8 @@ function ConfidencePill({ value }: { value: number }) {
 function RecommendationCard({
     rec,
     fileName,
+    thumbUrl,
+    canApprove,
     busy,
     onApprove,
     onReject,
@@ -115,6 +119,9 @@ function RecommendationCard({
 }: {
     rec: AgentCullRecommendation;
     fileName?: string;
+    thumbUrl?: string;
+    /** Approvals only mark candidates on a validated (non-dry-run) group; hide otherwise. */
+    canApprove: boolean;
     busy: boolean;
     onApprove: () => void;
     onReject: () => void;
@@ -134,15 +141,32 @@ function RecommendationCard({
             <div className={styles.cardHeader}>
                 <button
                     type="button"
-                    className={styles.cardName}
+                    className={styles.thumbBtn}
                     title={`${title} — show in grid`}
                     onClick={() => onFocus?.(rec.image_id)}
-                    data-testid={`agent-cull-rec-focus-${rec.image_id}`}
+                    data-testid={`agent-cull-rec-thumb-${rec.image_id}`}
                 >
-                    {title}
+                    {thumbUrl ? (
+                        <img className={styles.thumb} src={thumbUrl} alt={title} loading="lazy" />
+                    ) : (
+                        <span className={styles.thumbFallback} aria-hidden>#{rec.image_id}</span>
+                    )}
                 </button>
-                <span className={`${styles.badge} ${BADGE_CLASS[tone]}`}>{agentRecommendationBadge(rec)}</span>
-                {rec.confidence != null && <ConfidencePill value={Number(rec.confidence)} />}
+                <div className={styles.cardHeaderText}>
+                    <button
+                        type="button"
+                        className={styles.cardName}
+                        title={`${title} — show in grid`}
+                        onClick={() => onFocus?.(rec.image_id)}
+                        data-testid={`agent-cull-rec-focus-${rec.image_id}`}
+                    >
+                        {title}
+                    </button>
+                    <div className={styles.cardHeaderMeta}>
+                        <span className={`${styles.badge} ${BADGE_CLASS[tone]}`}>{agentRecommendationBadge(rec)}</span>
+                        {rec.confidence != null && <ConfidencePill value={Number(rec.confidence)} />}
+                    </div>
+                </div>
             </div>
 
             {hasReason && (
@@ -165,7 +189,7 @@ function RecommendationCard({
 
             {!advisory && (
                 <div className={styles.actionRow}>
-                    {rec.final_decision === 'remove' && (
+                    {rec.final_decision === 'remove' && canApprove && (
                         <button
                             type="button"
                             className={`${styles.btn} ${styles.btnPrimary}`}
@@ -229,12 +253,13 @@ function RecommendationCard({
     );
 }
 
-export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileNames, onFocusImage }: Props) {
+export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileNames, thumbnails, onFocusImage }: Props) {
     const localReview = useAgentCullReview(stackId, subStackId, { enabled: !review });
     const r = review ?? localReview;
 
     const [expanded, setExpanded] = useState(true);
     const [showFull, setShowFull] = useState(false);
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
     const {
         groups,
@@ -259,6 +284,10 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
             ),
         [removable],
     );
+    const approvedRemovals = useMemo(
+        () => removable.filter((rec) => rec.candidate_status === 'operator_approved'),
+        [removable],
+    );
     const advisoryCount = useMemo(
         () => recommendations.filter((rec) => isAdvisoryRecommendation(rec)).length,
         [recommendations],
@@ -271,7 +300,8 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
             type="button"
             className={styles.btn}
             disabled={actionBusy || loading}
-            onClick={() => r.runReview(true)}
+            // A dry-run on a unit that already has a group must force, else the backend returns existing_review.
+            onClick={() => r.runReview(true, { force: groups.length > 0 })}
             data-testid="agent-cull-run-review"
         >
             {actionBusy ? 'Running…' : groups.length === 0 ? 'Run dry-run review' : 'Re-run dry-run'}
@@ -342,7 +372,8 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                             type="button"
                             className={`${styles.btn} ${styles.btnPrimary}`}
                             disabled={actionBusy}
-                            onClick={() => r.runReview(false)}
+                            // Live run re-runs without dry-run on top of the existing dry-run group → must force.
+                            onClick={() => r.runReview(false, { force: true })}
                             data-testid="agent-cull-run-live"
                         >
                             Run live review
@@ -419,21 +450,41 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                             >
                                 Mark safe candidates
                             </button>
+                            {approvedRemovals.length > 0 && (
+                                <button
+                                    type="button"
+                                    className={`${styles.btn} ${styles.btnDanger}`}
+                                    disabled={actionBusy}
+                                    onClick={() => setConfirmDeleteOpen(true)}
+                                    data-testid="agent-cull-delete-approved"
+                                >
+                                    Delete {approvedRemovals.length} approved…
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {isDryRun && removable.length > 0 && (
+                        <div className={styles.meta} data-testid="agent-cull-dry-run-approve-hint">
+                            Approvals are disabled on a dry-run. Click <strong>Run live review</strong> to record
+                            remove candidates, then approve them.
                         </div>
                     )}
 
                     {pendingRemovable.length > 1 && (
                         <div className={styles.bulkRow} data-testid="agent-cull-bulk">
                             <span className={styles.bulkLabel}>Bulk:</span>
-                            <button
-                                type="button"
-                                className={`${styles.btn} ${styles.btnPrimary}`}
-                                disabled={actionBusy}
-                                onClick={() => r.approveAll(pendingRemovable)}
-                                data-testid="agent-cull-approve-all"
-                            >
-                                Approve all removals
-                            </button>
+                            {!isDryRun && (
+                                <button
+                                    type="button"
+                                    className={`${styles.btn} ${styles.btnPrimary}`}
+                                    disabled={actionBusy}
+                                    onClick={() => r.approveAll(pendingRemovable)}
+                                    data-testid="agent-cull-approve-all"
+                                >
+                                    Approve all removals
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 className={styles.btn}
@@ -453,6 +504,8 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                                     key={rec.id}
                                     rec={rec}
                                     fileName={fileNames?.get(rec.image_id)}
+                                    thumbUrl={thumbnails?.get(rec.image_id)}
+                                    canApprove={!isDryRun}
                                     busy={actionBusy}
                                     onApprove={() => r.approve(rec)}
                                     onReject={() => r.reject(rec)}
@@ -463,6 +516,56 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                             ))}
                         </ul>
                     )}
+                </div>
+            )}
+
+            {confirmDeleteOpen && (
+                <div
+                    className={styles.confirmOverlay}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Confirm permanent deletion"
+                    data-testid="agent-cull-delete-confirm"
+                >
+                    <div className={styles.confirmDialog}>
+                        <div className={styles.confirmTitle}>
+                            Permanently delete {approvedRemovals.length} image{approvedRemovals.length === 1 ? '' : 's'}?
+                        </div>
+                        <div className={styles.confirmBody}>
+                            This deletes the file from disk <strong>and</strong> its database record. This
+                            <strong> cannot be undone</strong> — the files are not moved to the Recycle Bin.
+                        </div>
+                        <ul className={styles.confirmList}>
+                            {approvedRemovals.map((rec) => (
+                                <li key={rec.id} className={styles.confirmListItem}>
+                                    {fileNames?.get(rec.image_id) ?? `Image #${rec.image_id}`}
+                                </li>
+                            ))}
+                        </ul>
+                        <div className={styles.confirmActions}>
+                            <button
+                                type="button"
+                                className={styles.btn}
+                                disabled={actionBusy}
+                                onClick={() => setConfirmDeleteOpen(false)}
+                                data-testid="agent-cull-delete-cancel"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className={`${styles.btn} ${styles.btnDanger}`}
+                                disabled={actionBusy}
+                                onClick={() => {
+                                    r.deleteApproved();
+                                    setConfirmDeleteOpen(false);
+                                }}
+                                data-testid="agent-cull-delete-confirm-btn"
+                            >
+                                {actionBusy ? 'Deleting…' : `Delete ${approvedRemovals.length} permanently`}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

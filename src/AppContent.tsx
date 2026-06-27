@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { MainLayout } from './components/Layout/MainLayout';
 import { useImages, useKeywords, useStacks } from './hooks/useDatabase';
 import { useFolders } from './hooks/useFolders';
@@ -30,6 +30,7 @@ import { isSortOptionValue, useScoringSortOptions } from './hooks/useScoringSort
 import { StackAnalyticsBanner } from './components/CullingAnalytics/StackAnalyticsBanner';
 import { AgentCullReviewPanel } from './components/CullingAnalytics/AgentCullReviewPanel';
 import { useAgentCullReview } from './hooks/useAgentCullReview';
+import { toMediaUrl } from './utils/mediaUrl';
 import breadcrumbStyles from './styles/breadcrumbs.module.css';
 import toggleStyles from './styles/toggle.module.css';
 import {
@@ -165,9 +166,15 @@ function AppContent() {
     images, loading: imagesLoading, loadMore, totalCount, removeImage, refresh: refreshImages,
   } = useImages(50, selectedFolderId, imageFilters);
 
-  const {
-    stacks, loading: stacksLoading, loadMore: loadMoreStacks, totalCount: stacksTotalCount, refresh: refreshStacks,
-  } = useStacks(50, selectedFolderId, stackFilters);
+  // useStacksMode must run before useStacks (stacksMode arg). refreshStacks comes from useStacks,
+  // so wire it through a ref to avoid a circular hook dependency. The callback must be stable
+  // (useCallback) — useStacksMode lists it in effect deps, so an inline arrow would re-run those
+  // effects every render and loop (Maximum update depth exceeded).
+  const refreshStacksRef = useRef<(opts?: { preserveItems?: boolean }) => void>(() => {});
+  const stableRefreshStacks = useCallback(
+    (opts?: { preserveItems?: boolean }) => refreshStacksRef.current(opts),
+    [],
+  );
 
   const {
     stacksMode, setStacksMode, enableStacksMode,
@@ -191,14 +198,22 @@ function AppContent() {
     handleSelectStack: handleSelectStackBase,
     handleSelectSubStack,
     handleImageDeleteFromStack,
-  } = useStacksMode(filters, refreshStacks, smartCoverEnabled);
+    cacheRebuilding,
+  } = useStacksMode(
+    filters,
+    stableRefreshStacks,
+    smartCoverEnabled,
+  );
+
+  const {
+    stacks, loading: stacksLoading, loadMore: loadMoreStacks, totalCount: stacksTotalCount, refresh: refreshStacks,
+  } = useStacks(50, selectedFolderId, stackFilters, stacksMode);
 
   // Keep refs up to date for WebSocket callbacks
   stacksModeRef.current = stacksMode;
   activeStackIdRef.current = activeStackId;
   const refreshImagesRef = useRef(refreshImages);
   refreshImagesRef.current = refreshImages;
-  const refreshStacksRef = useRef(refreshStacks);
   refreshStacksRef.current = refreshStacks;
   const refreshFoldersRef = useRef(refreshFolders);
   refreshFoldersRef.current = refreshFolders;
@@ -211,6 +226,36 @@ function AppContent() {
     stacksModeRef,
     activeStackIdRef,
   });
+
+  const refreshGallery = useCallback(() => {
+    refreshImages();
+    refreshFolders();
+  }, [refreshImages, refreshFolders]);
+
+  // When DB grows (e.g. after indexing), refresh grid + folder tree without restart.
+  useEffect(() => {
+    if (toolView !== null) return;
+
+    const pollCount = async () => {
+      try {
+        const countOpts = subfolderIds
+          ? { ...queryFilters, folderIds: subfolderIds }
+          : queryFilters;
+        const fresh = await bridge.getImageCount(countOpts);
+        if (typeof fresh === 'number' && fresh > totalCount) {
+          refreshGallery();
+        }
+      } catch {
+        // ignore background poll failures
+      }
+    };
+
+    const onFocus = () => {
+      void pollCount();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [toolView, queryFilters, subfolderIds, totalCount, refreshGallery]);
 
   useEffect(() => {
     if (!isBrowserPersistenceEnabled()) return;
@@ -333,6 +378,15 @@ function AppContent() {
     }
     return map;
   }, [currentImages]);
+  // image_id → thumbnail media URL, so the panel cards show the picture being proposed.
+  // Prefer the generated JPEG thumbnail (browser-decodable) over the RAW source path.
+  const agentThumbnails = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const img of currentImages) {
+      if (img?.id != null && img.thumbnail_path) map.set(img.id, toMediaUrl(img.thumbnail_path));
+    }
+    return map;
+  }, [currentImages]);
   // Transient highlight target: clearing it after the pulse lets a re-click replay the animation.
   const [agentHighlightImageId, setAgentHighlightImageId] = useState<number | null>(null);
   useEffect(() => {
@@ -383,6 +437,16 @@ function AppContent() {
   const isInitialGridLoading = stacksMode && !activeStackId
     ? (stacksLoading && stacks.length === 0)
     : (activeStackId ? (activeStackDisplayLoading && currentImages.length === 0) : (imagesLoading && images.length === 0));
+
+  const showGridLoadingBadge = !isInitialGridLoading && (
+    activeSubStackId !== null || activeUngroupedSubStack
+      ? (subStackImagesLoading || subStacksLoading)
+      : activeStackId !== null
+        ? (stackImagesLoading || subStacksLoading || subStackImagesLoading)
+        : stacksMode
+          ? stacksLoading
+          : imagesLoading
+  );
 
   const hasActiveFilters = useMemo(
     () =>
@@ -532,6 +596,23 @@ function AppContent() {
             </span>
             )}
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '15px', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+              {!isToolViewOpen && (
+                <button
+                  type="button"
+                  onClick={() => refreshGallery()}
+                  title="Refresh gallery and folders from database"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '4px 12px', background: '#333',
+                    border: '1px solid #555', borderRadius: 16,
+                    fontSize: '0.8em', color: '#ccc', fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <RefreshCw size={12} />
+                  Refresh
+                </button>
+              )}
               {activeOps.size > 0 && Array.from(activeOps.values()).map((op, i) => (
                 <button
                   key={i}
@@ -744,10 +825,17 @@ function AppContent() {
             <>
               {isInitialGridLoading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
-                    <div style={{ color: '#aaa' }}>Loading images...</div>
+                    <div style={{ color: '#aaa', textAlign: 'center' }}>
+                      {cacheRebuilding ? 'Building stack cache…' : 'Loading stacks…'}
+                      {cacheRebuilding && (
+                        <div style={{ fontSize: '0.85em', marginTop: 8, opacity: 0.8 }}>
+                          First-time setup on large libraries can take a minute.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
-                {(stackImagesLoading || subStacksLoading || subStackImagesLoading || imagesLoading || stacksLoading) && !isInitialGridLoading && (
+                {showGridLoadingBadge && (
                   <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', background: 'rgba(0, 0, 0, 0.7)', color: 'white', borderRadius: 20, fontSize: '0.85em', fontWeight: 500 }}>
                     <Loader2 size={14} className="app-spinner" />
                     Loading...
@@ -760,6 +848,7 @@ function AppContent() {
                     subStackId={activeSubStackId}
                     review={agentReview}
                     fileNames={agentFileNames}
+                    thumbnails={agentThumbnails}
                     onFocusImage={setAgentHighlightImageId}
                   />
                 )}
@@ -832,6 +921,7 @@ function AppContent() {
                   handleNavigateToFolder(folderId);
                   closeViewer();
                 }}
+                fallbackFolderId={selectedFolderId}
               />
             )}
           </div>

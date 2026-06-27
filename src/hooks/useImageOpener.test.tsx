@@ -160,6 +160,26 @@ describe('useImageOpener', () => {
     expect(addNotification).toHaveBeenCalledWith('Unable to locate image details', 'warning');
   });
 
+  it('openImageFromList opens immediately without prefetching getImageDetails', async () => {
+    const getImageDetails = vi.fn();
+    (window as unknown as { electron?: unknown }).electron = { getImageDetails };
+    const list = [img(10), img(11)];
+
+    const { result } = renderHook(() => useImageOpener({
+      ...defaultParams(list, { removeImage, handleImageDeleteFromStack, onNavigateToFolder }),
+    }));
+
+    let ok = false;
+    await act(async () => {
+      ok = await result.current.openImageFromList(11, list);
+    });
+
+    expect(ok).toBe(true);
+    expect(getImageDetails).not.toHaveBeenCalled();
+    expect(result.current.openingImage?.id).toBe(11);
+    expect(result.current.currentImageIndex).toBe(1);
+  });
+
   it('closeViewer clears override, pending id, and opening image', async () => {
     const subStackCards = [img(101), img(102)];
     (window as unknown as { electron?: unknown }).electron = {

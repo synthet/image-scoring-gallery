@@ -165,13 +165,15 @@ function usePaginatedData<T extends { id: number }>(
     filters: ImageQueryOptions | undefined,
     fetchFunc: (options: ImageQueryOptions) => Promise<T[]>,
     countFunc: (options: ImageQueryOptions) => Promise<number>,
-    getUniqueKey: (item: T) => string | number
+    getUniqueKey: (item: T) => string | number,
+    enabled: boolean = true,
 ) {
     const [items, setItems] = useState<T[]>([]);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [offset, setOffset] = useState(0);
     const [totalCount, setTotalCount] = useState(0);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     // Use refs to avoid stale closures
     const itemsRef = useRef<T[]>([]);
@@ -182,6 +184,8 @@ function usePaginatedData<T extends { id: number }>(
     const hasMoreRef = useRef(true);
     const queryVersionRef = useRef(0);
     const requestIdRef = useRef(0);
+    const enabledRef = useRef(enabled);
+    enabledRef.current = enabled;
 
     // Stable refs for caller-provided functions — updated each render so
     // loadMore/refresh never close over stale implementations.
@@ -253,6 +257,11 @@ function usePaginatedData<T extends { id: number }>(
         setOffset(0);
         setHasMore(true);
         setLoading(false);
+        setLoadError(null);
+
+        if (!enabledRef.current) {
+            return;
+        }
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
         const options: ImageQueryOptions = { folderId, ...filtersRef.current };
@@ -263,18 +272,19 @@ function usePaginatedData<T extends { id: number }>(
         });
     // filterKey is a stable string derived from filters; folderId is primitive.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [folderId, filterKey]);
+    }, [folderId, filterKey, enabled]);
 
     // Load a page and ignore stale responses from previous refresh/filter versions.
     // loadMore is stable (only depends on pageSize and trimItems) because all
     // other dependencies are read via refs at call time.
     const loadMore = useCallback(async () => {
-        if (loadingRef.current || !hasMoreRef.current) return;
+        if (!enabledRef.current || loadingRef.current || !hasMoreRef.current) return;
 
         const requestId = ++requestIdRef.current;
         const queryVersionAtStart = queryVersionRef.current;
         loadingRef.current = true;
         setLoading(true);
+        setLoadError(null);
         try {
             const options: ImageQueryOptions = { limit: pageSize, offset: offsetRef.current, folderId: folderIdRef.current, ...filtersRef.current };
             const newItems = await fetchFuncRef.current(options);
@@ -301,6 +311,12 @@ function usePaginatedData<T extends { id: number }>(
             setOffset(prev => prev + pageSize);
         } catch (err) {
             console.error("Failed to load data:", err);
+            if (queryVersionAtStart === queryVersionRef.current && requestId === requestIdRef.current) {
+                hasMoreRef.current = false;
+                setHasMore(false);
+                const message = err instanceof Error ? err.message : 'Failed to load data';
+                setLoadError(message);
+            }
         } finally {
             if (requestId === requestIdRef.current) {
                 loadingRef.current = false;
@@ -315,8 +331,13 @@ function usePaginatedData<T extends { id: number }>(
     const loadMoreRef = useRef(loadMore);
     loadMoreRef.current = loadMore;
 
-    // Initial load when offset becomes 0
+    // Initial load when offset becomes 0 (or when pagination is enabled after being off).
     useEffect(() => {
+        if (!enabled) {
+            loadingRef.current = false;
+            setLoading(false);
+            return;
+        }
         if (offset === 0 && hasMore && !loading) {
             loadMoreRef.current();
         }
@@ -324,13 +345,18 @@ function usePaginatedData<T extends { id: number }>(
     // .current is always up to date. Listing loadMore directly would cause this
     // effect to re-fire on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [offset, hasMore, loading]);
+    }, [offset, hasMore, loading, enabled]);
 
     const refresh = useCallback((options?: { preserveItems?: boolean }) => {
+        if (!enabledRef.current) {
+            return;
+        }
+
         const preserveItems = options?.preserveItems ?? false;
 
         queryVersionRef.current += 1;
         requestIdRef.current += 1;
+        setLoadError(null);
 
         if (preserveItems && itemsRef.current.length > 0) {
             const requestId = requestIdRef.current;
@@ -346,17 +372,33 @@ function usePaginatedData<T extends { id: number }>(
             const hasTrimmedItems = offsetRef.current > itemsRef.current.length;
 
             if (hasTrimmedItems) {
-                void countFuncRef.current(countOptions).then(freshCount => {
+                const nextLimit = Math.min(Math.max(itemsRef.current.length, pageSize), MAX_LOADED_ITEMS);
+                const listOptions: ImageQueryOptions = {
+                    limit: nextLimit,
+                    offset: 0,
+                    folderId: folderIdRef.current,
+                    ...filtersRef.current,
+                };
+
+                void Promise.all([
+                    fetchFuncRef.current(listOptions),
+                    countFuncRef.current(countOptions),
+                ]).then(([freshItems, freshCount]) => {
                     if (queryVersionAtStart !== queryVersionRef.current || requestId !== requestIdRef.current) {
                         return;
                     }
 
-                    const hasMoreItems = freshCount > offsetRef.current;
-                    hasMoreRef.current = hasMoreItems;
+                    const normalizedItems = trimItems(dedupeItems(freshItems));
+                    itemsRef.current = normalizedItems;
+                    offsetRef.current = normalizedItems.length;
+                    hasMoreRef.current = freshCount > normalizedItems.length;
+
+                    setItems(normalizedItems);
                     setTotalCount(freshCount);
-                    setHasMore(hasMoreItems);
+                    setOffset(normalizedItems.length);
+                    setHasMore(freshCount > normalizedItems.length);
                 }).catch(err => {
-                    console.error('Failed to refresh data count:', err);
+                    console.error('Failed to refresh trimmed data:', err);
                 }).finally(() => {
                     if (requestId === requestIdRef.current) {
                         loadingRef.current = false;
@@ -420,7 +462,10 @@ function usePaginatedData<T extends { id: number }>(
 
     }, [getUniqueKey]);
 
-    return React.useMemo(() => ({ items, loading, hasMore, loadMore, totalCount, refresh, removeItem }), [items, loading, hasMore, loadMore, totalCount, refresh, removeItem]);
+    return React.useMemo(
+        () => ({ items, loading, hasMore, loadMore, totalCount, refresh, removeItem, loadError }),
+        [items, loading, hasMore, loadMore, totalCount, refresh, removeItem, loadError],
+    );
 }
 
 export function useImages(pageSize: number = 50, folderId?: number, filters?: ImageQueryOptions) {
@@ -441,11 +486,17 @@ export function useImages(pageSize: number = 50, folderId?: number, filters?: Im
         loadMore: result.loadMore,
         totalCount: result.totalCount,
         refresh: result.refresh,
-        removeImage: (id: number) => result.removeItem(id)
-    }), [result.items, result.loading, result.hasMore, result.loadMore, result.totalCount, result.refresh, result.removeItem]);
+        removeImage: (id: number) => result.removeItem(id),
+        loadError: result.loadError,
+    }), [result.items, result.loading, result.hasMore, result.loadMore, result.totalCount, result.refresh, result.removeItem, result.loadError]);
 }
 
-export function useStacks(pageSize: number = 50, folderId?: number, filters?: ImageQueryOptions) {
+export function useStacks(
+    pageSize: number = 50,
+    folderId?: number,
+    filters?: ImageQueryOptions,
+    enabled: boolean = true,
+) {
     const getUniqueKey = React.useCallback((stack: ImageRow) => stack.stack_key || stack.id, []);
     const result = usePaginatedData(
         pageSize,
@@ -453,7 +504,8 @@ export function useStacks(pageSize: number = 50, folderId?: number, filters?: Im
         filters,
         (opts) => bridge.getStacks(opts),
         (opts) => bridge.getStackCount(opts),
-        getUniqueKey
+        getUniqueKey,
+        enabled,
     );
 
     return React.useMemo(() => ({
@@ -462,8 +514,9 @@ export function useStacks(pageSize: number = 50, folderId?: number, filters?: Im
         hasMore: result.hasMore,
         loadMore: result.loadMore,
         totalCount: result.totalCount,
-        refresh: result.refresh
-    }), [result.items, result.loading, result.hasMore, result.loadMore, result.totalCount, result.refresh]);
+        refresh: result.refresh,
+        loadError: result.loadError,
+    }), [result.items, result.loading, result.hasMore, result.loadMore, result.totalCount, result.refresh, result.loadError]);
 }
 
 export interface SimilarImageResult {

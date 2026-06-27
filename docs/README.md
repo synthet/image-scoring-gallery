@@ -93,6 +93,7 @@ See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenan
 - [reports/README.md](reports/README.md) - reports index.
 - [reports/05-nef-raw-fallback-incident-2026-04-19.md](reports/05-nef-raw-fallback-incident-2026-04-19.md) - NEF incident snapshot.
 - [reports/07-pipeline-input-size-study-2026-05.md](reports/07-pipeline-input-size-study-2026-05.md) - Backend input-size study; gallery impact; backlog [#138](https://github.com/synthet/image-scoring-gallery/issues/138).
+- [reports/08-picked-advisory-gap-2026-06-21.md](reports/08-picked-advisory-gap-2026-06-21.md) - Picked-image quality advisories; gallery UI + backend strict_v2 fix (stack 29157).
 
 ## Activity Log
 

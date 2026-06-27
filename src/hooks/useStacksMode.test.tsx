@@ -23,6 +23,7 @@ type ElectronApi = {
   getImagesByStackUngrouped: ReturnType<typeof vi.fn>;
   getSubstacksForStack: ReturnType<typeof vi.fn>;
   getImagesBySubStack: ReturnType<typeof vi.fn>;
+  getStackCacheStatus: ReturnType<typeof vi.fn>;
   rebuildStackCache: ReturnType<typeof vi.fn>;
 };
 
@@ -53,6 +54,7 @@ describe('useStacksMode sub-stack navigation', () => {
       getImagesByStackUngrouped: vi.fn(),
       getSubstacksForStack: vi.fn(),
       getImagesBySubStack: vi.fn(),
+      getStackCacheStatus: vi.fn().mockResolvedValue({ cached: 42, expected: 42, stale: false }),
       rebuildStackCache: vi.fn().mockResolvedValue({ success: true, count: 0 }),
     };
     (window as Window & { electron?: Partial<ElectronApi> }).electron = electronApi;
@@ -235,5 +237,56 @@ describe('useStacksMode sub-stack navigation', () => {
 
     expect(result.current.activeStackDisplayImages).toEqual([afterRefresh]);
     expect(electronApi.getImagesByStackUngrouped).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips stack cache rebuild when cache is fresh', async () => {
+    const refreshStacks = vi.fn();
+    electronApi.getStackCacheStatus.mockResolvedValue({ cached: 120, expected: 120, stale: false });
+
+    const { result } = renderHook(() => useStacksMode(filters, refreshStacks, false));
+
+    act(() => {
+      result.current.enableStacksMode(true);
+    });
+
+    await waitFor(() => {
+      expect(electronApi.getStackCacheStatus).toHaveBeenCalled();
+      expect(electronApi.rebuildStackCache).not.toHaveBeenCalled();
+      expect(refreshStacks).toHaveBeenCalled();
+    });
+  });
+
+  it('rebuilds stack cache when cache is empty but images have stacks', async () => {
+    const refreshStacks = vi.fn();
+    electronApi.getStackCacheStatus.mockResolvedValue({ cached: 0, expected: 15, stale: true });
+
+    const { result } = renderHook(() => useStacksMode(filters, refreshStacks, false));
+
+    act(() => {
+      result.current.enableStacksMode(true);
+    });
+
+    await waitFor(() => {
+      expect(electronApi.rebuildStackCache).toHaveBeenCalled();
+    });
+
+    expect(refreshStacks).toHaveBeenCalled();
+  });
+
+  it('rebuilds stack cache when cache is stale', async () => {
+    const refreshStacks = vi.fn();
+    electronApi.getStackCacheStatus.mockResolvedValue({ cached: 9758, expected: 9773, stale: true });
+
+    const { result } = renderHook(() => useStacksMode(filters, refreshStacks, false));
+
+    act(() => {
+      result.current.enableStacksMode(true);
+    });
+
+    await waitFor(() => {
+      expect(electronApi.rebuildStackCache).toHaveBeenCalled();
+    });
+
+    expect(refreshStacks).toHaveBeenCalled();
   });
 });

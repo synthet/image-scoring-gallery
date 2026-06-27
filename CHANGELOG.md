@@ -4,6 +4,38 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.22.0] - 2026-06-27
+
+### Added
+
+- **Agent cull review — permanently delete approved removals**: On a validated (live-run) group, a red **Delete N approved…** button appears once you've approved removals. It opens a confirmation dialog listing the exact filenames and warns that the action is irreversible (files are **not** sent to the Recycle Bin), then calls the backend `delete-approved` endpoint (`confirm: true`) to permanently delete each approved image's file, thumbnails, and database record. Per-image **Approve** stays reversible — deletion is a separate, explicit, confirmed step. Deleted rows show a **Deleted** status.
+
+## [7.21.2] - 2026-06-22
+
+### Fixed
+
+- **Agent cull review — "Run live review" failed with "A review already exists"**: The live run (and any re-run of the dry-run) now passes `force`, so it correctly re-runs on top of the existing dry-run group instead of returning `existing_review`.
+- **Agent cull review — "Approve" failed on a dry-run with "candidates can't be marked"**: Per-image **Approve** and **Approve all** are now hidden on a dry-run group (where the backend can't mark candidates). A hint points you to **Run live review** first; **Keep in review** / **Dismiss all** stay available. Approvals appear once the group is validated.
+- **Agent cull review — proposal cards show the picture**: Each recommendation card now renders the image thumbnail next to its filename, so you can see what's being proposed for removal without hunting in the grid.
+- **Agent cull review — long recommendation lists scroll**: The card list is now bounded with its own internal scroll, so a stack with many recommendations no longer pushes the gallery grid off-screen with no way to scroll (the surrounding panel is `overflow: hidden`).
+- **Gallery stuck on "Loading…" with stale images**: The root grid could freeze behind a perpetual corner spinner, showing only older images while newer images and folders never appeared. The underlying infinite render loop is fixed — the grid now loads the newest images immediately on open.
+- **Loading badge no longer spins over the wrong view**: The corner "Loading…" indicator is now scoped to the view you're actually looking at, so a background query can't keep it spinning over the flat image grid.
+- **Stacks query no longer runs with Stacks off**: With the Stacks toggle disabled, the stack listing query is skipped entirely instead of fetching in the background.
+- **Failed page loads stop cleanly**: A page that fails to load now surfaces the error and stops, instead of silently retrying the same page forever (which previously kept the spinner up indefinitely).
+- **Faster image detail on older databases**: Opening images on libraries without the sub-stack schema no longer re-runs a doomed probe query on every detail load — the result is cached after the first attempt.
+
+## [7.21.1] - 2026-06-21
+
+### Fixed
+
+- **Gallery performance on large libraries**: Per-image score overlay now uses a per-row `LEFT JOIN LATERAL` instead of aggregating the entire `image_model_scores` table on every query; `getFolders()` tallies counts in one grouped pass instead of a correlated subquery per folder. Grid, stack, and folder-tree loads are much faster.
+- **"Open Folder" button missing in viewer**: `folder_id` is now selected in all gallery list queries; the viewer accepts the sidebar selection as a fallback (`fallbackFolderId`) and merges details over the grid row so `folder_id` is never dropped.
+- **"Fetch failed" opening images on pre–sub-stack databases**: `getImageDetails` and `getImagesByStack` retry with `CAST(NULL AS INTEGER) AS sub_stack_id` when the `sub_stack_id` column is absent (error 42703), then fall back to the flat stack view.
+
+### Removed
+
+- **Min CLIP Quality sidebar filter**: Retired the sidebar slider (`FilterPanel`, `keywordFilters`, `FilterState`). CLIP Quality remains in the image viewer and sort dropdown; DB/API `minClipQualityV0` support is retained for programmatic use.
+
 ## [7.21.0] - 2026-06-21
 
 ### Added

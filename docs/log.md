@@ -4,7 +4,7 @@ title: "Documentation Activity Log"
 description: "Chronological record of wiki maintenance activities. Newest entries first."
 resource: "docs/log.md"
 tags: ["gallery-docs"]
-timestamp: 2026-06-16T00:00:00Z
+timestamp: 2026-06-21T00:00:00Z
 ---
 
 # Documentation Activity Log
@@ -13,6 +13,8 @@ Chronological record of wiki maintenance activities. Newest entries first.
 
 ## 2026-06
 
+- 2026-06-21: updated — [technical/EMBEDDING_SPACES.md](technical/EMBEDDING_SPACES.md): backend culling backfill CLI path (`scripts/maintenance/backfill_culling_embeddings.py`). Backend runbook: [CULLING_EMBEDDING_BACKFILL.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/guides/CULLING_EMBEDDING_BACKFILL.md) (Step 9 library-wide re-cluster rollout).
+- 2026-06-21: ingested — [reports/08-picked-advisory-gap-2026-06-21.md](reports/08-picked-advisory-gap-2026-06-21.md): gallery cross-ref for backend picked advisory research (stack 29157); updated [guides/04-agent-cull-review.md](guides/04-agent-cull-review.md), [features/implemented/06-culling-stack-analytics.md](features/implemented/06-culling-stack-analytics.md), [specs/agent-assisted-cull-review/worklog.md](specs/agent-assisted-cull-review/worklog.md), [reports/README.md](reports/README.md), [README.md](README.md). Backend: [PICKED_ADVISORY_GAP_195193_2026-06-21.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/PICKED_ADVISORY_GAP_195193_2026-06-21.md).
 - 2026-06-21: created — [design/UX_UI_CONSTITUTION.md](design/UX_UI_CONSTITUTION.md): gallery binding for shared UX/UI constitution; `.cursor/skills/gallery-ui/SKILL.md`, `gallery-ui-design.mdc` rule; slimmed [design/FRONTEND_UX_SPEC.md](design/FRONTEND_UX_SPEC.md) palette section; updated [CANONICAL_SOURCES.md](CANONICAL_SOURCES.md), [design/DESIGN_SYSTEM.md](design/DESIGN_SYSTEM.md), [README.md](README.md). Shared canonical: [image-scoring-ui UX_UI_CONSTITUTION.md](https://github.com/synthet/image-scoring-ui/blob/main/docs/UX_UI_CONSTITUTION.md).
 - 2026-06-20: updated — [guides/05-mcp-compact-servers.md](guides/05-mcp-compact-servers.md): § Other agents (Claude Code, Antigravity, Codex) with example config paths; browser automation on sibling **is-be-mcp** only. Backend: [mcp-compact-servers.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/guides/setup/mcp-compact-servers.md).
 - 2026-06-20: ingested — [guides/05-mcp-compact-servers.md](guides/05-mcp-compact-servers.md): unified Node `mcp-server/dist/compactIndex.js` entry for **is-ui-mcp** (`search`, `dispatch`, `sse_status`), CDP live actions, SSE proxy; cross-refs in [guides/README.md](guides/README.md), [README.md](README.md), [technical/AGENT_COORDINATION.md](technical/AGENT_COORDINATION.md), [LESSONS_LEARNED.md](LESSONS_LEARNED.md). Backend canonical: [mcp-compact-servers.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/guides/setup/mcp-compact-servers.md), [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/MCP_SEARCH_DISPATCH.md).

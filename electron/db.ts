@@ -68,6 +68,16 @@ const CAPTURE_FALLBACK =
     '(ex.date_time_original IS NULL AND ex.create_date IS NULL AND xm.create_date IS NULL)';
 
 /**
+ * ORDER BY for capture_date list sorts on large libraries.
+ * Uses indexed ``images.created_at`` for ordering; SELECT still exposes EXIF/XMP capture_date.
+ */
+function imageListOrderByCaptureDate(sortOrder: 'ASC' | 'DESC'): string {
+    const idDir = sortOrder === 'DESC' ? 'DESC' : 'ASC';
+    const nulls = sortOrder === 'DESC' ? 'NULLS LAST' : 'NULLS FIRST';
+    return `i.created_at ${sortOrder} ${nulls}, i.id ${idDir}`;
+}
+
+/**
  * IMS overlay: per-image production (non-shadow) scores for the five models
  * that used to live on ``images``. Joined LEFT once per query and surfaced via
  * ``COALESCE`` with the typed columns so renderer types stay stable while the
@@ -79,10 +89,11 @@ const CAPTURE_FALLBACK =
  * ``images.id`` of the row this overlay should match (e.g. ``i.id``).
  */
 function imsOverlayJoin(alias: string, aliasId: string): string {
+    // LATERAL per-image aggregation: avoids scanning/grouping all of image_model_scores
+    // before the outer WHERE/LIMIT can restrict rows (critical on large libraries).
     return `
-        LEFT JOIN (
+        LEFT JOIN LATERAL (
             SELECT
-                image_id,
                 MAX(CASE WHEN model_name = 'spaq'    THEN COALESCE(normalized, raw_score) END) AS score_spaq,
                 MAX(CASE WHEN model_name = 'ava'     THEN COALESCE(normalized, raw_score) END) AS score_ava,
                 MAX(CASE WHEN model_name = 'liqe'    THEN COALESCE(normalized, raw_score) END) AS score_liqe,
@@ -90,11 +101,11 @@ function imsOverlayJoin(alias: string, aliasId: string): string {
                 MAX(CASE WHEN model_name = 'arniqa'  THEN COALESCE(normalized, raw_score) END) AS score_arniqa,
                 MAX(CASE WHEN model_name = 'clip_quality_v0' THEN COALESCE(normalized, raw_score) END) AS clip_quality_v0_score
             FROM image_model_scores
-            WHERE model_name IN ('spaq', 'ava', 'liqe', 'topiq', 'arniqa', 'clip_quality_v0')
+            WHERE image_id = ${aliasId}
+              AND model_name IN ('spaq', 'ava', 'liqe', 'topiq', 'arniqa', 'clip_quality_v0')
               AND is_shadow = FALSE
               AND status = 'success'
-            GROUP BY image_id
-        ) ${alias} ON ${alias}.image_id = ${aliasId}`;
+        ) ${alias} ON TRUE`;
 }
 
 /** Renderer-facing score projections from ``image_model_scores`` only. */
@@ -478,9 +489,13 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
 
     const sortParts = buildImageSortSql(sortBy);
     const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
-    const sortSql = sortParts.parsed.kind === 'meta' && sortParts.parsed.key === 'capture_date'
-        ? CAPTURE_TS
+    const isCaptureDateSort = sortParts.parsed.kind === 'meta' && sortParts.parsed.key === 'capture_date';
+    const sortSql = isCaptureDateSort
+        ? imageListOrderByCaptureDate(sortOrder)
         : sortParts.orderExpr || 'i.score_general';
+    const imageListOrderBy = isCaptureDateSort
+        ? sortSql
+        : `${sortSql} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}, i.id DESC`;
     const selectExtra = sortParts.selectExtra ? `,\n            ${sortParts.selectExtra}` : '';
     const joinSql = sortParts.joinSql ? `\n        ${sortParts.joinSql}` : '';
 
@@ -489,6 +504,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.id,
             COALESCE(fp.path, i.file_path) as file_path,
             i.file_name,
+            i.folder_id,
             i.score_general,
             i.score_technical,
             i.score_aesthetic,
@@ -506,7 +522,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
         LEFT JOIN image_exif ex ON i.id = ex.image_id
         LEFT JOIN image_xmp xm ON i.id = xm.image_id${imsOverlayJoin('ims_legacy', 'i.id')}${joinSql}
         ${whereClause}
-        ORDER BY ${sortSql} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}, i.id DESC
+        ORDER BY ${imageListOrderBy}
         ${paginationSql()}
     `;
     const rows = await query(sql, [...params, ...sortParts.joinParams, ...pagingParams(offset, limit)]);
@@ -652,8 +668,66 @@ interface ImageDetailRow {
     exif_lens_model?: string | null;
 }
 
+let hasWarnedMissingSubStackSchema = false;
+/** null = unknown; false = column absent (skip probe); true = present */
+let subStackColumnAvailable: boolean | null = null;
+
+/** Test-only: reset cached sub-stack schema detection between cases. */
+export function resetSubStackSchemaCacheForTests(): void {
+    subStackColumnAvailable = null;
+    hasWarnedMissingSubStackSchema = false;
+}
+
+function isMissingSubStackSchemaError(error: unknown): boolean {
+    const e = error as { code?: string; message?: string };
+    const msg = String(e?.message ?? error).toLowerCase();
+    const missingObject = msg.includes('does not exist')
+        || msg.includes('no such table')
+        || msg.includes('no such column')
+        || msg.includes('unknown column');
+    const subStackObject = msg.includes('sub_stacks') || msg.includes('sub_stack_id');
+    return (e?.code === '42P01' && subStackObject)
+        || (e?.code === '42703' && subStackObject)
+        || (missingObject && subStackObject);
+}
+
+function warnMissingSubStackSchema(error: unknown): void {
+    if (hasWarnedMissingSubStackSchema) return;
+    hasWarnedMissingSubStackSchema = true;
+    console.warn('[DB] Sub-stack schema not available; falling back to flat stack view.', error);
+}
+
+function subStackIdSelect(includeSubStackId: boolean, imageAlias = 'i'): string {
+    return includeSubStackId
+        ? `${imageAlias}.sub_stack_id`
+        : `CAST(NULL AS INTEGER) AS sub_stack_id`;
+}
+
+async function queryWithOptionalSubStackSchema<T>(
+    run: (includeSubStackId: boolean) => Promise<T>,
+): Promise<T> {
+    if (subStackColumnAvailable === false) {
+        return run(false);
+    }
+    if (subStackColumnAvailable === true) {
+        return run(true);
+    }
+    try {
+        const result = await run(true);
+        subStackColumnAvailable = true;
+        return result;
+    } catch (e) {
+        if (!isMissingSubStackSchemaError(e)) {
+            throw e;
+        }
+        warnMissingSubStackSchema(e);
+        subStackColumnAvailable = false;
+        return await run(false);
+    }
+}
+
 export async function getImageDetails(id: number): Promise<ImageDetailRow | null> {
-    const sql = `
+    const buildSql = (includeSubStackId: boolean) => `
         SELECT 
             i.id,
             i.job_id,
@@ -680,7 +754,7 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
             i.image_hash,
             i.folder_id,
             i.stack_id,
-            i.sub_stack_id,
+            ${subStackIdSelect(includeSubStackId)},
             i.created_at,
             i.burst_uuid,
             i.image_uuid,
@@ -697,7 +771,9 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
         LEFT JOIN image_exif ex ON i.id = ex.image_id${imsOverlayJoin('ims_legacy', 'i.id')}
         WHERE i.id = ?
     `;
-    const rows = await query(sql, [id]);
+    const rows = await queryWithOptionalSubStackSchema((includeSubStackId) =>
+        query(buildSql(includeSubStackId), [id]),
+    );
 
     if (!rows || rows.length === 0) {
         return null;
@@ -723,52 +799,21 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
         }
     }
 
-    // Check file existence
-    let fileExists = false;
-    let filePathToCheck = image.win_path || image.file_path;
-    if (filePathToCheck) {
-        if (process.platform === 'win32' && filePathToCheck.match(/^\/?mnt\/[a-zA-Z]\//)) {
-            filePathToCheck = filePathToCheck.replace(/^\/?mnt\/([a-zA-Z])\//, (match: string, drive: string) => `${drive}:/`);
-        }
-        fileExists = fs.existsSync(filePathToCheck);
-    }
-    image.file_exists = fileExists;
-
-    // Ultra-aggressive serialization: Convert EVERYTHING to JSON and parse back
-    // This ensures absolutely no driver-specific or Node.js-specific objects remain
-    const stringified = JSON.stringify(image, (key, value) => {
-        // Custom replacer to handle special types
-        if (Buffer.isBuffer(value)) {
-            return value.toString('utf8');
-        }
-        if (value instanceof Date) {
-            return value.toISOString();
-        }
-        if (value === undefined) {
-            return null;
-        }
-        // For any other object, try to stringify it
-        if (value && typeof value === 'object' && !(value instanceof Array)) {
-            try {
-                return JSON.parse(JSON.stringify(value));
-            } catch {
-                return String(value);
-            }
-        }
-        return value;
-    });
-
-    return JSON.parse(stringified);
+    return image;
 }
 
 export async function getFolders(): Promise<unknown[]> {
     const rows = await query(`
         SELECT f.id, f.path, f.parent_id, f.is_fully_scored,
-               (SELECT ${countBigint('1')} FROM images i WHERE i.folder_id = f.id) as image_count
+               COALESCE(ic.image_count, 0) AS image_count
         FROM folders f
+        LEFT JOIN (
+            SELECT folder_id, ${countBigint('1')} AS image_count
+            FROM images
+            GROUP BY folder_id
+        ) ic ON ic.folder_id = f.id
         ORDER BY f.path ASC
     `);
-
 
     return rows;
 }
@@ -1434,6 +1479,30 @@ let rebuildPromise: Promise<number> | null = null;
 /** Merged context for a follow-up rebuild when callers arrive while `rebuildPromise` is active. */
 let pendingAfterCurrent: { smartCover?: boolean } | null = null;
 
+export async function getStackCacheCount(): Promise<number> {
+    await ensureStackCacheTable();
+    const rows = await query<{ cnt: number }>('SELECT COUNT(*)::int AS cnt FROM stack_cache');
+    return Number(rows[0]?.cnt ?? 0);
+}
+
+export interface StackCacheStatus {
+    cached: number;
+    expected: number;
+    stale: boolean;
+}
+
+export async function getStackCacheStatus(): Promise<StackCacheStatus> {
+    await ensureStackCacheTable();
+    const rows = await query<{ cached: number; expected: number }>(`
+        SELECT
+            (SELECT COUNT(*)::int FROM stack_cache) AS cached,
+            (SELECT COUNT(DISTINCT stack_id)::int FROM images WHERE stack_id IS NOT NULL) AS expected
+    `);
+    const cached = Number(rows[0]?.cached ?? 0);
+    const expected = Number(rows[0]?.expected ?? 0);
+    return { cached, expected, stale: cached !== expected };
+}
+
 export async function rebuildStackCache(context: { smartCover?: boolean } = {}): Promise<number> {
     // If a rebuild is already in progress, queue one follow-up and merge caller context (last wins per key).
     if (rebuildPromise) {
@@ -1647,6 +1716,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.id,
                 COALESCE(fp.path, i.file_path) as file_path,
                 i.file_name,
+                i.folder_id,
                 i.score_general,
                 i.score_technical,
                 i.score_aesthetic,
@@ -1680,6 +1750,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.id,
                 COALESCE(fp.path, i.file_path) as file_path,
                 i.file_name,
+                i.folder_id,
                 i.score_general,
                 i.score_technical,
                 i.score_aesthetic,
@@ -1752,11 +1823,12 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
     const selectExtra = sortParts.selectExtra ? `,\n            ${sortParts.selectExtra}` : '';
     const joinSql = sortParts.joinSql ? `\n        ${sortParts.joinSql}` : '';
 
-    const buildSql = (includePickStatus: boolean) => `
+    const buildSql = (includePickStatus: boolean, includeSubStackId: boolean) => `
         SELECT
             i.id,
             COALESCE(fp.path, i.file_path) as file_path,
             i.file_name,
+            i.folder_id,
             i.score_general,
             i.score_technical,
             i.score_aesthetic,
@@ -1767,7 +1839,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             i.thumbnail_path,
             i.thumbnail_path_win,
             i.stack_id,
-            i.sub_stack_id,
+            ${subStackIdSelect(includeSubStackId, 'i')},
             ${imagePickStatusSelect(includePickStatus, 'i')},
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
@@ -1780,7 +1852,12 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
         ORDER BY ${sortColumn} ${sortOrder}${pgNullsLastIfDesc(sortOrder)}${QUALITY_TIEBREAK_ORDER_SQL_EX_I}
         ${paginationSql()}
     `;
-    const rows = await queryWithOptionalPickStatus(buildSql, [...params, ...sortParts.joinParams, ...pagingParams(offset, limit)]);
+    const rows = await queryWithOptionalSubStackSchema((includeSubStackId) =>
+        queryWithOptionalPickStatus(
+            (includePickStatus) => buildSql(includePickStatus, includeSubStackId),
+            [...params, ...sortParts.joinParams, ...pagingParams(offset, limit)],
+        ),
+    );
     attachModelSortOverlays(rows, sortParts.modelNameForOverlay);
     return mapRowsThumbnails(rows);
 }
@@ -1816,27 +1893,6 @@ export interface SubStackRow {
     reject_count?: number;
     created_at?: string;
     is_ungrouped_sub_stack?: boolean;
-}
-
-let hasWarnedMissingSubStackSchema = false;
-
-function isMissingSubStackSchemaError(error: unknown): boolean {
-    const e = error as { code?: string; message?: string };
-    const msg = String(e?.message ?? error).toLowerCase();
-    const missingObject = msg.includes('does not exist')
-        || msg.includes('no such table')
-        || msg.includes('no such column')
-        || msg.includes('unknown column');
-    const subStackObject = msg.includes('sub_stacks') || msg.includes('sub_stack_id');
-    return (e?.code === '42P01' && subStackObject)
-        || (e?.code === '42703' && subStackObject)
-        || (missingObject && subStackObject);
-}
-
-function warnMissingSubStackSchema(error: unknown): void {
-    if (hasWarnedMissingSubStackSchema) return;
-    hasWarnedMissingSubStackSchema = true;
-    console.warn('[DB] Sub-stack schema not available; falling back to flat stack view.', error);
 }
 
 let hasWarnedMissingPickStatusColumn = false;
@@ -1954,6 +2010,7 @@ export async function getSubstacksForStack(stackId: number, options: ImageQueryO
                 i.id,
                 COALESCE(fp.path, i.file_path) as file_path,
                 i.file_name,
+                i.folder_id,
                 i.score_general,
                 i.score_technical,
                 i.score_aesthetic,
@@ -2063,6 +2120,7 @@ async function getUngroupedSubStackCardForStack(stackId: number, options: ImageQ
                 i.id,
                 COALESCE(fp.path, i.file_path) as file_path,
                 i.file_name,
+                i.folder_id,
                 i.score_general,
                 i.score_technical,
                 i.score_aesthetic,
@@ -2122,6 +2180,7 @@ export async function getImagesBySubStack(subStackId: number, options: ImageQuer
             i.id,
             COALESCE(fp.path, i.file_path) as file_path,
             i.file_name,
+            i.folder_id,
             i.score_general,
             i.score_technical,
             i.score_aesthetic,
@@ -2189,6 +2248,7 @@ export async function getImagesByStackUngrouped(stackId: number, options: ImageQ
             i.id,
             COALESCE(fp.path, i.file_path) as file_path,
             i.file_name,
+            i.folder_id,
             i.score_general,
             i.score_technical,
             i.score_aesthetic,

@@ -1135,6 +1135,14 @@ async function startFullApplication(): Promise<void> {
         return await db.getStackCount(options);
     }));
 
+    ipcMain.handle('db:get-stack-cache-count', wrapIpcHandler(async () => {
+        return await db.getStackCacheCount();
+    }));
+
+    ipcMain.handle('db:get-stack-cache-status', wrapIpcHandler(async () => {
+        return await db.getStackCacheStatus();
+    }));
+
     ipcMain.handle('db:rebuild-stack-cache', wrapIpcHandler(async (_, context) => {
         const count = await db.rebuildStackCache(context ?? {});
         return { success: true, count };
@@ -2650,6 +2658,13 @@ async function startFullApplication(): Promise<void> {
         note?: string;
     }) => {
         return await apiService.applyAgentCullCandidates(groupId, body);
+    }));
+
+    ipcMain.handle('api:delete-approved-agent-cull', wrapIpcHandler(async (_, groupId: number, body: {
+        confirm: boolean;
+        actor?: string;
+    }) => {
+        return await apiService.deleteApprovedAgentCullCandidates(groupId, body);
     }));
 
     ipcMain.handle('api:approve-agent-cull-group', wrapIpcHandler(async (_, groupId: number, body?: {

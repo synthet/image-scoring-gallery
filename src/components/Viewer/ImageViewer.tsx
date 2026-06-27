@@ -60,6 +60,8 @@ interface ImageViewerProps {
     onDelete?: (id: number) => void;
     onOpenFolder?: (folderId: number) => void;
     onOpenImageById?: (id: number) => Promise<boolean>;
+    /** When grid rows lack folder_id, fall back to the sidebar selection. */
+    fallbackFolderId?: number;
     /** When set (e.g. opening viewer from a “similar” entry), opens the similar-images drawer for this id */
     initialSimilarSearchImageId?: number | null;
     /** Read-only: no DB fetch, no edits, no similar search (filesystem-only / light mode). */
@@ -244,11 +246,13 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     onDelete,
     onOpenFolder,
     onOpenImageById,
+    fallbackFolderId,
     initialSimilarSearchImageId = null,
     readOnlyFilesystemMode = false,
 }) => {
     const [image, setImage] = React.useState<Image>(initialImage);
-    const [detailsLoaded, setDetailsLoaded] = React.useState(() => readOnlyFilesystemMode);
+    const [detailsLoaded, setDetailsLoaded] = React.useState(() => readOnlyFilesystemMode || true);
+    const [detailsRefreshing, setDetailsRefreshing] = React.useState(() => !readOnlyFilesystemMode);
     const [detailsError, setDetailsError] = React.useState<string | null>(null);
     const [exifData, setExifData] = React.useState<ExifData | null>(null);
     const [exifLoading, setExifLoading] = React.useState(false);
@@ -260,6 +264,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         () => pickServerFilesystemPath(image.file_path, image.win_path),
         [image.file_path, image.win_path],
     );
+
+    const openFolderId = image.folder_id ?? fallbackFolderId;
 
     const handleFixImageMetadata = useCallback(async () => {
         setFixMetadataBusy(true);
@@ -326,13 +332,17 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             if (currentIdRef.current !== target.id) {
                 currentIdRef.current = target.id;
                 setImage(target);
-                setDetailsLoaded(false);
+                setDetailsLoaded(true);
+                setDetailsRefreshing(!readOnlyFilesystemMode);
+                setDetailsError(null);
             }
         } else if (currentIndex === -1) {
             if (currentIdRef.current !== initialImage.id) {
                 currentIdRef.current = initialImage.id;
                 setImage(initialImage);
-                setDetailsLoaded(false);
+                setDetailsLoaded(true);
+                setDetailsRefreshing(!readOnlyFilesystemMode);
+                setDetailsError(null);
             }
         }
     }, [currentIndex, allImages, initialImage]);
@@ -341,12 +351,14 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     useEffect(() => {
         if (readOnlyFilesystemMode) {
             setDetailsLoaded(true);
+            setDetailsRefreshing(false);
             setDetailsError(null);
             return;
         }
         let active = true;
         const fetchDetails = async () => {
             setDetailsError(null);
+            setDetailsRefreshing(true);
             try {
                 console.log(`[ImageViewer] Fetching details for image ID: ${image.id}`);
                 const details = await bridge.getImageDetails(image.id);
@@ -354,7 +366,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 if (!active) return;
 
                 if (details) {
-                    setImage(details);
+                    setImage((prev) => ({ ...prev, ...details }));
                     console.log('[ImageViewer] Details loaded successfully');
                 } else {
                     console.warn('[ImageViewer] Image details returned null');
@@ -366,6 +378,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             } finally {
                 if (active) {
                     setDetailsLoaded(true);
+                    setDetailsRefreshing(false);
                 }
             }
         };
@@ -1421,7 +1434,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     )}
                 </div>
 
-                {!detailsLoaded && (
+                {detailsRefreshing && (
                     <div style={{ 
                         borderTop: '1px solid #333', 
                         paddingTop: 15, 
@@ -1433,7 +1446,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                         gap: 10
                     }}>
                         <Loader2 size={16} className="animate-spin" />
-                        Loading detailed information...
+                        Refreshing metadata...
                     </div>
                 )}
 
@@ -1515,10 +1528,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                         <span>{image.id}</span>
                                     )}
                                 </div>
-                                {image.folder_id && (
+                                {openFolderId && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ color: '#888' }}>Folder ID:</span>
-                                        <span>{image.folder_id}</span>
+                                        <span>{openFolderId}</span>
                                     </div>
                                 )}
                                 {image.stack_id && (
@@ -1628,9 +1641,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid #333', paddingTop: 20 }}>
                     {!effectiveEditing && !readOnlyFilesystemMode && (
                         <>
-                            {image.folder_id && onOpenFolder && (
+                            {openFolderId && onOpenFolder && (
                                 <button
-                                    onClick={() => onOpenFolder(image.folder_id!)}
+                                    onClick={() => onOpenFolder(openFolderId)}
                                     style={{
                                         width: '100%',
                                         padding: '8px',

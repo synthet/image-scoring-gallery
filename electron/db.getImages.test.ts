@@ -63,7 +63,10 @@ describe('db.getImages SQL construction', () => {
     await getImages({ limit: 5, offset: 0 });
 
     const [sql] = queryMock.mock.calls[0];
+    expect(sql).toContain('i.folder_id');
     expect(sql).toContain('ims_legacy.score_spaq AS score_spaq');
+    expect(sql).toContain('LEFT JOIN LATERAL');
+    expect(sql).toContain('WHERE image_id = i.id');
     expect(sql).not.toMatch(/i\.score_spaq\b/);
     expect(sql).not.toMatch(/COALESCE\(i\.score_spaq/);
   });
@@ -118,6 +121,15 @@ describe('db.getImages SQL construction', () => {
       25,
       10,
     ]);
+  });
+
+  it('uses indexed created_at for capture_date sort (display still uses EXIF capture_date)', async () => {
+    await getImages({ sortBy: 'capture_date', order: 'DESC', limit: 10, offset: 0 });
+
+    const [sql] = queryMock.mock.calls[0];
+    expect(sql).toContain('ORDER BY i.created_at DESC NULLS LAST, i.id DESC');
+    expect(sql).not.toMatch(/i\.id DESC DESC/);
+    expect(sql).toContain('as capture_date');
   });
 
   it('applies the CLIP quality threshold to image rows and counts', async () => {
