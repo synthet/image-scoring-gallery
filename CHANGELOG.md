@@ -4,6 +4,12 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.22.1] - 2026-06-30
+
+### Changed
+
+- **Electron IPC registration split (Batch 1)**: `db:*`, `backup:*`, `sync:*`, and `api:similarity:*` handlers extracted to `electron/ipc/register*.ts`; `main.ts` slimmed. IPC channel names, preload surface, and `wrapIpcHandler` envelopes unchanged.
+
 ## [7.22.0] - 2026-06-27
 
 ### Added
