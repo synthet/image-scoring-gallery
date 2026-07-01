@@ -4,7 +4,7 @@ title: "Desktop shell and navigation"
 description: "Purpose: Run the gallery as an Electron desktop app with a Vite renderer: window lifecycle, menus, optional WebUI-only shell mode, and navigation across gallery grid, viewer, impor"
 resource: "docs/features/implemented/02-desktop-shell-and-navigation.md"
 tags: ["features", "gallery-docs", "implemented"]
-timestamp: 2026-06-16T00:00:00Z
+timestamp: 2026-06-30T00:00:00Z
 ---
 
 # Desktop shell and navigation
@@ -31,8 +31,16 @@ The search bar keeps **query**, **result limit**, and **min similarity**. Active
 
 **Code:** `src/components/Search/SearchPage.tsx`, `src/utils/textSearchParams.ts`, `src/AppContent.tsx`.
 
+### ImageViewer delete and grid state
+
+Permanent delete (**ImageViewer** red **Delete**) must remove the row from whichever list the grid is showing (flat `useImages`, folder-level `useStacks`, or in-stack `stackImages`). Routing is centralized in `AppContent.removeImageFromActiveGrid` — see [07-grid-delete-state-sync.md](07-grid-delete-state-sync.md) for the Stacks-mode singleton bug and fix.
+
+### Stacks and sub-stack drill-down
+
+With the **Stacks** toggle on, folder stack cards drill into root stacks, optional sub-stack landing grids, and member thumbnails. When a root stack has exactly one sub-stack card, the gallery auto-opens that sub-stack's image view (no redundant one-card landing). See [08-stack-substack-navigation.md](08-stack-substack-navigation.md).
+
 **Primary code paths:** `electron/main.ts` (window, IPC registration, `webuiShellOnlyUrl` branch), `electron/preload` (exposes safe APIs — follow preload for exact channel names), `src/components/` (e.g. `Gallery/`, `Search/`, `Import/`, `Viewer/`).
 
 **Backend coupling:** Semantic search calls the Python API (`GET /api/similarity/text-search`, `GET /api/similarity/example-queries`). Run orchestration and other operator pages remain on **`/ui/`** when the sibling WebUI is running — see [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md).
 
-**Related docs:** [01-system-overview.md](../../architecture/01-system-overview.md) · [PIPELINE_TERMINOLOGY.md](../../technical/PIPELINE_TERMINOLOGY.md)
+**Related docs:** [01-system-overview.md](../../architecture/01-system-overview.md) · [PIPELINE_TERMINOLOGY.md](../../technical/PIPELINE_TERMINOLOGY.md) · [07-grid-delete-state-sync.md](07-grid-delete-state-sync.md) · [08-stack-substack-navigation.md](08-stack-substack-navigation.md)

@@ -538,6 +538,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 endReached={handleEndReached}
                 atBottomStateChange={() => { }}
                 components={gridComponents}
+                computeItemKey={(index) => displayData[index]?.id ?? index}
                 itemContent={itemContent}
             />
 

@@ -65,10 +65,11 @@ describe('useStacksMode sub-stack navigation', () => {
     (window as Window & { electron?: Partial<ElectronApi> }).electron = undefined;
   });
 
-  it('shows sub-stack cards before flat stack images when a root stack has persisted sub-stacks', async () => {
+  it('auto-opens sub-stack detail when a root stack has one persisted sub-stack', async () => {
     const subStack = img(101, { stack_id: 7, sub_stack_id: 70, image_count: 3 });
+    const subStackImage = img(102, { stack_id: 7, sub_stack_id: 70 });
     electronApi.getSubstacksForStack.mockResolvedValue([subStack]);
-    electronApi.getImagesByStack.mockResolvedValue([]);
+    electronApi.getImagesBySubStack.mockResolvedValue([subStackImage]);
 
     const { result } = renderHook(() => useStacksMode(filters, vi.fn(), false));
 
@@ -77,12 +78,14 @@ describe('useStacksMode sub-stack navigation', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.hasSubStackCards).toBe(true);
+      expect(result.current.activeStackDisplayImages).toEqual([subStackImage]);
     });
 
     expect(electronApi.getSubstacksForStack).toHaveBeenCalledWith(7, filters);
     expect(electronApi.getImagesByStack).not.toHaveBeenCalled();
-    expect(result.current.activeStackDisplayImages).toEqual([subStack]);
+    expect(electronApi.getImagesBySubStack).toHaveBeenCalledWith(70, filters);
+    expect(result.current.hasSubStackCards).toBe(false);
+    expect(result.current.activeSubStackId).toBe(70);
   });
 
   it('falls back to the flat root stack image view when no sub-stacks exist', async () => {
@@ -104,11 +107,11 @@ describe('useStacksMode sub-stack navigation', () => {
     expect(electronApi.getImagesByStack).toHaveBeenCalledWith(8, filters);
   });
 
-  it('skips the sub-stack layer when the only sub-stack maps one-to-one with the stack', async () => {
+  it('auto-opens sub-stack detail when the only sub-stack maps one-to-one with the stack', async () => {
     const subStack = img(251, { stack_id: 12, sub_stack_id: 120, image_count: 3 });
-    const stackImage = img(252, { stack_id: 12, sub_stack_id: 120 });
+    const subStackImage = img(252, { stack_id: 12, sub_stack_id: 120 });
     electronApi.getSubstacksForStack.mockResolvedValue([subStack]);
-    electronApi.getImagesByStack.mockResolvedValue([stackImage]);
+    electronApi.getImagesBySubStack.mockResolvedValue([subStackImage]);
 
     const { result } = renderHook(() => useStacksMode(filters, vi.fn(), false));
 
@@ -117,18 +120,20 @@ describe('useStacksMode sub-stack navigation', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.activeStackDisplayImages).toEqual([stackImage]);
+      expect(result.current.activeStackDisplayImages).toEqual([subStackImage]);
     });
 
     expect(result.current.hasSubStackCards).toBe(false);
-    expect(electronApi.getImagesByStack).toHaveBeenCalledWith(12, filters);
-    expect(electronApi.getImagesBySubStack).not.toHaveBeenCalled();
+    expect(result.current.activeSubStackId).toBe(120);
+    expect(electronApi.getImagesBySubStack).toHaveBeenCalledWith(120, filters);
+    expect(electronApi.getImagesByStack).not.toHaveBeenCalled();
   });
 
-  it('loads sub-stack images after selecting a sub-stack card', async () => {
-    const subStack = img(301, { stack_id: 9, sub_stack_id: 90, image_count: 2 });
-    const subStackImage = img(302, { stack_id: 9, sub_stack_id: 90 });
-    electronApi.getSubstacksForStack.mockResolvedValue([subStack]);
+  it('loads sub-stack images after selecting a sub-stack card from a multi-card landing', async () => {
+    const subStackA = img(301, { stack_id: 9, sub_stack_id: 90, image_count: 2 });
+    const subStackB = img(302, { stack_id: 9, sub_stack_id: 91, image_count: 2 });
+    const subStackImage = img(303, { stack_id: 9, sub_stack_id: 90 });
+    electronApi.getSubstacksForStack.mockResolvedValue([subStackA, subStackB]);
     electronApi.getImagesBySubStack.mockResolvedValue([subStackImage]);
 
     const { result } = renderHook(() => useStacksMode(filters, vi.fn(), false));
@@ -142,7 +147,7 @@ describe('useStacksMode sub-stack navigation', () => {
     });
 
     act(() => {
-      result.current.handleSelectSubStack(subStack);
+      result.current.handleSelectSubStack(subStackA);
     });
 
     await waitFor(() => {
@@ -220,16 +225,11 @@ describe('useStacksMode sub-stack navigation', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.hasSubStackCards).toBe(true);
-    });
-
-    act(() => {
-      result.current.handleSelectSubStack(ungrouped);
-    });
-
-    await waitFor(() => {
+      expect(result.current.activeUngroupedSubStack).toBe(true);
       expect(result.current.activeStackDisplayImages).toEqual([beforeRefresh]);
     });
+
+    expect(result.current.hasSubStackCards).toBe(false);
 
     await act(async () => {
       await result.current.refreshActiveStackView();
@@ -237,6 +237,31 @@ describe('useStacksMode sub-stack navigation', () => {
 
     expect(result.current.activeStackDisplayImages).toEqual([afterRefresh]);
     expect(electronApi.getImagesByStackUngrouped).toHaveBeenCalledTimes(2);
+  });
+
+  it('exits the stack entirely when backing out of an auto-opened single sub-stack', async () => {
+    const subStack = img(601, { stack_id: 13, sub_stack_id: 130, image_count: 2 });
+    const subStackImage = img(602, { stack_id: 13, sub_stack_id: 130 });
+    electronApi.getSubstacksForStack.mockResolvedValue([subStack]);
+    electronApi.getImagesBySubStack.mockResolvedValue([subStackImage]);
+
+    const { result } = renderHook(() => useStacksMode(filters, vi.fn(), false));
+
+    act(() => {
+      result.current.handleSelectStack(img(7, { stack_id: 13, image_count: 2 }), vi.fn());
+    });
+
+    await waitFor(() => {
+      expect(result.current.activeSubStackId).toBe(130);
+    });
+
+    act(() => {
+      result.current.clearSubStack();
+    });
+
+    expect(result.current.activeStackId).toBeNull();
+    expect(result.current.activeSubStackId).toBeNull();
+    expect(result.current.hasSubStackCards).toBe(false);
   });
 
   it('skips stack cache rebuild when cache is fresh', async () => {

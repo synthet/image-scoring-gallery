@@ -32,12 +32,9 @@ export interface SearchResultNavItem {
 
 interface UseImageOpenerParams {
   currentImages: ImageRow[];
-  activeStackId: number | null;
-  activeSubStackId: number | null;
   selectedFolderId: number | undefined;
   onNavigateToFolder: (folderId: number) => void;
-  removeImage: (id: number) => void;
-  handleImageDeleteFromStack: (id: number) => void;
+  onImageRemoved: (id: number) => void;
 }
 
 /**
@@ -46,12 +43,9 @@ interface UseImageOpenerParams {
  */
 export function useImageOpener({
   currentImages,
-  activeStackId,
-  activeSubStackId,
   selectedFolderId,
   onNavigateToFolder,
-  removeImage,
-  handleImageDeleteFromStack,
+  onImageRemoved,
 }: UseImageOpenerParams) {
   const addNotification = useNotificationStore(state => state.addNotification);
 
@@ -177,11 +171,7 @@ export function useImageOpener({
   }, [getCurrentList, pendingOpenImageId, viewerListOverride]);
 
   const handleImageDelete = (id: number) => {
-    if (activeStackId !== null || activeSubStackId !== null) {
-      handleImageDeleteFromStack(id);
-    } else {
-      removeImage(id);
-    }
+    onImageRemoved(id);
     setViewerListOverride(null);
     setOpeningImage(null);
   };

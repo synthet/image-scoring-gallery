@@ -41,6 +41,7 @@ interface ImageRow {
     pick_count?: number;
     reject_count?: number;
     sort_value?: number;
+    rep_image_id?: number;
 }
 
 export function useDatabase() {
@@ -462,9 +463,20 @@ function usePaginatedData<T extends { id: number }>(
 
     }, [getUniqueKey]);
 
+    const removeItemsWhere = useCallback((shouldRemove: (item: T) => boolean) => {
+        setItems(prev => {
+            const next = prev.filter(item => !shouldRemove(item));
+            const removedCount = prev.length - next.length;
+            if (removedCount > 0) {
+                setTotalCount(c => Math.max(0, c - removedCount));
+            }
+            return next;
+        });
+    }, []);
+
     return React.useMemo(
-        () => ({ items, loading, hasMore, loadMore, totalCount, refresh, removeItem, loadError }),
-        [items, loading, hasMore, loadMore, totalCount, refresh, removeItem, loadError],
+        () => ({ items, loading, hasMore, loadMore, totalCount, refresh, removeItem, removeItemsWhere, loadError }),
+        [items, loading, hasMore, loadMore, totalCount, refresh, removeItem, removeItemsWhere, loadError],
     );
 }
 
@@ -508,6 +520,15 @@ export function useStacks(
         enabled,
     );
 
+    const removeStackByImageId = React.useCallback(
+        (imageId: number) => {
+            result.removeItemsWhere(
+                (item) => item.id === imageId || item.rep_image_id === imageId,
+            );
+        },
+        [result.removeItemsWhere],
+    );
+
     return React.useMemo(() => ({
         stacks: result.items,
         loading: result.loading,
@@ -515,8 +536,9 @@ export function useStacks(
         loadMore: result.loadMore,
         totalCount: result.totalCount,
         refresh: result.refresh,
+        removeStackByImageId,
         loadError: result.loadError,
-    }), [result.items, result.loading, result.hasMore, result.loadMore, result.totalCount, result.refresh, result.loadError]);
+    }), [result.items, result.loading, result.hasMore, result.loadMore, result.totalCount, result.refresh, removeStackByImageId, result.loadError]);
 }
 
 export interface SimilarImageResult {

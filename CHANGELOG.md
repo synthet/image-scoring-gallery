@@ -4,6 +4,18 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.23.0] - 2026-07-01
+
+### Changed
+
+- **Electron main process (Phase 1)**: IPC and menu split — `main.ts` reduced to startup orchestration (~435 LoC); handlers moved to `electron/ipc/register*.ts`, `menu.ts`, `fsMetadataHelpers.ts`, and `exportImage.ts`. IPC channel names, preload surface, and `wrapIpcHandler` envelopes unchanged.
+- **Stack drill-down**: When a root stack has exactly one sub-stack card, the gallery auto-opens that sub-stack instead of showing a redundant landing grid.
+- **AppContent hooks**: Gallery data, viewer navigation, and stacks-mode state consolidated in `useDatabase`, `useImageOpener`, and `useStacksMode` (behavior unchanged aside from fixes below).
+
+### Fixed
+
+- **Grid delete in Stacks mode**: Permanently deleting an image from ImageViewer now removes the row from the active grid (flat list, stack members, or folder-level stack cards) without a manual refresh.
+
 ## [7.22.1] - 2026-06-30
 
 ### Changed

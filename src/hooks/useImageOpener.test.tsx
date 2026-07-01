@@ -39,19 +39,15 @@ function img(id: number, extra: Partial<ImageRecord> = {}): ImageRecord {
 function defaultParams(currentImages: ImageRecord[], overrides: Record<string, unknown> = {}) {
   return {
     currentImages,
-    activeStackId: null as number | null,
-    activeSubStackId: null as number | null,
     selectedFolderId: 4,
     onNavigateToFolder: vi.fn(),
-    removeImage: vi.fn(),
-    handleImageDeleteFromStack: vi.fn(),
+    onImageRemoved: vi.fn(),
     ...overrides,
   };
 }
 
 describe('useImageOpener', () => {
-  const removeImage = vi.fn();
-  const handleImageDeleteFromStack = vi.fn();
+  const onImageRemoved = vi.fn();
   const onNavigateToFolder = vi.fn();
 
   beforeEach(() => {
@@ -73,9 +69,7 @@ describe('useImageOpener', () => {
 
     const { result } = renderHook(() => useImageOpener({
       ...defaultParams(subStackCards, {
-        activeStackId: 7,
-        removeImage,
-        handleImageDeleteFromStack,
+        onImageRemoved,
         onNavigateToFolder,
       }),
     }));
@@ -99,7 +93,7 @@ describe('useImageOpener', () => {
 
     const { result, rerender } = renderHook(
       ({ currentImages }) => useImageOpener({
-        ...defaultParams(currentImages, { removeImage, handleImageDeleteFromStack, onNavigateToFolder }),
+        ...defaultParams(currentImages, { onImageRemoved, onNavigateToFolder }),
       }),
       { initialProps: { currentImages: [] as ImageRecord[] } },
     );
@@ -130,7 +124,7 @@ describe('useImageOpener', () => {
     };
 
     const { result } = renderHook(() => useImageOpener({
-      ...defaultParams([img(1)], { removeImage, handleImageDeleteFromStack, onNavigateToFolder }),
+      ...defaultParams([img(1)], { onImageRemoved, onNavigateToFolder }),
     }));
 
     await act(async () => {
@@ -148,7 +142,7 @@ describe('useImageOpener', () => {
     };
 
     const { result } = renderHook(() => useImageOpener({
-      ...defaultParams([img(1)], { removeImage, handleImageDeleteFromStack, onNavigateToFolder }),
+      ...defaultParams([img(1)], { onImageRemoved, onNavigateToFolder }),
     }));
 
     let ok = true;
@@ -166,7 +160,7 @@ describe('useImageOpener', () => {
     const list = [img(10), img(11)];
 
     const { result } = renderHook(() => useImageOpener({
-      ...defaultParams(list, { removeImage, handleImageDeleteFromStack, onNavigateToFolder }),
+      ...defaultParams(list, { onImageRemoved, onNavigateToFolder }),
     }));
 
     let ok = false;
@@ -187,7 +181,7 @@ describe('useImageOpener', () => {
     };
 
     const { result } = renderHook(() => useImageOpener({
-      ...defaultParams(subStackCards, { removeImage, handleImageDeleteFromStack, onNavigateToFolder }),
+      ...defaultParams(subStackCards, { onImageRemoved, onNavigateToFolder }),
     }));
 
     await act(async () => {
@@ -202,5 +196,23 @@ describe('useImageOpener', () => {
     expect(result.current.openingImage).toBeNull();
     expect(result.current.pendingOpenImageId).toBeNull();
     expect(result.current.viewerImages).toEqual(subStackCards);
+  });
+
+  it('handleImageDelete invokes onImageRemoved and closes the viewer', () => {
+    const { result } = renderHook(() => useImageOpener({
+      ...defaultParams([img(1), img(2)], { onImageRemoved, onNavigateToFolder }),
+    }));
+
+    act(() => {
+      result.current.handleImageClick(img(2));
+    });
+    expect(result.current.openingImage?.id).toBe(2);
+
+    act(() => {
+      result.current.handleImageDelete(2);
+    });
+
+    expect(onImageRemoved).toHaveBeenCalledWith(2);
+    expect(result.current.openingImage).toBeNull();
   });
 });
