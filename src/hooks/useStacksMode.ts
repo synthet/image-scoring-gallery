@@ -64,6 +64,32 @@ export function useStacksMode(
   const [stackImagesLoading, setStackImagesLoading] = useState(false);
   const [subStackImages, setSubStackImages] = useState<ImageRow[]>([]);
   const [subStackImagesLoading, setSubStackImagesLoading] = useState(false);
+  const [singleSubStackAutoOpened, setSingleSubStackAutoOpened] = useState(false);
+
+  const applySubStackSelection = useCallback((subStack: ImageRow) => {
+    if (subStack.is_ungrouped_sub_stack) {
+      setActiveSubStackId(null);
+      setActiveUngroupedSubStack(true);
+      setActiveSubStackInfo({
+        subStackId: null,
+        imageCount: subStack.image_count || 0,
+        name: subStack.name || 'Ungrouped',
+      });
+      setSubStackImages([]);
+      return;
+    }
+    if (subStack.sub_stack_id === null || subStack.sub_stack_id === undefined) {
+      return;
+    }
+    setActiveSubStackId(subStack.sub_stack_id);
+    setActiveUngroupedSubStack(false);
+    setActiveSubStackInfo({
+      subStackId: subStack.sub_stack_id,
+      imageCount: subStack.image_count || 0,
+      name: subStack.name,
+    });
+    setSubStackImages([]);
+  }, []);
 
   const loadStackImages = useCallback(async (stackId: number) => {
     setStackImagesLoading(true);
@@ -112,25 +138,20 @@ export function useStacksMode(
   const loadUngroupedSubStackImagesRef = useRef(loadUngroupedSubStackImages);
   loadUngroupedSubStackImagesRef.current = loadUngroupedSubStackImages;
 
-  const isSingleSubStackEquivalentToStack = useCallback((subs: ImageRow[], stackId: number) => {
-    if (subs.length !== 1) return false;
-    const onlySubStack = subs[0];
-    if (onlySubStack.is_ungrouped_sub_stack || onlySubStack.sub_stack_id === null || onlySubStack.sub_stack_id === undefined) {
-      return false;
-    }
-    const knownStackCount = activeStackInfo?.stackId === stackId ? activeStackInfo.imageCount : 0;
-    return knownStackCount <= 0 || (onlySubStack.image_count || 0) === knownStackCount;
-  }, [activeStackInfo]);
-
   const loadStackLanding = useCallback(async (stackId: number) => {
     setSubStacksLoading(true);
     setSubStacks([]);
     setStackImages([]);
     try {
       const subs = await bridge.getSubstacksForStack(stackId, toImageQueryFilters(filters));
-      if (subs.length === 0 || isSingleSubStackEquivalentToStack(subs, stackId)) {
+      if (subs.length === 0) {
         setSubStacks([]);
         await loadStackImages(stackId);
+      } else if (subs.length === 1) {
+        setSingleSubStackAutoOpened(true);
+        setSubStacks([]);
+        setStackImages([]);
+        applySubStackSelection(subs[0]);
       } else {
         setSubStacks(subs);
         setStackImages([]);
@@ -142,7 +163,7 @@ export function useStacksMode(
     } finally {
       setSubStacksLoading(false);
     }
-  }, [filters, isSingleSubStackEquivalentToStack, loadStackImages]);
+  }, [filters, applySubStackSelection, loadStackImages]);
 
   const loadStackLandingRef = useRef(loadStackLanding);
   loadStackLandingRef.current = loadStackLanding;
@@ -228,12 +249,17 @@ export function useStacksMode(
     setActiveSubStackId(null);
     setActiveUngroupedSubStack(false);
     setActiveSubStackInfo(null);
+    setSingleSubStackAutoOpened(false);
     setSubStacks([]);
     setStackImages([]);
     setSubStackImages([]);
   };
 
   const clearSubStack = () => {
+    if (singleSubStackAutoOpened) {
+      clearStack();
+      return;
+    }
     setActiveSubStackId(null);
     setActiveUngroupedSubStack(false);
     setActiveSubStackInfo(null);
@@ -252,6 +278,7 @@ export function useStacksMode(
       setActiveSubStackId(null);
       setActiveUngroupedSubStack(false);
       setActiveSubStackInfo(null);
+      setSingleSubStackAutoOpened(false);
       setSubStacks([]);
       setStackImages([]);
       setSubStackImages([]);
@@ -261,28 +288,8 @@ export function useStacksMode(
   };
 
   const handleSelectSubStack = (subStack: ImageRow & { sub_stack_id?: number | null; image_count?: number; name?: string | null; is_ungrouped_sub_stack?: boolean }) => {
-    if (subStack.is_ungrouped_sub_stack) {
-      setActiveSubStackId(null);
-      setActiveUngroupedSubStack(true);
-      setActiveSubStackInfo({
-        subStackId: null,
-        imageCount: subStack.image_count || 0,
-        name: subStack.name || 'Ungrouped',
-      });
-      setSubStackImages([]);
-      return;
-    }
-    if (subStack.sub_stack_id === null || subStack.sub_stack_id === undefined) {
-      return;
-    }
-    setActiveSubStackId(subStack.sub_stack_id);
-    setActiveUngroupedSubStack(false);
-    setActiveSubStackInfo({
-      subStackId: subStack.sub_stack_id,
-      imageCount: subStack.image_count || 0,
-      name: subStack.name,
-    });
-    setSubStackImages([]);
+    setSingleSubStackAutoOpened(false);
+    applySubStackSelection(subStack);
   };
 
   const handleImageDeleteFromStack = (id: number) => {

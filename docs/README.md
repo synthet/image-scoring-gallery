@@ -4,7 +4,7 @@ title: "Driftara Gallery Documentation"
 description: "This is the documentation hub for image-scoring-gallery, the Electron + React + TypeScript desktop app for browsing Vexlum Scoring libraries."
 resource: "docs/README.md"
 tags: ["gallery-docs", "index"]
-timestamp: 2026-06-16T00:00:00Z
+timestamp: 2026-06-30T00:00:00Z
 ---
 
 # Driftara Gallery Documentation
@@ -60,6 +60,9 @@ See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenan
 - [features/implemented/05-jpeg-export-exif-orientation.md](features/implemented/05-jpeg-export-exif-orientation.md) - JPEG export and EXIF orientation behavior.
 - [features/implemented/06-sync-from-device-workflow.md](features/implemented/06-sync-from-device-workflow.md) - device sync workflow and backend phase scheduling.
 - [features/implemented/06-culling-stack-analytics.md](features/implemented/06-culling-stack-analytics.md) - culling insights sidebar and stack analytics banner.
+- [features/implemented/07-grid-delete-state-sync.md](features/implemented/07-grid-delete-state-sync.md) - optimistic grid removal after ImageViewer delete in Stacks mode.
+- [features/implemented/08-stack-substack-navigation.md](features/implemented/08-stack-substack-navigation.md) - stack/sub-stack drill-down and single sub-stack auto-open.
+- [features/implemented/07-grid-delete-state-sync.md](features/implemented/07-grid-delete-state-sync.md) - optimistic grid row removal after ImageViewer delete (Stacks mode fix).
 - [features/planned/README.md](features/planned/README.md) - planned desktop work.
 
 ## Guides

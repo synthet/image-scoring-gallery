@@ -19,6 +19,7 @@ Roadmap, migration plans, and task tracking.
 - [04 - Gradio to Electron Processing Migration](04-gradio-to-electron-processing-migration.md) - Processing workspace delivery phases
 - [Gallery visual improvements](GALLERY_VISUAL_IMPROVEMENTS.md) - UI polish and layout backlog
 - [DB abstraction layer](db_abstraction_layer.md) - Electron DB provider refactor notes
+- [Codebase size refactor plan](CODEBASE_SIZE_REFACTOR_PLAN.md) - Phased LoC reduction checklist (audit-driven; pairs with backend plan)
 
 [← Back to Documentation Index](../README.md)
 

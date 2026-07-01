@@ -4,7 +4,7 @@ title: Agent cull review (Gallery operator)
 description: How the Agent cull review panel works in Driftara Gallery and what to do when the backend cannot reach the Gemini CLI.
 resource: docs/guides/04-agent-cull-review.md
 tags: [gallery-docs, guides, culling, agent-cull-review]
-timestamp: 2026-06-21T18:00:00Z
+timestamp: 2026-06-30T00:00:00Z
 okf_version: 0.1
 ---
 
@@ -33,7 +33,7 @@ image and briefly highlights it.
 
 The panel header shows a stepper: **Dry-run → Review → Live run → Mark candidates**.
 
-1. Open a stack with picks and rejects (sub-stack leaf or flat stack).
+1. Open a stack with picks and rejects (sub-stack leaf or flat stack). Single-sub-stack roots auto-open the sub-stack detail view — see [features/implemented/08-stack-substack-navigation.md](../features/implemented/08-stack-substack-navigation.md).
 2. Click **Run dry-run review** (`dryRun: true`) → status `proposed`. Recommendations are
    metadata-only proposals; no file is deleted or moved. Each card shows the image **thumbnail**
    next to its filename.
@@ -54,6 +54,10 @@ The panel header shows a stepper: **Dry-run → Review → Live run → Mark can
    removes each approved image's **file, thumbnails, and DB record** and marks the recommendation
    `operator_deleted`. Per-image **Approve** stays reversible; this final delete is the only step
    that touches the filesystem.
+
+   **Note:** After **Delete N approved…**, the agent review panel refreshes but the gallery grid may
+   still list deleted images until a follow-up wires `removeImageFromActiveGrid` — see
+   [07-grid-delete-state-sync.md](../features/implemented/07-grid-delete-state-sync.md) (known follow-up).
 
 If picks change after a review, applying returns `stale_group_state` (HTTP 409); the panel shows a
 **Re-run the dry-run review** prompt — re-run before approving/applying.
@@ -94,7 +98,9 @@ After backend fix, restart the WebUI container and retry **Run dry-run review** 
 
 ## Related
 
+- [Stack and sub-stack navigation](../features/implemented/08-stack-substack-navigation.md) — drill-down levels; single sub-stack auto-open
 - [Culling stack analytics](../features/implemented/06-culling-stack-analytics.md) — sibling analytics banner on the same views
+- [Grid delete state sync](../features/implemented/07-grid-delete-state-sync.md) — ImageViewer delete grid pruning (agent batch delete follow-up noted there)
 - [Picked advisory gap (2026-06-21)](../reports/08-picked-advisory-gap-2026-06-21.md) — backend research cross-ref + gallery verification
 - [Agent-assisted cull review worklog](../specs/agent-assisted-cull-review/worklog.md)
 - Backend spec: [agent-assisted-cull-review](https://github.com/synthet/image-scoring-backend/tree/main/docs/specs/agent-assisted-cull-review)

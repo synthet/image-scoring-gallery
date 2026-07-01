@@ -207,6 +207,7 @@ function AppContent() {
 
   const {
     stacks, loading: stacksLoading, loadMore: loadMoreStacks, totalCount: stacksTotalCount, refresh: refreshStacks,
+    removeStackByImageId,
   } = useStacks(50, selectedFolderId, stackFilters, stacksMode);
 
   // Keep refs up to date for WebSocket callbacks
@@ -395,6 +396,16 @@ function AppContent() {
     return () => window.clearTimeout(timer);
   }, [agentHighlightImageId]);
 
+  const removeImageFromActiveGrid = useCallback((id: number) => {
+    if (stacksMode && activeStackId === null) {
+      removeStackByImageId(id);
+    } else if (activeStackId !== null) {
+      handleImageDeleteFromStack(id);
+    } else {
+      removeImage(id);
+    }
+  }, [stacksMode, activeStackId, removeStackByImageId, handleImageDeleteFromStack, removeImage]);
+
   const {
     openingImage,
     currentImageIndex,
@@ -408,12 +419,9 @@ function AppContent() {
     closeViewer,
   } = useImageOpener({
     currentImages,
-    activeStackId,
-    activeSubStackId,
     selectedFolderId,
     onNavigateToFolder: handleNavigateToFolder,
-    removeImage,
-    handleImageDeleteFromStack,
+    onImageRemoved: removeImageFromActiveGrid,
   });
 
   const handleSelectStack = (stack: Parameters<typeof handleSelectStackBase>[0]) => {

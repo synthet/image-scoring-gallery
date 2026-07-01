@@ -4,15 +4,22 @@ title: "Documentation Activity Log"
 description: "Chronological record of wiki maintenance activities. Newest entries first."
 resource: "docs/log.md"
 tags: ["gallery-docs"]
-timestamp: 2026-06-21T00:00:00Z
+timestamp: 2026-06-30T00:00:00Z
 ---
 
 # Documentation Activity Log
 
 Chronological record of wiki maintenance activities. Newest entries first.
 
+## 2026-07
+
+- 2026-07-01: updated — [planning/CODEBASE_SIZE_REFACTOR_PLAN.md](planning/CODEBASE_SIZE_REFACTOR_PLAN.md): Phase 1 complete — `electron/main.ts` **435 LoC**, `startFullApplication` **100 LoC**; new modules `menu.ts`, `fsMetadataHelpers.ts`, `exportImage.ts`, `registerImportHandlers`, `registerNefFsHandlers`, `registerMediaProtocol`, `registerAppHandlers`, `registerSystemHandlers`, `registerApiHandlers` ([#151](https://github.com/synthet/image-scoring-gallery/issues/151)).
+
 ## 2026-06
 
+- 2026-06-30: ingested — [features/implemented/08-stack-substack-navigation.md](features/implemented/08-stack-substack-navigation.md): single sub-stack auto-open in `useStacksMode` (replaces flat-stack skip); back-nav guard; cross-refs in [02-desktop-shell-and-navigation.md](features/implemented/02-desktop-shell-and-navigation.md), [06-culling-stack-analytics.md](features/implemented/06-culling-stack-analytics.md), [07-grid-delete-state-sync.md](features/implemented/07-grid-delete-state-sync.md), [guides/04-agent-cull-review.md](guides/04-agent-cull-review.md), [features/implemented/INDEX.md](features/implemented/INDEX.md), [README.md](README.md).
+- 2026-06-30: ingested — [features/implemented/07-grid-delete-state-sync.md](features/implemented/07-grid-delete-state-sync.md): ImageViewer permanent delete now removes the row from the active grid list (flat `useImages`, `useStacks` folder cards, or in-stack members); documents Stacks-mode singleton bug, `removeImageFromActiveGrid` routing, and Vitest coverage. Updated [features/implemented/02-desktop-shell-and-navigation.md](features/implemented/02-desktop-shell-and-navigation.md), [features/implemented/06-culling-stack-analytics.md](features/implemented/06-culling-stack-analytics.md), [features/implemented/INDEX.md](features/implemented/INDEX.md), [README.md](README.md).
+- 2026-06-30: created — [planning/CODEBASE_SIZE_REFACTOR_PLAN.md](planning/CODEBASE_SIZE_REFACTOR_PLAN.md): phased checkbox backlog from codebase-size audit (gallery + cross-link to backend sibling plan).
 - 2026-06-21: updated — [technical/EMBEDDING_SPACES.md](technical/EMBEDDING_SPACES.md): backend culling backfill CLI path (`scripts/maintenance/backfill_culling_embeddings.py`). Backend runbook: [CULLING_EMBEDDING_BACKFILL.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/guides/CULLING_EMBEDDING_BACKFILL.md) (Step 9 library-wide re-cluster rollout).
 - 2026-06-21: ingested — [reports/08-picked-advisory-gap-2026-06-21.md](reports/08-picked-advisory-gap-2026-06-21.md): gallery cross-ref for backend picked advisory research (stack 29157); updated [guides/04-agent-cull-review.md](guides/04-agent-cull-review.md), [features/implemented/06-culling-stack-analytics.md](features/implemented/06-culling-stack-analytics.md), [specs/agent-assisted-cull-review/worklog.md](specs/agent-assisted-cull-review/worklog.md), [reports/README.md](reports/README.md), [README.md](README.md). Backend: [PICKED_ADVISORY_GAP_195193_2026-06-21.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/PICKED_ADVISORY_GAP_195193_2026-06-21.md).
 - 2026-06-21: created — [design/UX_UI_CONSTITUTION.md](design/UX_UI_CONSTITUTION.md): gallery binding for shared UX/UI constitution; `.cursor/skills/gallery-ui/SKILL.md`, `gallery-ui-design.mdc` rule; slimmed [design/FRONTEND_UX_SPEC.md](design/FRONTEND_UX_SPEC.md) palette section; updated [CANONICAL_SOURCES.md](CANONICAL_SOURCES.md), [design/DESIGN_SYSTEM.md](design/DESIGN_SYSTEM.md), [README.md](README.md). Shared canonical: [image-scoring-ui UX_UI_CONSTITUTION.md](https://github.com/synthet/image-scoring-ui/blob/main/docs/UX_UI_CONSTITUTION.md).
