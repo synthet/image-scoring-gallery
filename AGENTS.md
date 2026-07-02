@@ -9,9 +9,11 @@ This project is optimized for AI-assisted development using Cursor IDE and Antig
 
 This repo vendors **[agent-sdlc](https://github.com/synthet/agent-sdlc)**-style Cursor rules (`.cursor/rules/`), slash commands (`.cursor/commands/`), and project skills (`.cursor/skills/`). **This `AGENTS.md` file** remains the source of truth for canonical commands, repository layout, and boundaries.
 
+**Upstream:** Generic agent patterns are extracted in **[synthet-code-framework](https://github.com/synthet/synthet-code-framework)**. This repository is a **domain fork** (Electron, IPC, gallery MCP). The sibling **[image-scoring-backend](https://github.com/synthet/image-scoring-backend)** owns cross-repo AST10 checklist and full agent CI (`sync_assistant_trees.py`, `agent-infra` workflow). SDLC loop: [docs/ai-workflow/README.md](docs/ai-workflow/README.md).
+
 ### Agent skills inventory (AST09 / AST10)
 
-Project skills live only under [`.cursor/skills/`](.cursor/skills/) (no `.claude/skills/` mirror in this repo). **Inventory:** [.agent/SKILL_INVENTORY.md](.agent/SKILL_INVENTORY.md). **PR review prompts** for `SKILL.md` changes: sibling [image-scoring-backend/.agent/SKILL_CHANGE_AST10_REVIEW.md](https://github.com/synthet/image-scoring-backend/blob/main/.agent/SKILL_CHANGE_AST10_REVIEW.md) (use the same checklist locally if you have a sibling clone: `../image-scoring-backend/.agent/SKILL_CHANGE_AST10_REVIEW.md`).
+Project skills live under [`.cursor/skills/`](.cursor/skills/) (canonical). A **partial** mirror exists under [`.claude/skills/`](.claude/skills/) for harness-visible skills (`backlog-queue`, `subagent-review`, `eval`). **Inventory:** [.agent/SKILL_INVENTORY.md](.agent/SKILL_INVENTORY.md). **PR review prompts** for `SKILL.md` changes: sibling [image-scoring-backend/.agent/SKILL_CHANGE_AST10_REVIEW.md](https://github.com/synthet/image-scoring-backend/blob/main/.agent/SKILL_CHANGE_AST10_REVIEW.md).
 
 **Cursor slash commands** (type `/` in chat): **`/spec`**, **`/plan`**, **`/implement`**, **`/test-and-fix`**, **`/pr-ready`**, **`/release-notes`**, **`/check-subagents`**, **`/run-codex-review`**, **`/run-gemini-review`**, **`/run-subagent-review`**. **Claude Code** mirrors these under `.claude/commands/`.
 
@@ -108,8 +110,7 @@ dispatch("live.cdp_click", {"selector":"button[data-testid='...']"})
 
 **mcp-kanban** is configured in **user-level** MCP settings (Cursor global `mcp.json`, Claude `~/.claude.json`, Antigravity `mcp_config.json`, Codex `config.toml`) as server **`mcp-kanban`**. It provides **`kanban_*`** tools for tickets, board snapshots, and session handoffs.
 
-- **Rules / workflow:** `.cursor/rules/mcp-kanban.mdc`, `.cursor/skills/mcp-kanban-workflow/SKILL.md`
-- **Project folder:** use your local clone path to **image-scoring-gallery** for gallery work and to **image-scoring-backend** for backend work.
+- **Workflow:** configure at user level only — not bundled in this repo (see CHANGELOG).
 
 ## Git Configuration — Do Not Modify
 

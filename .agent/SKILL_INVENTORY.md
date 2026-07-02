@@ -26,8 +26,13 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | gallery-ui | `.cursor/skills/gallery-ui/SKILL.md` | Renderer UI, CSS Modules, design tokens | L1 | — | 2026-06-21 |
 | security-review | `.cursor/skills/security-review/SKILL.md` | Pre-merge security sanity | L1 | — | 2026-04-25 |
 | subagent-review | `.cursor/skills/subagent-review/SKILL.md` | External Codex/Gemini review via subagent-orchestrator MCP | L2 | Yes | 2026-05-26 |
+| image-scoring-mcp | `.cursor/skills/image-scoring-mcp/SKILL.md` | Compact MCP search/dispatch for gallery | L2 | — | 2026-07-01 |
+| codebase-size-audit | `.cursor/skills/codebase-size-audit/SKILL.md` | Large-file / long-method read-only audit | L1 | — | 2026-07-01 |
+| validate-implementation | `.cursor/skills/validate-implementation/SKILL.md` | Per-AC Verified/Failed/Unknown gate before /pr-ready | L1 | — | 2026-07-01 |
+| threat-modeling-agentic-tools | `.cursor/skills/threat-modeling-agentic-tools/SKILL.md` | MCP/hook/prompt-injection threat modeling | L1 | — | 2026-07-01 |
+| mcp-server-design | `.cursor/skills/mcp-server-design/SKILL.md` | Safe MCP server design for `mcp-server/` | L1 | — | 2026-07-01 |
 
-**Note:** Most skills here are Cursor-only. **`backlog-queue`** is mirrored under `.claude/skills/` and `.agent/skills/` because it gates every task — agent harnesses must see it regardless of which loader they use.
+**Note:** Most skills here are Cursor-only. **`backlog-queue`**, **`subagent-review`**, and **`eval`** are mirrored under `.claude/skills/` because they gate every task or external review — agent harnesses must see them regardless of which loader they use.
 
 ## `.agent/skills/` (third-party-agent mirror)
 

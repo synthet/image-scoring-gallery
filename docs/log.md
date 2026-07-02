@@ -13,6 +13,8 @@ Chronological record of wiki maintenance activities. Newest entries first.
 
 ## 2026-07
 
+- 2026-07-01: ingested — synthet-code-framework adoption: `validate-implementation`, `threat-modeling-agentic-tools`, `mcp-server-design` skills; EARS `/spec`, enhanced `/pr-ready`; [ai-workflow/README.md](ai-workflow/README.md), [.cursor/README.md](../.cursor/README.md); fixed mcp-kanban doc drift in AGENTS.md/CLAUDE.md; updated SKILL_INVENTORY.
+- 2026-07-01: ingested — [reports/09-branch-docs-salvage-2026-07.md](reports/09-branch-docs-salvage-2026-07.md): archived patches from docs-only branches `housekeeping/g4-docs-wiki` and `codex/restructure-docs-using-open-knowledge-format-cmv38j` under [raw/branch-salvage-2026-07/](raw/branch-salvage-2026-07/); content already on `main`; remotes deleted. Backend cross-ref: [BRANCH_DOCS_SALVAGE_2026-07.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/BRANCH_DOCS_SALVAGE_2026-07.md). Updated [reports/README.md](reports/README.md), [README.md](README.md).
 - 2026-07-01: updated — [planning/CODEBASE_SIZE_REFACTOR_PLAN.md](planning/CODEBASE_SIZE_REFACTOR_PLAN.md): Phase 1 complete — `electron/main.ts` **435 LoC**, `startFullApplication` **100 LoC**; new modules `menu.ts`, `fsMetadataHelpers.ts`, `exportImage.ts`, `registerImportHandlers`, `registerNefFsHandlers`, `registerMediaProtocol`, `registerAppHandlers`, `registerSystemHandlers`, `registerApiHandlers` ([#151](https://github.com/synthet/image-scoring-gallery/issues/151)).
 
 ## 2026-06

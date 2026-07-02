@@ -35,7 +35,7 @@ It spans both repos. The `TODO.md` files are pointers only.
 
 ## MCP mcp-kanban (optional, user-level)
 
-**mcp-kanban** provides SQLite-backed **tickets / kanban** for multi-session work. Configure it in **user** MCP settings (Cursor, Claude Code, Antigravity, Codex) as server **`mcp-kanban`**—see `.cursor/rules/mcp-kanban.mdc` and `.cursor/skills/mcp-kanban-workflow/SKILL.md`.
+**mcp-kanban** provides SQLite-backed **tickets / kanban** for multi-session work. Configure it in **user** MCP settings (Cursor, Claude Code, Antigravity, Codex) as server **`mcp-kanban`** — not bundled in this repo.
 
 - Register this repo with `kanban_register_project` using **your local clone path** to this repo as `projectFolder`.
 - Use **your local clone path** to **image-scoring-backend** as `projectFolder` for backend-only tasks.

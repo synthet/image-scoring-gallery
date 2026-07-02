@@ -19,5 +19,6 @@ Code reviews, design audits, and quality assessments.
 - [06 - Reveal in Explorer review (May 2026)](06-code-review-reveal-in-explorer-2026-05.md) - Code review snapshot for explorer integration
 - [07 - Pipeline input-size study (May 2026)](07-pipeline-input-size-study-2026-05.md) - Gallery cross-reference to backend pixel-budget research; tracked on board as [gallery #138](https://github.com/synthet/image-scoring-gallery/issues/138) / [backend #260](https://github.com/synthet/image-scoring-backend/issues/260)
 - [08 - Picked advisory gap (Jun 2026)](08-picked-advisory-gap-2026-06-21.md) - Gallery UI + operator notes for backend `pick_quality_advisory` research (stack 29157 / image 195193)
+- [09 - Branch docs salvage (Jul 2026)](09-branch-docs-salvage-2026-07.md) - Archived patches from docs-only abandoned branches removed during branch cleanup
 
 [← Back to Documentation Index](../README.md)

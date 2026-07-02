@@ -1,0 +1,1543 @@
+diff --git a/.agent/SKILL_INVENTORY.md b/.agent/SKILL_INVENTORY.md
+index 19c2a8f..6fbe588 100644
+--- a/.agent/SKILL_INVENTORY.md
++++ b/.agent/SKILL_INVENTORY.md
+@@ -20,7 +20,7 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
+ | backlog-queue | `.cursor/skills/backlog-queue/SKILL.md` | Cross-repo GitHub Project board contract (claim, transition, file) | L1 | Yes | 2026-04-28 |
+ | changelog-commit-push | `.cursor/skills/changelog-commit-push/SKILL.md` | CHANGELOG, commit, push | L2 | — | 2026-04-25 |
+ | commit-conventions | `.cursor/skills/commit-conventions/SKILL.md` | Conventional Commits / PR titles | L1 | — | 2026-04-25 |
+-| docs-wiki | `.cursor/skills/docs-wiki/SKILL.md` | `docs/` wiki conventions | L1 | — | 2026-04-25 |
++| docs-wiki | `.cursor/skills/docs-wiki/SKILL.md` | OKF-style `docs/` wiki conventions | L1 | — | 2026-06-16 |
+ | gallery-electron-ts | `.cursor/skills/gallery-electron-ts/SKILL.md` | Electron / TS / db contract | L1 | — | 2026-04-25 |
+ | security-review | `.cursor/skills/security-review/SKILL.md` | Pre-merge security sanity | L1 | — | 2026-04-25 |
+ | subagent-review | `.cursor/skills/subagent-review/SKILL.md` | External Codex/Gemini review via subagent-orchestrator MCP | L2 | Yes | 2026-05-26 |
+diff --git a/.agent/workflows/update_gallery_docs_wiki.md b/.agent/workflows/update_gallery_docs_wiki.md
+index 8e2dc40..6876796 100644
+--- a/.agent/workflows/update_gallery_docs_wiki.md
++++ b/.agent/workflows/update_gallery_docs_wiki.md
+@@ -1,10 +1,10 @@
+ ---
+-description: Update gallery docs / wiki
++description: Update gallery OKF-style docs / wiki
+ ---
+ 
+ ## Purpose
+ 
+-Maintain **gallery** `docs/` with correct authority boundaries (backend owns API/schema).
++Maintain **gallery** `docs/` as an OKF-style Markdown concept bundle with correct authority boundaries (backend owns API/schema).
+ 
+ ## When to use
+ 
+@@ -21,8 +21,10 @@ Maintain **gallery** `docs/` with correct authority boundaries (backend owns API
+ 
+ 1. Prefer **relative** links inside this repo.
+ 2. Use **full GitHub URLs** to **image-scoring-backend** for API, DB, and pipeline authority.
+-3. Update [docs/README.md](../../docs/README.md) / indexes when adding navigable pages.
+-4. Append [docs/log.md](../../docs/log.md).
++3. Preserve or add OKF frontmatter on every touched `docs/**/*.md` page (`type`, `title`, `description`, `resource`, `tags`, `timestamp`).
++4. Keep `resource` equal to the repository-relative Markdown path.
++5. Update [docs/README.md](../../docs/README.md) / indexes when adding navigable pages.
++6. Append [docs/log.md](../../docs/log.md).
+ 
+ ## Do not
+ 
+diff --git a/.claude/commands/wiki-ingest.md b/.claude/commands/wiki-ingest.md
+index 394d6c0..e709e03 100644
+--- a/.claude/commands/wiki-ingest.md
++++ b/.claude/commands/wiki-ingest.md
+@@ -15,13 +15,15 @@ Use when new knowledge should be captured in `docs/`: a code change, design deci
+ 2. **Search `docs/`** for related existing pages — prefer updating an existing page over creating a new one.
+ 3. **Discuss with user**: propose new page vs. update, suggested filename, target category, which existing pages need cross-reference updates.
+ 4. **Write or update** the wiki page(s). Follow conventions from the `documentation` rule.
+-5. **Update `docs/README.md`** index if a new page was created or a page was moved.
+-6. **Append** an entry to `docs/log.md` with today's date and pages affected.
+-7. **Add cross-references** in related pages (bidirectional where meaningful).
++5. **Apply OKF frontmatter** to every touched `docs/**/*.md` page: `type`, `title`, `description`, `resource`, `tags`, `timestamp`; keep `resource` equal to the repository-relative path.
++6. **Update `docs/README.md`** index if a new page was created or a page was moved.
++7. **Append** an entry to `docs/log.md` with today's date and pages affected.
++8. **Add cross-references** in related pages (bidirectional where meaningful).
+ 
+ ## Done when
+ 
+ - New content is in the wiki with accurate information.
++- OKF frontmatter is present and current on touched pages.
+ - `docs/README.md` index is current.
+ - `docs/log.md` has the new entry.
+ - Cross-references are bidirectional where appropriate.
+@@ -29,6 +31,7 @@ Use when new knowledge should be captured in `docs/`: a code change, design deci
+ ## Checklist
+ 
+ - [ ] Page follows naming convention (kebab-case, numbered prefix if in a sequence)
++- [ ] OKF frontmatter present with matching `resource` path and useful `description`/`tags`
+ - [ ] Index updated in `docs/README.md`
+ - [ ] Log entry appended to `docs/log.md`
+ - [ ] Cross-references added to related pages
+diff --git a/.claude/commands/wiki-lint.md b/.claude/commands/wiki-lint.md
+index f154a12..97d252f 100644
+--- a/.claude/commands/wiki-lint.md
++++ b/.claude/commands/wiki-lint.md
+@@ -12,14 +12,15 @@ Use for periodic maintenance or when docs feel stale or disorganized. Finds stru
+ ## Steps
+ 
+ 1. **Orphan scan** — List all `.md` files under `docs/`. Check each against `docs/README.md` index entries. Report pages not listed in the index.
+-2. **Broken links** — Scan all pages for markdown links. Verify link targets exist (relative paths resolved from the linking file). Report broken links.
+-3. **Cross-reference gaps** — For each page, check if pages it references also reference it back. Report one-way references that should be bidirectional.
+-4. **Staleness check** — Pages with date references or version numbers: flag if the date is more than 3 months old or the version does not match current `package.json`.
+-5. **Contradiction scan** — Compare key facts across pages (tech stack versions, architecture claims, feature status). Flag conflicts.
+-6. **Category README check** — Each subdirectory should have a README.md or be listed in the parent index. Report missing.
+-7. **Log coverage** — Check if recent git commits touching `docs/` have corresponding `docs/log.md` entries.
+-8. **Report** findings grouped by severity: broken > orphan > stale > gap.
+-9. If user approves fixes: apply corrections (add to index, fix links, update cross-references, add log entries).
++2. **OKF frontmatter scan** — Verify every `docs/**/*.md` page has `type`, `title`, `description`, `resource`, `tags`, `timestamp`; confirm `resource` matches the repository-relative path.
++3. **Broken links** — Scan all pages for markdown links. Verify link targets exist (relative paths resolved from the linking file). Report broken links.
++4. **Cross-reference gaps** — For each page, check if pages it references also reference it back. Report one-way references that should be bidirectional.
++5. **Staleness check** — Pages with date references or version numbers: flag if the date is more than 3 months old or the version does not match current `package.json`.
++6. **Contradiction scan** — Compare key facts across pages (tech stack versions, architecture claims, feature status). Flag conflicts.
++7. **Category README check** — Each subdirectory should have a README.md or be listed in the parent index. Report missing.
++8. **Log coverage** — Check if recent git commits touching `docs/` have corresponding `docs/log.md` entries.
++9. **Report** findings grouped by severity: broken > invalid OKF metadata > orphan > stale > gap.
++10. If user approves fixes: apply corrections (frontmatter, index entries, links, cross-references, log entries).
+ 
+ ## Done when
+ 
+@@ -29,6 +30,7 @@ Use for periodic maintenance or when docs feel stale or disorganized. Finds stru
+ ## Checklist
+ 
+ - [ ] All pages accounted for in `docs/README.md` index
++- [ ] OKF frontmatter exists, has required fields, and `resource` paths match files
+ - [ ] No broken internal links
+ - [ ] `docs/log.md` is current
+ - [ ] Findings reported with severity levels
+diff --git a/.claude/rules/documentation.mdc b/.claude/rules/documentation.mdc
+index 4fd80b2..9e684ab 100644
+--- a/.claude/rules/documentation.mdc
++++ b/.claude/rules/documentation.mdc
+@@ -1,9 +1,9 @@
+ ---
+-description: Gallery docs wiki mirror of Cursor documentation rule
++description: Gallery OKF-style docs wiki mirror of Cursor documentation rule
+ globs: "docs/**"
+ alwaysApply: false
+ ---
+ 
+ # Documentation wiki (image-scoring-gallery)
+ 
+-When editing under the docs folder, read docs/WIKI_SCHEMA.md and docs/CANONICAL_SOURCES.md. Update docs/README.md and docs/log.md after structural wiki changes. Same expectations as .cursor/rules/documentation.mdc.
++When editing under the docs folder, read docs/WIKI_SCHEMA.md and docs/CANONICAL_SOURCES.md. Every docs Markdown page must retain OKF-style YAML frontmatter (`type`, `title`, `description`, `resource`, `tags`, `timestamp`) before the H1; keep `resource` equal to the repository-relative path and refresh metadata when the page meaning, path, or structure changes. Update docs/README.md and docs/log.md after structural wiki changes. Same expectations as .cursor/rules/documentation.mdc.
+diff --git a/.cursor/commands/wiki-ingest.md b/.cursor/commands/wiki-ingest.md
+index 2ff0f15..544bddf 100644
+--- a/.cursor/commands/wiki-ingest.md
++++ b/.cursor/commands/wiki-ingest.md
+@@ -13,13 +13,15 @@ Use when new knowledge should be captured in `docs/`: a code change, design deci
+ 2. **Search `docs/`** for related existing pages — prefer updating an existing page over creating a new one.
+ 3. **Discuss with user**: propose new page vs. update, suggested filename, target category, which existing pages need cross-reference updates.
+ 4. **Write or update** the wiki page(s). Follow conventions from the `documentation` rule.
+-5. **Update `docs/README.md`** index if a new page was created or a page was moved.
+-6. **Append** an entry to `docs/log.md` with today's date and pages affected.
+-7. **Add cross-references** in related pages (bidirectional where meaningful).
++5. **Apply OKF frontmatter** to every touched `docs/**/*.md` page: `type`, `title`, `description`, `resource`, `tags`, `timestamp`; keep `resource` equal to the repository-relative path.
++6. **Update `docs/README.md`** index if a new page was created or a page was moved.
++7. **Append** an entry to `docs/log.md` with today's date and pages affected.
++8. **Add cross-references** in related pages (bidirectional where meaningful).
+ 
+ ## Done when
+ 
+ - New content is in the wiki with accurate information.
++- OKF frontmatter is present and current on touched pages.
+ - `docs/README.md` index is current.
+ - `docs/log.md` has the new entry.
+ - Cross-references are bidirectional where appropriate.
+@@ -27,6 +29,7 @@ Use when new knowledge should be captured in `docs/`: a code change, design deci
+ ## Checklist
+ 
+ - [ ] Page follows naming convention (kebab-case, numbered prefix if in a sequence)
++- [ ] OKF frontmatter present with matching `resource` path and useful `description`/`tags`
+ - [ ] Index updated in `docs/README.md`
+ - [ ] Log entry appended to `docs/log.md`
+ - [ ] Cross-references added to related pages
+diff --git a/.cursor/commands/wiki-lint.md b/.cursor/commands/wiki-lint.md
+index 71c7c62..6893f5b 100644
+--- a/.cursor/commands/wiki-lint.md
++++ b/.cursor/commands/wiki-lint.md
+@@ -10,14 +10,15 @@ Use for periodic maintenance or when docs feel stale or disorganized. Finds stru
+ ## Steps
+ 
+ 1. **Orphan scan** — List all `.md` files under `docs/`. Check each against `docs/README.md` index entries. Report pages not listed in the index.
+-2. **Broken links** — Scan all pages for markdown links. Verify link targets exist (relative paths resolved from the linking file). Report broken links.
+-3. **Cross-reference gaps** — For each page, check if pages it references also reference it back. Report one-way references that should be bidirectional.
+-4. **Staleness check** — Pages with date references or version numbers: flag if the date is more than 3 months old or the version does not match current `package.json`.
+-5. **Contradiction scan** — Compare key facts across pages (tech stack versions, architecture claims, feature status). Flag conflicts.
+-6. **Category README check** — Each subdirectory should have a README.md or be listed in the parent index. Report missing.
+-7. **Log coverage** — Check if recent git commits touching `docs/` have corresponding `docs/log.md` entries.
+-8. **Report** findings grouped by severity: broken > orphan > stale > gap.
+-9. If user approves fixes: apply corrections (add to index, fix links, update cross-references, add log entries).
++2. **OKF frontmatter scan** — Verify every `docs/**/*.md` page has `type`, `title`, `description`, `resource`, `tags`, `timestamp`; confirm `resource` matches the repository-relative path.
++3. **Broken links** — Scan all pages for markdown links. Verify link targets exist (relative paths resolved from the linking file). Report broken links.
++4. **Cross-reference gaps** — For each page, check if pages it references also reference it back. Report one-way references that should be bidirectional.
++5. **Staleness check** — Pages with date references or version numbers: flag if the date is more than 3 months old or the version does not match current `package.json`.
++6. **Contradiction scan** — Compare key facts across pages (tech stack versions, architecture claims, feature status). Flag conflicts.
++7. **Category README check** — Each subdirectory should have a README.md or be listed in the parent index. Report missing.
++8. **Log coverage** — Check if recent git commits touching `docs/` have corresponding `docs/log.md` entries.
++9. **Report** findings grouped by severity: broken > invalid OKF metadata > orphan > stale > gap.
++10. If user approves fixes: apply corrections (frontmatter, index entries, links, cross-references, log entries).
+ 
+ ## Done when
+ 
+@@ -27,6 +28,7 @@ Use for periodic maintenance or when docs feel stale or disorganized. Finds stru
+ ## Checklist
+ 
+ - [ ] All pages accounted for in `docs/README.md` index
++- [ ] OKF frontmatter exists, has required fields, and `resource` paths match files
+ - [ ] No broken internal links
+ - [ ] `docs/log.md` is current
+ - [ ] Findings reported with severity levels
+diff --git a/.cursor/rules/documentation.mdc b/.cursor/rules/documentation.mdc
+index 2eeb1a7..2d2c3cf 100644
+--- a/.cursor/rules/documentation.mdc
++++ b/.cursor/rules/documentation.mdc
+@@ -1,5 +1,5 @@
+ ---
+-description: Conventions for maintaining docs/ as a wiki — cross-references, index updates, log entries, page structure
++description: Conventions for maintaining docs/ as an OKF-style wiki — frontmatter, cross-references, indexes, logs, page structure
+ globs: "docs/**"
+ alwaysApply: false
+ ---
+@@ -12,11 +12,17 @@ These conventions apply when creating, updating, or reorganizing pages in `docs/
+ ## Authority (read first)
+ 
+ - **[docs/CANONICAL_SOURCES.md](../../docs/CANONICAL_SOURCES.md)** — integration and backend canonical links.
+-- **[docs/WIKI_SCHEMA.md](../../docs/WIKI_SCHEMA.md)** — folder taxonomy, naming, and docs/log.md rules.
++- **[docs/WIKI_SCHEMA.md](../../docs/WIKI_SCHEMA.md)** — OKF frontmatter contract, folder taxonomy, naming, and docs/log.md rules.
+ 
+ ## Page structure
+ 
+-- Every page starts with a `# Title` header. No YAML frontmatter.
++- Every page starts with YAML frontmatter, followed by a blank line and then a `# Title` header.
++- Required frontmatter fields for `docs/**/*.md`: `type`, `title`, `description`, `resource`, `tags`, `timestamp`.
++- `resource` must be the repository-relative Markdown path and must change when a page moves.
++- `title` should match the page H1 unless there is a specific reason to expose a shorter machine-readable title.
++- `description` should be a concise one-sentence summary suitable for search results and agent routing.
++- `tags` should include `gallery-docs` plus useful folder/topic tags.
++- `timestamp` should be UTC ISO-8601 and refreshed when the page's meaning, metadata, or structure changes materially.
+ - First paragraph after the title is a one-sentence summary of the page's purpose.
+ - Use standard markdown links with relative paths. Never use `[[wikilink]]` syntax.
+ 
+@@ -31,9 +37,10 @@ These conventions apply when creating, updating, or reorganizing pages in `docs/
+ 
+ After creating, renaming, or removing a page:
+ 
+-1. Update `docs/README.md` — add or update the entry in the correct category section.
+-2. Maintain the existing format: `- [Title](relative/path.md) - One-line description`.
+-3. Keep numbered ordering within each category.
++1. Add or refresh the OKF frontmatter for every affected page.
++2. Update `docs/README.md` — add or update the entry in the correct category section.
++3. Maintain the existing format: `- [Title](relative/path.md) - One-line description`.
++4. Keep numbered ordering within each category.
+ 
+ ## Activity log
+ 
+@@ -74,3 +81,4 @@ Map to existing category subdirectories:
+ 
+ - When updating a page, check date or version references. If information contradicts current code, fix it or add a dated note.
+ - Pages with "Last evaluated" markers should be re-evaluated when the referenced area changes.
++- Run or emulate the OKF frontmatter validation from `docs/WIKI_SCHEMA.md` after structural docs work: every `docs/**/*.md` page should have required fields, and `resource` should match its file path.
+diff --git a/.cursor/skills/docs-wiki/SKILL.md b/.cursor/skills/docs-wiki/SKILL.md
+index 477dc91..0586882 100644
+--- a/.cursor/skills/docs-wiki/SKILL.md
++++ b/.cursor/skills/docs-wiki/SKILL.md
+@@ -1,14 +1,14 @@
+ ---
+ name: docs-wiki
+ description: >-
+-  Expert knowledge for maintaining docs/ as an LLM wiki. Page types, naming,
+-  cross-referencing, index format, log format, and category conventions.
++  Expert knowledge for maintaining docs/ as an OKF-style LLM wiki. Frontmatter,
++  page types, naming, cross-referencing, index format, log format, and category conventions.
+   Triggers: wiki maintenance, docs update, documentation audit, wiki ingest/lint/query.
+ ---
+ 
+ # Docs Wiki Skill
+ 
+-Maintain `docs/` as an incrementally-built, LLM-maintained wiki of interlinked markdown pages.
++Maintain `docs/` as an incrementally-built, OKF-style, LLM-maintained wiki of interlinked markdown concept pages.
+ 
+ ## When to Apply
+ 
+@@ -25,6 +25,23 @@ Maintain `docs/` as an incrementally-built, LLM-maintained wiki of interlinked m
+ | `docs/log.md` | **Activity log** — reverse-chronological record of all wiki operations |
+ | Category subdirectories | One per page type (see table below) |
+ 
++## OKF Frontmatter Contract
++
++Every `docs/**/*.md` page is an OKF-style concept and must start with YAML frontmatter, followed by a blank line and the Markdown H1.
++
++Required fields:
++
++| Field | Rule |
++|-------|------|
++| `type` | Concept class such as `Index`, `Guide`, `Architecture`, `Implemented Feature`, `Planned Feature`, `Report`, `Technical Reference`, `Backlog`, or `Log`. |
++| `title` | Human-readable title; normally matches the H1. |
++| `description` | One concise sentence that can be shown in search results or agent routing. |
++| `resource` | Repository-relative path to the Markdown file; update it when moving/renaming pages. |
++| `tags` | Inline list containing `gallery-docs` plus useful folder/topic tags. |
++| `timestamp` | UTC ISO-8601 timestamp refreshed when metadata, meaning, or structure changes materially. |
++
++When creating or moving pages, update frontmatter before index/log work. When only fixing links or typos, refresh `timestamp` only if the page meaning or metadata changed.
++
+ ## Page Types
+ 
+ | Category | Purpose | Naming | Example |
+@@ -66,11 +83,20 @@ Follow the existing format exactly:
+ 
+ ## Page Conventions
+ 
+-- Start with `# Title`. No YAML frontmatter.
++- Start with OKF YAML frontmatter, then `# Title`.
+ - First paragraph is a one-sentence summary.
+ - Standard markdown links only — no `[[wikilinks]]`.
+ - Kebab-case filenames, numbered prefixes for ordered sequences.
+ 
++## Validation Expectations
++
++After structural docs work, verify:
++
++- Every `docs/**/*.md` file has the required OKF fields.
++- `resource` equals the repository-relative file path.
++- `tags` is an inline list and includes `gallery-docs`.
++- New or moved pages are represented in `docs/README.md` and, where applicable, local section indexes.
++
+ ## Relationship to SDLC Commands
+ 
+ | After this... | Consider this... |
+diff --git a/docs/CANONICAL_SOURCES.md b/docs/CANONICAL_SOURCES.md
+index 4be523a..e81d971 100644
+--- a/docs/CANONICAL_SOURCES.md
++++ b/docs/CANONICAL_SOURCES.md
+@@ -1,3 +1,12 @@
++---
++type: "Documentation"
++title: "Canonical Sources"
++description: "Use this map before changing integration contracts, renderer labels, database access, IPC boundaries, or RAW/export behavior."
++resource: "docs/CANONICAL_SOURCES.md"
++tags: ["gallery-docs"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Canonical Sources
+ 
+ Use this map before changing integration contracts, renderer labels, database access, IPC boundaries, or RAW/export behavior.
+diff --git a/docs/DEVELOPMENT.md b/docs/DEVELOPMENT.md
+index a4525e7..ded9ba9 100644
+--- a/docs/DEVELOPMENT.md
++++ b/docs/DEVELOPMENT.md
+@@ -1,3 +1,12 @@
++---
++type: "Guide"
++title: "Development"
++description: "Run commands from the gallery repo root."
++resource: "docs/DEVELOPMENT.md"
++tags: ["gallery-docs"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Development
+ 
+ Run commands from the gallery repo root.
+diff --git a/docs/README.md b/docs/README.md
+index d49017a..73b2965 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -1,9 +1,30 @@
++---
++type: "Index"
++title: "Driftara Gallery Documentation"
++description: "This is the documentation hub for image-scoring-gallery, the Electron + React + TypeScript desktop app for browsing Vexlum Scoring libraries."
++resource: "docs/README.md"
++tags: ["gallery-docs", "index"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Driftara Gallery Documentation
+ 
+ This is the documentation hub for **image-scoring-gallery**, the Electron + React + TypeScript desktop app for browsing Vexlum Scoring libraries.
+ 
+ The backend owns REST API contracts, database schema, and pipeline phase terminology. The gallery owns Electron architecture, IPC/preload boundaries, renderer behavior, API-client usage, and desktop workflows.
+ 
++## OKF Bundle Shape
++
++`docs/` is organized as an Open Knowledge Format (OKF)-style bundle:
++
++- Every Markdown file is a concept with YAML frontmatter (`type`, `title`, `description`, `resource`, `tags`, `timestamp`).
++- The repository-relative path in `resource` is the concept identity.
++- Section `README.md` and `INDEX.md` files are navigation indexes for progressive disclosure.
++- Relative Markdown links encode relationships between concepts.
++- [log.md](log.md) is the chronological history for documentation maintenance.
++
++See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenance workflow.
++
+ ## Backend Authority
+ 
+ | Topic | Backend authority |
+diff --git a/docs/WIKI_SCHEMA.md b/docs/WIKI_SCHEMA.md
+index 87026d1..4abf361 100644
+--- a/docs/WIKI_SCHEMA.md
++++ b/docs/WIKI_SCHEMA.md
+@@ -1,7 +1,46 @@
++---
++type: "Documentation"
++title: "Wiki schema — image-scoring-gallery docs/"
++description: "This repo keeps docs/ as a small wiki aligned with image-scoring-backend habits: indexed sections, relative links, and an activity log."
++resource: "docs/WIKI_SCHEMA.md"
++tags: ["gallery-docs"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Wiki schema — image-scoring-gallery `docs/`
+ 
+ This repo keeps `docs/` as a small wiki aligned with **image-scoring-backend** habits: indexed sections, relative links, and an activity log.
+ 
++The docs tree is also structured as an **Open Knowledge Format (OKF)-style bundle**: every Markdown page is a concept file with lightweight YAML frontmatter, the file path is the stable concept identity, section `README.md`/`INDEX.md` pages provide progressive-disclosure navigation, normal Markdown links express relationships, and `log.md` records chronological change history.
++
++## OKF concept frontmatter
++
++Every `docs/**/*.md` file starts with YAML frontmatter containing the repo's OKF interoperability surface:
++
++| Field | Required | Purpose |
++|-------|----------|---------|
++| `type` | Yes | Concept class, such as `Index`, `Guide`, `Architecture`, `Implemented Feature`, `Planned Feature`, `Report`, `Technical Reference`, `Backlog`, or `Log`. |
++| `title` | Yes | Human-readable page title, usually matching the first H1. |
++| `description` | Yes | Short summary that agents and search tools can show without reading the full page. |
++| `resource` | Yes | Repository-relative path to the Markdown file; this mirrors the file-path concept identity. |
++| `tags` | Yes | Small list of queryable tags. Include `gallery-docs` plus folder/topic tags. |
++| `timestamp` | Yes | Last documentation-structure or content refresh timestamp in UTC ISO-8601 form. |
++
++Example:
++
++```yaml
++---
++type: "Guide"
++title: "Testing and Coverage"
++description: "Vitest and coverage notes for renderer and Electron-facing tests."
++resource: "docs/guides/03-testing-and-coverage.md"
++tags: ["gallery-docs", "guides"]
++timestamp: 2026-06-16T00:00:00Z
++---
++```
++
++When a page moves, update `resource` and all relative links in the same change. When a page's meaning changes materially, refresh `description`, `tags`, and `timestamp`.
++
+ ## Page types and folders
+ 
+ | Folder | Purpose |
+diff --git a/docs/architecture/01-system-overview.md b/docs/architecture/01-system-overview.md
+index bfe1445..aa842a8 100644
+--- a/docs/architecture/01-system-overview.md
++++ b/docs/architecture/01-system-overview.md
+@@ -1,3 +1,12 @@
++---
++type: "Architecture"
++title: "System Overview"
++description: "Driftara Gallery is an Electron + React + TypeScript + Vite desktop app for browsing libraries produced by Vexlum Scoring."
++resource: "docs/architecture/01-system-overview.md"
++tags: ["architecture", "gallery-docs"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # System Overview
+ 
+ Driftara Gallery is an **Electron + React + TypeScript + Vite** desktop app for browsing libraries produced by **Vexlum Scoring**.
+diff --git a/docs/architecture/02-database-design.md b/docs/architecture/02-database-design.md
+index b9c4915..86f5976 100644
+--- a/docs/architecture/02-database-design.md
++++ b/docs/architecture/02-database-design.md
+@@ -1,3 +1,12 @@
++---
++type: "Architecture"
++title: "Database Design"
++description: "PostgreSQL + pgvector is the primary database architecture. The backend owns schema and migrations; the gallery consumes that schema from the Electron main process."
++resource: "docs/architecture/02-database-design.md"
++tags: ["architecture", "gallery-docs"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Database Design
+ 
+ PostgreSQL + pgvector is the primary database architecture. The backend owns schema and migrations; the gallery consumes that schema from the Electron main process.
+diff --git a/docs/architecture/README.md b/docs/architecture/README.md
+index 292ead3..8f209f7 100644
+--- a/docs/architecture/README.md
++++ b/docs/architecture/README.md
+@@ -1,3 +1,12 @@
++---
++type: "Index"
++title: "Architecture"
++description: "Core system design and high-level technical overviews."
++resource: "docs/architecture/README.md"
++tags: ["architecture", "gallery-docs", "index"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Architecture
+ 
+ Core system design and high-level technical overviews.
+diff --git a/docs/architecture/backup-feature.md b/docs/architecture/backup-feature.md
+index f0f0ab7..57fc954 100644
+--- a/docs/architecture/backup-feature.md
++++ b/docs/architecture/backup-feature.md
+@@ -1,3 +1,12 @@
++---
++type: "Architecture"
++title: "Backup feature specification (Gallery)"
++description: "Canonical specification for the Backup feature in image-scoring-gallery (Electron main process, DB layer, preload, BackupModal). File references are repo-relative."
++resource: "docs/architecture/backup-feature.md"
++tags: ["architecture", "gallery-docs"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Backup feature specification (Gallery)
+ 
+ Canonical specification for the **Backup** feature in **image-scoring-gallery** (Electron main process, DB layer, preload, `BackupModal`). File references are repo-relative.
+diff --git a/docs/architecture/import-discovery-alignment.md b/docs/architecture/import-discovery-alignment.md
+index 89dbb0c..e89fd4e 100644
+--- a/docs/architecture/import-discovery-alignment.md
++++ b/docs/architecture/import-discovery-alignment.md
+@@ -1,3 +1,12 @@
++---
++type: "Architecture"
++title: "Import vs pipeline Discovery — alignment plan"
++description: "Canonical plan (problem statement, options, phased work, testing):"
++resource: "docs/architecture/import-discovery-alignment.md"
++tags: ["architecture", "gallery-docs"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Import vs pipeline Discovery — alignment plan
+ 
+ Canonical plan (problem statement, options, phased work, testing):  
+diff --git a/docs/design/DESIGN_SYSTEM.md b/docs/design/DESIGN_SYSTEM.md
+index c0fe4c0..2c734e7 100644
+--- a/docs/design/DESIGN_SYSTEM.md
++++ b/docs/design/DESIGN_SYSTEM.md
+@@ -1,3 +1,12 @@
++---
++type: "Design Reference"
++title: "Design system — gallery pointer"
++description: "Canonical doc: image-scoring-ui docs/DESIGNSYSTEM.md (sibling clone: ../image-scoring-ui/docs/DESIGNSYSTEM.md)."
++resource: "docs/design/DESIGN_SYSTEM.md"
++tags: ["design", "gallery-docs"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Design system — gallery pointer
+ 
+ **Canonical doc:** [image-scoring-ui `docs/DESIGN_SYSTEM.md`](https://github.com/synthet/image-scoring-ui/blob/main/docs/DESIGN_SYSTEM.md) (sibling clone: [`../image-scoring-ui/docs/DESIGN_SYSTEM.md`](../../image-scoring-ui/docs/DESIGN_SYSTEM.md)).
+diff --git a/docs/design/FRONTEND_UX_SPEC.md b/docs/design/FRONTEND_UX_SPEC.md
+index 3c04e72..cae4f58 100644
+--- a/docs/design/FRONTEND_UX_SPEC.md
++++ b/docs/design/FRONTEND_UX_SPEC.md
+@@ -1,3 +1,12 @@
++---
++type: "Design Reference"
++title: "UX/UI Design Visual Specification"
++description: "This document outlines the visual design, user experience, and UI specifications for the Driftara Gallery (image-scoring-gallery) frontend application."
++resource: "docs/design/FRONTEND_UX_SPEC.md"
++tags: ["design", "gallery-docs"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # UX/UI Design Visual Specification
+ 
+ This document outlines the visual design, user experience, and UI specifications for the **Driftara Gallery** (`image-scoring-gallery`) frontend application.
+diff --git a/docs/features/README.md b/docs/features/README.md
+index a230785..079d7f6 100644
+--- a/docs/features/README.md
++++ b/docs/features/README.md
+@@ -1,3 +1,12 @@
++---
++type: "Index"
++title: "Features"
++description: "Documentation for implemented and planned features."
++resource: "docs/features/README.md"
++tags: ["features", "gallery-docs", "index"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Features
+ 
+ Documentation for implemented and planned features.
+diff --git a/docs/features/implemented/01-nef-raw-fallback.md b/docs/features/implemented/01-nef-raw-fallback.md
+index 55266e5..d38c64f 100644
+--- a/docs/features/implemented/01-nef-raw-fallback.md
++++ b/docs/features/implemented/01-nef-raw-fallback.md
+@@ -1,3 +1,12 @@
++---
++type: "Implemented Feature"
++title: "NEF/RAW preview fallback"
++description: "Purpose: Show Nikon NEF and other RAW files in the desktop viewer when a normal bitmap path is unavailable, using a tiered strategy (embedded preview, LibRaw/exiftool paths, then b"
++resource: "docs/features/implemented/01-nef-raw-fallback.md"
++tags: ["features", "gallery-docs", "implemented"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # NEF/RAW preview fallback
+ 
+ **Purpose:** Show **Nikon NEF** and other RAW files in the desktop viewer when a normal bitmap path is unavailable, using a tiered strategy (embedded preview, LibRaw/exiftool paths, then backend JPEG).
+diff --git a/docs/features/implemented/02-desktop-shell-and-navigation.md b/docs/features/implemented/02-desktop-shell-and-navigation.md
+index 0db8206..889e305 100644
+--- a/docs/features/implemented/02-desktop-shell-and-navigation.md
++++ b/docs/features/implemented/02-desktop-shell-and-navigation.md
+@@ -1,3 +1,12 @@
++---
++type: "Implemented Feature"
++title: "Desktop shell and navigation"
++description: "Purpose: Run the gallery as an Electron desktop app with a Vite renderer: window lifecycle, menus, optional WebUI-only shell mode, and navigation across gallery grid, viewer, impor"
++resource: "docs/features/implemented/02-desktop-shell-and-navigation.md"
++tags: ["features", "gallery-docs", "implemented"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Desktop shell and navigation
+ 
+ **Purpose:** Run the gallery as an **Electron** desktop app with a **Vite** renderer: window lifecycle, menus, optional **WebUI-only** shell mode, and navigation across gallery grid, viewer, import, semantic search, and settings.
+diff --git a/docs/features/implemented/03-database-engine-modes.md b/docs/features/implemented/03-database-engine-modes.md
+index 164cfbb..0a26287 100644
+--- a/docs/features/implemented/03-database-engine-modes.md
++++ b/docs/features/implemented/03-database-engine-modes.md
+@@ -1,3 +1,12 @@
++---
++type: "Implemented Feature"
++title: "Database engine modes"
++description: "Purpose: Query and update library metadata either directly against PostgreSQL (database.engine: \"pg\") or via the backend’s SQL-over-HTTP bridge (database.engine: \"api\"), using one "
++resource: "docs/features/implemented/03-database-engine-modes.md"
++tags: ["features", "gallery-docs", "implemented"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Database engine modes
+ 
+ **Purpose:** Query and update library metadata either **directly against PostgreSQL** (`database.engine: "pg"`) or via the backend’s **SQL-over-HTTP** bridge (`database.engine: "api"`), using one abstraction in the renderer.
+diff --git a/docs/features/implemented/04-backend-api-jobs.md b/docs/features/implemented/04-backend-api-jobs.md
+index d986019..9e0ff79 100644
+--- a/docs/features/implemented/04-backend-api-jobs.md
++++ b/docs/features/implemented/04-backend-api-jobs.md
+@@ -1,3 +1,12 @@
++---
++type: "Implemented Feature"
++title: "Backend API and jobs (Electron integration)"
++description: "Purpose: Start and monitor scoring, tagging, clustering, and pipeline work on the Python WebUI from the Electron main process, and surface job queue / recent jobs / scope tree data"
++resource: "docs/features/implemented/04-backend-api-jobs.md"
++tags: ["features", "gallery-docs", "implemented"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Backend API and jobs (Electron integration)
+ 
+ **Purpose:** Start and monitor **scoring**, **tagging**, **clustering**, and **pipeline** work on the Python WebUI from the Electron main process, and surface **job queue** / **recent jobs** / **scope tree** data in the UI.
+diff --git a/docs/features/implemented/05-jpeg-export-exif-orientation.md b/docs/features/implemented/05-jpeg-export-exif-orientation.md
+index 73eae33..6c14240 100644
+--- a/docs/features/implemented/05-jpeg-export-exif-orientation.md
++++ b/docs/features/implemented/05-jpeg-export-exif-orientation.md
+@@ -1,3 +1,12 @@
++---
++type: "Implemented Feature"
++title: "JPEG export and EXIF orientation"
++description: "Purpose: Document why File → Export must produce a JPEG whose pixels match the on-screen preview and whose EXIF Orientation is 1 (or absent), so system viewers (e.g. Windows Photos"
++resource: "docs/features/implemented/05-jpeg-export-exif-orientation.md"
++tags: ["features", "gallery-docs", "implemented"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # JPEG export and EXIF orientation
+ 
+ **Purpose:** Document why **File → Export** must produce a JPEG whose **pixels** match the on-screen preview and whose **EXIF Orientation is 1** (or absent), so system viewers (e.g. Windows Photos) do not apply a second rotation.
+diff --git a/docs/features/implemented/06-culling-stack-analytics.md b/docs/features/implemented/06-culling-stack-analytics.md
+index e3b32e9..1d450b5 100644
+--- a/docs/features/implemented/06-culling-stack-analytics.md
++++ b/docs/features/implemented/06-culling-stack-analytics.md
+@@ -1,3 +1,12 @@
++---
++type: "Implemented Feature"
++title: "Culling stack analytics (Driftara Gallery)"
++description: "Status: Implemented (MVP)"
++resource: "docs/features/implemented/06-culling-stack-analytics.md"
++tags: ["features", "gallery-docs", "implemented"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Culling stack analytics (Driftara Gallery)
+ 
+ **Status:** Implemented (MVP)  
+diff --git a/docs/features/implemented/06-sync-from-device-workflow.md b/docs/features/implemented/06-sync-from-device-workflow.md
+index 755ff23..37b7804 100644
+--- a/docs/features/implemented/06-sync-from-device-workflow.md
++++ b/docs/features/implemented/06-sync-from-device-workflow.md
+@@ -1,3 +1,12 @@
++---
++type: "Implemented Feature"
++title: "Sync from device (Electron workflow)"
++description: "End-to-end behavior of File → Sync in Driftara Gallery: filesystem scan, optional copy into the configured photo tree, direct PostgreSQL registration, and backend pipeline submissi"
++resource: "docs/features/implemented/06-sync-from-device-workflow.md"
++tags: ["features", "gallery-docs", "implemented"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Sync from device (Electron workflow)
+ 
+ End-to-end behavior of **File → Sync** in Driftara Gallery: filesystem scan, optional copy into the configured photo tree, direct PostgreSQL registration, and backend pipeline submission. Use this page when debugging progress UI, IPC, or “why counts don’t match.”
+diff --git a/docs/features/implemented/INDEX.md b/docs/features/implemented/INDEX.md
+index 029bcf3..cf59c15 100644
+--- a/docs/features/implemented/INDEX.md
++++ b/docs/features/implemented/INDEX.md
+@@ -1,3 +1,12 @@
++---
++type: "Index"
++title: "Features Implemented"
++description: "Catalog of shipped desktop behavior. Backend API/schema/pipeline contracts remain owned by image-scoring-backend; link to backend authority instead of restating fields or phase def"
++resource: "docs/features/implemented/INDEX.md"
++tags: ["features", "gallery-docs", "implemented", "index"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Features Implemented
+ 
+ Catalog of shipped desktop behavior. Backend API/schema/pipeline contracts remain owned by **image-scoring-backend**; link to backend authority instead of restating fields or phase definitions.
+diff --git a/docs/features/implemented/README.md b/docs/features/implemented/README.md
+index 8e8d6ca..4770aac 100644
+--- a/docs/features/implemented/README.md
++++ b/docs/features/implemented/README.md
+@@ -1,3 +1,12 @@
++---
++type: "Index"
++title: "Implemented Features"
++description: "Documentation for features that are currently implemented and in use."
++resource: "docs/features/implemented/README.md"
++tags: ["features", "gallery-docs", "implemented", "index"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Implemented Features
+ 
+ Documentation for features that are currently implemented and in use.
+diff --git a/docs/features/planned/01-windows-native-viewer.md b/docs/features/planned/01-windows-native-viewer.md
+index 0923740..1aa3b34 100644
+--- a/docs/features/planned/01-windows-native-viewer.md
++++ b/docs/features/planned/01-windows-native-viewer.md
+@@ -1,3 +1,12 @@
++---
++type: "Planned Feature"
++title: "Windows Native Image Gallery Viewer - Implementation Plan"
++description: "A native Windows application (C++/Win32) that provides fast, native file browsing for images stored in the scoringhistory.db database. The app mimics the Python Gallery feature but"
++resource: "docs/features/planned/01-windows-native-viewer.md"
++tags: ["features", "gallery-docs", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Windows Native Image Gallery Viewer - Implementation Plan
+ 
+ ## Overview
+diff --git a/docs/features/planned/README.md b/docs/features/planned/README.md
+index 86acc34..40974f3 100644
+--- a/docs/features/planned/README.md
++++ b/docs/features/planned/README.md
+@@ -1,3 +1,12 @@
++---
++type: "Index"
++title: "Planned Features"
++description: "Documentation for features not yet implemented."
++resource: "docs/features/planned/README.md"
++tags: ["features", "gallery-docs", "index", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Planned Features
+ 
+ Documentation for features not yet implemented.
+diff --git a/docs/features/planned/embeddings/00-summary.md b/docs/features/planned/embeddings/00-summary.md
+index 2399fcd..d437ded 100644
+--- a/docs/features/planned/embeddings/00-summary.md
++++ b/docs/features/planned/embeddings/00-summary.md
+@@ -1,3 +1,12 @@
++---
++type: "Planned Feature"
++title: "Integrating image_embedding Features into Electron App"
++description: "Based on the backend embedding applications plan for leveraging MobileNetV2 1280-d feature vectors, this document summarizes how the image-scoring-gallery frontend will expose thes"
++resource: "docs/features/planned/embeddings/00-summary.md"
++tags: ["embeddings", "features", "gallery-docs", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Integrating `image_embedding` Features into Electron App
+ 
+ Based on the [backend embedding applications](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/planned/embeddings/EMBEDDING_APPLICATIONS.md) plan for leveraging MobileNetV2 1280-d feature vectors, this document summarizes how the `image-scoring-gallery` frontend will expose these capabilities.
+diff --git a/docs/features/planned/embeddings/01-diversity-selection.md b/docs/features/planned/embeddings/01-diversity-selection.md
+index 6b0d3be..5893287 100644
+--- a/docs/features/planned/embeddings/01-diversity-selection.md
++++ b/docs/features/planned/embeddings/01-diversity-selection.md
+@@ -1,3 +1,12 @@
++---
++type: "Planned Feature"
++title: "01 - Diversity-Aware Selection (Frontend)"
++description: "Status: Implemented"
++resource: "docs/features/planned/embeddings/01-diversity-selection.md"
++tags: ["embeddings", "features", "gallery-docs", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # 01 - Diversity-Aware Selection (Frontend)
+ 
+ *Status: **Implemented***
+diff --git a/docs/features/planned/embeddings/02-near-duplicate-detection.md b/docs/features/planned/embeddings/02-near-duplicate-detection.md
+index d4ebe2d..61b404a 100644
+--- a/docs/features/planned/embeddings/02-near-duplicate-detection.md
++++ b/docs/features/planned/embeddings/02-near-duplicate-detection.md
+@@ -1,3 +1,12 @@
++---
++type: "Planned Feature"
++title: "02 - Near-Duplicate Detection (Frontend)"
++description: "Status: Implemented"
++resource: "docs/features/planned/embeddings/02-near-duplicate-detection.md"
++tags: ["embeddings", "features", "gallery-docs", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # 02 - Near-Duplicate Detection (Frontend)
+ 
+ *Status: **Implemented***
+diff --git a/docs/features/planned/embeddings/03-tag-propagation.md b/docs/features/planned/embeddings/03-tag-propagation.md
+index a0e5b0e..a9dc60d 100644
+--- a/docs/features/planned/embeddings/03-tag-propagation.md
++++ b/docs/features/planned/embeddings/03-tag-propagation.md
+@@ -1,3 +1,12 @@
++---
++type: "Planned Feature"
++title: "03 - Tag Propagation (Frontend)"
++description: "Status: Planned"
++resource: "docs/features/planned/embeddings/03-tag-propagation.md"
++tags: ["embeddings", "features", "gallery-docs", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # 03 - Tag Propagation (Frontend)
+ 
+ *Status: **Planned***
+diff --git a/docs/features/planned/embeddings/04-outlier-detection.md b/docs/features/planned/embeddings/04-outlier-detection.md
+index b043a03..7bb1638 100644
+--- a/docs/features/planned/embeddings/04-outlier-detection.md
++++ b/docs/features/planned/embeddings/04-outlier-detection.md
+@@ -1,3 +1,12 @@
++---
++type: "Planned Feature"
++title: "04 - Outlier Detection (Frontend)"
++description: "Status: Planned"
++resource: "docs/features/planned/embeddings/04-outlier-detection.md"
++tags: ["embeddings", "features", "gallery-docs", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # 04 - Outlier Detection (Frontend)
+ 
+ *Status: **Planned***
+diff --git a/docs/features/planned/embeddings/05-2d-embedding-map.md b/docs/features/planned/embeddings/05-2d-embedding-map.md
+index eeea6cc..7c44dc1 100644
+--- a/docs/features/planned/embeddings/05-2d-embedding-map.md
++++ b/docs/features/planned/embeddings/05-2d-embedding-map.md
+@@ -1,3 +1,12 @@
++---
++type: "Planned Feature"
++title: "05 - 2D Embedding Map (Frontend)"
++description: "Status: In Progress (Scaffolded on March 28, 2026)"
++resource: "docs/features/planned/embeddings/05-2d-embedding-map.md"
++tags: ["embeddings", "features", "gallery-docs", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # 05 - 2D Embedding Map (Frontend)
+ 
+ *Status: **In Progress (Scaffolded on March 28, 2026)***
+diff --git a/docs/features/planned/embeddings/06-smart-stack-representative.md b/docs/features/planned/embeddings/06-smart-stack-representative.md
+index 47c2721..45e78a6 100644
+--- a/docs/features/planned/embeddings/06-smart-stack-representative.md
++++ b/docs/features/planned/embeddings/06-smart-stack-representative.md
+@@ -1,3 +1,12 @@
++---
++type: "Planned Feature"
++title: "06 - Smart Stack Representative (Frontend)"
++description: "Status: In Progress (Preference + request threading scaffolded on March 28, 2026)"
++resource: "docs/features/planned/embeddings/06-smart-stack-representative.md"
++tags: ["embeddings", "features", "gallery-docs", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # 06 - Smart Stack Representative (Frontend)
+ 
+ *Status: **In Progress (Preference + request threading scaffolded on March 28, 2026)***
+diff --git a/docs/features/planned/embeddings/07-more-like-this-ui.md b/docs/features/planned/embeddings/07-more-like-this-ui.md
+index 3adfad3..d119a4d 100644
+--- a/docs/features/planned/embeddings/07-more-like-this-ui.md
++++ b/docs/features/planned/embeddings/07-more-like-this-ui.md
+@@ -1,3 +1,12 @@
++---
++type: "Planned Feature"
++title: "07 - More Like This UI (Frontend)"
++description: "Status: Implemented"
++resource: "docs/features/planned/embeddings/07-more-like-this-ui.md"
++tags: ["embeddings", "features", "gallery-docs", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # 07 - More Like This UI (Frontend)
+ 
+ *Status: **Implemented***
+diff --git a/docs/features/planned/embeddings/08-gradio-integration.md b/docs/features/planned/embeddings/08-gradio-integration.md
+index 8045d25..c8711ae 100644
+--- a/docs/features/planned/embeddings/08-gradio-integration.md
++++ b/docs/features/planned/embeddings/08-gradio-integration.md
+@@ -1,3 +1,12 @@
++---
++type: "Planned Feature"
++title: "08 - Python Pipeline Integration (Gradio & Headless)"
++description: "Status: In Progress"
++resource: "docs/features/planned/embeddings/08-gradio-integration.md"
++tags: ["embeddings", "features", "gallery-docs", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # 08 - Python Pipeline Integration (Gradio & Headless)
+ 
+ *Status: **In Progress***
+diff --git a/docs/features/planned/embeddings/README.md b/docs/features/planned/embeddings/README.md
+index d445e6b..bcdab46 100644
+--- a/docs/features/planned/embeddings/README.md
++++ b/docs/features/planned/embeddings/README.md
+@@ -1,3 +1,12 @@
++---
++type: "Index"
++title: "Embedding Applications — gallery hub"
++description: "Source of truth (algorithms, API, DB): image-scoring-backend docs/features/planned/embeddings/ — start with EMBEDDINGAPPLICATIONS.md and EMBEDDINGAPPLICATIONSINDEX.md. Do not dupli"
++resource: "docs/features/planned/embeddings/README.md"
++tags: ["embeddings", "features", "gallery-docs", "index", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Embedding Applications — gallery hub
+ 
+ **Source of truth (algorithms, API, DB):** **[image-scoring-backend `docs/features/planned/embeddings/`](https://github.com/synthet/image-scoring-backend/tree/main/docs/plans/embedding)** — start with [`EMBEDDING_APPLICATIONS.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/planned/embeddings/EMBEDDING_APPLICATIONS.md) and [`EMBEDDING_APPLICATIONS_INDEX.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/planned/embeddings/EMBEDDING_APPLICATIONS_INDEX.md). Do not duplicate long backend prose here.
+diff --git a/docs/features/planned/embeddings/TODO.md b/docs/features/planned/embeddings/TODO.md
+index 4c8e9c1..e1526d8 100644
+--- a/docs/features/planned/embeddings/TODO.md
++++ b/docs/features/planned/embeddings/TODO.md
+@@ -1,3 +1,12 @@
++---
++type: "Backlog"
++title: "Embedding Features TODO (retired)"
++description: "The canonical task queue is the GitHub Project board (filter by area:embeddings):"
++resource: "docs/features/planned/embeddings/TODO.md"
++tags: ["backlog", "embeddings", "features", "gallery-docs", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Embedding Features TODO (retired)
+ 
+ The canonical task queue is the **GitHub Project board** (filter by `area:embeddings`):
+diff --git a/docs/features/planned/species-conflict-resolution.md b/docs/features/planned/species-conflict-resolution.md
+index 186294d..c4373f8 100644
+--- a/docs/features/planned/species-conflict-resolution.md
++++ b/docs/features/planned/species-conflict-resolution.md
+@@ -1,3 +1,12 @@
++---
++type: "Planned Feature"
++title: "Single Bird Species per Image (BioCLIP top‑1)"
++description: "Status: Planned (proposal)"
++resource: "docs/features/planned/species-conflict-resolution.md"
++tags: ["features", "gallery-docs", "planned"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Single Bird Species per Image (BioCLIP top‑1)
+ 
+ *Status: **Planned (proposal)***
+diff --git a/docs/guides/01-lint-recommendations.md b/docs/guides/01-lint-recommendations.md
+index d69fe02..153b4d5 100644
+--- a/docs/guides/01-lint-recommendations.md
++++ b/docs/guides/01-lint-recommendations.md
+@@ -1,3 +1,12 @@
++---
++type: "Guide"
++title: "Lint Recommendations"
++description: "Quick reference for ESLint fixes. For the full audit with detailed findings by file, see ESLint Audit (Mar 2026)."
++resource: "docs/guides/01-lint-recommendations.md"
++tags: ["gallery-docs", "guides"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Lint Recommendations
+ 
+ Quick reference for ESLint fixes. For the full audit with detailed findings by file, see [ESLint Audit (Mar 2026)](../reports/03-eslint-audit-2026-03.md).
+diff --git a/docs/guides/02-api-backend-config.md b/docs/guides/02-api-backend-config.md
+index 85d0d5d..ff5a20c 100644
+--- a/docs/guides/02-api-backend-config.md
++++ b/docs/guides/02-api-backend-config.md
+@@ -1,3 +1,12 @@
++---
++type: "Guide"
++title: "API Backend Configuration"
++description: "This gallery can discover the Python backend automatically, but you can also pin or redirect it with config.json."
++resource: "docs/guides/02-api-backend-config.md"
++tags: ["gallery-docs", "guides"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # API Backend Configuration
+ 
+ This gallery can discover the Python backend automatically, but you can also pin or redirect it with `config.json`.
+diff --git a/docs/guides/03-testing-and-coverage.md b/docs/guides/03-testing-and-coverage.md
+index b2c1d4d..62e3b55 100644
+--- a/docs/guides/03-testing-and-coverage.md
++++ b/docs/guides/03-testing-and-coverage.md
+@@ -1,3 +1,12 @@
++---
++type: "Guide"
++title: "Testing and Coverage Guide"
++description: "This project uses Vitest for unit/integration tests and V8 coverage reporting."
++resource: "docs/guides/03-testing-and-coverage.md"
++tags: ["gallery-docs", "guides"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Testing and Coverage Guide
+ 
+ This project uses Vitest for unit/integration tests and V8 coverage reporting.
+diff --git a/docs/guides/README.md b/docs/guides/README.md
+index da26f8b..6ce2656 100644
+--- a/docs/guides/README.md
++++ b/docs/guides/README.md
+@@ -1,3 +1,12 @@
++---
++type: "Index"
++title: "Guides"
++description: "Development workflows and maintenance recommendations."
++resource: "docs/guides/README.md"
++tags: ["gallery-docs", "guides", "index"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Guides
+ 
+ Development workflows and maintenance recommendations.
+diff --git a/docs/integration/TODO.md b/docs/integration/TODO.md
+index ec3a31c..9366046 100644
+--- a/docs/integration/TODO.md
++++ b/docs/integration/TODO.md
+@@ -1,3 +1,12 @@
++---
++type: "Backlog"
++title: "Integration TODO"
++description: "This backlog separates backend-owned contract work from gallery implementation work. The canonical project/task queue may still live outside this file; use this page as an integrat"
++resource: "docs/integration/TODO.md"
++tags: ["backlog", "gallery-docs", "integration"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Integration TODO
+ 
+ This backlog separates backend-owned contract work from gallery implementation work. The canonical project/task queue may still live outside this file; use this page as an integration handoff map.
+diff --git a/docs/log.md b/docs/log.md
+index 34cb5d2..8f6fcaa 100644
+--- a/docs/log.md
++++ b/docs/log.md
+@@ -1,9 +1,19 @@
++---
++type: "Log"
++title: "Documentation Activity Log"
++description: "Chronological record of wiki maintenance activities. Newest entries first."
++resource: "docs/log.md"
++tags: ["gallery-docs"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Documentation Activity Log
+ 
+ Chronological record of wiki maintenance activities. Newest entries first.
+ 
+ ## 2026-06
+ 
++- 2026-06-16: reorganized — `docs/` as an Open Knowledge Format-style bundle: added YAML frontmatter (`type`, `title`, `description`, `resource`, `tags`, `timestamp`) to every Markdown concept page; documented OKF field rules in [WIKI_SCHEMA.md](WIKI_SCHEMA.md); added bundle-shape summary to [README.md](README.md).
+ - 2026-06-10: updated — [reports/07-pipeline-input-size-study-2026-05.md](reports/07-pipeline-input-size-study-2026-05.md): added GitHub Project backlog table (backend epic [#260](https://github.com/synthet/image-scoring-backend/issues/260), phases [#261–266](https://github.com/synthet/image-scoring-backend/issues/261), gallery [#138](https://github.com/synthet/image-scoring-gallery/issues/138)); cross-refs in [CANONICAL_SOURCES.md](CANONICAL_SOURCES.md), [reports/README.md](reports/README.md), [06-culling-stack-analytics.md](features/implemented/06-culling-stack-analytics.md).
+ - 2026-06-10: created — [features/planned/species-conflict-resolution.md](features/planned/species-conflict-resolution.md): "Single Bird Species per Image (BioCLIP top‑1)" — assign one `species:*` keyword per bird image using the BioCLIP 2 argmax (backend `top_k` 3→1 default + max-confidence backfill); supersedes the earlier multi-layer CLI-agent arbitration design (kept as rejected alternative). Indexed in [features/planned/README.md](features/planned/README.md); bidirectional cross-ref in [technical/EMBEDDING_SPACES.md](technical/EMBEDDING_SPACES.md) (`bioclip_2_image` row). Implementation lands in sibling **image-scoring-backend**.
+ - 2026-06-10: ingested — [reports/07-pipeline-input-size-study-2026-05.md](reports/07-pipeline-input-size-study-2026-05.md): gallery cross-reference to backend pipeline input-size study (thumbnails, stacks, keywords); indexed in [README.md](README.md), [reports/README.md](reports/README.md); backlinks in [CANONICAL_SOURCES.md](CANONICAL_SOURCES.md), [architecture/01-system-overview.md](architecture/01-system-overview.md), [features/implemented/06-culling-stack-analytics.md](features/implemented/06-culling-stack-analytics.md).
+diff --git a/docs/planning/00-backlog-workflow.md b/docs/planning/00-backlog-workflow.md
+index 9502bac..75ba188 100644
+--- a/docs/planning/00-backlog-workflow.md
++++ b/docs/planning/00-backlog-workflow.md
+@@ -1,3 +1,12 @@
++---
++type: "Planning"
++title: "Backlog workflow (redirect)"
++description: "Canonical in this repo: docs/project/00-backlog-workflow.md. BACKLOGGOVERNANCE.md is a short alias to that file."
++resource: "docs/planning/00-backlog-workflow.md"
++tags: ["gallery-docs", "planning"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Backlog workflow (redirect)
+ 
+ **Canonical in this repo:** **[`docs/project/00-backlog-workflow.md`](../project/00-backlog-workflow.md)**. [`BACKLOG_GOVERNANCE.md`](../project/BACKLOG_GOVERNANCE.md) is a short alias to that file.
+diff --git a/docs/planning/01-roadmap-todo.md b/docs/planning/01-roadmap-todo.md
+index 4609c6a..e83cdf9 100644
+--- a/docs/planning/01-roadmap-todo.md
++++ b/docs/planning/01-roadmap-todo.md
+@@ -1,3 +1,12 @@
++---
++type: "Planning"
++title: "Roadmap TODO — Driftara Gallery (retired)"
++description: "The canonical task queue is the GitHub Project board:"
++resource: "docs/planning/01-roadmap-todo.md"
++tags: ["gallery-docs", "planning"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Roadmap TODO — Driftara Gallery (retired)
+ 
+ The canonical task queue is the **GitHub Project board**:
+diff --git a/docs/planning/02-firebird-postgresql-migration.md b/docs/planning/02-firebird-postgresql-migration.md
+index 1b74fe0..bd9a294 100644
+--- a/docs/planning/02-firebird-postgresql-migration.md
++++ b/docs/planning/02-firebird-postgresql-migration.md
+@@ -1,3 +1,12 @@
++---
++type: "Planning"
++title: "Refined Cross-Repo Migration Plan: Firebird -> PostgreSQL + pgvector"
++description: "Date: 2026-03-08 (plan created), 2026-03-30 (all phases completed)"
++resource: "docs/planning/02-firebird-postgresql-migration.md"
++tags: ["gallery-docs", "planning"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Refined Cross-Repo Migration Plan: Firebird -> PostgreSQL + pgvector
+ 
+ Date: 2026-03-08 (plan created), 2026-03-30 (all phases completed)
+diff --git a/docs/planning/03-high-impact-tracked-tasks.md b/docs/planning/03-high-impact-tracked-tasks.md
+index 5866853..ef5f645 100644
+--- a/docs/planning/03-high-impact-tracked-tasks.md
++++ b/docs/planning/03-high-impact-tracked-tasks.md
+@@ -1,3 +1,12 @@
++---
++type: "Planning"
++title: "High-Impact Next Steps - Tracked Tasks"
++description: "Source: TODO.md → Highest-Impact Next Steps (Recommended Sequence)."
++resource: "docs/planning/03-high-impact-tracked-tasks.md"
++tags: ["gallery-docs", "planning"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # High-Impact Next Steps - Tracked Tasks
+ 
+ Source: `TODO.md` → **Highest-Impact Next Steps (Recommended Sequence)**.
+diff --git a/docs/planning/04-gradio-to-electron-processing-migration.md b/docs/planning/04-gradio-to-electron-processing-migration.md
+index 7cbd16c..741d25b 100644
+--- a/docs/planning/04-gradio-to-electron-processing-migration.md
++++ b/docs/planning/04-gradio-to-electron-processing-migration.md
+@@ -1,3 +1,12 @@
++---
++type: "Planning"
++title: "Gradio → Electron Migration Plan: Processing Workspace"
++description: "Last Updated: Mar 15, 2026."
++resource: "docs/planning/04-gradio-to-electron-processing-migration.md"
++tags: ["gallery-docs", "planning"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Gradio → Electron Migration Plan: Processing Workspace
+ 
+ Last Updated: Mar 15, 2026.
+diff --git a/docs/planning/GALLERY_VISUAL_IMPROVEMENTS.md b/docs/planning/GALLERY_VISUAL_IMPROVEMENTS.md
+index 2042ab9..28b181f 100644
+--- a/docs/planning/GALLERY_VISUAL_IMPROVEMENTS.md
++++ b/docs/planning/GALLERY_VISUAL_IMPROVEMENTS.md
+@@ -1,3 +1,12 @@
++---
++type: "Planning"
++title: "Gallery visual improvements (implementation index)"
++description: "Audit: reports/gallery-visual-review/2026-05-31.md"
++resource: "docs/planning/GALLERY_VISUAL_IMPROVEMENTS.md"
++tags: ["gallery-docs", "planning"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Gallery visual improvements (implementation index)
+ 
+ **Audit:** [reports/gallery-visual-review/2026-05-31.md](../../reports/gallery-visual-review/2026-05-31.md)  
+diff --git a/docs/planning/README.md b/docs/planning/README.md
+index 965b46e..13b0861 100644
+--- a/docs/planning/README.md
++++ b/docs/planning/README.md
+@@ -1,3 +1,12 @@
++---
++type: "Index"
++title: "Planning"
++description: "Roadmap, migration plans, and task tracking."
++resource: "docs/planning/README.md"
++tags: ["gallery-docs", "index", "planning"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Planning
+ 
+ Roadmap, migration plans, and task tracking.
+diff --git a/docs/planning/db_abstraction_layer.md b/docs/planning/db_abstraction_layer.md
+index 38f2db1..edd38e2 100644
+--- a/docs/planning/db_abstraction_layer.md
++++ b/docs/planning/db_abstraction_layer.md
+@@ -1,3 +1,12 @@
++---
++type: "Planning"
++title: "Database Connection Abstraction Layer"
++description: "> Status (2026-04): Implemented in electron/db/provider.ts. Firebird and node-firebird have been removed from the Electron app; production uses PostgresConnector (pg) or ApiConnect"
++resource: "docs/planning/db_abstraction_layer.md"
++tags: ["gallery-docs", "planning"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Database Connection Abstraction Layer
+ 
+ > **Status (2026-04):** Implemented in **`electron/db/provider.ts`**. Firebird and `node-firebird` have been **removed** from the Electron app; production uses **`PostgresConnector`** (`pg`) or **`ApiConnector`** (HTTP SQL to the backend). This note is kept for historical context; see [02-database-design.md](../architecture/02-database-design.md) and [02-firebird-postgresql-migration.md](02-firebird-postgresql-migration.md).
+diff --git a/docs/project/00-backlog-workflow.md b/docs/project/00-backlog-workflow.md
+index 2575a20..8358d5a 100644
+--- a/docs/project/00-backlog-workflow.md
++++ b/docs/project/00-backlog-workflow.md
+@@ -1,3 +1,12 @@
++---
++type: "Planning"
++title: "Backlog workflow — claiming work, tracking status, keeping the queue truthful"
++description: "The canonical task queue is the GitHub Project board:"
++resource: "docs/project/00-backlog-workflow.md"
++tags: ["gallery-docs", "project"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Backlog workflow — claiming work, tracking status, keeping the queue truthful
+ 
+ The canonical task queue is the **GitHub Project board**:
+diff --git a/docs/project/BACKLOG_GOVERNANCE.md b/docs/project/BACKLOG_GOVERNANCE.md
+index 45bbbb9..c69ba36 100644
+--- a/docs/project/BACKLOG_GOVERNANCE.md
++++ b/docs/project/BACKLOG_GOVERNANCE.md
+@@ -1,3 +1,12 @@
++---
++type: "Planning"
++title: "Backlog governance (retired alias)"
++description: "The canonical task queue is the GitHub Project board:"
++resource: "docs/project/BACKLOG_GOVERNANCE.md"
++tags: ["gallery-docs", "project"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Backlog governance (retired alias)
+ 
+ The canonical task queue is the **GitHub Project board**:
+diff --git a/docs/project/INDEX.md b/docs/project/INDEX.md
+index 0e1c531..4f9e104 100644
+--- a/docs/project/INDEX.md
++++ b/docs/project/INDEX.md
+@@ -1,3 +1,12 @@
++---
++type: "Index"
++title: "Project planning — index"
++description: "See also: Documentation index"
++resource: "docs/project/INDEX.md"
++tags: ["gallery-docs", "index", "project"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Project planning — index
+ 
+ | Document | Description |
+diff --git a/docs/project/TODO.md b/docs/project/TODO.md
+index 8134128..8c1157e 100644
+--- a/docs/project/TODO.md
++++ b/docs/project/TODO.md
+@@ -1,3 +1,12 @@
++---
++type: "Backlog"
++title: "Project backlog (retired)"
++description: "The canonical task queue is the GitHub Project board:"
++resource: "docs/project/TODO.md"
++tags: ["backlog", "gallery-docs", "project"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Project backlog (retired)
+ 
+ The canonical task queue is the **GitHub Project board**:
+diff --git a/docs/reports/01-code-design-review-2026-03.md b/docs/reports/01-code-design-review-2026-03.md
+index 5898d55..063a27a 100644
+--- a/docs/reports/01-code-design-review-2026-03.md
++++ b/docs/reports/01-code-design-review-2026-03.md
+@@ -1,3 +1,12 @@
++---
++type: "Report"
++title: "Frontend Code & Design Review Report"
++description: "Date: 2026-03-02"
++resource: "docs/reports/01-code-design-review-2026-03.md"
++tags: ["gallery-docs", "reports"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Frontend Code & Design Review Report
+ ## image-scoring-gallery v3.24.1
+ 
+diff --git a/docs/reports/02-code-review-2026-02.md b/docs/reports/02-code-review-2026-02.md
+index b09d814..8951c24 100644
+--- a/docs/reports/02-code-review-2026-02.md
++++ b/docs/reports/02-code-review-2026-02.md
+@@ -1,3 +1,12 @@
++---
++type: "Report"
++title: "Code Review + Design Review (2026-02-09)"
++description: "Reviewed:"
++resource: "docs/reports/02-code-review-2026-02.md"
++tags: ["gallery-docs", "reports"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Code Review + Design Review (2026-02-09)
+ 
+ ## Scope and Method
+diff --git a/docs/reports/03-eslint-audit-2026-03.md b/docs/reports/03-eslint-audit-2026-03.md
+index cebdef4..bf994f6 100644
+--- a/docs/reports/03-eslint-audit-2026-03.md
++++ b/docs/reports/03-eslint-audit-2026-03.md
+@@ -1,3 +1,12 @@
++---
++type: "Report"
++title: "ESLint Audit Report"
++description: "Date: 2026-03-04"
++resource: "docs/reports/03-eslint-audit-2026-03.md"
++tags: ["gallery-docs", "reports"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # ESLint Audit Report
+ 
+ **Date:** 2026-03-04  
+diff --git a/docs/reports/04-ux-ui-review-2026-03.md b/docs/reports/04-ux-ui-review-2026-03.md
+index cdb2de8..5e55f74 100644
+--- a/docs/reports/04-ux-ui-review-2026-03.md
++++ b/docs/reports/04-ux-ui-review-2026-03.md
+@@ -1,3 +1,12 @@
++---
++type: "Report"
++title: "UX/UI Review — Driftara Gallery (2026-03)"
++description: "This review covers the primary desktop workflow:"
++resource: "docs/reports/04-ux-ui-review-2026-03.md"
++tags: ["gallery-docs", "reports"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # UX/UI Review — Driftara Gallery (2026-03)
+ 
+ ## Scope
+diff --git a/docs/reports/05-nef-raw-fallback-incident-2026-04-19.md b/docs/reports/05-nef-raw-fallback-incident-2026-04-19.md
+index 3af55a3..7225bb6 100644
+--- a/docs/reports/05-nef-raw-fallback-incident-2026-04-19.md
++++ b/docs/reports/05-nef-raw-fallback-incident-2026-04-19.md
+@@ -1,3 +1,12 @@
++---
++type: "Report"
++title: "NEF Extraction Tier-1 Failure Incident (2026-04-19)"
++description: "This note preserves the previous implementation-facing analysis that had been stored in docs/features/implemented/01-nef-raw-fallback.md."
++resource: "docs/reports/05-nef-raw-fallback-incident-2026-04-19.md"
++tags: ["gallery-docs", "reports"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # NEF Extraction Tier-1 Failure Incident (2026-04-19)
+ 
+ ## Incident Summary
+diff --git a/docs/reports/06-code-review-reveal-in-explorer-2026-05.md b/docs/reports/06-code-review-reveal-in-explorer-2026-05.md
+index 0e88186..6c84549 100644
+--- a/docs/reports/06-code-review-reveal-in-explorer-2026-05.md
++++ b/docs/reports/06-code-review-reveal-in-explorer-2026-05.md
+@@ -1,3 +1,12 @@
++---
++type: "Report"
++title: "Code Review — Reveal in Explorer + CullingInsightsPanel removal (2026-05-23)"
++description: "PR #93 (feat/culling-analytics, merged into main as e9893c2)."
++resource: "docs/reports/06-code-review-reveal-in-explorer-2026-05.md"
++tags: ["gallery-docs", "reports"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Code Review — Reveal in Explorer + CullingInsightsPanel removal (2026-05-23)
+ 
+ ## Scope
+diff --git a/docs/reports/07-pipeline-input-size-study-2026-05.md b/docs/reports/07-pipeline-input-size-study-2026-05.md
+index c9af9b8..bb49bce 100644
+--- a/docs/reports/07-pipeline-input-size-study-2026-05.md
++++ b/docs/reports/07-pipeline-input-size-study-2026-05.md
+@@ -1,3 +1,12 @@
++---
++type: "Report"
++title: "Pipeline input-size study — gallery cross-reference (May 2026)"
++description: "Purpose: Record how the sibling image-scoring-backend pipeline-wide input-size research affects Driftara Gallery display quality, stacks/culling UX, and when gallery code might nee"
++resource: "docs/reports/07-pipeline-input-size-study-2026-05.md"
++tags: ["gallery-docs", "reports"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Pipeline input-size study — gallery cross-reference (May 2026)
+ 
+ **Purpose:** Record how the sibling **image-scoring-backend** pipeline-wide input-size research affects Driftara Gallery display quality, stacks/culling UX, and when gallery code might need coordinated changes.
+diff --git a/docs/reports/DEAD_CODE_REGISTRY.md b/docs/reports/DEAD_CODE_REGISTRY.md
+index 818dce4..bb6ebd3 100644
+--- a/docs/reports/DEAD_CODE_REGISTRY.md
++++ b/docs/reports/DEAD_CODE_REGISTRY.md
+@@ -1,3 +1,12 @@
++---
++type: "Report"
++title: "Dead Code Registry (gallery)"
++description: "Chronological record of confirmed orphan/dead code removed from image-scoring-gallery. Backend removals: image-scoring-backend/docs/reports/DEADCODEREGISTRY.md."
++resource: "docs/reports/DEAD_CODE_REGISTRY.md"
++tags: ["gallery-docs", "reports"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Dead Code Registry (gallery)
+ 
+ Chronological record of confirmed orphan/dead code removed from **image-scoring-gallery**. Backend removals: [image-scoring-backend/docs/reports/DEAD_CODE_REGISTRY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/DEAD_CODE_REGISTRY.md).
+diff --git a/docs/reports/README.md b/docs/reports/README.md
+index 1e78dda..258b564 100644
+--- a/docs/reports/README.md
++++ b/docs/reports/README.md
+@@ -1,3 +1,12 @@
++---
++type: "Index"
++title: "Reports"
++description: "Code reviews, design audits, and quality assessments."
++resource: "docs/reports/README.md"
++tags: ["gallery-docs", "index", "reports"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Reports
+ 
+ Code reviews, design audits, and quality assessments.
+diff --git a/docs/specs/agent-assisted-cull-review/worklog.md b/docs/specs/agent-assisted-cull-review/worklog.md
+index eeb8a83..25b785d 100644
+--- a/docs/specs/agent-assisted-cull-review/worklog.md
++++ b/docs/specs/agent-assisted-cull-review/worklog.md
+@@ -1,3 +1,12 @@
++---
++type: "Log"
++title: "Agent-assisted cull review — gallery worklog"
++description: "Gallery/Electron side of the agent-assisted cull review feature. Backend spec & worklog:"
++resource: "docs/specs/agent-assisted-cull-review/worklog.md"
++tags: ["agent-assisted-cull-review", "gallery-docs", "specs"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Agent-assisted cull review — gallery worklog
+ 
+ Gallery/Electron side of the agent-assisted cull review feature. Backend spec & worklog:
+diff --git a/docs/technical/AGENT_COORDINATION.md b/docs/technical/AGENT_COORDINATION.md
+index 141efb5..4485366 100644
+--- a/docs/technical/AGENT_COORDINATION.md
++++ b/docs/technical/AGENT_COORDINATION.md
+@@ -1,3 +1,12 @@
++---
++type: "Technical Reference"
++title: "Agent Coordination (stub)"
++description: "Cross-project integration rules for image-scoring-gallery ↔ image-scoring-backend are maintained in a single canonical document in the backend repo:"
++resource: "docs/technical/AGENT_COORDINATION.md"
++tags: ["gallery-docs", "technical"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Agent Coordination (stub)
+ 
+ Cross-project integration rules for **image-scoring-gallery** ↔ **image-scoring-backend** are maintained in a **single canonical document** in the backend repo:
+diff --git a/docs/technical/DATABASE_REFACTOR_ANALYSIS.md b/docs/technical/DATABASE_REFACTOR_ANALYSIS.md
+index c757006..c831438 100644
+--- a/docs/technical/DATABASE_REFACTOR_ANALYSIS.md
++++ b/docs/technical/DATABASE_REFACTOR_ANALYSIS.md
+@@ -1,3 +1,12 @@
++---
++type: "Technical Reference"
++title: "Database Refactor Compatibility Analysis"
++description: "This document analyzes the impact of the proposed DBVECTORSREFACTOR.md on the image-scoring-gallery (Electron) application."
++resource: "docs/technical/DATABASE_REFACTOR_ANALYSIS.md"
++tags: ["gallery-docs", "technical"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Database Refactor Compatibility Analysis
+ 
+ ## Overview
+diff --git a/docs/technical/EMBEDDING_SPACES.md b/docs/technical/EMBEDDING_SPACES.md
+index bb19739..b7c702a 100644
+--- a/docs/technical/EMBEDDING_SPACES.md
++++ b/docs/technical/EMBEDDING_SPACES.md
+@@ -1,3 +1,12 @@
++---
++type: "Technical Reference"
++title: "Embedding spaces (gallery reference)"
++description: "Gallery-facing map of which backend embedding spaces exist, which the desktop app reads today, and which are backend-only opt-in towers — so agents do not assume DINOv2, SigLIP2, o"
++resource: "docs/technical/EMBEDDING_SPACES.md"
++tags: ["gallery-docs", "technical"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Embedding spaces (gallery reference)
+ 
+ Gallery-facing map of **which backend embedding spaces exist**, **which the desktop app reads today**, and **which are backend-only opt-in towers** — so agents do not assume DINOv2, SigLIP2, or OpenAI CLIP L/14 are in the production path.
+diff --git a/docs/technical/EXTERNAL_CLI_REVIEWS.md b/docs/technical/EXTERNAL_CLI_REVIEWS.md
+index 4cfd57e..2c15455 100644
+--- a/docs/technical/EXTERNAL_CLI_REVIEWS.md
++++ b/docs/technical/EXTERNAL_CLI_REVIEWS.md
+@@ -1,3 +1,12 @@
++---
++type: "Technical Reference"
++title: "External CLI reviews (subagent-orchestrator)"
++description: "Optional review-only second opinions from Codex or Gemini CLI for this gallery workspace."
++resource: "docs/technical/EXTERNAL_CLI_REVIEWS.md"
++tags: ["gallery-docs", "technical"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # External CLI reviews (subagent-orchestrator)
+ 
+ Optional **review-only** second opinions from **Codex** or **Gemini CLI** for this gallery workspace.
+diff --git a/docs/technical/OPENAPI_CONTRACT.md b/docs/technical/OPENAPI_CONTRACT.md
+index 3e449e0..559083d 100644
+--- a/docs/technical/OPENAPI_CONTRACT.md
++++ b/docs/technical/OPENAPI_CONTRACT.md
+@@ -1,3 +1,12 @@
++---
++type: "Technical Reference"
++title: "OpenAPI Contract (Gallery Consumer)"
++description: "Driftara Gallery does not define its own REST OpenAPI spec. The canonical contract is owned by image-scoring-backend:"
++resource: "docs/technical/OPENAPI_CONTRACT.md"
++tags: ["gallery-docs", "technical"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # OpenAPI Contract (Gallery Consumer)
+ 
+ Driftara Gallery does **not** define its own REST OpenAPI spec. The canonical contract is owned by **image-scoring-backend**:
+diff --git a/docs/technical/PIPELINE_TERMINOLOGY.md b/docs/technical/PIPELINE_TERMINOLOGY.md
+index 7e87441..0fa0871 100644
+--- a/docs/technical/PIPELINE_TERMINOLOGY.md
++++ b/docs/technical/PIPELINE_TERMINOLOGY.md
+@@ -1,3 +1,12 @@
++---
++type: "Technical Reference"
++title: "Pipeline terminology (Electron gallery)"
++description: "This app mirrors the canonical stage names defined in image-scoring-backend so labels match the Gradio Pipeline tab and the backend Vite SPA (/ui/)."
++resource: "docs/technical/PIPELINE_TERMINOLOGY.md"
++tags: ["gallery-docs", "technical"]
++timestamp: 2026-06-16T00:00:00Z
++---
++
+ # Pipeline terminology (Electron gallery)
+ 
+ This app mirrors the **canonical stage names** defined in **image-scoring-backend** so labels match the Gradio Pipeline tab and the backend Vite SPA (`/ui/`).

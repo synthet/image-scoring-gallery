@@ -1,0 +1,108 @@
+diff --git a/docs/README.md b/docs/README.md
+index 0ac103c..d2fade0 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -18,22 +18,25 @@ The backend owns REST API contracts, database schema, and pipeline phase termino
+ 
+ ## Architecture
+ 
++- [architecture/README.md](architecture/README.md) - architecture section index.
+ - [architecture/01-system-overview.md](architecture/01-system-overview.md) - Electron main/renderer/preload responsibilities, API mode, PostgreSQL mode, `media://`, and RAW/NEF preview flow.
+ - [architecture/02-database-design.md](architecture/02-database-design.md) - PostgreSQL/API connector modes and Firebird historical notes.
+ - [architecture/import-discovery-alignment.md](architecture/import-discovery-alignment.md) - gallery Import vs backend Discovery alignment.
++- [architecture/backup-feature.md](architecture/backup-feature.md) - Backup/import alignment with backend.
+ - [technical/PIPELINE_TERMINOLOGY.md](technical/PIPELINE_TERMINOLOGY.md) - local mirror of backend stage labels and renderer constants.
+ - [design/FRONTEND_UX_SPEC.md](design/FRONTEND_UX_SPEC.md) - frontend visual design and UI specifications.
+ - [design/DESIGN_SYSTEM.md](design/DESIGN_SYSTEM.md) - local design system conventions and token mapping.
+ 
+ ## Features
+ 
+-- [features/implemented/INDEX.md](features/implemented/INDEX.md) - shipped desktop feature catalog.
++- [features/implemented/INDEX.md](features/implemented/INDEX.md) - shipped desktop feature catalog ([README](features/implemented/README.md)).
+ - [features/implemented/01-nef-raw-fallback.md](features/implemented/01-nef-raw-fallback.md) - RAW/NEF preview fallback.
+ - [features/implemented/02-desktop-shell-and-navigation.md](features/implemented/02-desktop-shell-and-navigation.md) - shell, modes, and navigation.
+ - [features/implemented/03-database-engine-modes.md](features/implemented/03-database-engine-modes.md) - PostgreSQL/API DB modes.
+ - [features/implemented/04-backend-api-jobs.md](features/implemented/04-backend-api-jobs.md) - backend job API integration.
+ - [features/implemented/05-jpeg-export-exif-orientation.md](features/implemented/05-jpeg-export-exif-orientation.md) - JPEG export and EXIF orientation behavior.
+ - [features/implemented/06-sync-from-device-workflow.md](features/implemented/06-sync-from-device-workflow.md) - device sync workflow and backend phase scheduling.
++- [features/implemented/06-culling-stack-analytics.md](features/implemented/06-culling-stack-analytics.md) - culling insights sidebar and stack analytics banner.
+ - [features/planned/README.md](features/planned/README.md) - planned desktop work.
+ 
+ ## Guides
+@@ -49,6 +52,8 @@ The backend owns REST API contracts, database schema, and pipeline phase termino
+ - [integration/TODO.md](integration/TODO.md) - API/WebSocket backlog split by backend-owned contract tasks and gallery implementation tasks.
+ - [technical/AGENT_COORDINATION.md](technical/AGENT_COORDINATION.md) - local pointer to backend canonical coordination.
+ - [technical/OPENAPI_CONTRACT.md](technical/OPENAPI_CONTRACT.md) - gallery consumer checklist for backend OpenAPI sync and type generation.
++- [technical/DATABASE_REFACTOR_ANALYSIS.md](technical/DATABASE_REFACTOR_ANALYSIS.md) - analysis of backend `modules/db.py` decomposition (pointer).
++- [technical/EXTERNAL_CLI_REVIEWS.md](technical/EXTERNAL_CLI_REVIEWS.md) - Codex/Gemini review via subagent-orchestrator MCP.
+ - [api-contract/](../api-contract/) - synced API contract snapshot (`openapi.json` from backend).
+ 
+ ## Planning
+diff --git a/docs/features/planned/embeddings/README.md b/docs/features/planned/embeddings/README.md
+index 6fbbccc..60e9669 100644
+--- a/docs/features/planned/embeddings/README.md
++++ b/docs/features/planned/embeddings/README.md
+@@ -18,6 +18,6 @@ This folder holds **one idea per file** for **Electron / React / IPC / UX** only
+ - [07 - More Like This UI](07-more-like-this-ui.md) — **Implemented**
+ - [08 - Gradio Integration](08-gradio-integration.md) — **In progress** (WebSocket / IPC bridge)
+ 
+-[TODO.md](TODO.md) — embedding UI slice only (sync with root [`TODO.md`](../../../TODO.md)).
++[TODO.md](TODO.md) — embedding UI slice only (sync with root [`TODO.md`](../../../../TODO.md)).
+ 
+ [← Back to Planned Features](../README.md)
+diff --git a/docs/log.md b/docs/log.md
+index edf5dd7..2927c5e 100644
+--- a/docs/log.md
++++ b/docs/log.md
+@@ -2,6 +2,12 @@
+ 
+ Chronological record of wiki maintenance activities. Newest entries first.
+ 
++## 2026-06
++
++- 2026-06-05: lint-fixed — Housekeeping wiki pass: deduped `reports/gallery-visual-review/` PNGs (kept `01-*` set), removed generated lighthouse dumps; G4 branch carries index/README fixes from pre-split stash. Visual review artifacts ship on `housekeeping/g5-visual-review` (Closes #123).
++- 2026-06-03: lint-fixed — Second `/wiki-lint` pass (re-scan): structurally clean — 0 broken index entries, 0 orphans, 0 zero-inbound pages. Only finding is a cross-repo link to a third repo (`image-scoring-ui`) in [design/DESIGN_SYSTEM.md](design/DESIGN_SYSTEM.md); left as-is (resolves only when that repo is a sibling). No changes needed.
++- 2026-06-03: lint-fixed — Full `/wiki-lint`: fixed `TODO.md` links in [planning/README.md](planning/README.md) and [features/planned/embeddings/README.md](features/planned/embeddings/README.md); indexed backup, culling analytics, planning, reports, and technical pages in [README.md](README.md); added historical banner to [reports/01-code-design-review-2026-03.md](reports/01-code-design-review-2026-03.md); updated [planning/README.md](planning/README.md), [reports/README.md](reports/README.md).
++
+ ## 2026-05
+ 
+ - 2026-05-31: updated — OpenAPI contract sync: refreshed [api-contract/openapi.json](../api-contract/openapi.json) and [electron/api.generated.ts](../electron/api.generated.ts) from sibling backend; added [technical/OPENAPI_CONTRACT.md](technical/OPENAPI_CONTRACT.md); [CANONICAL_SOURCES.md](CANONICAL_SOURCES.md) lists snapshot + backend cross-project doc.
+diff --git a/docs/planning/README.md b/docs/planning/README.md
+index 5d47ee4..965b46e 100644
+--- a/docs/planning/README.md
++++ b/docs/planning/README.md
+@@ -8,7 +8,9 @@ Roadmap, migration plans, and task tracking.
+ - [02 - Firebird to PostgreSQL Migration](02-firebird-postgresql-migration.md) - Completed coordinated migration (reference)
+ - [03 - High-impact tracked tasks (EIS)](03-high-impact-tracked-tasks.md) - Auditable initiatives
+ - [04 - Gradio to Electron Processing Migration](04-gradio-to-electron-processing-migration.md) - Processing workspace delivery phases
++- [Gallery visual improvements](GALLERY_VISUAL_IMPROVEMENTS.md) - UI polish and layout backlog
++- [DB abstraction layer](db_abstraction_layer.md) - Electron DB provider refactor notes
+ 
+ [← Back to Documentation Index](../README.md)
+ 
+-Roadmap status in this folder should be reconciled weekly and after any major completion-status change in the root [`TODO.md`](../TODO.md). Follow [`../project/00-backlog-workflow.md`](../project/00-backlog-workflow.md).
++Roadmap status in this folder should be reconciled weekly and after any major completion-status change in the root [`TODO.md`](../../TODO.md) (mirror: [`project/TODO.md`](../project/TODO.md)). Follow [`../project/00-backlog-workflow.md`](../project/00-backlog-workflow.md).
+diff --git a/docs/reports/01-code-design-review-2026-03.md b/docs/reports/01-code-design-review-2026-03.md
+index 1300113..5898d55 100644
+--- a/docs/reports/01-code-design-review-2026-03.md
++++ b/docs/reports/01-code-design-review-2026-03.md
+@@ -3,6 +3,8 @@
+ 
+ **Date:** 2026-03-02
+ 
++> **Snapshot as of 2026-03-02.** Sections below describe Firebird/`node-firebird` as the active database path. Production gallery uses PostgreSQL or backend API SQL via [`electron/db/provider.ts`](../../electron/db/provider.ts); see [03-database-engine-modes.md](../features/implemented/03-database-engine-modes.md) and [architecture/02-database-design.md](../architecture/02-database-design.md).
++
+ ---
+ 
+ ## Executive Summary
+diff --git a/docs/reports/README.md b/docs/reports/README.md
+index 8264915..019a7ff 100644
+--- a/docs/reports/README.md
++++ b/docs/reports/README.md
+@@ -7,5 +7,6 @@ Code reviews, design audits, and quality assessments.
+ - [03 - ESLint Audit (Mar 2026)](03-eslint-audit-2026-03.md) - Code quality status and linting recommendations
+ - [04 - UX/UI Review (Mar 2026)](04-ux-ui-review-2026-03.md) - Heuristic usability review with prioritized recommendations
+ - [05 - NEF Tier-1 Failure Incident (Apr 2026)](05-nef-raw-fallback-incident-2026-04-19.md) - Dated incident snapshot preserved from feature doc
++- [06 - Reveal in Explorer review (May 2026)](06-code-review-reveal-in-explorer-2026-05.md) - Code review snapshot for explorer integration
+ 
+ [← Back to Documentation Index](../README.md)

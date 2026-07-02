@@ -4,6 +4,13 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.23.1] - 2026-07-01
+
+### Changed
+
+- **Agent SDLC**: Align `/pr-ready` and `/spec` slash commands with framework patterns; add `validate-implementation`, `mcp-server-design`, and `threat-modeling-agentic-tools` skills; refresh AGENTS and skill inventory.
+- **Docs**: AI workflow hub (`docs/ai-workflow/`), branch docs salvage report, and wiki index cross-links.
+
 ## [7.23.0] - 2026-07-01
 
 ### Changed
