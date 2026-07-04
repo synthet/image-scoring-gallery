@@ -4,6 +4,12 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.23.2] - 2026-07-03
+
+### Changed
+
+- **Agent CLI skills hub**: Migrate legacy `skills/` markdown to `.cursor/skills/agent-cli-hub/` tree with `validate_cli_hub_skills.py`; consolidate agent tooling guidance and refresh AGENTS inventory.
+
 ## [7.23.1] - 2026-07-01
 
 ### Changed
