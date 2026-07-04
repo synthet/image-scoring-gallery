@@ -21,6 +21,8 @@ Maintain practical agent skills for lightweight CLI tools on Windows, WSL2, and 
 Shared references under `agent-cli-hub/references/`:
 
 - `install-blocks.md`
+- `install-tiers.md`
+- `agent-environment.md`
 - `bounded-output-patterns.md`
 - `commands-requiring-confirmation.md`
 - `windows-wsl-split.md`

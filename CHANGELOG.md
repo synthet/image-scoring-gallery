@@ -4,6 +4,21 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.24.0] - 2026-07-04
+
+### Added
+
+- **Reveal in Explorer (image)**: Right-click an image in the grid to reveal its file (including NEF) in the system file manager. File menu continues to reveal the selected sidebar folder; WSL/hybrid paths are normalized before opening Explorer.
+
+### Changed
+
+- **Agent CLI skills hub**: Install tiers and agent-environment references; fff MCP example in `mcp.example.json`; refresh search and code-intelligence skill guidance.
+
+### Fixed
+
+- **Similar search threshold**: Slider and numeric input now share one clamped value so the control stays in sync while dragging.
+- **Range slider styling**: Consistent track appearance in WebKit and Firefox for similarity controls.
+
 ## [7.23.2] - 2026-07-03
 
 ### Changed

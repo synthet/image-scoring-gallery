@@ -53,7 +53,7 @@ Never paste full `config.json` if it may contain credentials — redact connecti
 
 ## fff MCP (when connected)
 
-When user-level **fff** MCP is connected, prefer `ffgrep` / `fffind` / `fff-multi-grep` for repeated repo search instead of unbounded shell grep loops. Still cap what you paste into agent responses.
+When **project** **`fff-gallery`** MCP is connected (see [AGENTS.md § fff](../../../../AGENTS.md)), prefer `ffgrep` / `fffind` / `fff-multi-grep` for repeated repo search instead of unbounded shell grep loops. Still cap what you paste into agent responses.
 
 ## Dry-run / check modes
 

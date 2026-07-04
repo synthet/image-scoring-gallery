@@ -1,6 +1,7 @@
-import { BrowserWindow, Menu, dialog, shell } from 'electron';
+import { BrowserWindow, Menu, dialog } from 'electron';
 import type { SyncGuards } from './main.handlers';
 import type { ExportImageContext } from './types';
+import { revealInExplorer } from './revealInExplorer';
 
 export type ApplicationMenuDeps = {
     getMainWindow: () => BrowserWindow | null;
@@ -102,7 +103,11 @@ export function createApplicationMenu(deps: ApplicationMenuDeps): { rebuildAppli
                         click: () => {
                             const pathToReveal = currentSelectionPath || currentExportImageContext?.sourcePath;
                             if (pathToReveal) {
-                                shell.showItemInFolder(pathToReveal);
+                                try {
+                                    revealInExplorer(pathToReveal);
+                                } catch (e: unknown) {
+                                    console.error('[Main] Reveal in Explorer failed:', e);
+                                }
                             }
                         },
                     },

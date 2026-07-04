@@ -31,7 +31,7 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | validate-implementation | `.cursor/skills/validate-implementation/SKILL.md` | Per-AC Verified/Failed/Unknown gate before /pr-ready | L1 | — | 2026-07-01 |
 | threat-modeling-agentic-tools | `.cursor/skills/threat-modeling-agentic-tools/SKILL.md` | MCP/hook/prompt-injection threat modeling | L1 | — | 2026-07-01 |
 | mcp-server-design | `.cursor/skills/mcp-server-design/SKILL.md` | Safe MCP server design for `mcp-server/` | L1 | — | 2026-07-01 |
-| agent-cli-hub | `.cursor/skills/agent-cli-hub/SKILL.md` | CLI skill router; install/safety/bounded-output references | L1 | — | 2026-07-03 |
+| agent-cli-hub | `.cursor/skills/agent-cli-hub/SKILL.md` | CLI skill router; install tiers, agent-environment, shared references | L1 | — | 2026-07-04 |
 | agent-search | `.cursor/skills/agent-search/SKILL.md` | rg/grep/ast-grep/fd tool selection + bounded search | L1 | — | 2026-07-03 |
 | agent-git-workflows | `.cursor/skills/agent-git-workflows/SKILL.md` | git/gh safe status, diff, PR workflows | L2 | — | 2026-07-03 |
 | agent-data-config | `.cursor/skills/agent-data-config/SKILL.md` | jq/yq/curl config and API inspection | L1 | — | 2026-07-03 |

@@ -18,12 +18,16 @@ okf_version: 0.1
 | Cursor skills | `.cursor/skills/*/SKILL.md` | **Canonical** authoring source |
 | Cursor subagents | `.cursor/agents/*.md` | **Canonical** authoring source |
 | Cursor rules | `.cursor/rules/*.mdc` | Always-on or glob-scoped guidance |
-| Claude mirror | `.claude/{commands,skills,agents,rules}` | **Partial** mirror for harness-visible assets |
+| Claude mirror | `.claude/{commands,skills,agents,rules}` | **Generated** from `.cursor/` — run `python scripts/sync_assistant_trees.py` |
 | MCP template | `.cursor/mcp.example.json` | Copy to gitignored `.cursor/mcp.json` |
 | Agent governance | `.agent/` | Safety, inventory, subagent role matrix, workflow playbooks |
+| Project memory | `.agent-memory/` | log → dream → promote (scripts in sibling backend — see `CURSOR_USAGE.md`) |
 | Workflow playbooks | `.agent/workflows/*.md` | Electron dev, IPC, backend connection, … |
 
-**Canonical tree:** **`.cursor/`** for gallery agent assets. Generic patterns upstream: [synthet-code-framework](https://github.com/synthet/synthet-code-framework); domain fork with backend coordination — see [backend docs/ai-workflow/README.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/ai-workflow/README.md).
+**Single source of truth:** edit assets under **`.cursor/`** + **`.agent/`**, then run
+`python scripts/sync_assistant_trees.py` to regenerate the `.claude/` mirror.
+
+**Upstream:** [synthet-code-framework](https://github.com/synthet/synthet-code-framework); domain fork — see [backend framework-adoption-port-manifest](https://github.com/synthet/image-scoring-backend/blob/main/docs/raw/framework-adoption-port-manifest.md) and [backend docs/ai-workflow/README.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/ai-workflow/README.md).
 
 ### Skill clusters
 
@@ -35,7 +39,18 @@ okf_version: 0.1
 
 Start generic CLI work at **`agent-cli-hub`**.
 
-**Upstream:** [synthet-code-framework](https://github.com/synthet/synthet-code-framework) ships a **flat 13-skill** CLI layout (`.claude/skills/`); this gallery uses the **consolidated hub** (7 skills). Cherry-pick content from framework; do not replace the hub layout blindly. Validate hub skills: `python scripts/validate_cli_hub_skills.py` — see [`.agent/cli-tools-skills-spec.md`](../../.agent/cli-tools-skills-spec.md).
+Validate hub skills: `python scripts/validate_cli_hub_skills.py` — see [`.agent/cli-tools-skills-spec.md`](../../.agent/cli-tools-skills-spec.md).
+
+## Framework alignment
+
+Cursor-first + 7-skill CLI hub (approved fork). CI: [`.github/workflows/agent-infra.yml`](../../.github/workflows/agent-infra.yml).
+
+```bash
+python scripts/sync_assistant_trees.py --check
+python scripts/validate_cli_hub_skills.py
+python scripts/ci/check_agent_frontmatter.py
+python scripts/ci/check_secrets.py
+```
 
 ## The SDLC loop
 
@@ -57,6 +72,7 @@ Start generic CLI work at **`agent-cli-hub`**.
 - **Backlog first:** [backlog contract](project/00-backlog-workflow.md) (`/task-claim`).
 - **Review:** `/check-subagents` + `/run-codex-review` / `/run-gemini-review` for external second opinions.
 - **Docs:** `/wiki-ingest`, `/wiki-lint`, `/wiki-query` (see [WIKI_SCHEMA](WIKI_SCHEMA.md)).
+- **Memory:** `/log-session` → `/dream-memory` → `/promote-memory` → `/memory-context` (scripts in sibling backend).
 
 ## Safety
 

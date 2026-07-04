@@ -22,14 +22,10 @@ interface FolderRow {
 
 export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolderId, onSelectImage, onJumpToImageFolder }: SimilarSearchDrawerProps) {
     const [folderPathById, setFolderPathById] = useState<string | undefined>(undefined);
-    const [minSimilarityInput, setMinSimilarityInput] = useState('0.80');
+    const [minSimilarity, setMinSimilarity] = useState(0.8);
     const [limitToCurrentFolder, setLimitToCurrentFolder] = useState(false);
 
-    const minSimilarity = useMemo(() => {
-        const parsed = Number(minSimilarityInput);
-        if (!Number.isFinite(parsed)) return 0.8;
-        return Math.min(1, Math.max(0, parsed));
-    }, [minSimilarityInput]);
+    const clampSimilarity = (value: number) => Math.min(1, Math.max(0, value));
 
     useEffect(() => {
         let isMounted = true;
@@ -136,7 +132,7 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
                             max={1}
                             step={0.01}
                             value={minSimilarity}
-                            onChange={(e) => setMinSimilarityInput(e.currentTarget.value)}
+                            onChange={(e) => setMinSimilarity(clampSimilarity(Number(e.currentTarget.value)))}
                             style={{ flex: 1 }}
                             aria-label="Minimum Similarity Threshold Slider"
                         />
@@ -145,8 +141,13 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
                             min={0}
                             max={1}
                             step={0.01}
-                            value={minSimilarityInput}
-                            onChange={(e) => setMinSimilarityInput(e.currentTarget.value)}
+                            value={minSimilarity}
+                            onChange={(e) => {
+                                const parsed = Number(e.currentTarget.value);
+                                if (Number.isFinite(parsed)) {
+                                    setMinSimilarity(clampSimilarity(parsed));
+                                }
+                            }}
                             aria-label="Minimum Similarity Threshold Value"
                             style={{
                                 width: 60,

@@ -11,6 +11,16 @@ vi.mock('../../services/Logger', () => ({
     Logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
+const { revealInExplorerMock } = vi.hoisted(() => ({
+    revealInExplorerMock: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock('../../bridge', () => ({
+    bridge: {
+        revealInExplorer: revealInExplorerMock,
+    },
+}));
+
 type VirtuosoGridMockProps = {
     totalCount?: number;
     itemContent?: (index: number) => ReactNode;
@@ -181,5 +191,40 @@ describe('GalleryGrid agent cull overlays', () => {
     it('renders no agent overlay when there is no recommendation for the image', () => {
         render(<GalleryGrid images={[img]} activeStackId={123} agentRecommendations={new Map()} />);
         expect(screen.queryByTestId('agent-grid-badge-100')).toBeNull();
+    });
+});
+
+describe('GalleryGrid reveal in explorer', () => {
+    const nefImage = {
+        id: 42,
+        file_path: '/mnt/d/Photos/DSC_0001.NEF',
+        win_path: 'D:/Photos/DSC_0001.NEF',
+        file_name: 'DSC_0001.NEF',
+        thumbnail_path: 'D:/photos/thumbs/DSC_0001.jpg',
+        score_general: 0.8,
+        rating: 0,
+        label: null,
+    };
+
+    beforeEach(() => {
+        revealInExplorerMock.mockClear();
+        Object.defineProperty(window, 'electron', {
+            value: {},
+            configurable: true,
+            writable: true,
+        });
+    });
+
+    it('reveals the image file path from the context menu', () => {
+        render(<GalleryGrid images={[nefImage]} />);
+
+        const card = document.querySelector('[data-image-id="42"]');
+        expect(card).toBeTruthy();
+        fireEvent.contextMenu(card!);
+
+        const revealBtn = screen.getByRole('button', { name: 'Reveal in Explorer' });
+        fireEvent.click(revealBtn);
+
+        expect(revealInExplorerMock).toHaveBeenCalledWith('D:/Photos/DSC_0001.NEF');
     });
 });

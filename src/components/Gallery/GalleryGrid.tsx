@@ -4,6 +4,8 @@ import { Logger } from '../../services/Logger';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
 import styles from './GalleryGrid.module.css';
 import { toMediaUrl } from '../../utils/mediaUrl';
+import { pickServerFilesystemPath } from '../../utils/pickServerFilesystemPath';
+import { bridge } from '../../bridge';
 import type { AgentCullRecommendation } from '../../types/agentCullReview';
 import {
     agentRecommendationBadge,
@@ -35,6 +37,7 @@ interface Image {
     id: number;
     file_path: string;
     file_name: string;
+    win_path?: string;
     thumbnail_path?: string;
     score_general: number;
     score_technical?: number;
@@ -202,6 +205,17 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
             y: e.clientY,
             image: img
         });
+    }, []);
+
+    const handleRevealInExplorer = useCallback((img: Image) => {
+        const path = pickServerFilesystemPath(img.file_path, img.win_path);
+        if (!path) {
+            return;
+        }
+        void bridge.revealInExplorer(path).catch((err: unknown) => {
+            console.error('[GalleryGrid] revealInExplorer failed:', err);
+        });
+        setContextMenu(null);
     }, []);
 
     const gridComponents = useMemo(() => ({
@@ -557,6 +571,14 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                     >
                         Find Similar Images
                     </button>
+                    {typeof window !== 'undefined' && window.electron && (
+                        <button
+                            className={styles.contextMenuItem}
+                            onClick={() => handleRevealInExplorer(contextMenu.image)}
+                        >
+                            Reveal in Explorer
+                        </button>
+                    )}
                     {contextMenu.image.stack_id && !contextMenu.image.is_sub_stack_card && (
                         <button
                             className={styles.contextMenuItem}

@@ -22,6 +22,8 @@ HUB_SKILLS = [
 
 HUB_REFERENCES = [
     "install-blocks.md",
+    "install-tiers.md",
+    "agent-environment.md",
     "bounded-output-patterns.md",
     "commands-requiring-confirmation.md",
     "windows-wsl-split.md",

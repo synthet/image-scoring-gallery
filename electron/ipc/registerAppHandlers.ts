@@ -1,5 +1,6 @@
 import type { IpcMain } from 'electron';
 import type { ExportImageContext } from '../types';
+import { revealInExplorer } from '../revealInExplorer';
 import { wrapIpcHandler } from './wrapIpcHandler';
 
 export type AppHandlersDeps = {
@@ -38,4 +39,15 @@ export function registerAppHandlers(deps: AppHandlersDeps): void {
         rebuildApplicationMenu();
         return true;
     });
+
+    ipcMain.handle(
+        'app:reveal-in-explorer',
+        wrapIpcHandler(async (_, filePath: unknown) => {
+            if (typeof filePath !== 'string' || !filePath.trim()) {
+                throw new Error('filePath must be a non-empty string');
+            }
+            revealInExplorer(filePath);
+            return true;
+        }),
+    );
 }

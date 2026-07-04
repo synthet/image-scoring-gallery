@@ -42,11 +42,18 @@ input[type="range"] {
   accent-color: #007acc;
   cursor: pointer;
   height: 6px;
-  border-radius: 3px;
-  background: #444;
+  width: 100%;
+  background: transparent;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 3px;
+  background: #444;
+}
+
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #444;
 }

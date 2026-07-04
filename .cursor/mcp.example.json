@@ -1,9 +1,17 @@
 {
   "_comment": "Copy to .cursor/mcp.json (gitignored). Uses workspaceFolder:image-scoring-gallery for multi-root workspaces. Build: cd mcp-server && npm install && npm run build:registry.",
+  "_comment_fff": "Optional fff file search — project-level only (needs repo cwd). Install: irm https://raw.githubusercontent.com/dmtrKovalenko/fff/main/install-mcp.ps1 | iex. See AGENTS.md § fff.",
   "mcpServers": {
     "is-ui-mcp": {
       "command": "node",
       "args": ["mcp-server/dist/compactIndex.js"],
+      "cwd": "${workspaceFolder:image-scoring-gallery}"
+    }
+  },
+  "_fff_gallery_example": {
+    "fff-gallery": {
+      "command": "fff-mcp",
+      "args": ["${workspaceFolder:image-scoring-gallery}"],
       "cwd": "${workspaceFolder:image-scoring-gallery}"
     }
   }

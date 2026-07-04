@@ -20,7 +20,7 @@ Project-local configuration for Cursor IDE agents. **Authority:** [AGENTS.md](..
 
 Backend pipeline triage: sibling **image-scoring-backend** workspace with **`is-be-mcp`**.
 
-User **`~/.cursor/mcp.json`**: **`github`**, **`subagent-orchestrator`**, optional **`fff`** (file search), etc. — see [`mcp.user.example.json`](mcp.user.example.json).
+User **`~/.cursor/mcp.json`**: **`github`**, **`subagent-orchestrator`**, etc. — see [`mcp.user.example.json`](mcp.user.example.json). Optional **`fff-gallery`** is **project-level** in `.cursor/mcp.json` — see [AGENTS.md § fff](../AGENTS.md).
 
 ## Also use
 

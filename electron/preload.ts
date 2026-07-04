@@ -213,6 +213,10 @@ contextBridge.exposeInMainWorld('electron', {
     setSelectionPath: async (filePath: string | null) => {
         return ipcRenderer.invoke('app:set-selection-path', filePath);
     },
+    revealInExplorer: async (filePath: string) => {
+        const response = await ipcRenderer.invoke('app:reveal-in-explorer', filePath);
+        return unwrapEnvelope<boolean>(response);
+    },
     readExif: async (filePath: string) => {
         const response = await ipcRenderer.invoke('nef:read-exif', filePath);
         return unwrapEnvelope<Record<string, unknown>>(response);
