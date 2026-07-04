@@ -39,7 +39,7 @@ If a change requires backend DDL or API changes, **say so explicitly** and treat
 
 ## Optional tooling
 
-When a running backend helps, the gallery MCP **`is-ui-local`** / **`is-ui-api`** expose `gallery_status` and FastAPI `api_*` probes; **`is-ui-live`** provides Electron `cdp_*` when CDP is enabled. For deeper backend triage, use sibling **`is-be-mcp`** or **`gallery-mcp-debug`**.
+When debugging integration with a running backend, **`is-ui-local`** exposes `gallery_status`; use **`is-ui-api`** for `api_*`. For Electron/CDP use **`is-ui-live`** (`npm run dev`); for backend DB/jobs use sibling **`is-be-mcp`** (`search` → `dispatch`).
 
 ## Backlog hygiene
 

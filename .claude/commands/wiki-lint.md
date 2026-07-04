@@ -1,5 +1,3 @@
-> **Claude Code:** Same intent as Cursor `/wiki-lint`. When customizing, keep in sync with `.cursor/commands/wiki-lint.md`.
-
 # /wiki-lint — Health-check the docs wiki
 
 Use for periodic maintenance or when docs feel stale or disorganized. Finds structural issues and optionally fixes them.

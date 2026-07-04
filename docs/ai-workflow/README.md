@@ -76,4 +76,4 @@ python scripts/ci/check_secrets.py
 
 ## Safety
 
-All of the above operate under [`.agent/SAFETY.md`](../../.agent/SAFETY.md).
+All of the above operate under [`.agent/SAFETY.md`](../../.agent/SAFETY.md) and the always-on **`safety-and-secrets`** rule.

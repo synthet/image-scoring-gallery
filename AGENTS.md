@@ -13,9 +13,9 @@ This repo vendors **[agent-sdlc](https://github.com/synthet/agent-sdlc)**-style 
 
 ### Agent skills inventory (AST09 / AST10)
 
-Project skills live under [`.cursor/skills/`](.cursor/skills/) (canonical). A **partial** mirror exists under [`.claude/skills/`](.claude/skills/) for harness-visible skills (`backlog-queue`, `subagent-review`, `eval`). **Inventory:** [.agent/SKILL_INVENTORY.md](.agent/SKILL_INVENTORY.md). **PR review prompts** for `SKILL.md` changes: sibling [image-scoring-backend/.agent/SKILL_CHANGE_AST10_REVIEW.md](https://github.com/synthet/image-scoring-backend/blob/main/.agent/SKILL_CHANGE_AST10_REVIEW.md).
+Project skills live under [`.cursor/skills/`](.cursor/skills/) (canonical). Full **`.claude/` mirror** via [scripts/sync_assistant_trees.py](scripts/sync_assistant_trees.py). **Inventory:** [.agent/SKILL_INVENTORY.md](.agent/SKILL_INVENTORY.md). **PR review prompts** for `SKILL.md` changes: sibling [image-scoring-backend/.agent/SKILL_CHANGE_AST10_REVIEW.md](https://github.com/synthet/image-scoring-backend/blob/main/.agent/SKILL_CHANGE_AST10_REVIEW.md).
 
-**Cursor slash commands** (type `/` in chat): **`/spec`**, **`/plan`**, **`/implement`**, **`/test-and-fix`**, **`/pr-ready`**, **`/release-notes`**, **`/check-subagents`**, **`/run-codex-review`**, **`/run-gemini-review`**, **`/run-subagent-review`**. **Claude Code** mirrors these under `.claude/commands/`.
+**Cursor slash commands** (type `/` in chat): **`/spec`**, **`/plan`**, **`/implement`**, **`/test-and-fix`**, **`/pr-ready`**, **`/release-notes`**, **`/log-session`**, **`/dream-memory`**, **`/promote-memory`**, **`/memory-context`**, **`/check-subagents`**, **`/run-codex-review`**, **`/run-gemini-review`**, **`/run-subagent-review`**. **Claude Code** mirrors under `.claude/commands/`. After editing `.cursor/` assets, run `python scripts/sync_assistant_trees.py`.
 
 **External CLI reviews:** sibling [`subagent-orchestrator`](../subagent-orchestrator) via user-level **`subagent-orchestrator`** — see [docs/technical/EXTERNAL_CLI_REVIEWS.md](docs/technical/EXTERNAL_CLI_REVIEWS.md).
 

@@ -1,5 +1,3 @@
-> **Claude Code:** Same intent as Cursor `/spec`. When customizing, keep in sync with `.cursor/commands/spec.md`.
-
 # /spec — Feature or change specification
 
 Use when starting non-trivial work. Produce a **spec** the team can review before implementation.

@@ -1,5 +1,3 @@
-> **Claude Code:** Same intent as Cursor `/pr-ready`. When customizing, keep in sync with `.cursor/commands/pr-ready.md`.
-
 # /pr-ready — Prepare for pull request
 
 Use when implementation is complete and you want a merge-ready PR.
@@ -39,4 +37,4 @@ per-criterion verification; do not conflate "meets spec" with "mergeable".
 
 ## Optional
 
-- For long-running PR hygiene (comments, CI loops), use a dedicated "babysit PR" skill in your personal skills directory if configured.
+- For long-running PR hygiene (comments, CI loops), use a dedicated "babysit PR" skill in your personal `~/.cursor/skills/` if configured.

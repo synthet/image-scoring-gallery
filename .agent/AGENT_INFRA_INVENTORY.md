@@ -1,6 +1,6 @@
 # Agent infrastructure inventory — image-scoring-gallery
 
-**Last reviewed:** 2026-05-16. **Backend authority:** [image-scoring-backend docs/CANONICAL_SOURCES.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/CANONICAL_SOURCES.md).
+**Last reviewed:** 2026-07-04. **Backend authority:** [image-scoring-backend docs/CANONICAL_SOURCES.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/CANONICAL_SOURCES.md).
 
 | Path | Purpose | Scope | Status | Upstream authority | Recommended action |
 |------|---------|--------|--------|--------------------|--------------------|
@@ -18,7 +18,14 @@
 | [.cursor/rules/agent-canonical-sources.mdc](../.cursor/rules/agent-canonical-sources.mdc) | IPC boundary, backend authority, commands | gallery, cross-repo | active | docs/CANONICAL_SOURCES.md | Mirror `.claude/rules/` |
 | [.claude/rules/agent-canonical-sources.mdc](../.claude/rules/agent-canonical-sources.mdc) | Claude mirror of canonical-sources rule | gallery | duplicate-of | `.cursor/rules/agent-canonical-sources.mdc` | Same-PR sync |
 | [.cursor/commands/*.md](../.cursor/commands/) | Slash commands | workflow | active | agent-sdlc | None |
-| [.cursor/skills/*/SKILL.md](../.cursor/skills/) | Skills (no `.claude` mirror) | coding | active | SKILL_INVENTORY | None |
+| [.cursor/skills/*/SKILL.md](../.cursor/skills/) | Skills | coding | active | SKILL_INVENTORY | Run `sync_assistant_trees.py` after changes |
+| [scripts/sync_assistant_trees.py](../scripts/sync_assistant_trees.py) | `.cursor/` → `.claude/` mirror | governance | active | backend twin | CI: agent-infra.yml |
+| [scripts/ci/check_agent_frontmatter.py](../scripts/ci/check_agent_frontmatter.py) | Frontmatter contract | governance | active | backend twin | — |
+| [scripts/ci/check_secrets.py](../scripts/ci/check_secrets.py) | Committed-secrets scan | governance | active | backend twin | — |
+| [.github/workflows/agent-infra.yml](../.github/workflows/agent-infra.yml) | Agent infra CI | governance | active | backend twin | — |
+| [.cursor/rules/safety-and-secrets.mdc](../.cursor/rules/safety-and-secrets.mdc) | Always-on safety rule | governance | active | synthet-code-framework | Mirror `.claude/rules/` |
+| [.cursor/rules/agent-memory.mdc](../.cursor/rules/agent-memory.mdc) | Project memory rule | governance | active | backend twin | Scripts in sibling backend |
+| [.agent-memory/CURSOR_USAGE.md](../.agent-memory/CURSOR_USAGE.md) | Memory pointer stub | governance | active | backend `.agent-memory/` | No local dream engine |
 | [.cursor/agents/*.md](../.cursor/agents/) | Subagents | coding | active | AGENTS.md | Sync `.claude/agents/` |
 | [.cursor/rules/external-cli-subagents.mdc](../.cursor/rules/external-cli-subagents.mdc) | External Codex/Gemini review safety | governance | active | subagent-orchestrator | Mirror `.claude/rules/` |
 | [.cursor/skills/subagent-review/](../.cursor/skills/subagent-review/) | MCP external review workflow | workflow | active | `../subagent-orchestrator` | Mirror `.claude/skills/` |

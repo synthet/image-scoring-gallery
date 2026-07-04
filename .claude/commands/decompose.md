@@ -1,5 +1,3 @@
-> **Claude Code:** Same intent as Cursor `/decompose`. When customizing, keep in sync with `.cursor/commands/decompose.md`.
-
 # /decompose — Break a task into parallelizable subtasks
 
 Use after a `/spec` exists (or for a sizable task) and **before** `/plan`. The goal is

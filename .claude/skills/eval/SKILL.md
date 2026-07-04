@@ -4,8 +4,6 @@ description: Capture task quality signals and log them to agent memory to build 
   feedback loop. Use at the end of each implemented task or merged PR.
 ---
 
-> **Claude Code mirror.** Canonical: [`.cursor/skills/eval/SKILL.md`](../../../.cursor/skills/eval/SKILL.md). Keep both in sync.
-
 # /eval — Feedback-loop capture
 
 Eval design — building feedback loops with verifiable signals — is a core agentic

@@ -1,5 +1,3 @@
-> **Claude Code:** Same intent as Cursor `/plan`. When customizing, keep in sync with `.cursor/commands/plan.md`.
-
 # /plan — Implementation plan
 
 Use after a spec exists (or for small tasks, a verbal agreement). Prefer **plan mode** or explicit user approval before large edits.

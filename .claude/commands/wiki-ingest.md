@@ -1,5 +1,3 @@
-> **Claude Code:** Same intent as Cursor `/wiki-ingest`. When customizing, keep in sync with `.cursor/commands/wiki-ingest.md`.
-
 # /wiki-ingest — Process source material into the docs wiki
 
 Use when new knowledge should be captured in `docs/`: a code change, design decision, feature spec, report, meeting note, or external reference.

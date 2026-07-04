@@ -1,5 +1,3 @@
-> **Claude Code:** Same intent as Cursor `/wiki-query`. When customizing, keep in sync with `.cursor/commands/wiki-query.md`.
-
 # /wiki-query — Search the docs wiki to answer a question
 
 Use when answering a question using the wiki as the primary knowledge source, or when the user wants to search docs for a topic.

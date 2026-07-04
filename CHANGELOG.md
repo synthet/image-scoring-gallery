@@ -4,6 +4,16 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.24.1] - 2026-07-04
+
+### Added
+
+- **Agent SDLC**: Full `.claude/` mirror (skills, rules, slash commands including memory workflow); `agent-infra` CI workflow; `sync_assistant_trees.py`.
+
+### Changed
+
+- **Agent CLI hub**: Install tiers reference updates; refresh backlog-queue skill and gallery-mcp-debug agent guidance.
+
 ## [7.24.0] - 2026-07-04
 
 ### Added
