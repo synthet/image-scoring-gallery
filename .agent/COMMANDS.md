@@ -49,3 +49,11 @@ From [AGENTS.md](../AGENTS.md), [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md), a
 
 - Backend doctor: in sibling clone, WSL + `python scripts/doctor.py --no-gpu`
 - Contract workflow: [.agent/workflows/cross_repo_contract_change.md](workflows/cross_repo_contract_change.md)
+
+## Agent CLI skills
+
+```bash
+python scripts/validate_cli_hub_skills.py   # after changing .cursor/skills/agent-* or mcp-code-intelligence
+```
+
+Spec: [.agent/cli-tools-skills-spec.md](cli-tools-skills-spec.md). Upstream flat-13 variant: [synthet-code-framework](https://github.com/synthet/synthet-code-framework).

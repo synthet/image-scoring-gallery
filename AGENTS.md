@@ -112,6 +112,26 @@ dispatch("live.cdp_click", {"selector":"button[data-testid='...']"})
 
 - **Workflow:** configure at user level only — not bundled in this repo (see CHANGELOG).
 
+### fff file search (optional, project MCP)
+
+**[fff](https://github.com/dmtrKovalenko/fff)** — fast frecency-ranked file search (`ffgrep`, `fffind`, `fff-multi-grep`). **Project-level only** — must set `cwd` + PATH to a git repo; user-level config fails with *"Can not run certain FFF features in a file system root or home directories"*. See [`.cursor/mcp.example.json`](.cursor/mcp.example.json) / backend [`mcp.pair.example.json`](https://github.com/synthet/image-scoring-backend/blob/main/.cursor/mcp.pair.example.json) (`fff-be`, `fff-gallery`).
+
+| Install | Command |
+|---------|---------|
+| Windows (PowerShell) | `irm https://raw.githubusercontent.com/dmtrKovalenko/fff/main/install-mcp.ps1 \| iex` |
+| Linux / macOS | `curl -L https://dmtrkovalenko.dev/install-fff-mcp.sh \| bash` |
+| Homebrew (macOS / Linux) | `brew install dmtrKovalenko/fff/fff-mcp` |
+
+```json
+"fff-gallery": {
+  "command": "fff-mcp",
+  "args": ["${workspaceFolder:image-scoring-gallery}"],
+  "cwd": "${workspaceFolder:image-scoring-gallery}"
+}
+```
+
+Prefer **fff** MCP tools for repeated file/content search in the indexed repo; use **`rg`/`fd`** from [agent-search](.cursor/skills/agent-search/SKILL.md) for one-off shell probes or when fff is not installed.
+
 ## Git Configuration — Do Not Modify
 
 **Never modify `.git/config`** — do not set `extensions.worktreeConfig`, change `core.repositoryformatversion`, or add any git extensions. Third-party tools (Gemini Code Assist / Antigravity) use embedded git libraries that fail on non-standard extensions, breaking workspace resolution. If a worktree is needed, use a temporary one and clean it up immediately — do not leave worktree config persisted in the repo.

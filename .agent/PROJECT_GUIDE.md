@@ -8,7 +8,7 @@ The canonical task queue is the **GitHub Project board** — not `TODO.md`:
 
 **→ https://github.com/users/synthet/projects/1**
 
-It spans `image-scoring-gallery` and `image-scoring-backend`. Every agent must follow the **five-step contract** in [`skills/backlog-queue/SKILL.md`](skills/backlog-queue/SKILL.md): pick from `Stage = Ready` → `/task-claim <N>` → `In Progress` on first commit → `Blocked` (with comment) if stuck → PR with `Closes #<N>` → `Review` → `Done`.
+It spans `image-scoring-gallery` and `image-scoring-backend`. Every agent must follow the **five-step contract** in [`.cursor/skills/backlog-queue/SKILL.md`](../.cursor/skills/backlog-queue/SKILL.md): pick from `Stage = Ready` → `/task-claim <N>` → `In Progress` on first commit → `Blocked` (with comment) if stuck → PR with `Closes #<N>` → `Review` → `Done`.
 
 `TODO.md` is a pointer only — never add tasks there.
 

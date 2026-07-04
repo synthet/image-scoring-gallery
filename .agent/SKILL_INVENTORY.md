@@ -31,6 +31,13 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | validate-implementation | `.cursor/skills/validate-implementation/SKILL.md` | Per-AC Verified/Failed/Unknown gate before /pr-ready | L1 | — | 2026-07-01 |
 | threat-modeling-agentic-tools | `.cursor/skills/threat-modeling-agentic-tools/SKILL.md` | MCP/hook/prompt-injection threat modeling | L1 | — | 2026-07-01 |
 | mcp-server-design | `.cursor/skills/mcp-server-design/SKILL.md` | Safe MCP server design for `mcp-server/` | L1 | — | 2026-07-01 |
+| agent-cli-hub | `.cursor/skills/agent-cli-hub/SKILL.md` | CLI skill router; install/safety/bounded-output references | L1 | — | 2026-07-03 |
+| agent-search | `.cursor/skills/agent-search/SKILL.md` | rg/grep/ast-grep/fd tool selection + bounded search | L1 | — | 2026-07-03 |
+| agent-git-workflows | `.cursor/skills/agent-git-workflows/SKILL.md` | git/gh safe status, diff, PR workflows | L2 | — | 2026-07-03 |
+| agent-data-config | `.cursor/skills/agent-data-config/SKILL.md` | jq/yq/curl config and API inspection | L1 | — | 2026-07-03 |
+| agent-dev-tooling | `.cursor/skills/agent-dev-tooling/SKILL.md` | Gallery npm lint/tsc/vitest; optional backend tools | L1 | — | 2026-07-03 |
+| agent-platform-tooling | `.cursor/skills/agent-platform-tooling/SKILL.md` | Windows vs WSL2 environment choice | L1 | — | 2026-07-03 |
+| mcp-code-intelligence | `.cursor/skills/mcp-code-intelligence/SKILL.md` | MCP vs CLI code-intelligence tiers | L1 | — | 2026-07-03 |
 
 **Note:** Most skills here are Cursor-only. **`backlog-queue`**, **`subagent-review`**, and **`eval`** are mirrored under `.claude/skills/` because they gate every task or external review — agent harnesses must see them regardless of which loader they use.
 

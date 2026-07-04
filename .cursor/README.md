@@ -8,7 +8,7 @@ Project-local configuration for Cursor IDE agents. **Authority:** [AGENTS.md](..
 |------|------|
 | [`rules/`](rules/) | Always-on or glob-scoped rules (`.mdc`). Canonical. |
 | [`commands/`](commands/) | Slash commands (`/spec`, `/plan`, `/implement`, `/pr-ready`, …). Partial mirror to [`.claude/commands/`](../.claude/commands/). |
-| [`skills/`](skills/) | **Canonical** project skills. Partial mirror to [`.claude/skills/`](../.claude/skills/) for harness-visible skills. |
+| [`skills/`](skills/) | **Canonical** project skills. Partial mirror to [`.claude/skills/`](../.claude/skills/) for harness-visible skills. **CLI cluster:** `agent-cli-hub` (+ references), `agent-search`, `agent-git-workflows`, `agent-data-config`, `agent-dev-tooling`, `agent-platform-tooling`, `mcp-code-intelligence`. |
 | [`agents/`](agents/) | Subagent role definitions. Mirror to [`.claude/agents/`](../.claude/agents/). |
 | [`mcp.example.json`](mcp.example.json) | **Template** — copy to gitignored `.cursor/mcp.json`. |
 
@@ -19,6 +19,8 @@ Project-local configuration for Cursor IDE agents. **Authority:** [AGENTS.md](..
 3. Optional **`is-ui-live`** (SSE) when Electron dev is running.
 
 Backend pipeline triage: sibling **image-scoring-backend** workspace with **`is-be-mcp`**.
+
+User **`~/.cursor/mcp.json`**: **`github`**, **`subagent-orchestrator`**, optional **`fff`** (file search), etc. — see [`mcp.user.example.json`](mcp.user.example.json).
 
 ## Also use
 

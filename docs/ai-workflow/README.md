@@ -4,7 +4,7 @@ title: AI Workflow & Asset Map
 description: Where every agent asset lives (rules, commands, skills, agents, workflows) and the SDLC loop they support.
 resource: ai-workflow/README.md
 tags: [docs, agents, workflow]
-timestamp: 2026-07-01T00:00:00Z
+timestamp: 2026-07-03T00:00:00Z
 okf_version: 0.1
 ---
 
@@ -24,6 +24,18 @@ okf_version: 0.1
 | Workflow playbooks | `.agent/workflows/*.md` | Electron dev, IPC, backend connection, … |
 
 **Canonical tree:** **`.cursor/`** for gallery agent assets. Generic patterns upstream: [synthet-code-framework](https://github.com/synthet/synthet-code-framework); domain fork with backend coordination — see [backend docs/ai-workflow/README.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/ai-workflow/README.md).
+
+### Skill clusters
+
+| Cluster | Skills | When |
+|---------|--------|------|
+| **SDLC / governance** | `backlog-queue`, `validate-implementation`, `commit-conventions`, `eval`, … | Every task, PR, spec |
+| **Domain (gallery)** | `gallery-electron-ts`, `gallery-ui`, `image-scoring-mcp`, `codebase-size-audit`, … | Electron, UI, MCP triage |
+| **Generic CLI** | `agent-cli-hub` → `agent-search`, `agent-git-workflows`, `agent-data-config`, `agent-dev-tooling`, `agent-platform-tooling`, `mcp-code-intelligence` | Shell navigation, git, lint/tsc, Windows/WSL |
+
+Start generic CLI work at **`agent-cli-hub`**.
+
+**Upstream:** [synthet-code-framework](https://github.com/synthet/synthet-code-framework) ships a **flat 13-skill** CLI layout (`.claude/skills/`); this gallery uses the **consolidated hub** (7 skills). Cherry-pick content from framework; do not replace the hub layout blindly. Validate hub skills: `python scripts/validate_cli_hub_skills.py` — see [`.agent/cli-tools-skills-spec.md`](../../.agent/cli-tools-skills-spec.md).
 
 ## The SDLC loop
 
