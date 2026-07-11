@@ -69,7 +69,7 @@ describe('useAgentCullReview', () => {
             result.current.applyCandidates();
         });
 
-        await waitFor(() => expect(result.current.error).toMatch(/Re-run the dry-run review/i));
+        await waitFor(() => expect(result.current.error).toMatch(/Re-run the review/i));
         expect(applyAgentCullCandidates).toHaveBeenCalledWith(9);
     });
 

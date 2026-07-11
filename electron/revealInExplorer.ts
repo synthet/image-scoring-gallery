@@ -12,8 +12,11 @@ export function revealInExplorer(filePath: string, opts?: ToWindowsLocalFsPathOp
         throw new Error('Path is required');
     }
 
+    const platform = opts?.forPlatform ?? process.platform;
     const normalized = toWindowsLocalFsPath(trimmed, opts);
-    if (!path.isAbsolute(normalized)) {
+    const isAbsolute =
+        platform === 'win32' ? path.win32.isAbsolute(normalized) : path.isAbsolute(normalized);
+    if (!isAbsolute) {
         throw new Error('Path must be absolute');
     }
 
