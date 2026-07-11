@@ -4,6 +4,17 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.25.0] - 2026-07-11
+
+### Added
+
+- **Agent cull review — agent audit chip**: Validated review groups show which agent and model produced the recommendations (`agent_name` / `agent_model`).
+
+### Changed
+
+- **Agent cull review — live by default**: **Run agent review** now records live remove candidates in one step; the separate dry-run → **Run live review** flow is removed. Legacy dry-run groups stay read-only with a re-run hint.
+- **Agent cull review copy**: Operator messaging clarifies that remove candidates are metadata-only until you permanently delete approved files.
+
 ## [7.24.1] - 2026-07-04
 
 ### Added

@@ -42,6 +42,9 @@ export interface AgentCullReviewGroupSummary {
     review_unit_key: string;
     status: AgentCullGroupStatus;
     dry_run?: boolean;
+    agent_name?: string | null;
+    agent_model?: string | null;
+    agent_version?: string | null;
     group_decision?: string | null;
     group_confidence?: number | null;
     summary?: string | null;

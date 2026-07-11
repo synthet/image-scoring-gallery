@@ -17,19 +17,29 @@ describe('AgentCullReviewPanel', () => {
         });
     });
 
-    it('shows dry-run badge and recommendations without delete controls', async () => {
+    it('shows validated review with apply controls and agent audit chip', async () => {
         Object.defineProperty(window, 'electron', {
             configurable: true,
             value: {
                 api: {
                     getAgentCullGroups: vi.fn().mockResolvedValue({
-                        groups: [{ id: 9, stack_id: 1, status: 'proposed', dry_run: true, summary: 'Test' }],
+                        groups: [{
+                            id: 9,
+                            stack_id: 1,
+                            status: 'validated',
+                            dry_run: false,
+                            agent_name: 'cursor',
+                            agent_model: 'claude-sonnet-4',
+                            summary: 'Test',
+                        }],
                     }),
                     getAgentCullGroup: vi.fn().mockResolvedValue({
                         id: 9,
                         stack_id: 1,
-                        status: 'proposed',
-                        dry_run: true,
+                        status: 'validated',
+                        dry_run: false,
+                        agent_name: 'cursor',
+                        agent_model: 'claude-sonnet-4',
                         summary: 'Test summary',
                         recommendations: [
                             {
@@ -40,7 +50,7 @@ describe('AgentCullReviewPanel', () => {
                                 final_decision: 'remove',
                                 confidence: 0.9,
                                 reason: 'Duplicate frame',
-                                candidate_status: 'proposed',
+                                candidate_status: 'agent_remove_candidate',
                             },
                         ],
                     }),
@@ -55,22 +65,26 @@ describe('AgentCullReviewPanel', () => {
 
         render(<AgentCullReviewPanel stackId={1} />);
         expect(await screen.findByTestId('agent-cull-review-panel')).toBeTruthy();
-        const dryRun = await screen.findByTestId('agent-cull-dry-run-badge');
-        expect(dryRun.textContent).toContain('Dry run');
-        expect(await screen.findByText(/Metadata-only/)).toBeTruthy();
-        expect(screen.queryByTestId('agent-cull-apply-candidates')).toBeNull();
-        expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
-        expect(screen.queryByRole('button', { name: /trash/i })).toBeNull();
+        expect(screen.queryByTestId('agent-cull-dry-run-badge')).toBeNull();
+        expect(await screen.findByTestId('agent-cull-agent-audit')).toBeTruthy();
+        expect(await screen.findByText(/Agent: cursor \/ claude-sonnet-4/)).toBeTruthy();
+        expect(await screen.findByTestId('agent-cull-apply-candidates')).toBeTruthy();
     });
 
-    it('runs a dry-run review via IPC when no groups exist yet (#135)', async () => {
-        const runAgentCullReview = vi.fn().mockResolvedValue({ id: 11, status: 'proposed', dry_run: true });
+    it('runs a live review via IPC when no groups exist yet (#135)', async () => {
+        const runAgentCullReview = vi.fn().mockResolvedValue({ id: 11, status: 'validated', dry_run: false });
         const getAgentCullGroups = vi
             .fn()
-            // first load: no groups
             .mockResolvedValueOnce({ groups: [] })
-            // after run + refresh: one dry-run group
-            .mockResolvedValue({ groups: [{ id: 11, stack_id: 1, status: 'proposed', dry_run: true }] });
+            .mockResolvedValue({
+                groups: [{
+                    id: 11,
+                    stack_id: 1,
+                    status: 'validated',
+                    dry_run: false,
+                    agent_name: 'antigravity',
+                }],
+            });
         Object.defineProperty(window, 'electron', {
             configurable: true,
             value: {
@@ -79,8 +93,8 @@ describe('AgentCullReviewPanel', () => {
                     getAgentCullGroup: vi.fn().mockResolvedValue({
                         id: 11,
                         stack_id: 1,
-                        status: 'proposed',
-                        dry_run: true,
+                        status: 'validated',
+                        dry_run: false,
                         recommendations: [],
                     }),
                     runAgentCullReview,
@@ -97,13 +111,12 @@ describe('AgentCullReviewPanel', () => {
         const runBtn = await screen.findByTestId('agent-cull-run-review');
         fireEvent.click(runBtn);
         await waitFor(() => {
-            expect(runAgentCullReview).toHaveBeenCalledWith({ stackId: 1, subStackId: 3, dryRun: true, force: false });
+            expect(runAgentCullReview).toHaveBeenCalledWith({ stackId: 1, subStackId: 3, dryRun: false, force: false });
         });
-        // dry-run badge appears after the refresh
-        expect(await screen.findByTestId('agent-cull-dry-run-badge')).toBeTruthy();
+        expect(await screen.findByTestId('agent-cull-review-panel')).toBeTruthy();
     });
 
-    it('shows progress indicator while dry-run review is in flight', async () => {
+    it('shows progress indicator while review is in flight', async () => {
         let resolveReview: (value: unknown) => void = () => {};
         const runAgentCullReview = vi.fn(
             () =>
@@ -181,7 +194,7 @@ describe('AgentCullReviewPanel', () => {
         const applyBtn = await screen.findByTestId('agent-cull-apply-candidates');
         fireEvent.click(applyBtn);
         const err = await screen.findByTestId('agent-cull-action-error');
-        expect(err.textContent).toMatch(/Re-run the dry-run review/i);
+        expect(err.textContent).toMatch(/Re-run the review/i);
         expect(err.textContent).not.toContain('HTTP 409');
     });
 
@@ -224,7 +237,7 @@ describe('AgentCullReviewPanel', () => {
         const applyBtn = await screen.findByTestId('agent-cull-apply-candidates');
         fireEvent.click(applyBtn);
         const err = await screen.findByTestId('agent-cull-action-error');
-        expect(err.textContent).toMatch(/dry-run review/i);
+        expect(err.textContent).toMatch(/legacy dry-run/i);
     });
 
     it('surfaces skip_reason for no_eligible_unit from run action', async () => {
@@ -473,21 +486,31 @@ describe('AgentCullReviewPanel', () => {
     });
 });
 
-describe('AgentCullReviewPanel UX (cards, bulk, live run)', () => {
+describe('AgentCullReviewPanel UX (cards, bulk, re-run)', () => {
     function mountApi(overrides: Record<string, unknown> = {}) {
         const api = {
             getAgentCullGroups: vi.fn().mockResolvedValue({
-                groups: [{ id: 9, stack_id: 1, status: 'proposed', dry_run: true, summary: 'Two near-duplicate frames detected. The sharper frame is kept.' }],
+                groups: [{
+                    id: 9,
+                    stack_id: 1,
+                    status: 'validated',
+                    dry_run: false,
+                    agent_name: 'cursor',
+                    agent_model: 'claude-sonnet-4',
+                    summary: 'Two near-duplicate frames detected. The sharper frame is kept.',
+                }],
             }),
             getAgentCullGroup: vi.fn().mockResolvedValue({
                 id: 9,
                 stack_id: 1,
-                status: 'proposed',
-                dry_run: true,
+                status: 'validated',
+                dry_run: false,
+                agent_name: 'cursor',
+                agent_model: 'claude-sonnet-4',
                 summary: 'Two near-duplicate frames detected. The sharper frame is kept.',
                 recommendations: [
-                    { id: 1, review_group_id: 9, image_id: 100, agent_decision: 'remove', final_decision: 'remove', confidence: 0.9, reason: 'Duplicate', candidate_status: 'proposed' },
-                    { id: 2, review_group_id: 9, image_id: 101, agent_decision: 'remove', final_decision: 'remove', confidence: 0.8, reason: 'Soft focus', candidate_status: 'proposed' },
+                    { id: 1, review_group_id: 9, image_id: 100, agent_decision: 'remove', final_decision: 'remove', confidence: 0.9, reason: 'Duplicate', candidate_status: 'agent_remove_candidate' },
+                    { id: 2, review_group_id: 9, image_id: 101, agent_decision: 'remove', final_decision: 'remove', confidence: 0.8, reason: 'Soft focus', candidate_status: 'agent_remove_candidate' },
                 ],
             }),
             runAgentCullReview: vi.fn().mockResolvedValue({ id: 9, status: 'validated', dry_run: false }),
@@ -502,18 +525,26 @@ describe('AgentCullReviewPanel UX (cards, bulk, live run)', () => {
         return api;
     }
 
-    it('shows a live-run button on a dry-run group and runs with dryRun:false', async () => {
+    it('re-runs review with force when a group already exists', async () => {
         const api = mountApi();
         render(<AgentCullReviewPanel stackId={1} subStackId={3} />);
-        const liveBtn = await screen.findByTestId('agent-cull-run-live');
-        fireEvent.click(liveBtn);
+        const reRun = await screen.findByTestId('agent-cull-run-review');
+        expect(reRun.textContent).toMatch(/Re-run review/i);
+        fireEvent.click(reRun);
         await waitFor(() => {
             expect(api.runAgentCullReview).toHaveBeenCalledWith({ stackId: 1, subStackId: 3, dryRun: false, force: true });
         });
     });
 
+    it('shows per-card Approve on a validated live group', async () => {
+        mountApi();
+        render(<AgentCullReviewPanel stackId={1} />);
+        expect(await screen.findByTestId('agent-cull-recommendations')).toBeTruthy();
+        expect(await screen.findByTestId('agent-cull-approve-1')).toBeTruthy();
+        expect(await screen.findByTestId('agent-cull-approve-all')).toBeTruthy();
+    });
+
     it('bulk-approves all pending removals in a single IPC call', async () => {
-        // Bulk approval only applies to a validated (non-dry-run) group.
         const api = mountApi({
             getAgentCullGroups: vi.fn().mockResolvedValue({
                 groups: [{ id: 9, stack_id: 1, status: 'validated', dry_run: false }],
@@ -573,17 +604,14 @@ describe('AgentCullReviewPanel UX (cards, bulk, live run)', () => {
         });
         render(<AgentCullReviewPanel stackId={1} fileNames={new Map([[100, 'DSC_0100.NEF']])} />);
 
-        // Button reflects the count of approved removals (1), not the proposed one.
         const deleteBtn = await screen.findByTestId('agent-cull-delete-approved');
         expect(deleteBtn.textContent).toMatch(/Delete 1 approved/i);
         fireEvent.click(deleteBtn);
 
-        // Confirmation dialog lists the filename; nothing deleted yet.
         const dialog = await screen.findByTestId('agent-cull-delete-confirm');
         expect(dialog.textContent).toContain('DSC_0100.NEF');
         expect(deleteApprovedAgentCullCandidates).not.toHaveBeenCalled();
 
-        // Confirm → IPC fires with confirm:true.
         fireEvent.click(screen.getByTestId('agent-cull-delete-confirm-btn'));
         await waitFor(() => {
             expect(deleteApprovedAgentCullCandidates).toHaveBeenCalledWith(9, { confirm: true });
@@ -592,7 +620,6 @@ describe('AgentCullReviewPanel UX (cards, bulk, live run)', () => {
     });
 
     it('does not show the delete-approved button without operator-approved removals', async () => {
-        // Default fixtures are a dry-run group with only proposed removals.
         mountApi();
         render(<AgentCullReviewPanel stackId={1} />);
         await screen.findByTestId('agent-cull-recommendations');
@@ -612,26 +639,27 @@ describe('AgentCullReviewPanel UX (cards, bulk, live run)', () => {
         expect(img.getAttribute('src')).toBe('media:///D:/thumbs/100.jpg');
     });
 
-    it('hides per-card Approve on a dry-run group and shows the live-run hint', async () => {
-        mountApi(); // default fixtures are a dry-run group with two removals
+    it('hides per-card Approve on a legacy dry-run group', async () => {
+        mountApi({
+            getAgentCullGroups: vi.fn().mockResolvedValue({
+                groups: [{ id: 9, stack_id: 1, status: 'proposed', dry_run: true }],
+            }),
+            getAgentCullGroup: vi.fn().mockResolvedValue({
+                id: 9,
+                stack_id: 1,
+                status: 'proposed',
+                dry_run: true,
+                recommendations: [
+                    { id: 1, review_group_id: 9, image_id: 100, agent_decision: 'remove', final_decision: 'remove', confidence: 0.9, reason: 'Duplicate', candidate_status: 'proposed' },
+                    { id: 2, review_group_id: 9, image_id: 101, agent_decision: 'remove', final_decision: 'remove', confidence: 0.8, reason: 'Soft focus', candidate_status: 'proposed' },
+                ],
+            }),
+        });
         render(<AgentCullReviewPanel stackId={1} />);
-        // Cards render, but no Approve (dry-run) — Approve is only available after the live run.
         expect(await screen.findByTestId('agent-cull-recommendations')).toBeTruthy();
         expect(screen.queryByTestId('agent-cull-approve-1')).toBeNull();
         expect(screen.queryByTestId('agent-cull-approve-all')).toBeNull();
-        expect(screen.getByTestId('agent-cull-dry-run-approve-hint')).toBeTruthy();
-        // "Keep in review" (reject) still works on a dry-run group.
+        expect(screen.getByTestId('agent-cull-legacy-dry-run-hint')).toBeTruthy();
         expect(screen.getByTestId('agent-cull-reject-1')).toBeTruthy();
-    });
-
-    it('re-runs the dry-run with force when a group already exists', async () => {
-        const api = mountApi();
-        render(<AgentCullReviewPanel stackId={1} subStackId={3} />);
-        const reRun = await screen.findByTestId('agent-cull-run-review');
-        expect(reRun.textContent).toMatch(/Re-run dry-run/i);
-        fireEvent.click(reRun);
-        await waitFor(() => {
-            expect(api.runAgentCullReview).toHaveBeenCalledWith({ stackId: 1, subStackId: 3, dryRun: true, force: true });
-        });
     });
 });

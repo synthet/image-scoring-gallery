@@ -194,9 +194,9 @@ export function formatAgentSummaryDigest(
 /** Maps agent-review API error and skip_reason codes to operator-facing text. */
 const AGENT_ERROR_LABELS: Record<string, string> = {
     stale_group_state:
-        'Picks changed since this review was generated. Re-run the dry-run review to refresh recommendations before applying.',
+        'Picks changed since this review was generated. Re-run the review to refresh recommendations before applying.',
     dry_run_group:
-        'This is a dry-run review — candidates can’t be marked. Re-run the review without dry-run to apply.',
+        'This is a legacy dry-run review — re-run the review to record live remove candidates.',
     agent_review_disabled: 'Agent cull review is disabled in the backend configuration.',
     no_eligible_unit: 'This stack isn’t eligible for agent review.',
     insufficient_usable_images: 'Too few readable files or thumbnails for vision review.',

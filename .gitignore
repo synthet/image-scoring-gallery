@@ -63,3 +63,6 @@ coverage/
 coverage_report*.txt
 lint_results.txt
 test_result.json
+
+# Workspace MCP configuration
+.agents/mcp_config.json

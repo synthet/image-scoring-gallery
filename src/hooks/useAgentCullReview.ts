@@ -29,9 +29,8 @@ export interface AgentCullReviewState {
     canRun: boolean;
     refresh: (options?: { clearError?: boolean; force?: boolean }) => Promise<void>;
     /**
-     * Run the agent review. `force` re-runs even when a group already exists for the unit
-     * (required for the live run and any re-run, since the dry-run leaves a `proposed` group —
-     * without it the backend returns `existing_review`).
+     * Run the agent review (live). `force` re-runs even when a group already exists for the unit
+     * (required for any re-run — without it the backend returns `existing_review`).
      */
     runReview: (dryRun: boolean, opts?: { force?: boolean }) => void;
     approve: (rec: AgentCullRecommendation) => void;

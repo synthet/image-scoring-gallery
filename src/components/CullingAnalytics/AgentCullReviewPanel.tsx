@@ -63,13 +63,24 @@ function ReviewProgressBanner({ elapsedSec }: { elapsedSec: number }) {
     );
 }
 
-const WORKFLOW_STEPS = ['Dry-run', 'Review', 'Live run', 'Mark candidates'] as const;
+const WORKFLOW_STEPS = ['Review', 'Approve', 'Mark candidates'] as const;
 
 function currentWorkflowStep(detail: AgentCullReviewGroupDetail | null): number {
     if (!detail) return 0;
     if (detail.status === 'applied') return WORKFLOW_STEPS.length;
-    if (detail.dry_run) return 1;
-    return 3;
+    if (detail.status === 'validated' || detail.status === 'proposed') {
+        return detail.dry_run ? 0 : 1;
+    }
+    return 0;
+}
+
+function formatAgentAuditLabel(detail: AgentCullReviewGroupDetail | null): string | null {
+    if (!detail?.agent_name && !detail?.agent_model) return null;
+    const name = detail.agent_name ?? 'unknown';
+    if (detail.agent_model) {
+        return `${name} / ${detail.agent_model}`;
+    }
+    return name;
 }
 
 function WorkflowStepper({ detail }: { detail: AgentCullReviewGroupDetail | null }) {
@@ -120,7 +131,7 @@ function RecommendationCard({
     rec: AgentCullRecommendation;
     fileName?: string;
     thumbUrl?: string;
-    /** Approvals only mark candidates on a validated (non-dry-run) group; hide otherwise. */
+    /** Approvals require a live (non-dry-run) group; legacy dry-run rows stay read-only. */
     canApprove: boolean;
     busy: boolean;
     onApprove: () => void;
@@ -295,16 +306,16 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
 
     const reviewProgress = reviewRunning ? <ReviewProgressBanner elapsedSec={reviewElapsedSec} /> : null;
 
-    const runDryButton = canRun ? (
+    const runReviewButton = canRun ? (
         <button
             type="button"
-            className={styles.btn}
+            className={`${styles.btn} ${styles.btnPrimary}`}
             disabled={actionBusy || loading}
-            // A dry-run on a unit that already has a group must force, else the backend returns existing_review.
-            onClick={() => r.runReview(true, { force: groups.length > 0 })}
+            // Re-run on a unit that already has a group must force, else the backend returns existing_review.
+            onClick={() => r.runReview(false, { force: groups.length > 0 })}
             data-testid="agent-cull-run-review"
         >
-            {actionBusy ? 'Running…' : groups.length === 0 ? 'Run dry-run review' : 'Re-run dry-run'}
+            {actionBusy ? 'Running…' : groups.length === 0 ? 'Run agent review' : 'Re-run review'}
         </button>
     ) : null;
 
@@ -321,7 +332,7 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                 <div className={styles.body}>
                     {reviewProgress}
                     {!reviewRunning && <div className={styles.error}>{error}</div>}
-                    <div className={styles.actionRow}>{runDryButton}</div>
+                    <div className={styles.actionRow}>{runReviewButton}</div>
                 </div>
             </div>
         );
@@ -337,9 +348,9 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                 <div className={styles.body}>
                     {reviewProgress}
                     {!reviewRunning && (
-                        <div className={styles.meta}>No review yet — metadata-only, no files are deleted or moved.</div>
+                        <div className={styles.meta}>No review yet — records remove candidates only; files are not deleted until you confirm.</div>
                     )}
-                    <div className={styles.actionRow}>{runDryButton}</div>
+                    <div className={styles.actionRow}>{runReviewButton}</div>
                 </div>
             </div>
         );
@@ -350,7 +361,7 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
         latest.status === 'failed' ? friendlyAgentReviewFailure(latest.error_code, latest.error_message) : null;
     const digest = formatAgentSummaryDigest(latest.summary);
     const isDryRun = !!latest.dry_run;
-    const canRunLive = canRun && !!detail && isDryRun && latest.status !== 'failed';
+    const agentAuditLabel = formatAgentAuditLabel(detail ?? latest);
 
     return (
         <div className={styles.panel} data-testid="agent-cull-review-panel" role="region" aria-label="Agent cull review">
@@ -365,27 +376,13 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                     {expanded ? <ChevronDown size={16} className={styles.chevron} aria-hidden /> : <ChevronRight size={16} className={styles.chevron} aria-hidden />}
                     <span className={styles.title}>Agent cull review</span>
                 </button>
-                <div className={styles.headerActions}>
-                    {runDryButton}
-                    {canRunLive && (
-                        <button
-                            type="button"
-                            className={`${styles.btn} ${styles.btnPrimary}`}
-                            disabled={actionBusy}
-                            // Live run re-runs without dry-run on top of the existing dry-run group → must force.
-                            onClick={() => r.runReview(false, { force: true })}
-                            data-testid="agent-cull-run-live"
-                        >
-                            Run live review
-                        </button>
-                    )}
-                </div>
+                <div className={styles.headerActions}>{runReviewButton}</div>
             </div>
 
             <div className={styles.chipRow}>
-                {isDryRun && (
-                    <span className={styles.chip} data-testid="agent-cull-dry-run-badge">
-                        Dry run
+                {agentAuditLabel && (
+                    <span className={styles.chip} data-testid="agent-cull-agent-audit">
+                        Agent: {agentAuditLabel}
                     </span>
                 )}
                 <span className={styles.chip}>Status: {friendlyAgentGroupStatus(latest.status)}</span>
@@ -423,19 +420,13 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                         </div>
                     )}
 
-                    <div className={styles.meta}>Metadata-only — no files are deleted or moved.</div>
+                    <div className={styles.meta}>Remove candidates are metadata-only until you permanently delete approved files.</div>
 
                     {reviewProgress}
 
                     {!reviewRunning && (error || groupFailureMessage) && (
                         <div className={styles.error} data-testid="agent-cull-action-error">
                             {error || groupFailureMessage}
-                        </div>
-                    )}
-
-                    {canRunLive && (
-                        <div className={styles.liveWarn} data-testid="agent-cull-live-hint">
-                            Live review records operator-facing remove candidates. Still metadata-only — no file is deleted.
                         </div>
                     )}
 
@@ -465,9 +456,8 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                     )}
 
                     {isDryRun && removable.length > 0 && (
-                        <div className={styles.meta} data-testid="agent-cull-dry-run-approve-hint">
-                            Approvals are disabled on a dry-run. Click <strong>Run live review</strong> to record
-                            remove candidates, then approve them.
+                        <div className={styles.meta} data-testid="agent-cull-legacy-dry-run-hint">
+                            This is a legacy dry-run group — re-run review to record live remove candidates.
                         </div>
                     )}
 
