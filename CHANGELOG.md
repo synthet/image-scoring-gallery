@@ -4,6 +4,17 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.26.0] - 2026-07-21
+
+### Added
+
+- **Sync drive session cache**: Stable per-drive identity (disk/volume serial) plus a userData session store so Sync can reuse EXIF-derived date/camera/lens/UUID for unchanged files and skip expensive exiftool re-reads.
+
+### Fixed
+
+- **RAW / NEF black tiles**: Prefer the RAW-aware thumbnail loader when a raster thumb is missing, and never feed RAW bytes to `<img>` (Chromium often leaves a black tile without `onError`).
+- **Thumbnail placeholders**: Richer missing/loading chrome with format badge (e.g. NEF) so empty cells stay readable.
+
 ## [7.25.0] - 2026-07-11
 
 ### Added

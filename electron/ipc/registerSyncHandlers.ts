@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { app } from 'electron';
 import type { BrowserWindow, IpcMain } from 'electron';
 import type { ApiService } from '../apiService';
 import { ExifTool } from 'exiftool-vendored';
@@ -13,6 +14,12 @@ import type {
   SyncRunResult,
 } from '../types';
 import * as db from '../db';
+import { resolveDriveId } from '../driveIdentity';
+import {
+  getDriveSessionStore,
+  type DriveSession,
+  type SyncSeenEntry,
+} from '../driveSessionStore';
 import { wrapIpcHandler } from './wrapIpcHandler';
 import { assertSyncPreviewAllowed, assertSyncRunAllowed, type SyncGuards } from '../main.handlers';
 import type { AppConfig } from '../types';
@@ -260,6 +267,32 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
           // re-imported by Sync (matches by image_uuid+file_name or original_path).
           const deletedKeys = await db.getDeletedImageKeys();
 
+          // Per-drive session: reuse cached EXIF-derived facts (keyed by
+          // relPath|size|mtimeMs) to skip re-reading EXIF on files we've seen on
+          // this drive before. The cache only avoids the exiftool read — every
+          // DB/tombstone/dest correctness check below still runs, so a stale cache
+          // can never cause a wrong copy or skip.
+          const store = getDriveSessionStore(app.getPath('userData'));
+          let driveIdentity: Awaited<ReturnType<typeof resolveDriveId>> | null = null;
+          let priorSession: DriveSession | null = null;
+          const seen = new Map<string, SyncSeenEntry>();
+          const newlySeen = new Map<string, SyncSeenEntry>();
+          let exifSkipped = 0;
+          if (!pickedCandidates) {
+              try {
+                  driveIdentity = await resolveDriveId(sourcePath);
+                  priorSession = await store.read(driveIdentity.driveId);
+                  if (priorSession?.sync?.seen) {
+                      for (const [k, v] of Object.entries(priorSession.sync.seen)) seen.set(k, v);
+                  }
+                  console.log(
+                      `[Sync] Drive ${driveIdentity.driveId} (${driveIdentity.source}) — ${seen.size} cached EXIF entries`
+                  );
+              } catch (e) {
+                  console.warn('[Sync] drive session load failed:', e);
+              }
+          }
+
           const processPhase = dryRun ? 'preview' : 'copying';
           let processedCount = 0;
           const concurrencyLimit = 15; // Safe parallelism for exiftool + DB queries
@@ -286,37 +319,57 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                           lens = c.lens;
                           imageUuid = c.imageUuid;
                       } else {
-                          try {
-                              const tags = await exiftool.read(filePath);
+                          const st = await fs.promises.stat(filePath);
+                          const seenKey = `${syncRelDisplay(sourcePath, filePath)}|${st.size}|${st.mtimeMs}`;
+                          const cached = seen.get(seenKey);
 
-                              const dto = tags.DateTimeOriginal ?? tags.CreateDate ?? tags.ModifyDate;
-                              if (dto) {
-                                  const raw = typeof dto === 'string' ? dto : String(dto);
-                                  const match = raw.match(/(\d{4})[:-](\d{2})[:-](\d{2})/);
-                                  if (match) {
-                                      dateStr = `${match[1]}-${match[2]}-${match[3]}`;
+                          if (cached) {
+                              // Same bytes as a prior scan on this drive — reuse the
+                              // derived facts and skip the expensive EXIF read.
+                              dateStr = cached.dateStr;
+                              camera = cached.camera;
+                              lens = cached.lens;
+                              imageUuid = cached.imageUuid;
+                              exifSkipped++;
+                          } else {
+                              let exifFailed = false;
+                              try {
+                                  const tags = await exiftool.read(filePath);
+
+                                  const dto = tags.DateTimeOriginal ?? tags.CreateDate ?? tags.ModifyDate;
+                                  if (dto) {
+                                      const raw = typeof dto === 'string' ? dto : String(dto);
+                                      const match = raw.match(/(\d{4})[:-](\d{2})[:-](\d{2})/);
+                                      if (match) {
+                                          dateStr = `${match[1]}-${match[2]}-${match[3]}`;
+                                      }
                                   }
+
+                                  cameraModel = (tags.Model as string) ?? null;
+                                  lensModel = (tags.LensModel as string) ?? (tags.Lens as string) ?? null;
+
+                                  const uid = tags.ImageUniqueID ?? tags.DocumentID ?? null;
+                                  if (uid && typeof uid === 'string') {
+                                      imageUuid = uid;
+                                  }
+                              } catch {
+                                  // EXIF read failed; use file date fallback and do NOT
+                                  // cache (so a transient failure isn't remembered).
+                                  exifFailed = true;
                               }
 
-                              cameraModel = (tags.Model as string) ?? null;
-                              lensModel = (tags.LensModel as string) ?? (tags.Lens as string) ?? null;
-
-                              const uid = tags.ImageUniqueID ?? tags.DocumentID ?? null;
-                              if (uid && typeof uid === 'string') {
-                                  imageUuid = uid;
+                              if (!dateStr) {
+                                  const d = st.mtime;
+                                  dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                               }
-                          } catch {
-                              // EXIF read failed; use file date fallback
-                          }
 
-                          if (!dateStr) {
-                              const fstat = await fs.promises.stat(filePath);
-                              const d = fstat.mtime;
-                              dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                          }
+                              camera = normalizeCameraModel(cameraModel);
+                              lens = normalizeLensFolderName(lensModel);
 
-                          camera = normalizeCameraModel(cameraModel);
-                          lens = normalizeLensFolderName(lensModel);
+                              if (!exifFailed) {
+                                  newlySeen.set(seenKey, { dateStr, camera, lens, imageUuid });
+                              }
+                          }
 
                           if (isUnresolvedSyncLayout(camera, lens)) {
                               console.warn(
@@ -435,6 +488,35 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                       }
                   }
               }));
+          }
+
+          // Persist the per-drive session so the next scan (preview or run) can
+          // skip EXIF for unchanged files. Best-effort: never let a store failure
+          // break the sync. A full run always refreshes lastSyncAt.
+          if (driveIdentity && (newlySeen.size > 0 || !dryRun)) {
+              try {
+                  const mergedSeen: Record<string, SyncSeenEntry> = {};
+                  for (const [k, v] of seen) mergedSeen[k] = v;
+                  for (const [k, v] of newlySeen) mergedSeen[k] = v;
+                  const nowIso = new Date().toISOString();
+                  await store.write({
+                      driveId: driveIdentity.driveId,
+                      label: driveIdentity.volumeLabel ?? priorSession?.label,
+                      updatedAt: nowIso,
+                      sync: {
+                          lastSourceRoot: sourcePath,
+                          lastWatermark: thresholdDate,
+                          lastSyncAt: dryRun ? priorSession?.sync?.lastSyncAt : nowIso,
+                          seen: mergedSeen,
+                      },
+                      backup: priorSession?.backup,
+                  });
+                  console.log(
+                      `[Sync] Persisted drive session ${driveIdentity.driveId}: ${Object.keys(mergedSeen).length} cached entries (${exifSkipped} EXIF reads skipped this run)`
+                  );
+              } catch (e) {
+                  console.warn('[Sync] drive session persist failed:', e);
+              }
           }
 
           if (dryRun) {

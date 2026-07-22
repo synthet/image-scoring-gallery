@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Loader2 } from 'lucide-react';
 import styles from './GalleryGrid.module.css';
 import { ThumbnailPlaceholder } from './ThumbnailPlaceholder';
 import { isWebSafe, isRaw } from '../../utils/imageFormats';
@@ -144,20 +143,16 @@ export const GalleryThumbnail: React.FC<GalleryThumbProps> = ({
 
     if (phase === 'idle' || phase === 'loading') {
         return (
-            <div
-                className={styles.thumbnailLoading}
-                title={phase === 'loading' ? 'Loading preview…' : undefined}
-                aria-busy={phase === 'loading'}
-            >
-                {phase === 'loading' ? (
-                    <Loader2 className={styles.thumbnailLoadingSpinner} size={28} strokeWidth={1.5} aria-hidden />
-                ) : null}
-            </div>
+            <ThumbnailPlaceholder
+                title="Loading…"
+                fileName={displayName}
+                variant="loading"
+            />
         );
     }
 
     if (phase === 'error' || !src) {
-        return <ThumbnailPlaceholder title="No preview" />;
+        return <ThumbnailPlaceholder title="No preview" fileName={displayName} />;
     }
 
     return (

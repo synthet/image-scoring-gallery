@@ -4,6 +4,7 @@ import { Logger } from '../../services/Logger';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
 import styles from './GalleryGrid.module.css';
 import { toMediaUrl } from '../../utils/mediaUrl';
+import { isRaw } from '../../utils/imageFormats';
 import { pickServerFilesystemPath } from '../../utils/pickServerFilesystemPath';
 import { bridge } from '../../bridge';
 import type { AgentCullRecommendation } from '../../types/agentCullReview';
@@ -106,14 +107,42 @@ interface GalleryGridProps {
 }
 
 
+function isRasterThumbPath(path?: string | null): boolean {
+    if (!path?.trim()) return false;
+    const lower = path.trim().toLowerCase();
+    return (
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.png') ||
+        lower.endsWith('.webp')
+    );
+}
+
+/** Prefer RAW-aware loader when opted in, or when a RAW file has no raster thumbnail (avoids black NEF tiles). */
+function shouldUseGalleryThumbnail(
+    useGalleryThumbnail: boolean,
+    fileName: string,
+    thumbnailPath?: string | null,
+): boolean {
+    if (useGalleryThumbnail) return true;
+    return isRaw(fileName) && !isRasterThumbPath(thumbnailPath);
+}
+
 /** Plain media:// img with a styled fallback when the format is not browser-decodable (e.g. NEF). */
-const SimpleMediaThumb: React.FC<{ src: string; alt: string; className: string }> = ({ src, alt, className }) => {
+const SimpleMediaThumb: React.FC<{ src: string; alt: string; className: string; fileName?: string }> = ({
+    src,
+    alt,
+    className,
+    fileName,
+}) => {
+    const name = fileName ?? alt;
     const [failed, setFailed] = useState(false);
     useEffect(() => {
         setFailed(false);
     }, [src]);
-    if (failed) {
-        return <ThumbnailPlaceholder title="No preview" />;
+    // Never point <img> at RAW bytes — Chromium often leaves a black tile without firing onError.
+    if (failed || isRaw(name) || /\.(nef|nrw|cr2|cr3|arw|orf|rw2|dng)(\?|$)/i.test(src)) {
+        return <ThumbnailPlaceholder title="No preview" fileName={name} />;
     }
     return (
         <img
@@ -347,7 +376,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                         </div>
                     )}
                     {(img.thumbnail_path || img.file_path) ? (
-                        useGalleryThumbnail ? (
+                        shouldUseGalleryThumbnail(useGalleryThumbnail, img.file_name, img.thumbnail_path) ? (
                             <GalleryThumbnail
                                 fileName={img.file_name}
                                 filePath={img.file_path}
@@ -360,10 +389,11 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                                 src={toMediaUrl(img.thumbnail_path || img.file_path!)}
                                 className={styles.image}
                                 alt={img.file_name}
+                                fileName={img.file_name}
                             />
                         )
                     ) : (
-                        <ThumbnailPlaceholder title="No image" aria-label="No image" />
+                        <ThumbnailPlaceholder title="No image" aria-label="No image" fileName={img.file_name} />
                     )}
                     <div className={styles.ratingOverlay}>
                         <span className={styles.ratingStars}>{'★'.repeat(img.rating)}</span>
@@ -405,7 +435,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
 
                 <div className={styles.imageAreaStack}>
                     {(stack.thumbnail_path || stack.file_path) ? (
-                        useGalleryThumbnail ? (
+                        shouldUseGalleryThumbnail(useGalleryThumbnail, stack.file_name, stack.thumbnail_path) ? (
                             <GalleryThumbnail
                                 fileName={stack.file_name}
                                 filePath={stack.file_path}
@@ -418,10 +448,11 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                                 src={toMediaUrl(stack.thumbnail_path || stack.file_path!)}
                                 className={styles.image}
                                 alt={stack.file_name}
+                                fileName={stack.file_name}
                             />
                         )
                     ) : (
-                        <ThumbnailPlaceholder title="No image" aria-label="No image" />
+                        <ThumbnailPlaceholder title="No image" aria-label="No image" fileName={stack.file_name} />
                     )}
 
                     {count > 1 && (

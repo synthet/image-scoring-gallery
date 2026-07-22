@@ -33,7 +33,7 @@
 /* Image area */
 .imageArea {
   flex: 1;
-  background-color: #000;
+  background-color: var(--color-bg-primary, #1e1e1e);
   position: relative;
   overflow: hidden;
 }
@@ -59,6 +59,7 @@
 }
 
 .thumbnailPlaceholder {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -66,21 +67,118 @@
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
-  background-color: #141414;
-  color: #5a5a5a;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% 18%, color-mix(in srgb, var(--color-accent, #0078d4) 14%, transparent), transparent 55%),
+    linear-gradient(165deg, #1c1c1c 0%, #121212 48%, #0d0d0d 100%);
+  color: var(--color-text-muted, #888);
+  isolation: isolate;
+}
+
+.thumbnailPlaceholderGlow {
+  position: absolute;
+  inset: 18% 12% auto;
+  height: 42%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-accent-bright, #4fc1ff) 18%, transparent), transparent 70%);
+  filter: blur(10px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.thumbnailPlaceholderPattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.22;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(135deg, transparent 46%, color-mix(in srgb, var(--color-text-muted, #888) 35%, transparent) 46%, color-mix(in srgb, var(--color-text-muted, #888) 35%, transparent) 54%, transparent 54%),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 11px,
+      color-mix(in srgb, var(--color-text-muted, #888) 18%, transparent) 11px,
+      color-mix(in srgb, var(--color-text-muted, #888) 18%, transparent) 12px
+    );
+  background-size: 18px 18px, 100% 100%;
+  mask-image: radial-gradient(ellipse 70% 65% at 50% 45%, #000 20%, transparent 75%);
+}
+
+.thumbnailPlaceholderContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  text-align: center;
+}
+
+.thumbnailPlaceholderBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-bg-elevated, #3c3c3c) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent-bright, #4fc1ff) 28%, var(--input-border, #555));
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-accent, #0078d4) 10%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
+  color: var(--color-accent-bright, #4fc1ff);
 }
 
 .thumbnailPlaceholderIcon {
   flex-shrink: 0;
-  opacity: 0.85;
+  opacity: 0.95;
+}
+
+.thumbnailPlaceholderLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary, #aaa);
+  line-height: 1.2;
+}
+
+.thumbnailPlaceholderFormat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-text-on-accent, #fff);
+  background: color-mix(in srgb, var(--color-accent, #0078d4) 75%, #000);
+  border: 1px solid color-mix(in srgb, var(--color-accent-bright, #4fc1ff) 35%, transparent);
 }
 
 .thumbnailLoading {
-  composes: thumbnailPlaceholder;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  background:
+    radial-gradient(120% 90% at 50% 18%, color-mix(in srgb, var(--color-accent, #0078d4) 10%, transparent), transparent 55%),
+    linear-gradient(165deg, #1a1a1a 0%, #121212 100%);
+  color: var(--color-text-muted, #888);
 }
 
 .thumbnailLoadingSpinner {
   animation: thumbSpin 0.8s linear infinite;
+  color: var(--color-accent-bright, #4fc1ff);
 }
 
 @keyframes thumbSpin {
