@@ -78,6 +78,7 @@ Install only when the linked skill's task requires it:
 | `gitleaks` | [agent-git-workflows](../../agent-git-workflows/SKILL.md) | Secret scan before sharing diffs |
 | `ctags` / `tree-sitter` | agent-search | Repeated def/ref across sessions |
 | `fff-mcp` | agent-search, mcp-code-intelligence | Project MCP — see [AGENTS.md § fff](../../../../AGENTS.md) |
+| `graphifyy` (CLI: `graphify`) | agent-search, mcp-code-intelligence | Architecture / cross-module graph — `uv tool install graphifyy`; first build `graphify . --code-only` (no API key); optional MCP `graphifyy[mcp]` — [AGENTS.md § Graphify](../../../../AGENTS.md) |
 
 ## Gallery verification (after install)
 

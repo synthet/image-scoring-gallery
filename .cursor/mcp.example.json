@@ -14,5 +14,13 @@
       "args": ["${workspaceFolder:image-scoring-gallery}"],
       "cwd": "${workspaceFolder:image-scoring-gallery}"
     }
+  },
+  "_graphify_gallery_example": {
+    "_comment": "Optional — graphify-mcp on PATH (uv tool install \"graphifyy[mcp]\") and graphify-out/graph.json (graphify . --code-only). Soft; see AGENTS.md § Graphify and .cursor/skills/graphify/SKILL.md. Copy into mcpServers when enabling.",
+    "graphify-gallery": {
+      "command": "graphify-mcp",
+      "args": ["graphify-out/graph.json"],
+      "cwd": "${workspaceFolder:image-scoring-gallery}"
+    }
   }
 }

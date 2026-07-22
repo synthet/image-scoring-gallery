@@ -4,6 +4,17 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.27.0] - 2026-07-21
+
+### Added
+- **Spec Kit workflow gates**: `/clarify`, `/tasks`, and `/analyze` slash commands plus adoption notes (`.agent/SPEC_KIT_ADOPTION.md`) for non-trivial multi-AC work.
+- **Agent skills**: `graphify`, `karpathy-guidelines`, `skill-authoring`, `systematic-debugging`, `test-driven-development`, and `verification-before-completion` (Cursor + Claude mirrors).
+- **Graphify soft integration**: optional local AST graph (`.graphifyignore`, gitignored `graphify-out/`) and MCP example entries for Electron/React architecture queries.
+
+### Changed
+- **Backlog queue / CLI hub / search**: Skill and command refresh; Spec Kit commands listed in `AGENTS.md` and `.cursor/README.md`.
+- **Assistant-tree sync**: Include new Spec Kit command paths in `scripts/sync_assistant_trees.py`.
+
 ## [7.26.0] - 2026-07-21
 
 ### Added

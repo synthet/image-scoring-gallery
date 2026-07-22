@@ -33,6 +33,7 @@ Central entry point for agent-safe CLI workflows: which skill to use, how to ins
 | MCP vs CLI code intelligence | [`mcp-code-intelligence`](../mcp-code-intelligence/SKILL.md) |
 | Gallery pipeline / DB triage | [`image-scoring-mcp`](../image-scoring-mcp/SKILL.md) |
 | Fast indexed file search (MCP) | **[fff](https://github.com/dmtrKovalenko/fff)** — **project** `fff-gallery` in `.cursor/mcp.json`; see [AGENTS.md § fff](../../../AGENTS.md) |
+| Architecture / cross-module graph | **[Graphify](https://github.com/Graphify-Labs/graphify)** — skill [`graphify`](../graphify/SKILL.md); soft rule [`.cursor/rules/graphify.mdc`](../../rules/graphify.mdc); see [AGENTS.md § Graphify](../../../AGENTS.md) |
 
 ## Required tools (baseline)
 

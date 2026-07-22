@@ -31,6 +31,8 @@ MIRROR_RULES = {
     "backlog-queue",
     "documentation",
     "external-cli-subagents",
+    "graphify",
+    "karpathy-coding",
     "safety-and-secrets",
     "sdlc-core",
 }

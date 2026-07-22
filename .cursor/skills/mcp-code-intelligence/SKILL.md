@@ -45,12 +45,12 @@ Adds indexed, frecency-ranked search for long agent sessions; keep `rg`/`fd` for
 ### Advanced setup
 
 ```text
-Serena or codebase-memory-mcp + Zoekt + optional embeddings (e.g. claude-context)
+Graphify (graphify query/path/explain or optional graphify-gallery MCP) + optional Serena / Zoekt / embeddings
 ```
 
-Higher setup cost and memory. Use when repeated cross-repo symbol navigation justifies indexing.
+Higher setup cost. Prefer **Graphify** for local AST knowledge graphs (no vector store) before heavier symbol/embedding indexes. Use when cross-module “why / how connected” questions outgrow `rg`/`fff`.
 
-**Warning:** Embedding-first indexing is often heavier and less exact than text/structural search — keep it secondary.
+**Warning:** Embedding-first indexing is often heavier and less exact than text/structural search — keep it secondary. Do **not** use Graphify for gallery IPC/backend triage — that stays on **`is-ui-mcp`**.
 
 ## Comparison matrix
 
@@ -60,6 +60,7 @@ Higher setup cost and memory. Use when repeated cross-repo symbol navigation jus
 | CLI wrappers | rg, fd, bat, git diff | Fast, bounded, no index | Agent must orchestrate |
 | Structural | ast-grep MCP/CLI, semgrep | Syntax shapes, rewrites | Medium; language-aware |
 | Symbol | universal-ctags, LSP | Definitions/refs | Index refresh on change |
+| Knowledge graph | **Graphify** (`graphifyy` CLI; optional `graphify-gallery` MCP) | AST edges, path/query/explain; local, no vectors | `uv tool install`; build `graphify-out/` |
 | Graph | Serena, codebase-memory-mcp | Project memory, relationships | Setup + memory |
 | Trigram index | Zoekt | Large-repo search | Server/wrapper overhead |
 | Embeddings | claude-context-style | Fuzzy discovery | Heavy index, imprecise |
@@ -99,4 +100,4 @@ test -f mcp-server/dist/compactIndex.js && echo ok
 rg --version && fd --version
 ```
 
-Tools not verified in this pass: Serena, codebase-memory-mcp, Zoekt server, claude-context — treat as optional third-party; confirm upstream docs before install.
+Tools not verified in this pass: Graphify MCP (`graphifyy[mcp]`), Serena, codebase-memory-mcp, Zoekt server, claude-context — treat as optional third-party; confirm upstream docs before install. See [AGENTS.md § Graphify](../../../AGENTS.md).

@@ -28,6 +28,7 @@
 | [.agent-memory/CURSOR_USAGE.md](../.agent-memory/CURSOR_USAGE.md) | Memory pointer stub | governance | active | backend `.agent-memory/` | No local dream engine |
 | [.cursor/agents/*.md](../.cursor/agents/) | Subagents | coding | active | AGENTS.md | Sync `.claude/agents/` |
 | [.cursor/rules/external-cli-subagents.mdc](../.cursor/rules/external-cli-subagents.mdc) | External Codex/Gemini review safety | governance | active | subagent-orchestrator | Mirror `.claude/rules/` |
+| [.cursor/rules/graphify.mdc](../.cursor/rules/graphify.mdc) | Soft Graphify architecture-graph guidance (`alwaysApply: false`) | coding | active | Graphify-Labs/graphify | Mirror `.claude/rules/`; optional third-party CLI |
 | [.cursor/skills/subagent-review/](../.cursor/skills/subagent-review/) | MCP external review workflow | workflow | active | `../subagent-orchestrator` | Mirror `.claude/skills/` |
 | [docs/technical/EXTERNAL_CLI_REVIEWS.md](../docs/technical/EXTERNAL_CLI_REVIEWS.md) | Setup for imgscore-el-subagent-orchestrator MCP | cross-repo | active | backend EXTERNAL_CLI_REVIEWS | None |
 | [.claude/commands/*.md](../.claude/commands/) | Claude commands | workflow | active | .cursor/commands | Keep aligned |

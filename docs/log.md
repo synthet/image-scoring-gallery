@@ -13,6 +13,8 @@ Chronological record of wiki maintenance activities. Newest entries first.
 
 ## 2026-07
 
+- 2026-07-21: updated — Onboard Graphify (soft): [graphify.mdc](../.cursor/rules/graphify.mdc), [AGENTS.md § Graphify](../AGENTS.md), deferred install-tiers + mcp-code-intelligence/agent-search, `.graphifyignore`, optional `graphify-gallery` MCP example; `graphify-out/` gitignored.
+- 2026-07-21: updated — Framework onboard (Spec Kit gates, Karpathy, disciplined skills): `/clarify` `/tasks` `/analyze`, SPEC_KIT_ADOPTION, karpathy-coding, TDD/debug/verification/skill-authoring; [ai-workflow/README.md](ai-workflow/README.md) SDLC loop. Counterpart backend #301 / this #159.
 - 2026-07-03: updated — CLI hub propagation from synthet-code-framework: fff row in [agent-search tool-selection](../.cursor/skills/agent-search/references/tool-selection.md); fff note in bounded-output patterns; [`.agent/cli-tools-skills-spec.md`](../.agent/cli-tools-skills-spec.md) (hub layout); [`scripts/validate_cli_hub_skills.py`](../scripts/validate_cli_hub_skills.py); [ai-workflow/README.md](ai-workflow/README.md) upstream flat-skill note.
 - 2026-07-04: updated — Framework alignment: [sync_assistant_trees.py](../scripts/sync_assistant_trees.py), [agent-infra.yml](../.github/workflows/agent-infra.yml), CI scripts; memory commands + [agent-memory](../.cursor/skills/agent-memory/SKILL.md); [safety-and-secrets](../.cursor/rules/safety-and-secrets.mdc); Human provisioning in install-tiers; [ai-workflow/README.md](ai-workflow/README.md) Framework alignment section.
 - 2026-07-03: updated — [agent-search](../.cursor/skills/agent-search/SKILL.md): tool-selection reference (rg vs grep vs ast-grep vs fd vs fzf); hub router note.

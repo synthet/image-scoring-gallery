@@ -33,7 +33,10 @@ User **`~/.cursor/mcp.json`**: **`github`**, **`subagent-orchestrator`**, etc. â
 | Command | Purpose |
 |---------|---------|
 | `/spec` | Feature/change spec with EARS `AC-n` criteria |
+| `/clarify` | Resolve material ambiguities before `/plan` |
 | `/plan` | Implementation plan (after spec) |
+| `/tasks` | Traceable `T-n` task list from plan |
+| `/analyze` | Cross-artifact coverage check before `/implement` |
 | `/decompose` | Break large epics into parallel subtasks |
 | `/implement` | Execute approved plan |
 | `/test-and-fix` | Run tests, fix failures |

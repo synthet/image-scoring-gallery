@@ -1,0 +1,19 @@
+# Extra excludes beyond .gitignore (merged; never re-includes gitignored paths).
+# Keep indexing: electron/, src/, mcp-server/src/, docs/
+
+dist/
+release/
+out/
+node_modules/
+mcp-server/node_modules/
+coverage/
+.agent/scratch/
+.agent/tmp/
+.agent-runs/
+graphify-out/
+*.log
+.env
+.env.*
+secrets.json
+config.local.json
+*.map
