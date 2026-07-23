@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import type { AgentCullRecommendation } from '../../types/agentCullReview';
 
@@ -191,6 +191,27 @@ describe('GalleryGrid agent cull overlays', () => {
     it('renders no agent overlay when there is no recommendation for the image', () => {
         render(<GalleryGrid images={[img]} activeStackId={123} agentRecommendations={new Map()} />);
         expect(screen.queryByTestId('agent-grid-badge-100')).toBeNull();
+    });
+});
+
+describe('GalleryGrid NEF thumbnail preview', () => {
+    it('renders JPEG thumbnail img for NEF with raster thumbnail_path (not No preview)', () => {
+        const scoredNef = {
+            id: 71662,
+            file_path: 'D:/Photos/Z8/DSC_0572.NEF',
+            file_name: 'DSC_0572.NEF',
+            thumbnail_path: 'D:/Projects/image-scoring-backend/thumbnails/c5/c518f82f329a4c45ad6f18b567114484.jpg',
+            score_general: 0.9878,
+            rating: 0,
+            label: null,
+        };
+
+        render(<GalleryGrid images={[scoredNef]} />);
+
+        const img = screen.getByRole('img', { name: 'DSC_0572.NEF' });
+        expect(img.tagName).toBe('IMG');
+        expect(img.getAttribute('src')).toContain('c518f82f329a4c45ad6f18b567114484.jpg');
+        expect(screen.queryByText('No preview')).toBeNull();
     });
 });
 
