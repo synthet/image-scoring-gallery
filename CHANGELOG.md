@@ -4,6 +4,14 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.27.1] - 2026-07-23
+
+### Fixed
+- **NEF / RAW gallery thumbs**: Prefer JPEG (or other raster) companion thumbnails for NEF cards so the grid shows a real preview instead of a permanent "No preview" state.
+
+### Changed
+- **Agent memory docs**: Add `.agent-memory/CURSOR_USAGE.md` pointer for gallery operators.
+
 ## [7.27.0] - 2026-07-21
 
 ### Added
