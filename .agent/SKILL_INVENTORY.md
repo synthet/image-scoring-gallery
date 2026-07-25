@@ -45,6 +45,9 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | test-driven-development | `.cursor/skills/test-driven-development/SKILL.md` | Red-green-refactor; fail-first tests | L1 | Yes | 2026-07-21 |
 | verification-before-completion | `.cursor/skills/verification-before-completion/SKILL.md` | Fresh command evidence before "done" claims | L1 | Yes | 2026-07-21 |
 | skill-authoring | `.cursor/skills/skill-authoring/SKILL.md` | Create/improve Cursor-canonical skills + sync | L1 | Yes | 2026-07-21 |
+| critical-commit-audit | `.cursor/skills/critical-commit-audit/SKILL.md` | High-severity post-commit review; IPC/preload/API-client path tracing | L2 | Yes | 2026-07-25 |
+| lesson-to-skill | `.cursor/skills/lesson-to-skill/SKILL.md` | Turn session corrections, mistakes, and repetitions into enriched or new assets | L1 | Yes | 2026-07-25 |
+| autonomous-run-contract | `.cursor/skills/autonomous-run-contract/SKILL.md` | Metric, budget, revert rule, and stop conditions before an unattended or fanned-out run | L1 | Yes | 2026-07-25 |
 
 **Note:** `.cursor/` is canonical; run `python scripts/sync_assistant_trees.py` after skill/command changes to refresh `.claude/` mirror. CI: [`.github/workflows/agent-infra.yml`](../.github/workflows/agent-infra.yml).
 

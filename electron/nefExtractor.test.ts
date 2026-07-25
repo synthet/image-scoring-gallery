@@ -27,6 +27,19 @@ import fs from 'fs/promises';
 let NefExtractor: typeof import('./nefExtractor').NefExtractor;
 let nefExtractor: import('./nefExtractor').NefExtractor;
 
+describe('normalizeOrientationToNumeric', () => {
+  it('maps common values', async () => {
+    const { normalizeOrientationToNumeric } = await import('./nefExtractor');
+    expect(normalizeOrientationToNumeric(8)).toBe(8);
+    expect(normalizeOrientationToNumeric('Rotate 270 CW')).toBe(8);
+    expect(normalizeOrientationToNumeric('Rotate 90 CW')).toBe(6);
+    expect(normalizeOrientationToNumeric(1)).toBe(1);
+    expect(normalizeOrientationToNumeric('Horizontal (normal)')).toBe(1);
+    expect(normalizeOrientationToNumeric(null)).toBeNull();
+    expect(normalizeOrientationToNumeric('nope')).toBeNull();
+  });
+});
+
 describe('NefExtractor', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -67,7 +80,7 @@ describe('NefExtractor', () => {
       expect(exiftool.write).not.toHaveBeenCalled();
     });
 
-    it('applies orientation tag when orientation is not normal', async () => {
+    it('applies numeric orientation when tag is "Rotate 90 CW"', async () => {
       const fakeBuffer = Buffer.from('rotated-jpeg');
       vi.mocked(exiftool.read).mockResolvedValue({ Orientation: 'Rotate 90 CW' } as never);
       vi.mocked(exiftool.extractJpgFromRaw).mockResolvedValue(undefined as never);
@@ -80,7 +93,41 @@ describe('NefExtractor', () => {
       expect(result).toBe(fakeBuffer);
       expect(exiftool.write).toHaveBeenCalledWith(
         expect.any(String),
-        { Orientation: 'Rotate 90 CW' },
+        { Orientation: 6 },
+        ['-overwrite_original']
+      );
+    });
+
+    it('applies numeric orientation 8 when tag is "Rotate 270 CW"', async () => {
+      const fakeBuffer = Buffer.from('rotated-270');
+      vi.mocked(exiftool.read).mockResolvedValue({ Orientation: 'Rotate 270 CW' } as never);
+      vi.mocked(exiftool.extractJpgFromRaw).mockResolvedValue(undefined as never);
+      vi.mocked(exiftool.write).mockResolvedValue(undefined as never);
+      vi.mocked(fs.readFile).mockResolvedValue(fakeBuffer as never);
+      vi.mocked(fs.unlink).mockResolvedValue(undefined);
+
+      await nefExtractor.extractPreview('/path/to/portrait.nef');
+
+      expect(exiftool.write).toHaveBeenCalledWith(
+        expect.any(String),
+        { Orientation: 8 },
+        ['-overwrite_original']
+      );
+    });
+
+    it('applies numeric orientation when tag is already number 8', async () => {
+      const fakeBuffer = Buffer.from('rotated-num');
+      vi.mocked(exiftool.read).mockResolvedValue({ Orientation: 8 } as never);
+      vi.mocked(exiftool.extractJpgFromRaw).mockResolvedValue(undefined as never);
+      vi.mocked(exiftool.write).mockResolvedValue(undefined as never);
+      vi.mocked(fs.readFile).mockResolvedValue(fakeBuffer as never);
+      vi.mocked(fs.unlink).mockResolvedValue(undefined);
+
+      await nefExtractor.extractPreview('/path/to/portrait.nef');
+
+      expect(exiftool.write).toHaveBeenCalledWith(
+        expect.any(String),
+        { Orientation: 8 },
         ['-overwrite_original']
       );
     });

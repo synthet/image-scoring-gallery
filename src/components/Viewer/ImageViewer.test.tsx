@@ -9,6 +9,12 @@ vi.mock('../../utils/exportImageBake', () => ({
     bakeExifOrientationToBlob: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock('../../utils/nefViewer', () => ({
+    nefViewer: {
+        extractWithFallback: vi.fn(),
+    },
+}));
+
 vi.mock('../../hooks/useDatabase', async (importOriginal) => {
     const mod = await importOriginal<typeof import('../../hooks/useDatabase')>();
     return {
@@ -28,6 +34,9 @@ vi.mock('../../store/useNotificationStore', () => ({
 }));
 
 import { ImageViewer } from './ImageViewer';
+import { bakeExifOrientationToBlob } from '../../utils/exportImageBake';
+import { nefViewer } from '../../utils/nefViewer';
+import { toMediaUrl } from '../../utils/mediaUrl';
 
 type ElectronMock = {
     getImageDetails: ReturnType<typeof vi.fn>;
@@ -63,6 +72,32 @@ function renderViewer() {
             currentIndex={0}
         />
     );
+}
+
+function makeElectronMock(overrides: Partial<ElectronMock> = {}): ElectronMock {
+    return {
+        getImageDetails: vi.fn().mockResolvedValue({ ...baseImage }),
+        getImagePhaseStatuses: vi.fn().mockResolvedValue([]),
+        readExif: vi.fn().mockResolvedValue({}),
+        setCurrentExportImageContext: vi.fn().mockResolvedValue(true),
+        updateImageDetails: vi.fn().mockResolvedValue(true),
+        deleteImage: vi.fn().mockResolvedValue(true),
+        getFolders: vi.fn().mockResolvedValue([]),
+        searchSimilarImages: vi.fn().mockResolvedValue({
+            query_image_id: baseImage.id,
+            results: [],
+            count: 0,
+        }),
+        api: {
+            propagateTags: vi.fn().mockResolvedValue({
+                success: true,
+                message: 'ok',
+                data: { suggestions: [] },
+            }),
+            fixImageMetadata: vi.fn().mockResolvedValue({ success: true, message: 'ok' }),
+        },
+        ...overrides,
+    };
 }
 
 describe('ImageViewer tag propagation suggestions', () => {
@@ -352,5 +387,100 @@ describe('ImageViewer Open Folder', () => {
         });
 
         expect(await screen.findByRole('button', { name: /open folder/i })).not.toBeNull();
+    });
+});
+
+describe('ImageViewer RAW orientation bake', () => {
+    let electron: ElectronMock;
+    const nefImage = {
+        id: 199125,
+        file_path: 'D:/Photos/Z8/180-600mm/2024/2024-06-24/DSC_9300.NEF',
+        file_name: 'DSC_9300.NEF',
+        score_general: 0.72,
+        rating: 3,
+        label: 'Blue',
+        keywords: '',
+        thumbnail_path: '/mnt/d/Projects/image-scoring-backend/thumbnails/ab/abc.jpg',
+    };
+
+    beforeEach(() => {
+        electron = makeElectronMock({
+            getImageDetails: vi.fn().mockResolvedValue({ ...nefImage }),
+        });
+        (window as unknown as { electron: ElectronMock }).electron = electron;
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            blob: async () => new Blob(['preview'], { type: 'image/jpeg' }),
+        }));
+        vi.stubGlobal('URL', {
+            ...URL,
+            createObjectURL: vi.fn(() => 'blob:mock-baked'),
+            revokeObjectURL: vi.fn(),
+        });
+        vi.mocked(bakeExifOrientationToBlob).mockReset();
+        vi.mocked(nefViewer.extractWithFallback).mockReset();
+        vi.mocked(nefViewer.extractWithFallback).mockResolvedValue(
+            new Blob(['extract'], { type: 'image/jpeg' }),
+        );
+    });
+
+    afterEach(() => {
+        (window as unknown as { electron?: ElectronMock }).electron = undefined;
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    it('uses baked blob when bakeExifOrientationToBlob normalizes orientation', async () => {
+        const bakedBlob = new Blob(['upright'], { type: 'image/jpeg' });
+        vi.mocked(bakeExifOrientationToBlob).mockResolvedValue({
+            blob: bakedBlob,
+            didNormalize: true,
+            sourceOrientation: 8,
+            width: 1000,
+            height: 1600,
+        });
+
+        render(
+            <ImageViewer
+                image={nefImage}
+                onClose={vi.fn()}
+                allImages={[nefImage]}
+                currentIndex={0}
+            />,
+        );
+
+        await waitFor(() => {
+            expect(nefViewer.extractWithFallback).toHaveBeenCalled();
+            expect(bakeExifOrientationToBlob).toHaveBeenCalled();
+        });
+
+        const img = await screen.findByAltText('DSC_9300.NEF');
+        expect((img as HTMLImageElement).src).toContain('blob:mock-baked');
+        expect(URL.createObjectURL).toHaveBeenCalledWith(bakedBlob);
+    });
+
+    it('uses full-res extract when bake does not normalize (landscape Orientation 1)', async () => {
+        const extractBlob = new Blob(['extract'], { type: 'image/jpeg' });
+        vi.mocked(nefViewer.extractWithFallback).mockResolvedValue(extractBlob);
+        vi.mocked(bakeExifOrientationToBlob).mockResolvedValue(null);
+
+        render(
+            <ImageViewer
+                image={nefImage}
+                onClose={vi.fn()}
+                allImages={[nefImage]}
+                currentIndex={0}
+            />,
+        );
+
+        await waitFor(() => {
+            expect(bakeExifOrientationToBlob).toHaveBeenCalled();
+        });
+
+        const img = await screen.findByAltText('DSC_9300.NEF');
+        expect((img as HTMLImageElement).src).toContain('blob:mock-baked');
+        expect(URL.createObjectURL).toHaveBeenCalledWith(extractBlob);
+        expect((img as HTMLImageElement).getAttribute('src')).not.toBe(
+            toMediaUrl(nefImage.thumbnail_path),
+        );
     });
 });

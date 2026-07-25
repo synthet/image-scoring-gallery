@@ -18,7 +18,7 @@ You are the **gallery-mcp-debug** specialist for **image-scoring-gallery**. Work
 - **`is-ui-api`** — `api_*` (HTTP to backend when WebUI is up).
 - **`is-ui-live`** — `cdp_*`, `gallery_window_status`, `gallery_ipc_ping` (Electron dev + SSE; see `gallery-mcp.lock`).
 - **`is-be-mcp`** (sibling backend workspace) — **`search`**, **`dispatch`** for pipeline/DB triage.
-- **`is-be-webui`** — WebUI SSE for `execute_code` when `ENABLE_MCP_EXECUTE_CODE=1`.
+- **`is-be-live`** — WebUI SSE for `execute_code` when `ENABLE_MCP_EXECUTE_CODE=1`.
 
 ## First-pass triage
 

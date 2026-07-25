@@ -37,7 +37,7 @@ Lowest memory, transparent, deterministic. Best default for most tasks.
 ### Better setup
 
 ```text
-fff-gallery MCP (ffgrep, fffind) + rg + fd + ast-grep + git tools + task runner (npm run / just)
+fff-gallery MCP (grep, find_files, multi_grep) + rg + fd + ast-grep + git tools + task runner (npm run / just)
 ```
 
 Adds indexed, frecency-ranked search for long agent sessions; keep `rg`/`fd` for one-off shell use.
@@ -56,7 +56,7 @@ Higher setup cost. Prefer **Graphify** for local AST knowledge graphs (no vector
 
 | Layer | Examples | Strengths | Cost |
 |-------|----------|-----------|------|
-| Indexed file search | **fff** MCP (`ffgrep`, `fffind`) — project `fff-gallery` | Warm index, frecency, git-aware, typo-tolerant | Project MCP install; ~26 MB RAM / 14k files |
+| Indexed file search | **fff** MCP (`grep`, `find_files`, `multi_grep`) — project `fff-gallery` | Warm index, frecency, git-aware, typo-tolerant | Project MCP install; ~26 MB RAM / 14k files |
 | CLI wrappers | rg, fd, bat, git diff | Fast, bounded, no index | Agent must orchestrate |
 | Structural | ast-grep MCP/CLI, semgrep | Syntax shapes, rewrites | Medium; language-aware |
 | Symbol | universal-ctags, LSP | Definitions/refs | Index refresh on change |

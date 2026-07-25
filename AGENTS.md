@@ -114,7 +114,7 @@ dispatch("live.cdp_click", {"selector":"button[data-testid='...']"})
 
 ### fff file search (optional, project MCP)
 
-**[fff](https://github.com/dmtrKovalenko/fff)** — fast frecency-ranked file search (`ffgrep`, `fffind`, `fff-multi-grep`). **Project-level only** — must set `cwd` + PATH to a git repo; user-level config fails with *"Can not run certain FFF features in a file system root or home directories"*. See [`.cursor/mcp.example.json`](.cursor/mcp.example.json) / backend [`mcp.pair.example.json`](https://github.com/synthet/image-scoring-backend/blob/main/.cursor/mcp.pair.example.json) (`fff-be`, `fff-gallery`).
+**[fff](https://github.com/dmtrKovalenko/fff)** — fast frecency-ranked file search (`grep`, `find_files`, `multi_grep`). **Project-level only** — must set `cwd` + PATH to a git repo; user-level config fails with *"Can not run certain FFF features in a file system root or home directories"*. See [`.cursor/mcp.example.json`](.cursor/mcp.example.json) / backend [`mcp.pair.example.json`](https://github.com/synthet/image-scoring-backend/blob/main/.cursor/mcp.pair.example.json) (`fff-be`, `fff-gallery`).
 
 | Install | Command |
 |---------|---------|
@@ -129,6 +129,22 @@ dispatch("live.cdp_click", {"selector":"button[data-testid='...']"})
   "cwd": "${workspaceFolder:image-scoring-gallery}"
 }
 ```
+
+**Call shapes (check schema before calling):**
+
+```text
+grep({ query: "*.{ts,tsx} exif_transpose" })
+find_files({ query: "orientation" })
+multi_grep({ patterns: ["exif_transpose", "image-orientation"], constraints: "*.{ts,tsx,css}" })
+```
+
+| Tool | Required params |
+|------|-----------------|
+| `grep` | `query: string` (file constraints go **inline** in the query, e.g. `"*.ts thumbnail"`) |
+| `find_files` | `query: string` |
+| `multi_grep` | `patterns: string[]`; optional `constraints: string` (e.g. `"*.{ts,tsx}"`) |
+
+**Anti-patterns:** do not pass `queries`; do not pass a separate `constraints` argument to **`grep`** (only `query`); on **`multi_grep`**, do not pass `constraints` as an array or object (must be a single string). Stale names `ffgrep` / `fffind` / `fff-multi-grep` are obsolete.
 
 Prefer **fff** MCP tools for repeated file/content search in the indexed repo; use **`rg`/`fd`** from [agent-search](.cursor/skills/agent-search/SKILL.md) for one-off shell probes or when fff is not installed.
 

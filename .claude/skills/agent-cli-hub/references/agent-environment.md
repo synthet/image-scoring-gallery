@@ -78,7 +78,7 @@ After adding fff:
 
 1. Reload MCP in Cursor Settings.
 2. Confirm `fff-gallery` shows connected.
-3. Prefer `ffgrep` / `fffind` for repeated search; use `rg`/`fd` for one-off probes.
+3. Prefer `grep` / `find_files` / `multi_grep` for repeated search; use `rg`/`fd` for one-off probes.
 
 ## Optional: log provisioning (sibling backend)
 

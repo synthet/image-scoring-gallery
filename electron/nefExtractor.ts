@@ -3,6 +3,36 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 
+/** Common exiftool-vendored / ExifTool Orientation string → EXIF numeric 1..8 */
+const ORIENTATION_STRING_TO_NUMERIC: Record<string, number> = {
+    "Horizontal (normal)": 1,
+    "Mirror horizontal": 2,
+    "Rotate 180": 3,
+    "Mirror vertical": 4,
+    "Mirror horizontal and rotate 270 CW": 5,
+    "Rotate 90 CW": 6,
+    "Mirror horizontal and rotate 90 CW": 7,
+    "Rotate 270 CW": 8,
+};
+
+/**
+ * Coerce EXIF Orientation from NEF tags to numeric 1..8.
+ * exiftool-vendored may return a number or a descriptive string.
+ */
+export function normalizeOrientationToNumeric(value: unknown): number | null {
+    if (value == null) return null;
+    if (typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 8) {
+        return value;
+    }
+    const s = String(value).trim();
+    if (!s) return null;
+    const asInt = Number.parseInt(s, 10);
+    if (Number.isInteger(asInt) && asInt >= 1 && asInt <= 8 && String(asInt) === s) {
+        return asInt;
+    }
+    return ORIENTATION_STRING_TO_NUMERIC[s] ?? null;
+}
+
 /**
  * Server-side NEF preview extractor using exiftool-vendored
  * Handles all Nikon formats including Z8 HE/HE*, Z9, Z6II, D90
@@ -33,17 +63,16 @@ export class NefExtractor {
         try {
             console.log(`[NefExtractor] Attempting exiftool extraction for: ${nefPath}`);
 
-            // 1. Read the orientation from the original NEF first
+            // 1. Read the orientation from the original NEF first (coerce to numeric 1..8)
             const tags = await exiftool.read(nefPath);
-            const orientation = tags.Orientation; // e.g. "Rotate 90 CW", 1, 6, 8, etc.
+            const orientation = normalizeOrientationToNumeric(tags.Orientation);
 
             // 2. Extract best JPEG (JpgFromRaw or PreviewImage)
             await exiftool.extractJpgFromRaw(nefPath, tempJpeg);
 
             // 3. Since exiftool just dumps the binary chunk, it might lack EXIF orientation or have it stripped
-            // We use ExifTool to explicitly write the orientation back into the extracted JPEG
-            // so the browser renderer (with image-orientation: from-image) handles it.
-            if (orientation && String(orientation) !== '1' && String(orientation) !== 'Horizontal (normal)') {
+            // Stamp numeric Orientation onto the extract so bake / browsers can apply it.
+            if (orientation != null && orientation >= 2) {
                 console.log(`[NefExtractor] Detected orientation: ${orientation}, applying to extracted JPEG`);
                 await exiftool.write(tempJpeg, { Orientation: orientation }, ['-overwrite_original']);
             }

@@ -23,7 +23,7 @@ Backend compact contract: [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/im
 
 ## High-risk
 
-Writes and `execute_code` live on **`is-be-maint`** / **`is-be-webui`** (backend). Keep disabled in automated profiles.
+Writes and `execute_code` live on backend **`is-be-live`** with **`MCP_SSE_PROFILE=full`** (and `ENABLE_MCP_EXECUTE_CODE=1` for `execute_code`). Keep disabled in automated profiles.
 
 ## Agent config files
 

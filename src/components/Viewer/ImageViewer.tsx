@@ -870,7 +870,13 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                         const blob = await nefViewer.extractWithFallback(pathSchema);
 
                         if (blob && active) {
-                            objectUrl = URL.createObjectURL(blob);
+                            // Bake EXIF orientation into pixels so single-view does not rely on
+                            // browser auto-orient (grid uses stamped thumbs; extracts often need bake).
+                            // Portrait: use upright baked pixels. Landscape/Orientation-1: use the
+                            // original full-res extract (never the 512px thumbnail).
+                            const baked = await bakeExifOrientationToBlob(blob, 'image/jpeg');
+                            const displayBlob = baked?.didNormalize ? baked.blob : blob;
+                            objectUrl = URL.createObjectURL(displayBlob);
                             setPreviewSrc(objectUrl);
                             return;
                         }

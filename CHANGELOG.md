@@ -4,6 +4,15 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.27.2] - 2026-07-25
+
+### Fixed
+- **NEF orientation (single view)**: Bake EXIF orientation into pixels for NEF extract previews so portrait shots display upright in the viewer instead of relying on browser auto-orient.
+- **NEF orientation normalization**: Coerce exiftool `Orientation` (numeric or descriptive string like `Rotate 90 CW`) to a numeric `1..8` value before stamping the extracted JPEG, so rotations are applied reliably.
+
+### Changed
+- **Agent skills / commands**: Sync Cursor and Claude skill mirrors (`lesson-to-skill`, `autonomous-run-contract`, `critical-commit-audit`) and related MCP/search guidance.
+
 ## [7.27.1] - 2026-07-23
 
 ### Fixed

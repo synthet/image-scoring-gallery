@@ -33,6 +33,6 @@ Do not use `imgscore-el-*`, `image-scoring-gallery-*`, `image-scoring-backend-*`
 
 ## execute_code
 
-Backend only: **`is-be-webui`** + `ENABLE_MCP_EXECUTE_CODE=1`.
+Backend only: **`is-be-live`** + `ENABLE_MCP_EXECUTE_CODE=1` (and usually `MCP_SSE_PROFILE=full`).
 
 Backend compact contract: [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/MCP_SEARCH_DISPATCH.md).
