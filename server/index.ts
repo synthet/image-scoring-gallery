@@ -12,7 +12,6 @@ import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { URL } from 'url';
-import type { Server } from 'http';
 
 /** When stdin is a closed pipe (nested npm/concurrently on Windows), Node can exit right after startup unless we resume it. */
 function keepStdinFromEndingProcess(): void {
@@ -41,8 +40,6 @@ const apiService = new ApiService(() => appConfig);
 const backendBaseUrl = resolveBaseUrl(appConfig);
 
 // ── DB Startup ────────────────────────────────────────────────────────────────
-
-let httpServer: Server | undefined;
 
 type ServerDeps = {
     dbModule: typeof db;
@@ -485,7 +482,7 @@ async function startServer() {
     // ── Start ─────────────────────────────────────────────────────────────────
 
     const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
-    httpServer = app.listen(PORT, () => {
+    app.listen(PORT, () => {
         console.log(`[Server] Browser-mode server running on http://localhost:${PORT}`);
         console.log(`[Server] Python backend URL: ${backendBaseUrl}`);
     });

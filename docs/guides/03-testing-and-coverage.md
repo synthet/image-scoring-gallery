@@ -38,10 +38,10 @@ npm run test:coverage
 
 Current coverage thresholds are intentionally conservative so they reflect the current suite health while still preventing regressions.
 
-- Branches: `6%`
-- Functions: `8%`
-- Lines: `10%`
-- Statements: `10%`
+- Branches: `10%`
+- Functions: `12%`
+- Lines: `15%`
+- Statements: `15%`
 
 ### How to interpret failures
 

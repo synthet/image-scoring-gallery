@@ -264,7 +264,7 @@ function usePaginatedData<T extends { id: number }>(
             return;
         }
 
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
         const options: ImageQueryOptions = { folderId, ...filtersRef.current };
         countFuncRef.current(options).then((c: number) => {
             setTotalCount(c);
@@ -272,7 +272,7 @@ function usePaginatedData<T extends { id: number }>(
             console.error('Failed to fetch count:', err);
         });
     // filterKey is a stable string derived from filters; folderId is primitive.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     }, [folderId, filterKey, enabled]);
 
     // Load a page and ignore stale responses from previous refresh/filter versions.
@@ -345,7 +345,7 @@ function usePaginatedData<T extends { id: number }>(
     // loadMoreRef is intentionally excluded — it is a ref (stable object) whose
     // .current is always up to date. Listing loadMore directly would cause this
     // effect to re-fire on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     }, [offset, hasMore, loading, enabled]);
 
     const refresh = useCallback((options?: { preserveItems?: boolean }) => {

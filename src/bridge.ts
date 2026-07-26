@@ -313,7 +313,7 @@ function createHttpBridge(): Window['electron'] {
         },
 
         // Not supported in browser mode — RAW preview extraction requires Electron native modules.
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+         
         extractNefPreview: (_filePath: string) =>
             Promise.resolve({ success: false, fallback: true, error: 'Not available in browser mode' }),
 
@@ -330,17 +330,17 @@ function createHttpBridge(): Window['electron'] {
         saveConfig: (updates) => post('/config', updates),
 
         // Not supported in browser mode — export context is Electron menu-driven.
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+         
         setCurrentExportImageContext: (_context: Parameters<Window['electron']['setCurrentExportImageContext']>[0]) => Promise.resolve(true),
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+         
         setSelectionPath: (_filePath: Parameters<Window['electron']['setSelectionPath']>[0]) => Promise.resolve(true),
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+         
         revealInExplorer: (_filePath: string) => Promise.resolve(false),
 
         // Not supported in browser mode — EXIF extraction requires Electron native modules.
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+         
         readExif: (_filePath: string) => Promise.resolve({}),
 
         readImageMetadata: (_filePath: string) => Promise.resolve(emptyFileImageMetadata()),

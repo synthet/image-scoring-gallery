@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import styles from './GalleryGrid.module.css';
 import { ThumbnailPlaceholder } from './ThumbnailPlaceholder';
 import { isWebSafe, isRaw } from '../../utils/imageFormats';
 import { toMediaUrl } from '../../utils/mediaUrl';

@@ -264,7 +264,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
             return value != null && value > 0 ? `${Math.round(value * 100)}%` : '-';
         }
         switch (sortKey) {
-            case 'capture_date':
+            case 'capture_date': {
                 if (!img.capture_date) return '-';
                 const dateStr = new Date(img.capture_date).toLocaleDateString();
                 if (img.is_capture_date_fallback) {
@@ -276,6 +276,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                     );
                 }
                 return dateStr;
+            }
             case 'id':
                 return `#${img.id}`;
             case 'score_technical':
