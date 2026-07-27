@@ -67,11 +67,11 @@ describe('useImages race safety', () => {
       getImages: vi.fn(),
       getImageCount: vi.fn(),
     };
-    (window as any).electron = electronApi;
+    (window as unknown as { electron: ElectronApi }).electron = electronApi;
   });
 
   afterEach(() => {
-    (window as any).electron = undefined;
+    (window as unknown as { electron?: ElectronApi }).electron = undefined;
     vi.restoreAllMocks();
   });
 

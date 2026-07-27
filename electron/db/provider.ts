@@ -98,7 +98,7 @@ type PgRow = Record<string, unknown>;
 interface PgPoolLike {
     query<T extends PgRow = PgRow>(sql: string, params?: QueryParam[]): Promise<{ rows: T[] }>;
     connect(): Promise<PgPoolClientLike>;
-    on(event: 'error', listener: (err: any) => void): void;
+    on(event: 'error', listener: (err: Error) => void): void;
     end(): Promise<void>;
 }
 
@@ -227,7 +227,7 @@ export class PostgresConnector implements IDatabaseConnector {
                 });
 
                 // Listen for pool errors
-                this.pool.on('error', (err: any) => {
+                this.pool.on('error', (err: Error) => {
                     console.error('[DB] Unexpected error on idle Postgres client:', err);
                 });
 

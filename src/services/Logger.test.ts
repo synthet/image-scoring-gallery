@@ -13,13 +13,13 @@ describe('Logger', () => {
 
   beforeEach(() => {
     logMock = vi.fn().mockResolvedValue(undefined);
-    (testWindow as any).electron = {
+    (testWindow).electron = {
       log: logMock,
     };
   });
 
   afterEach(() => {
-    (testWindow as any).electron = undefined;
+    testWindow.electron = undefined;
   });
 
   it('calls window.electron.log with INFO for info()', () => {
@@ -51,7 +51,7 @@ describe('Logger', () => {
   it('does not throw when window.electron is absent', () => {
     vi.unstubAllGlobals();
     const orig = testWindow.electron;
-    (testWindow as any).electron = undefined;
+    (testWindow).electron = undefined;
     expect(() => Logger.info('no electron')).not.toThrow();
     testWindow.electron = orig;
   });

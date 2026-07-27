@@ -24,12 +24,12 @@ describe('data hooks', () => {
         getScopeTree: vi.fn().mockResolvedValue(null),
       },
     };
-    (window as any).electron = electronApi;
+    (window as unknown as { electron: ElectronApi }).electron = electronApi;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    (window as any).electron = undefined;
+    (window as unknown as { electron?: ElectronApi }).electron = undefined;
   });
 
   it('useFolders loads folder tree and supports refresh', async () => {

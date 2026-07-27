@@ -11,15 +11,20 @@ vi.mock('../bridge', () => ({
 
 describe('NefViewer', () => {
   let nefViewer: NefViewer;
+  type WindowWithOptionalElectron = Window & { electron?: object };
+
+  function setElectron(value: object | undefined) {
+    (window as WindowWithOptionalElectron).electron = value;
+  }
 
   beforeEach(() => {
     nefViewer = NefViewer.getInstance();
     // Ensure window.electron exists for the tests to enter the main logic
-    (window as any).electron = {};
+    setElectron({});
   });
 
   afterEach(() => {
-    delete (window as any).electron;
+    setElectron(undefined);
     vi.clearAllMocks();
   });
 
@@ -122,7 +127,7 @@ describe('NefViewer', () => {
   });
 
   it('browser: fetches /media then Tier 2 SubIFD parse', async () => {
-    delete (window as any).electron;
+    setElectron(undefined);
     const buffer = new Uint8Array(64);
     const view = new DataView(buffer.buffer);
     view.setUint8(0, 0x49);
@@ -164,7 +169,7 @@ describe('NefViewer', () => {
   });
 
   it('browser: returns null when /media fetch is not ok', async () => {
-    delete (window as any).electron;
+    setElectron(undefined);
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({

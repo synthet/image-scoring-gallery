@@ -106,10 +106,10 @@ describe('Database Connector Abstraction', () => {
 
         it('should query via API', async () => {
             const mockData = { data: [{ id: 1, name: 'test' }] };
-            (global.fetch as any).mockResolvedValue({
+            vi.mocked(global.fetch).mockResolvedValue({
                 ok: true,
                 json: () => Promise.resolve(mockData)
-            });
+            } as Response);
 
             const result = await connector.query('SELECT * FROM images', [1]);
             
@@ -125,26 +125,26 @@ describe('Database Connector Abstraction', () => {
 
         it('should accept { rows: [...] } responses', async () => {
             const mockData = { rows: [{ id: 2 }] };
-            (global.fetch as any).mockResolvedValue({
+            vi.mocked(global.fetch).mockResolvedValue({
                 ok: true,
                 json: () => Promise.resolve(mockData)
-            });
+            } as Response);
             const result = await connector.query('SELECT 1', []);
             expect(result).toEqual(mockData.rows);
         });
 
         it('should throw error on API failure', async () => {
-            (global.fetch as any).mockResolvedValue({
+            vi.mocked(global.fetch).mockResolvedValue({
                 ok: false,
                 status: 500,
                 text: () => Promise.resolve('Internal Error')
-            });
+            } as Response);
 
             await expect(connector.query('SELECT 1')).rejects.toThrow('API Query failed (500): Internal Error');
         });
 
         it('should verify startup via health check', async () => {
-            (global.fetch as any).mockResolvedValue({ ok: true });
+            vi.mocked(global.fetch).mockResolvedValue({ ok: true } as Response);
             const ready = await connector.verifyStartup();
             expect(ready).toBe(true);
             expect(global.fetch).toHaveBeenCalledWith(`${apiUrl}/api/health`, expect.anything());
