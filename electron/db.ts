@@ -219,6 +219,15 @@ function normalizeImageRowOutput<T extends object>(row: T): T {
         rawRow.is_capture_date_fallback = Boolean(rawRow.is_capture_date_fallback);
     }
 
+    // pg parses JSONB for us; the api (HTTP SQL) engine can hand back the raw string.
+    if (typeof rawRow.bird_bbox === 'string') {
+        try {
+            rawRow.bird_bbox = JSON.parse(rawRow.bird_bbox);
+        } catch {
+            rawRow.bird_bbox = null;
+        }
+    }
+
     return row;
 }
 
@@ -514,6 +523,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.created_at,
             i.thumbnail_path,
             i.thumbnail_path_win,
+            i.bird_bbox,
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -755,6 +765,7 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
             i.folder_id,
             i.stack_id,
             ${subStackIdSelect(includeSubStackId)},
+            i.bird_bbox,
             i.created_at,
             i.burst_uuid,
             i.image_uuid,
@@ -1726,6 +1737,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.created_at,
                 i.thumbnail_path,
                 i.thumbnail_path_win,
+                i.bird_bbox,
                 ${CAPTURE_TS} as capture_date,
                 ${CAPTURE_FALLBACK} as is_capture_date_fallback${nonStackSelectExtra}
             FROM stack_cache sc
@@ -1760,6 +1772,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.created_at,
                 i.thumbnail_path,
                 i.thumbnail_path_win,
+                i.bird_bbox,
                 ${CAPTURE_TS} as capture_date,
                 ${CAPTURE_FALLBACK} as is_capture_date_fallback${nonStackSelectExtra}
             FROM images i
@@ -1841,6 +1854,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             i.stack_id,
             ${subStackIdSelect(includeSubStackId, 'i')},
             ${imagePickStatusSelect(includePickStatus, 'i')},
+            i.bird_bbox,
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -2193,6 +2207,7 @@ export async function getImagesBySubStack(subStackId: number, options: ImageQuer
             i.stack_id,
             i.sub_stack_id,
             ${imagePickStatusSelect(includePickStatus, 'i')},
+            i.bird_bbox,
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -2261,6 +2276,7 @@ export async function getImagesByStackUngrouped(stackId: number, options: ImageQ
             i.stack_id,
             i.sub_stack_id,
             ${imagePickStatusSelect(includePickStatus, 'i')},
+            i.bird_bbox,
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i

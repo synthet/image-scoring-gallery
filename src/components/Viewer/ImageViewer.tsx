@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Search, FolderOpen, Tag, Loader2, Wrench } from 'lucide-react';
 import { SimilarSearchDrawer } from './SimilarSearchDrawer';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
+import { BirdBoxOverlay } from '../Shared/BirdBoxOverlay';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { apiBaseUrlForExternalOpen } from '../../utils/apiBaseUrlForBrowser';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
@@ -10,7 +11,7 @@ import { toMediaUrl } from '../../utils/mediaUrl';
 import { formatShutterSpeedDisplay } from '../../utils/formatShutterSpeed';
 import { bridge } from '../../bridge';
 import { STAGE_DISPLAY } from '../../constants/pipelineLabels';
-import type { ImagePhaseStatus } from '../../../electron/types';
+import type { BirdBoundingBox, ImagePhaseStatus } from '../../../electron/types';
 import type { TagPropagationRequest } from '../../../electron/apiTypes';
 import { bakeExifOrientationToBlob } from '../../utils/exportImageBake';
 import { pickServerFilesystemPath } from '../../utils/pickServerFilesystemPath';
@@ -42,6 +43,7 @@ interface Image {
     win_path?: string;
     file_exists?: boolean;
     image_uuid?: string;
+    bird_bbox?: BirdBoundingBox | null;
 
     exif_iso?: number | null;
     exif_shutter?: string | null;
@@ -823,6 +825,22 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
     const [phaseStatuses, setPhaseStatuses] = React.useState<ImagePhaseStatus[] | null>(null);
+    const [showBoundingBox, setShowBoundingBox] = React.useState(false);
+
+    // Follow View > Bounding Box from the main-process menu (also used by the gallery grid).
+    useEffect(() => {
+        let active = true;
+        void bridge.setSingleImageViewOpen(true);
+        void bridge.getShowBoundingBox().then((show) => {
+            if (active) setShowBoundingBox(show);
+        });
+        const unsubscribe = bridge.onShowBoundingBoxChanged((show) => setShowBoundingBox(show));
+        return () => {
+            active = false;
+            unsubscribe();
+            void bridge.setSingleImageViewOpen(false);
+        };
+    }, []);
 
     useEffect(() => {
         let active = true;
@@ -1073,11 +1091,14 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 {loading ? (
                     <div style={{ color: '#aaa' }}>Loading preview...</div>
                 ) : src ? (
-                    <img
-                        src={src}
-                        alt={image.file_name}
-                        style={{ maxWidth: '95%', maxHeight: '95vh', width: 'auto', height: 'auto', objectFit: 'contain', boxShadow: '0 0 20px rgba(0,0,0,0.5)' }}
-                    />
+                    <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '95%', maxHeight: '95vh', minWidth: 0, minHeight: 0 }}>
+                        <img
+                            src={src}
+                            alt={image.file_name}
+                            style={{ maxWidth: '100%', maxHeight: '95vh', width: 'auto', height: 'auto', objectFit: 'contain', boxShadow: '0 0 20px rgba(0,0,0,0.5)' }}
+                        />
+                        {showBoundingBox && image.bird_bbox && <BirdBoxOverlay bbox={image.bird_bbox} />}
+                    </div>
                 ) : (
                     <div style={{ color: '#666' }}>{error || 'Image not found'}</div>
                 )}
@@ -1490,6 +1511,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     {(image.score_arniqa ?? 0) > 0 && <ScoreBar label="ARNIQA" value={image.score_arniqa ?? 0} />}
                                     {(image.clip_quality_v0_score ?? 0) > 0 && (
                                         <ScoreBar label="CLIP Quality" value={image.clip_quality_v0_score ?? 0} />
+                                    )}
+                                    {image.bird_bbox?.conf != null && (
+                                        <ScoreBar label="Bird Detection" value={image.bird_bbox.conf} />
                                     )}
                                 </div>
 

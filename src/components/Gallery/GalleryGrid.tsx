@@ -68,12 +68,15 @@ interface Image {
     is_capture_date_fallback?: boolean;
     is_sub_stack_card?: boolean;
     is_ungrouped_sub_stack?: boolean;
+    bird_bbox?: BirdBoundingBox | null;
 }
 
 import type { Folder } from '../Tree/treeUtils';
 import { Folder as FolderIcon, Layers, AlertTriangle } from 'lucide-react';
 import { GalleryThumbnail } from './GalleryThumbnail';
 import { ThumbnailPlaceholder } from './ThumbnailPlaceholder';
+import { BirdBoxOverlay, isDrawableBirdBbox } from '../Shared/BirdBoxOverlay';
+import type { BirdBoundingBox } from '../../../electron/types';
 
 interface GalleryGridProps {
     images: Image[];
@@ -199,6 +202,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     const containerRef = useRef<HTMLDivElement>(null);
     const virtuosoRef = useRef<VirtuosoGridHandle>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, image: Image } | null>(null);
+    const [showBoundingBox, setShowBoundingBox] = useState(false);
 
     // Escape key handler for parent navigation (only when viewer is closed)
     useKeyboardLayer('page', useCallback((e: KeyboardEvent) => {
@@ -208,6 +212,18 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         }
         return false;
     }, [onNavigateToParent]), !viewerOpen);
+
+    useEffect(() => {
+        let active = true;
+        void bridge.getShowBoundingBox().then((show) => {
+            if (active) setShowBoundingBox(show);
+        });
+        const unsubscribe = bridge.onShowBoundingBoxChanged((show) => setShowBoundingBox(show));
+        return () => {
+            active = false;
+            unsubscribe();
+        };
+    }, []);
 
     useEffect(() => {
         const el = containerRef.current;
@@ -329,6 +345,41 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         );
     }, []);
 
+    const renderThumb = useCallback((img: Image) => {
+        if (!(img.thumbnail_path || img.file_path)) {
+            return <ThumbnailPlaceholder title="No image" aria-label="No image" fileName={img.file_name} />;
+        }
+        const thumb = shouldUseGalleryThumbnail(useGalleryThumbnail, img.file_name, img.thumbnail_path) ? (
+            <GalleryThumbnail
+                fileName={img.file_name}
+                filePath={img.file_path}
+                thumbnailPath={img.thumbnail_path}
+                className={styles.image}
+                alt={img.file_name}
+            />
+        ) : (
+            <SimpleMediaThumb
+                src={toMediaUrl(img.thumbnail_path || img.file_path!)}
+                className={styles.image}
+                alt={img.file_name}
+                fileName={img.file_name}
+            />
+        );
+        const bbox = showBoundingBox && isDrawableBirdBbox(img.bird_bbox) ? img.bird_bbox : null;
+        if (!bbox) return thumb;
+        return (
+            <div className={styles.thumbFit}>
+                <div
+                    className={styles.thumbContent}
+                    style={{ aspectRatio: `${bbox.img_w} / ${bbox.img_h}` }}
+                >
+                    {thumb}
+                    <BirdBoxOverlay bbox={bbox} />
+                </div>
+            </div>
+        );
+    }, [useGalleryThumbnail, showBoundingBox]);
+
     const renderImageCard = useCallback((img: Image, onClick: () => void, showPickRejectStatus = false) => {
         const labelColor = getLabelColor(img.label);
         const rec = agentRecommendations?.get(img.id);
@@ -377,26 +428,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                             </button>
                         </div>
                     )}
-                    {(img.thumbnail_path || img.file_path) ? (
-                        shouldUseGalleryThumbnail(useGalleryThumbnail, img.file_name, img.thumbnail_path) ? (
-                            <GalleryThumbnail
-                                fileName={img.file_name}
-                                filePath={img.file_path}
-                                thumbnailPath={img.thumbnail_path}
-                                className={styles.image}
-                                alt={img.file_name}
-                            />
-                        ) : (
-                            <SimpleMediaThumb
-                                src={toMediaUrl(img.thumbnail_path || img.file_path!)}
-                                className={styles.image}
-                                alt={img.file_name}
-                                fileName={img.file_name}
-                            />
-                        )
-                    ) : (
-                        <ThumbnailPlaceholder title="No image" aria-label="No image" fileName={img.file_name} />
-                    )}
+                    {renderThumb(img)}
                     <div className={styles.ratingOverlay}>
                         <span className={styles.ratingStars}>{'★'.repeat(img.rating)}</span>
                     </div>
@@ -413,7 +445,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 </div>
             </div>
         );
-    }, [getScoreDisplay, getLabelColor, renderPickRejectStatus, useGalleryThumbnail, agentRecommendations, onAgentAction, highlightImageId]);
+    }, [getScoreDisplay, getLabelColor, renderPickRejectStatus, renderThumb, agentRecommendations, onAgentAction, highlightImageId, handleContextMenu]);
 
     const renderStackCard = useCallback((stack: Image, onClick: () => void, kind: 'stack' | 'substack' = 'stack') => {
         const labelColor = getLabelColor(stack.label);
@@ -436,26 +468,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 )}
 
                 <div className={styles.imageAreaStack}>
-                    {(stack.thumbnail_path || stack.file_path) ? (
-                        shouldUseGalleryThumbnail(useGalleryThumbnail, stack.file_name, stack.thumbnail_path) ? (
-                            <GalleryThumbnail
-                                fileName={stack.file_name}
-                                filePath={stack.file_path}
-                                thumbnailPath={stack.thumbnail_path}
-                                className={styles.image}
-                                alt={stack.file_name}
-                            />
-                        ) : (
-                            <SimpleMediaThumb
-                                src={toMediaUrl(stack.thumbnail_path || stack.file_path!)}
-                                className={styles.image}
-                                alt={stack.file_name}
-                                fileName={stack.file_name}
-                            />
-                        )
-                    ) : (
-                        <ThumbnailPlaceholder title="No image" aria-label="No image" fileName={stack.file_name} />
-                    )}
+                    {renderThumb(stack)}
 
                     {count > 1 && (
                         <div className={styles.stackBadge}>
@@ -479,7 +492,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 </div>
             </div>
         );
-    }, [getScoreDisplay, getLabelColor, useGalleryThumbnail]);
+    }, [getScoreDisplay, getLabelColor, renderThumb, handleContextMenu]);
 
     // Determine what data source to use
     const isStacksView = stacksMode && !activeStackId;

@@ -146,6 +146,9 @@ declare global {
             setGalleryMode: (mode: 'db' | 'folder') => Promise<'db' | 'folder'>;
             getGalleryMode: () => Promise<'db' | 'folder'>;
             onAppModeChanged: (callback: (mode: 'db' | 'folder') => void) => () => void;
+            setSingleImageViewOpen: (open: boolean) => Promise<boolean>;
+            getShowBoundingBox: () => Promise<boolean>;
+            onShowBoundingBoxChanged: (callback: (show: boolean) => void) => () => void;
             selectDirectory: () => Promise<string | null>;
             openExternalUrl: (url: string) => Promise<void>;
             getDiagnostics: () => Promise<DiagnosticsReport>;

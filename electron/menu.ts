@@ -9,6 +9,8 @@ export type ApplicationMenuDeps = {
     showMessageBox: (options: Electron.MessageBoxOptions) => Promise<Electron.MessageBoxReturnValue>;
     getGalleryMode: () => 'db' | 'folder';
     setGalleryMode: (mode: 'db' | 'folder') => void;
+    getShowBoundingBox: () => boolean;
+    setShowBoundingBox: (show: boolean) => void;
     syncGuards: SyncGuards;
     getIsBackupRunning: () => boolean;
     getExportContext: () => ExportImageContext | null;
@@ -168,6 +170,13 @@ export function createApplicationMenu(deps: ApplicationMenuDeps): { rebuildAppli
                     { role: 'zoomOut' },
                     { type: 'separator' },
                     { role: 'togglefullscreen' },
+                    { type: 'separator' },
+                    {
+                        label: 'Bounding Box',
+                        type: 'checkbox',
+                        checked: deps.getShowBoundingBox(),
+                        click: (item) => deps.setShowBoundingBox(item.checked),
+                    },
                     { type: 'separator' },
                     {
                         label: 'Mode: DB',

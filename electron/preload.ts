@@ -251,6 +251,19 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.removeListener('app-mode-changed', handler);
         };
     },
+    setSingleImageViewOpen: async (open: boolean) => {
+        return ipcRenderer.invoke('app:set-viewer-open', open) as Promise<boolean>;
+    },
+    getShowBoundingBox: async () => {
+        return ipcRenderer.invoke('app:get-show-bounding-box') as Promise<boolean>;
+    },
+    onShowBoundingBoxChanged: (callback: (show: boolean) => void) => {
+        const handler = (_: unknown, show: boolean) => callback(show);
+        ipcRenderer.on('show-bounding-box-changed', handler);
+        return () => {
+            ipcRenderer.removeListener('show-bounding-box-changed', handler);
+        };
+    },
     selectDirectory: async () => {
         const response = await ipcRenderer.invoke('fs:select-directory');
         return unwrapEnvelope<string | null>(response);
