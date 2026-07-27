@@ -91,8 +91,9 @@ export function useDatabase() {
         if (mode === 'folder') {
             return;
         }
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        connect();
+        queueMicrotask(() => {
+            void connect();
+        });
     }, [connect, mode]);
 
     useEffect(() => {
@@ -491,16 +492,16 @@ export function useImages(pageSize: number = 50, folderId?: number, filters?: Im
         getUniqueKey
     );
 
-    return React.useMemo(() => ({
+    return {
         images: result.items,
         loading: result.loading,
         hasMore: result.hasMore,
         loadMore: result.loadMore,
         totalCount: result.totalCount,
         refresh: result.refresh,
-        removeImage: (id: number) => result.removeItem(id),
+        removeImage: result.removeItem,
         loadError: result.loadError,
-    }), [result.items, result.loading, result.hasMore, result.loadMore, result.totalCount, result.refresh, result.removeItem, result.loadError]);
+    };
 }
 
 export function useStacks(
@@ -529,7 +530,7 @@ export function useStacks(
         [result.removeItemsWhere],
     );
 
-    return React.useMemo(() => ({
+    return {
         stacks: result.items,
         loading: result.loading,
         hasMore: result.hasMore,
@@ -538,7 +539,7 @@ export function useStacks(
         refresh: result.refresh,
         removeStackByImageId,
         loadError: result.loadError,
-    }), [result.items, result.loading, result.hasMore, result.loadMore, result.totalCount, result.refresh, removeStackByImageId, result.loadError]);
+    };
 }
 
 export interface SimilarImageResult {
@@ -613,6 +614,7 @@ export function useSimilarImages(
             && requestSeqRef.current === requestId
             && cancelledSeqRef.current !== requestId;
 
+        // Intentional: loading flag must flip in the same tick as the fetch starts (see useSimilarImages tests).
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true);
         setError(null);

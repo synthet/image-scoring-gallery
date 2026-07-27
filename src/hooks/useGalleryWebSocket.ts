@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useJobProgressStore } from '../store/useJobProgressStore';
 import { useConnectionStore } from '../store/useConnectionStore';
 import { bridge } from '../bridge';
 import { BACKEND_JOB_TYPE_LABEL } from '../constants/pipelineLabels';
+import { useSyncRef } from './useSyncRef';
 
 interface UseGalleryWebSocketParams {
   refreshImages: (opts?: { preserveItems?: boolean }) => void;
@@ -33,17 +34,11 @@ export function useGalleryWebSocket({
   const addNotification = useNotificationStore(state => state.addNotification);
   const isWebSocketEnabled = useConnectionStore(state => state.isWebSocketEnabled);
 
-  // Stable refs so WebSocket callbacks never close over stale functions
-  const refreshImagesRef = useRef(refreshImages);
-  refreshImagesRef.current = refreshImages;
-  const refreshStacksRef = useRef(refreshStacks);
-  refreshStacksRef.current = refreshStacks;
-  const refreshFoldersRef = useRef(refreshFolders);
-  refreshFoldersRef.current = refreshFolders;
-  const refreshActiveStackViewRef = useRef(refreshActiveStackView);
-  refreshActiveStackViewRef.current = refreshActiveStackView;
-  const onVisibleRefreshRef = useRef(onVisibleRefresh);
-  onVisibleRefreshRef.current = onVisibleRefresh;
+  const refreshImagesRef = useSyncRef(refreshImages);
+  const refreshStacksRef = useSyncRef(refreshStacks);
+  const refreshFoldersRef = useSyncRef(refreshFolders);
+  const refreshActiveStackViewRef = useSyncRef(refreshActiveStackView);
+  const onVisibleRefreshRef = useSyncRef(onVisibleRefresh);
 
   useEffect(() => {
     // If WebSockets are manually disabled, do nothing.
@@ -194,5 +189,5 @@ export function useGalleryWebSocket({
       if (folderRefreshTimer) clearTimeout(folderRefreshTimer);
       if (ws) ws.disconnect();
     };
-  }, [addNotification, isWebSocketEnabled, activeStackIdRef, refreshActiveStackViewRef, onVisibleRefreshRef, refreshFoldersRef, refreshImagesRef, refreshStacksRef, stacksModeRef]);
+  }, [addNotification, isWebSocketEnabled, activeStackIdRef, stacksModeRef]);
 }

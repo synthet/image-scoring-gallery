@@ -23,7 +23,7 @@ export function useAdaptiveLoadingProgress(
             return;
         }
 
-        setTick(0);
+        queueMicrotask(() => setTick(0));
         const startedAt = performance.now();
         const intervalId = window.setInterval(() => {
             const elapsed = performance.now() - startedAt;
@@ -48,7 +48,7 @@ export function useAdaptiveLoadingProgress(
         }
 
         wasActiveRef.current = false;
-        setTick(progressMax);
+        queueMicrotask(() => setTick(progressMax));
         const resetId = window.setTimeout(() => setTick(0), COMPLETE_HOLD_MS);
         return () => window.clearTimeout(resetId);
     }, [active, progressMax]);

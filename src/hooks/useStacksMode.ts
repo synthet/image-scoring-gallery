@@ -106,7 +106,6 @@ export function useStacksMode(
   }, [filters]);
 
   const loadStackImagesRef = useRef(loadStackImages);
-  loadStackImagesRef.current = loadStackImages;
 
   const loadSubStackImages = useCallback(async (subStackId: number) => {
     setSubStackImagesLoading(true);
@@ -121,7 +120,6 @@ export function useStacksMode(
   }, [filters]);
 
   const loadSubStackImagesRef = useRef(loadSubStackImages);
-  loadSubStackImagesRef.current = loadSubStackImages;
 
   const loadUngroupedSubStackImages = useCallback(async (stackId: number) => {
     setSubStackImagesLoading(true);
@@ -136,7 +134,12 @@ export function useStacksMode(
   }, [filters]);
 
   const loadUngroupedSubStackImagesRef = useRef(loadUngroupedSubStackImages);
-  loadUngroupedSubStackImagesRef.current = loadUngroupedSubStackImages;
+
+  useEffect(() => {
+    loadStackImagesRef.current = loadStackImages;
+    loadSubStackImagesRef.current = loadSubStackImages;
+    loadUngroupedSubStackImagesRef.current = loadUngroupedSubStackImages;
+  }, [loadStackImages, loadSubStackImages, loadUngroupedSubStackImages]);
 
   const loadStackLanding = useCallback(async (stackId: number) => {
     setSubStacksLoading(true);

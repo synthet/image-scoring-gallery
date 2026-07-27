@@ -210,14 +210,12 @@ function AppContent() {
     removeStackByImageId,
   } = useStacks(50, selectedFolderId, stackFilters, stacksMode);
 
-  // Keep refs up to date for WebSocket callbacks
-  stacksModeRef.current = stacksMode;
-  activeStackIdRef.current = activeStackId;
-  const refreshImagesRef = useRef(refreshImages);
-  refreshImagesRef.current = refreshImages;
-  refreshStacksRef.current = refreshStacks;
-  const refreshFoldersRef = useRef(refreshFolders);
-  refreshFoldersRef.current = refreshFolders;
+  // Keep refs up to date for WebSocket callbacks and folder navigation handlers
+  useEffect(() => {
+    stacksModeRef.current = stacksMode;
+    activeStackIdRef.current = activeStackId;
+    refreshStacksRef.current = refreshStacks;
+  }, [stacksMode, activeStackId, refreshStacks]);
 
   useGalleryWebSocket({
     refreshImages,

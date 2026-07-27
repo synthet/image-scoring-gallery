@@ -14,7 +14,7 @@ function AppShell() {
   const { mode, setMode, enterFolderMode } = useAppMode();
   const { isConnected, error, retry } = useDatabase();
   const [folderModeBlockedHint, setFolderModeBlockedHint] = useState<string | null>(null);
-  const hasConnectedOnce = useRef(false);
+  const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
   const prevConnected = useRef<boolean | null>(null);
 
   useEffect(() => {
@@ -24,25 +24,25 @@ function AppShell() {
   // Log only on real transitions (avoids strict-mode double logs and repeated "restored" spam)
   useEffect(() => {
     const was = prevConnected.current;
-    if (isConnected && !hasConnectedOnce.current) {
+    if (isConnected && !hasConnectedOnce) {
       Logger.info('[AppShell] First DB connection established — latching hasConnectedOnce');
-      hasConnectedOnce.current = true;
-    } else if (isConnected && was === false && hasConnectedOnce.current) {
+      setHasConnectedOnce(true);
+    } else if (isConnected && was === false && hasConnectedOnce) {
       Logger.info('[AppShell] DB connection restored after transient disconnect');
-    } else if (!isConnected && hasConnectedOnce.current) {
+    } else if (!isConnected && hasConnectedOnce) {
       Logger.warn('[AppShell] DB connection lost after initial connect — AppContent stays mounted', { error });
-    } else if (!isConnected && !hasConnectedOnce.current && error) {
+    } else if (!isConnected && !hasConnectedOnce && error) {
       Logger.warn('[AppShell] DB connection failed on startup', { error });
     }
     prevConnected.current = isConnected;
-  }, [isConnected, error]);
+  }, [isConnected, error, hasConnectedOnce]);
 
   if (mode === 'folder') {
     return <FsGallery />;
   }
 
   // Before first successful connection: show connecting / error screens
-  if (!hasConnectedOnce.current) {
+  if (!hasConnectedOnce) {
     if (!isConnected && !error) return (
       <div className={styles.connectingScreen}>
         <div className={styles.connectingSpinner} />
@@ -100,7 +100,7 @@ function AppShell() {
   // After first connection: keep AppContent mounted, show inline banner on disconnect
   return (
     <>
-      {hasConnectedOnce.current && !isConnected && (
+      {hasConnectedOnce && !isConnected && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
           background: '#b71c1c', color: '#fff', textAlign: 'center',

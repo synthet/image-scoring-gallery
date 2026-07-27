@@ -32,16 +32,18 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
         const opId = `import-${Date.now()}`;
         opIdRef.current = opId;
         runRef.current = true;
-        setIsRunning(true);
-        setIsComplete(false);
-        setError(null);
-        setCurrent(0);
-        setTotal(0);
-        setCurrentPath('');
-        setAdded(0);
-        setSkipped(0);
-        setErrors([]);
-        setProcessing(null);
+        queueMicrotask(() => {
+            setIsRunning(true);
+            setIsComplete(false);
+            setError(null);
+            setCurrent(0);
+            setTotal(0);
+            setCurrentPath('');
+            setAdded(0);
+            setSkipped(0);
+            setErrors([]);
+            setProcessing(null);
+        });
         startOp(opId, 'import', 'Importing…');
         Logger.info('[ImportModal] Import started', { opId, folderPath });
 

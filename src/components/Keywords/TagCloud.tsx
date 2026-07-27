@@ -44,8 +44,11 @@ export function TagCloud({
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(false);
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(false);
+    });
 
     void bridge.getKeywordCloud({ kind, limit, folderId })
       .then((rows) => {

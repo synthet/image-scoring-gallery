@@ -36,7 +36,7 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                 .then(info => setTargetInfo(info))
                 .catch(err => console.error('Failed to check backup target:', err));
 
-            setPreviewLoading(true);
+            queueMicrotask(() => setPreviewLoading(true));
             bridge.backupPreview(targetPath)
                 .then(info => setPreview(info))
                 .catch(err => console.error('Failed to load backup preview:', err))
@@ -47,13 +47,15 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
     useEffect(() => {
         if (!isOpen) return;
         runRef.current = false;
-        setIsRunning(false);
-        setIsComplete(false);
-        setResult(null);
-        setError(null);
-        setShowDeleteConfirm(false);
-        setPreview(null);
-        setProgress({ phase: 'scanning', current: 0, total: 0, detail: '' });
+        queueMicrotask(() => {
+            setIsRunning(false);
+            setIsComplete(false);
+            setResult(null);
+            setError(null);
+            setShowDeleteConfirm(false);
+            setPreview(null);
+            setProgress({ phase: 'scanning', current: 0, total: 0, detail: '' });
+        });
     }, [isOpen, targetPath]);
 
     const runBackup = (confirmMassDelete: boolean) => {

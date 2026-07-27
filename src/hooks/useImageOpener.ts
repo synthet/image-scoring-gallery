@@ -165,9 +165,11 @@ export function useImageOpener({
     const idx = list.findIndex(img => img.id === pendingOpenImageId);
     if (idx < 0) return;
 
-    setCurrentImageIndex(idx);
-    setOpeningImage(list[idx]);
-    setPendingOpenImageId(null);
+    queueMicrotask(() => {
+      setCurrentImageIndex(idx);
+      setOpeningImage(list[idx]);
+      setPendingOpenImageId(null);
+    });
   }, [getCurrentList, pendingOpenImageId, viewerListOverride]);
 
   const handleImageDelete = (id: number) => {

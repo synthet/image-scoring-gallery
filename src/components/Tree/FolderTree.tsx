@@ -42,7 +42,7 @@ const TreeNode: React.FC<{ node: FolderType; onSelect: (f: FolderType) => void; 
         };
 
         if (node.children!.some(c => c.id === selectedId || hasSelectedDescendant(c, selectedId))) {
-            setExpanded(true);
+            queueMicrotask(() => setExpanded(true));
         }
     }, [selectedId, node.children, hasChildren, expanded]);
 

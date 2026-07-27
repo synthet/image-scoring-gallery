@@ -72,13 +72,15 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
 
         runRef.current = true;
         modeRef.current = 'preview';
-        setPreview(null);
-        setPreviewError(null);
-        setResult(null);
-        setSyncError(null);
-        setIsComplete(false);
-        setPreviewLoading(true);
-        setProgress({ phase: 'detecting', current: 0, total: 0, detail: 'Starting…' });
+        queueMicrotask(() => {
+            setPreview(null);
+            setPreviewError(null);
+            setResult(null);
+            setSyncError(null);
+            setIsComplete(false);
+            setPreviewLoading(true);
+            setProgress({ phase: 'detecting', current: 0, total: 0, detail: 'Starting…' });
+        });
         Logger.info('[SyncModal] Preview started', { sourcePath });
 
         const cleanupProgress = bridge.onSyncProgress((data) => {

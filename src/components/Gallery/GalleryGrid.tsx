@@ -138,7 +138,7 @@ const SimpleMediaThumb: React.FC<{ src: string; alt: string; className: string; 
     const name = fileName ?? alt;
     const [failed, setFailed] = useState(false);
     useEffect(() => {
-        setFailed(false);
+        queueMicrotask(() => setFailed(false));
     }, [src]);
     // Only block when src itself is RAW bytes — NEF originals often have JPEG thumbnail_path.
     // Chromium often leaves a black tile without firing onError for undecodable RAW media:// URLs.
