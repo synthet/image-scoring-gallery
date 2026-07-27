@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../hooks/useKeyboardLayer', () => ({
@@ -47,6 +47,9 @@ type ElectronMock = {
     deleteImage: ReturnType<typeof vi.fn>;
     getFolders: ReturnType<typeof vi.fn>;
     searchSimilarImages: ReturnType<typeof vi.fn>;
+    setSingleImageViewOpen: ReturnType<typeof vi.fn>;
+    getShowBoundingBox: ReturnType<typeof vi.fn>;
+    onShowBoundingBoxChanged: ReturnType<typeof vi.fn>;
     api: {
         propagateTags: ReturnType<typeof vi.fn>;
         fixImageMetadata: ReturnType<typeof vi.fn>;
@@ -88,6 +91,9 @@ function makeElectronMock(overrides: Partial<ElectronMock> = {}): ElectronMock {
             results: [],
             count: 0,
         }),
+        setSingleImageViewOpen: vi.fn().mockResolvedValue(true),
+        getShowBoundingBox: vi.fn().mockResolvedValue(false),
+        onShowBoundingBoxChanged: vi.fn().mockReturnValue(() => {}),
         api: {
             propagateTags: vi.fn().mockResolvedValue({
                 success: true,
@@ -107,19 +113,7 @@ describe('ImageViewer tag propagation suggestions', () => {
         localStorage.clear();
         addNotification.mockReset();
 
-        electron = {
-            getImageDetails: vi.fn().mockResolvedValue({ ...baseImage }),
-            getImagePhaseStatuses: vi.fn().mockResolvedValue([]),
-            readExif: vi.fn().mockResolvedValue({}),
-            setCurrentExportImageContext: vi.fn().mockResolvedValue(true),
-            updateImageDetails: vi.fn().mockResolvedValue(true),
-            deleteImage: vi.fn().mockResolvedValue(true),
-            getFolders: vi.fn().mockResolvedValue([]),
-            searchSimilarImages: vi.fn().mockResolvedValue({
-                query_image_id: baseImage.id,
-                results: [],
-                count: 0,
-            }),
+        electron = makeElectronMock({
             api: {
                 propagateTags: vi.fn().mockResolvedValue({
                     success: true,
@@ -133,7 +127,7 @@ describe('ImageViewer tag propagation suggestions', () => {
                 }),
                 fixImageMetadata: vi.fn().mockResolvedValue({ success: true, message: 'ok' }),
             },
-        };
+        });
 
         (window as unknown as { electron: ElectronMock }).electron = electron;
 
@@ -236,24 +230,14 @@ describe('ImageViewer similar images', () => {
     let electron: ElectronMock;
 
     beforeEach(() => {
-        electron = {
+        electron = makeElectronMock({
             getImageDetails: vi.fn().mockResolvedValue({ ...baseImage, folder_id: 5 }),
-            getImagePhaseStatuses: vi.fn().mockResolvedValue([]),
-            readExif: vi.fn().mockResolvedValue({}),
-            setCurrentExportImageContext: vi.fn().mockResolvedValue(true),
-            updateImageDetails: vi.fn().mockResolvedValue(true),
-            deleteImage: vi.fn().mockResolvedValue(true),
             getFolders: vi.fn().mockResolvedValue([{ id: 5, path: '/photos/trip' }]),
-            searchSimilarImages: vi.fn().mockResolvedValue({
-                query_image_id: baseImage.id,
-                results: [],
-                count: 0,
-            }),
             api: {
                 propagateTags: vi.fn(),
                 fixImageMetadata: vi.fn(),
             },
-        };
+        });
         (window as unknown as { electron: ElectronMock }).electron = electron;
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
             blob: async () => new Blob(['preview'], { type: 'image/jpeg' }),
@@ -302,24 +286,13 @@ describe('ImageViewer Open Folder', () => {
     beforeEach(() => {
         addNotification.mockReset();
 
-        electron = {
+        electron = makeElectronMock({
             getImageDetails: vi.fn().mockResolvedValue({ ...baseImage, folder_id: 5 }),
-            getImagePhaseStatuses: vi.fn().mockResolvedValue([]),
-            readExif: vi.fn().mockResolvedValue({}),
-            setCurrentExportImageContext: vi.fn().mockResolvedValue(true),
-            updateImageDetails: vi.fn().mockResolvedValue(true),
-            deleteImage: vi.fn().mockResolvedValue(true),
-            getFolders: vi.fn().mockResolvedValue([]),
-            searchSimilarImages: vi.fn().mockResolvedValue({
-                query_image_id: baseImage.id,
-                results: [],
-                count: 0,
-            }),
             api: {
                 propagateTags: vi.fn(),
                 fixImageMetadata: vi.fn(),
             },
-        };
+        });
         (window as unknown as { electron: ElectronMock }).electron = electron;
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
             blob: async () => new Blob(['preview'], { type: 'image/jpeg' }),
@@ -482,5 +455,96 @@ describe('ImageViewer RAW orientation bake', () => {
         expect((img as HTMLImageElement).getAttribute('src')).not.toBe(
             toMediaUrl(nefImage.thumbnail_path),
         );
+    });
+});
+
+describe('ImageViewer bird bounding box', () => {
+    let electron: ElectronMock;
+    const birdBbox = { x1: 884, y1: 377, x2: 2123, y2: 1672, conf: 0.9138, img_w: 3936, img_h: 2624 };
+
+    beforeEach(() => {
+        electron = makeElectronMock();
+        (window as unknown as { electron: ElectronMock }).electron = electron;
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            blob: async () => new Blob(['preview'], { type: 'image/jpeg' }),
+        }));
+    });
+
+    afterEach(() => {
+        (window as unknown as { electron?: ElectronMock }).electron = undefined;
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    it('reports viewer open on mount and closed on unmount', async () => {
+        electron.getImageDetails.mockResolvedValue({ ...baseImage, bird_bbox: birdBbox });
+        const { unmount } = render(
+            <ImageViewer image={baseImage} onClose={vi.fn()} allImages={[baseImage]} currentIndex={0} />,
+        );
+
+        await waitFor(() => {
+            expect(electron.setSingleImageViewOpen).toHaveBeenCalledWith(true);
+        });
+
+        unmount();
+        expect(electron.setSingleImageViewOpen).toHaveBeenLastCalledWith(false);
+    });
+
+    it('draws the box as a fraction of the detector image size when the toggle is on', async () => {
+        electron.getShowBoundingBox.mockResolvedValue(true);
+        electron.getImageDetails.mockResolvedValue({ ...baseImage, bird_bbox: birdBbox });
+
+        render(
+            <ImageViewer image={baseImage} onClose={vi.fn()} allImages={[baseImage]} currentIndex={0} />,
+        );
+
+        const overlay = await screen.findByTestId('bird-bbox-overlay');
+        expect(overlay.style.left).toBe(`${(884 / 3936) * 100}%`);
+        expect(overlay.style.top).toBe(`${(377 / 2624) * 100}%`);
+        expect(overlay.style.width).toBe(`${((2123 - 884) / 3936) * 100}%`);
+        expect(overlay.style.height).toBe(`${((1672 - 377) / 2624) * 100}%`);
+    });
+
+    it('hides the box while the toggle is off and shows it when the menu turns it on', async () => {
+        let notify: ((show: boolean) => void) | undefined;
+        electron.onShowBoundingBoxChanged.mockImplementation((cb: (show: boolean) => void) => {
+            notify = cb;
+            return () => {};
+        });
+        electron.getImageDetails.mockResolvedValue({ ...baseImage, bird_bbox: birdBbox });
+
+        render(
+            <ImageViewer image={baseImage} onClose={vi.fn()} allImages={[baseImage]} currentIndex={0} />,
+        );
+
+        await waitFor(() => expect(notify).toBeDefined());
+        expect(screen.queryByTestId('bird-bbox-overlay')).toBeNull();
+
+        act(() => notify!(true));
+        expect(await screen.findByTestId('bird-bbox-overlay')).not.toBeNull();
+    });
+
+    it('draws nothing and omits the score row when the image has no detection', async () => {
+        electron.getShowBoundingBox.mockResolvedValue(true);
+        electron.getImageDetails.mockResolvedValue({ ...baseImage, bird_bbox: null });
+
+        render(
+            <ImageViewer image={baseImage} onClose={vi.fn()} allImages={[baseImage]} currentIndex={0} />,
+        );
+
+        await waitFor(() => expect(electron.getImageDetails).toHaveBeenCalled());
+        expect(screen.queryByTestId('bird-bbox-overlay')).toBeNull();
+        expect(screen.queryByText('Bird Detection')).toBeNull();
+    });
+
+    it('shows the detection confidence in Model Scores regardless of the toggle', async () => {
+        electron.getImageDetails.mockResolvedValue({ ...baseImage, bird_bbox: birdBbox });
+
+        render(
+            <ImageViewer image={baseImage} onClose={vi.fn()} allImages={[baseImage]} currentIndex={0} />,
+        );
+
+        expect(await screen.findByText('Bird Detection')).not.toBeNull();
+        expect(screen.getByText('91%')).not.toBeNull();
     });
 });

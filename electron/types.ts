@@ -42,6 +42,23 @@ export interface ImageRow {
     thumbnail_path?: string;
     stack_id?: number | null;
     sub_stack_id?: number | null;
+    bird_bbox?: BirdBoundingBox | null;
+}
+
+/**
+ * Bird detection box from `images.bird_bbox` (JSONB, written by the backend `bird_species` phase).
+ * Absolute pixel `xyxy` in EXIF-oriented space; `img_w`/`img_h` are the dimensions of the image
+ * the detector saw, so overlays must position by fraction rather than raw pixels.
+ */
+export interface BirdBoundingBox {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    conf: number;
+    img_w: number;
+    img_h: number;
+    area_frac?: number;
 }
 
 export interface ImageDetail extends ImageRow {
@@ -63,6 +80,7 @@ export interface ImageDetail extends ImageRow {
     burst_uuid?: string;
     win_path?: string;
     file_exists?: boolean;
+    bird_bbox?: BirdBoundingBox | null;
 }
 
 export interface ImageUpdates {
