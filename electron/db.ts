@@ -211,14 +211,14 @@ function normalizeImageRowThumbnails(row: Record<string, unknown>): void {
 
 /** Normalizes thumbnail paths on a typed row and returns it — convenience wrapper over normalizeImageRowThumbnails. */
 function normalizeImageRowOutput<T extends object>(row: T): T {
-    normalizeImageRowThumbnails(row as Record<string, unknown>);
-    
+    const rawRow = row as Record<string, unknown>;
+    normalizeImageRowThumbnails(rawRow);
+
     // Convert boolean flag from DB (Postgres returns boolean, SQLite might return 0/1)
-    const rawRow = row as any;
     if (rawRow.is_capture_date_fallback !== undefined) {
         rawRow.is_capture_date_fallback = Boolean(rawRow.is_capture_date_fallback);
     }
-    
+
     return row;
 }
 

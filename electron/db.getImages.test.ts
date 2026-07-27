@@ -41,7 +41,7 @@ describe('db.getImages SQL construction', () => {
   });
 
   it('falls back to whitelisted default sort when sortBy is invalid', async () => {
-    await getImages({ sortBy: 'score_general; DROP TABLE images', order: 'ASC' as any });
+    await getImages({ sortBy: 'score_general; DROP TABLE images', order: 'ASC' });
 
     const [sql] = queryMock.mock.calls[0];
     expect(sql).toContain('ORDER BY i.score_general ASC, i.id DESC');

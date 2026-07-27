@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Server } from 'http';
+import * as db from '../electron/db';
+import type { ApiService } from '../electron/apiService';
 import { createServerApp } from './index';
 
 function createDbMock() {
@@ -26,6 +28,23 @@ function createDbMock() {
   };
 }
 
+function createApiServiceMock() {
+  return {
+    findDuplicates: vi.fn(),
+    searchSimilar: vi.fn(),
+    getOutliers: vi.fn(),
+    importRegister: vi.fn(),
+  };
+}
+
+function asDbModule(mock: ReturnType<typeof createDbMock>): typeof db {
+  return mock as unknown as typeof db;
+}
+
+function asApiService(mock: ReturnType<typeof createApiServiceMock>): ApiService {
+  return mock as unknown as ApiService;
+}
+
 describe('server /gallery-api contract envelope', () => {
   let server: Server | undefined;
   let baseUrl = '';
@@ -34,16 +53,9 @@ describe('server /gallery-api contract envelope', () => {
     const dbMock = createDbMock();
     dbMock.getImageCount.mockResolvedValue(42);
 
-    const apiServiceMock = {
-      findDuplicates: vi.fn(),
-      searchSimilar: vi.fn(),
-      getOutliers: vi.fn(),
-      importRegister: vi.fn(),
-    };
-
     const app = createServerApp({
-      dbModule: dbMock as any,
-      apiService: apiServiceMock as any,
+      dbModule: asDbModule(dbMock),
+      apiService: asApiService(createApiServiceMock()),
       configPath: '/tmp/nope.json',
       appConfig: { api: { url: 'http://127.0.0.1:7860' } },
       backendBaseUrl: 'http://127.0.0.1:7860',
@@ -83,13 +95,8 @@ describe('server /gallery-api contract envelope', () => {
     dbMock.getSubstacksForStack.mockResolvedValue([{ sub_stack_id: 12, stack_id: 7, image_count: 3 }]);
 
     const app = createServerApp({
-      dbModule: dbMock as any,
-      apiService: {
-        findDuplicates: vi.fn(),
-        searchSimilar: vi.fn(),
-        getOutliers: vi.fn(),
-        importRegister: vi.fn(),
-      } as any,
+      dbModule: asDbModule(dbMock),
+      apiService: asApiService(createApiServiceMock()),
       configPath: '/tmp/nope.json',
       appConfig: {},
       backendBaseUrl: 'http://127.0.0.1:7860',
@@ -121,13 +128,8 @@ describe('server /gallery-api contract envelope', () => {
     dbMock.getImagesBySubStack.mockResolvedValue([{ id: 31, sub_stack_id: 12 }]);
 
     const app = createServerApp({
-      dbModule: dbMock as any,
-      apiService: {
-        findDuplicates: vi.fn(),
-        searchSimilar: vi.fn(),
-        getOutliers: vi.fn(),
-        importRegister: vi.fn(),
-      } as any,
+      dbModule: asDbModule(dbMock),
+      apiService: asApiService(createApiServiceMock()),
       configPath: '/tmp/nope.json',
       appConfig: {},
       backendBaseUrl: 'http://127.0.0.1:7860',
@@ -159,13 +161,8 @@ describe('server /gallery-api contract envelope', () => {
     dbMock.getImagesByStackUngrouped.mockResolvedValue([{ id: 22, stack_id: 7, sub_stack_id: null }]);
 
     const app = createServerApp({
-      dbModule: dbMock as any,
-      apiService: {
-        findDuplicates: vi.fn(),
-        searchSimilar: vi.fn(),
-        getOutliers: vi.fn(),
-        importRegister: vi.fn(),
-      } as any,
+      dbModule: asDbModule(dbMock),
+      apiService: asApiService(createApiServiceMock()),
       configPath: '/tmp/nope.json',
       appConfig: {},
       backendBaseUrl: 'http://127.0.0.1:7860',
@@ -197,13 +194,8 @@ describe('server /gallery-api contract envelope', () => {
     dbMock.getImageCount.mockRejectedValue(new Error('count exploded'));
 
     const app = createServerApp({
-      dbModule: dbMock as any,
-      apiService: {
-        findDuplicates: vi.fn(),
-        searchSimilar: vi.fn(),
-        getOutliers: vi.fn(),
-        importRegister: vi.fn(),
-      } as any,
+      dbModule: asDbModule(dbMock),
+      apiService: asApiService(createApiServiceMock()),
       configPath: '/tmp/nope.json',
       appConfig: {},
       backendBaseUrl: 'http://127.0.0.1:7860',
