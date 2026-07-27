@@ -1,8 +1,8 @@
-// @ts-ignore
+// @ts-expect-error vitest node imports in jsdom test
 import { readFileSync } from 'node:fs';
-// @ts-ignore
+// @ts-expect-error vitest node imports in jsdom test
 import { dirname, join } from 'node:path';
-// @ts-ignore
+// @ts-expect-error vitest node imports in jsdom test
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { bakeExifOrientationToBlob, getJpegOrientation } from './exportImageBake';

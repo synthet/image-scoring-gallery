@@ -22,7 +22,7 @@ export async function startGalleryMcpLiveFromElectron(options: {
 
     const port = parseInt(process.env.GALLERY_MCP_PORT ?? "9373", 10);
     // ESM mcp-server bundle; types in galleryMcpLive.d.ts
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+     
     // @ts-expect-error — runtime ESM import from CJS electron main
     const mod = await import("../mcp-server/dist/liveServer.js");
     galleryMcpLive = await mod.startGalleryMcpLiveServer({

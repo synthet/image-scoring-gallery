@@ -80,7 +80,6 @@ export class Bm25Index {
 
     private scoreDoc(qTerms: string[], docIdx: number): number {
         const fields = this.docFields[docIdx];
-        const dl = this.docLengths[docIdx];
         let score = 0;
         for (const [field, weight] of Object.entries(this.fieldWeights)) {
             if (weight <= 0) continue;

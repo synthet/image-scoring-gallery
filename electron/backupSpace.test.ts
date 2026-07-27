@@ -1,7 +1,6 @@
 import path from 'path';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
-    BACKUP_BUFFER_FRACTION,
     analyzeStaleManifestEntries,
     pruneStaleManifestEntries,
     syncStaleBackupEntries,
@@ -83,7 +82,6 @@ describe('xmpSidecarPath', () => {
 
 describe('selectPlanProportional', () => {
     const capacity = 1_000_000; // 1 MB total capacity
-    const buffer = capacity * BACKUP_BUFFER_FRACTION; // 20_000 bytes
 
     it('keeps everything when space is ample', () => {
         const items = [

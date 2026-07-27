@@ -14,7 +14,6 @@ import type {
     BackupProgress,
     BackupResult,
     BackupPreviewInfo,
-    BackupRunOptions,
     SyncCandidate,
     ImagePhaseStatus,
     SubStackRow,
