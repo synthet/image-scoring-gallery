@@ -16,7 +16,7 @@ interface Props {
 }
 
 const PHASE_LABELS: Record<string, string> = {
-    scanning: 'Scanning database',
+    scanning: 'Scanning',
     deduplicating: 'Removing similar images',
     calculating: 'Preparing files',
     copying: 'Copying to backup',

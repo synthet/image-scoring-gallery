@@ -179,11 +179,26 @@ export type DestinationScanResult = {
 /**
  * Recursive walk of a backup destination → relPath → size.
  * Skips manifest.json and non-image files; counts xmp-only directories.
+ * Yields to the event loop periodically so Electron's UI stays responsive.
  */
-export async function scanBackupDestination(targetPath: string): Promise<DestinationScanResult> {
+export async function scanBackupDestination(
+    targetPath: string,
+    options?: {
+        onProgress?: (found: number, detail: string) => void;
+        /** Yield after this many files (default 64). */
+        yieldEvery?: number;
+    },
+): Promise<DestinationScanResult> {
     const diskMap = new Map<string, number>();
     const diskKeys = new Set<string>();
     let xmpOnlyDirs = 0;
+    let found = 0;
+    let sinceYield = 0;
+    const yieldEvery = Math.max(1, options?.yieldEvery ?? 64);
+    const onProgress = options?.onProgress;
+
+    const yieldEventLoop = (): Promise<void> =>
+        new Promise((resolve) => setImmediate(resolve));
 
     async function walk(dir: string): Promise<{ images: number; xmpOnly: boolean }> {
         let entries: fs.Dirent[];
@@ -227,6 +242,13 @@ export async function scanBackupDestination(targetPath: string): Promise<Destina
                     diskKeys.add(key);
                 }
                 images++;
+                found++;
+                sinceYield++;
+                if (sinceYield >= yieldEvery) {
+                    sinceYield = 0;
+                    onProgress?.(found, `Scanned ${found.toLocaleString()} files on destination…`);
+                    await yieldEventLoop();
+                }
             } catch {
                 /* skip unreadable */
             }
@@ -239,6 +261,7 @@ export async function scanBackupDestination(targetPath: string): Promise<Destina
     }
 
     await walk(targetPath);
+    onProgress?.(found, `Scanned ${found.toLocaleString()} files on destination`);
     return { diskMap, diskKeys, xmpOnlyDirs };
 }
 
