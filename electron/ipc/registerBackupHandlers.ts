@@ -82,7 +82,10 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
         if (fs.existsSync(manifestPath)) {
             try {
                 const content = await fs.promises.readFile(manifestPath, 'utf-8');
+                // Large manifests: yield before sync JSON.parse so the UI can paint.
+                await new Promise<void>((r) => setImmediate(r));
                 manifest = JSON.parse(content);
+                await new Promise<void>((r) => setImmediate(r));
             } catch { /* ignore corrupted manifest */ }
         }
         return { manifest, manifestPath };
@@ -91,6 +94,7 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
     /**
      * Atomically persist the manifest: write to a temp file, fsync, optionally rotate the
      * previous manifest to `.bak`, then rename into place.
+     * Compact JSON (no pretty-print) — a 35k-row pretty stringify blocks Electron for seconds.
      */
     async function writeManifestAtomic(
         manifestPath: string,
@@ -98,7 +102,10 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
         rotateBak = true,
     ): Promise<void> {
         const tmpPath = `${manifestPath}.tmp`;
-        const data = JSON.stringify(manifest, null, 2);
+        // Yield so the UI can paint before a large sync stringify.
+        await new Promise<void>((r) => setImmediate(r));
+        const data = JSON.stringify(manifest);
+        await new Promise<void>((r) => setImmediate(r));
         const handle = await fs.promises.open(tmpPath, 'w');
         try {
             await handle.writeFile(data, 'utf-8');
@@ -141,14 +148,14 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
         return index;
     }
 
-    function diskEntryForKey(
-        key: string,
+    function buildDiskLookup(
         diskMap: Map<string, number>,
-    ): { relPath: string; size: number } | undefined {
+    ): Map<string, { relPath: string; size: number }> {
+        const lookup = new Map<string, { relPath: string; size: number }>();
         for (const [relPath, size] of diskMap) {
-            if (normalizeRelKey(relPath) === key) return { relPath, size };
+            lookup.set(normalizeRelKey(relPath), { relPath, size });
         }
-        return undefined;
+        return lookup;
     }
 
     async function resolveLastBackupSessionAt(targetPath: string): Promise<string | null | undefined> {
@@ -213,8 +220,9 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
         const wouldDeleteFiles = backupConfig.pruneStaleFiles ? staleStats.wouldDeleteFiles : 0;
 
         const plannedWithSkip = planBuild.planned.map((p) => ({ ...p }));
+        const diskLookup = buildDiskLookup(scan.diskMap);
         for (const p of plannedWithSkip) {
-            const onDisk = diskEntryForKey(normalizeRelKey(p.relPath), scan.diskMap);
+            const onDisk = diskLookup.get(normalizeRelKey(p.relPath));
             if (onDisk && onDisk.size > 0) {
                 p.skipCopy = onDisk.size === p.sourceSize;
             }
@@ -411,6 +419,16 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
         });
 
         try {
+            const { freeBytes, capacityBytes } = await resolveBackupVolumeStats(targetPath);
+
+            sendProgress({
+                phase: 'scanning',
+                current: 0,
+                total: 0,
+                detail: 'Loading manifest…',
+            });
+            await new Promise<void>((r) => setImmediate(r));
+
             const appConfig = loadAppConfig(getConfigPath(electronDirname));
             const backupConfig = loadBackupConfig(
                 appConfig.backup as Record<string, unknown> | undefined,
@@ -421,10 +439,27 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 phase: 'scanning',
                 current: 0,
                 total: 0,
-                detail: 'Scanning destination...',
+                detail: 'Scanning destination…',
             });
 
-            const scan = await scanBackupDestination(targetPath);
+            const scan = await scanBackupDestination(targetPath, {
+                onProgress: (found, detail) => {
+                    sendProgress({
+                        phase: 'scanning',
+                        current: found,
+                        total: Math.max(found, 1),
+                        detail,
+                    });
+                },
+            });
+            sendProgress({
+                phase: 'scanning',
+                current: scan.diskMap.size,
+                total: Math.max(scan.diskMap.size, 1),
+                detail: `Reconciling manifest (${manifest.images.length.toLocaleString()} rows)…`,
+            });
+            await new Promise<void>((r) => setImmediate(r));
+
             const preReconcileReport = reconcileManifestWithDiskReport(manifest, scan.diskKeys, {
                 xmpOnlyDirs: scan.xmpOnlyDirs,
             });
@@ -437,6 +472,12 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 manifest.updatedAt = new Date().toISOString();
                 const rotateBak = firstManifestWrite;
                 firstManifestWrite = false;
+                sendProgress({
+                    phase: 'cleaning',
+                    current: 0,
+                    total: 1,
+                    detail: `Writing manifest (${manifest.images.length.toLocaleString()} entries)…`,
+                });
                 await writeManifestAtomic(manifestPath, manifest, rotateBak);
                 manifestDirty = false;
             };
@@ -449,10 +490,8 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 phase: 'scanning',
                 current: 0,
                 total: 0,
-                detail: `Querying scored images (min score ${backupConfig.minScore})...`,
+                detail: `Querying scored images (min score ${backupConfig.minScore})…`,
             });
-
-            const { freeBytes, capacityBytes } = await resolveBackupVolumeStats(targetPath);
 
             let planBuild;
             try {
@@ -504,9 +543,10 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
             });
             const wouldDeleteFiles = backupConfig.pruneStaleFiles ? stalePreview.wouldDeleteFiles : 0;
 
+            const diskLookup = buildDiskLookup(scan.diskMap);
             for (const p of planned) {
                 const key = normalizeRelKey(p.relPath);
-                const onDisk = diskEntryForKey(key, scan.diskMap);
+                const onDisk = diskLookup.get(key);
 
                 if (onDisk) {
                     if (onDisk.size > 0) {
