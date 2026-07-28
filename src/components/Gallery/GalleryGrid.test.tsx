@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import type { AgentCullRecommendation } from '../../types/agentCullReview';
@@ -11,13 +11,21 @@ vi.mock('../../services/Logger', () => ({
     Logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-const { revealInExplorerMock } = vi.hoisted(() => ({
+const {
+    revealInExplorerMock,
+    getShowBoundingBoxMock,
+    onShowBoundingBoxChangedMock,
+} = vi.hoisted(() => ({
     revealInExplorerMock: vi.fn().mockResolvedValue(true),
+    getShowBoundingBoxMock: vi.fn().mockResolvedValue(false),
+    onShowBoundingBoxChangedMock: vi.fn().mockReturnValue(() => {}),
 }));
 
 vi.mock('../../bridge', () => ({
     bridge: {
         revealInExplorer: revealInExplorerMock,
+        getShowBoundingBox: getShowBoundingBoxMock,
+        onShowBoundingBoxChanged: onShowBoundingBoxChangedMock,
     },
 }));
 
@@ -247,5 +255,65 @@ describe('GalleryGrid reveal in explorer', () => {
         fireEvent.click(revealBtn);
 
         expect(revealInExplorerMock).toHaveBeenCalledWith('D:/Photos/DSC_0001.NEF');
+    });
+});
+
+describe('GalleryGrid bird bounding box', () => {
+    const birdBbox = { x1: 884, y1: 377, x2: 2123, y2: 1672, conf: 0.9138, img_w: 3936, img_h: 2624 };
+    const imageWithBbox = {
+        id: 2013,
+        file_path: 'D:/Photos/DSC_2013.NEF',
+        file_name: 'DSC_2013.NEF',
+        thumbnail_path: 'D:/photos/thumbs/DSC_2013.jpg',
+        score_general: 0.69,
+        rating: 3,
+        label: 'Green',
+        bird_bbox: birdBbox,
+    };
+
+    beforeEach(() => {
+        getShowBoundingBoxMock.mockReset();
+        getShowBoundingBoxMock.mockResolvedValue(false);
+        onShowBoundingBoxChangedMock.mockReset();
+        onShowBoundingBoxChangedMock.mockReturnValue(() => {});
+    });
+
+    it('draws the box as a fraction of the detector image size when the toggle is on', async () => {
+        getShowBoundingBoxMock.mockResolvedValue(true);
+        render(<GalleryGrid images={[imageWithBbox]} />);
+
+        const overlay = await screen.findByTestId('bird-bbox-overlay');
+        expect(overlay.style.left).toBe(`${(884 / 3936) * 100}%`);
+        expect(overlay.style.top).toBe(`${(377 / 2624) * 100}%`);
+        expect(overlay.style.width).toBe(`${((2123 - 884) / 3936) * 100}%`);
+        expect(overlay.style.height).toBe(`${((1672 - 377) / 2624) * 100}%`);
+    });
+
+    it('hides the box while the toggle is off and shows it when the menu turns it on', async () => {
+        let notify: ((show: boolean) => void) | undefined;
+        onShowBoundingBoxChangedMock.mockImplementation((cb: (show: boolean) => void) => {
+            notify = cb;
+            return () => {};
+        });
+
+        render(<GalleryGrid images={[imageWithBbox]} />);
+
+        await screen.findByText('DSC_2013.NEF');
+        expect(screen.queryByTestId('bird-bbox-overlay')).toBeNull();
+
+        act(() => notify!(true));
+        expect(await screen.findByTestId('bird-bbox-overlay')).not.toBeNull();
+    });
+
+    it('draws nothing when the image has no detection', async () => {
+        getShowBoundingBoxMock.mockResolvedValue(true);
+        render(
+            <GalleryGrid
+                images={[{ ...imageWithBbox, bird_bbox: null }]}
+            />,
+        );
+
+        await screen.findByText('DSC_2013.NEF');
+        expect(screen.queryByTestId('bird-bbox-overlay')).toBeNull();
     });
 });

@@ -4,6 +4,14 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.28.0] - 2026-07-26
+
+### Added
+- **Bird bounding boxes (grid + viewer)**: View → Bounding Box toggles detection overlays on gallery thumbnails and in single-image view; list queries include `bird_bbox` so cards can draw without opening details.
+
+### Changed
+- **View → Bounding Box**: Menu item stays enabled in the grid (not only while the detail viewer is open).
+
 ## [7.27.2] - 2026-07-25
 
 ### Fixed

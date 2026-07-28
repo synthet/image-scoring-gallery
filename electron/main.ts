@@ -50,6 +50,8 @@ let currentExportImageContext: ExportImageContext | null = null;
 let sessionLogManager: SessionLogManager | null = null;
 
 let appGalleryMode: 'db' | 'folder' = 'db';
+let appShowBoundingBox = false;
+let isSingleImageViewOpen = false;
 let currentSelectionPath: string | null = null;
 let isBackupRunning = false;
 const syncGuards = createSyncGuards(() => isBackupRunning);
@@ -97,6 +99,14 @@ function setGalleryModeAndNotify(mode: 'db' | 'folder') {
     }
 }
 
+function setShowBoundingBoxAndNotify(show: boolean) {
+    appShowBoundingBox = show;
+    rebuildApplicationMenu();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('show-bounding-box-changed', show);
+    }
+}
+
 function initApplicationMenu(): void {
     ({ rebuildApplicationMenu } = createApplicationMenu({
         getMainWindow: () => mainWindow,
@@ -104,6 +114,8 @@ function initApplicationMenu(): void {
         showMessageBox,
         getGalleryMode: () => appGalleryMode,
         setGalleryMode: setGalleryModeAndNotify,
+        getShowBoundingBox: () => appShowBoundingBox,
+        setShowBoundingBox: setShowBoundingBoxAndNotify,
         syncGuards,
         getIsBackupRunning: () => isBackupRunning,
         getExportContext: () => currentExportImageContext,
@@ -355,6 +367,8 @@ async function startFullApplication(): Promise<void> {
         setSelectionPath: (p) => { currentSelectionPath = p; },
         getExportContext: () => currentExportImageContext,
         setExportContext: (ctx) => { currentExportImageContext = ctx; },
+        getShowBoundingBox: () => appShowBoundingBox,
+        setSingleImageViewOpen: (open) => { isSingleImageViewOpen = open; },
         rebuildApplicationMenu,
     });
 

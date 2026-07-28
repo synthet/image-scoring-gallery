@@ -11,6 +11,8 @@ export type AppHandlersDeps = {
     setSelectionPath: (path: string | null) => void;
     getExportContext: () => ExportImageContext | null;
     setExportContext: (context: ExportImageContext | null) => void;
+    getShowBoundingBox: () => boolean;
+    setSingleImageViewOpen: (open: boolean) => void;
     rebuildApplicationMenu: () => void;
 };
 
@@ -27,6 +29,15 @@ export function registerAppHandlers(deps: AppHandlersDeps): void {
     }));
 
     ipcMain.handle('app:get-gallery-mode', () => deps.getGalleryMode());
+
+    // Renderer reports single-image viewer open/close (kept for future menu state; Bounding Box is always enabled).
+    ipcMain.handle('app:set-viewer-open', async (_, open: unknown) => {
+        deps.setSingleImageViewOpen(Boolean(open));
+        rebuildApplicationMenu();
+        return true;
+    });
+
+    ipcMain.handle('app:get-show-bounding-box', () => deps.getShowBoundingBox());
 
     ipcMain.handle('export:set-current-image-context', async (_, context: ExportImageContext | null) => {
         deps.setExportContext(context);

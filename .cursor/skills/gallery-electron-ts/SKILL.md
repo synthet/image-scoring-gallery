@@ -80,6 +80,17 @@ Keep **sibling clone layout** in mind: backend and gallery as sibling folders so
   the summary (and what must change in **image-scoring-backend**).
 - **Renderer styling** (CSS Modules, design tokens, component layout): use the **`gallery-ui`** skill (`.cursor/skills/gallery-ui/SKILL.md`).
 
+## View-menu overlays that must work in the grid
+
+When a View-menu toggle (e.g. Bounding Box) should apply to gallery cards as
+well as the detail viewer:
+
+1. Enable the menu item for the grid (do **not** gate only on single-image view).
+2. Add the column to `getImages` / stack list SELECTs — `normalizeImageRowOutput`
+   already parses JSONB strings.
+3. Share the overlay component (e.g. `src/components/Shared/BirdBoxOverlay.tsx`).
+4. Have `GalleryGrid` subscribe to the same `show-*-changed` IPC as the viewer.
+
 ## Optional MCP
 
 When debugging integration with a running backend, **`is-ui-mcp`**

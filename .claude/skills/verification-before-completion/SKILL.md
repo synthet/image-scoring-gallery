@@ -2,32 +2,41 @@
 name: verification-before-completion
 description: >-
   Use before claiming work is complete, fixed, passing, ready to commit, or ready
-  for PR. Apply to ensure fresh command output supports every success claim and to
-  report warnings or failures honestly.
+  for PR. Runs scripts/agent_skills/verification_before_completion.py for the
+  claim→proof catalog; LLM interprets output. Never upgrade incomplete verification.
 ---
 
-# Verification before completion
+# Verification before completion (compiled harness)
 
 Do not claim done/fixed/passing/ready until fresh command output supports the claim.
 
-## Preferred proofs (gallery)
+## Invoke
 
 ```bash
-python scripts/sync_assistant_trees.py --check
-python scripts/ci/check_agent_frontmatter.py
-python scripts/validate_cli_hub_skills.py
-npm run lint
-npx tsc --noEmit
-npx tsc -p electron/tsconfig.json --noEmit
-npm run test:run
-git status --short
+# List catalog
+python scripts/agent_skills/verification_before_completion.py --json
+
+# Run selected proofs
+python scripts/agent_skills/verification_before_completion.py \
+  --claim assets_synced --claim frontmatter_ok --run --json
+
+# Agent-infra verify suite
+python scripts/agent_skills/verification_before_completion.py --suite --run --json
+
+# App claims (examples)
+python scripts/agent_skills/verification_before_completion.py \
+  --claim tsc_renderer --claim tsc_electron --claim tests_pass --run --json
 ```
 
 ## LLM judgment slots
 
-1. **Name the claim** and pick the falsifying proof.
+1. **Name the claim** and pick the falsifying proof (catalog ids or custom command).
 2. **Interpret output** after the final edit — exit code, warnings, skipped tests, scope.
 3. Report pass / warn / fail with the exact command; never upgrade incomplete verification to pass.
+
+## Human authority
+
+Consequential ship / merge decisions stay with the user.
 
 ## Use with
 

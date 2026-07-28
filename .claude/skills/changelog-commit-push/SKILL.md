@@ -1,63 +1,62 @@
 ---
 name: changelog-commit-push
-description: Updates CHANGELOG.md from git changes, commits, and pushes. Use when the user asks to update changelog, commit and push, or ship changes.
+description: >-
+  Update CHANGELOG.md and package.json via compiled release_bump harness, then
+  commit/push only when the user asks. Use for /release, changelog updates, or
+  shipping gallery versions.
 ---
 
-# Changelog, Commit & Push Workflow
+# Changelog, commit & push (compiled)
 
-## When to Use
+Thin bootloader over `scripts/agent_skills/release_bump.py`. Do **not** re-discover
+`package.json` / `CHANGELOG.md` paths or semver math — run the harness.
 
-Apply this skill when the user explicitly asks to:
-- Update changelog and commit/push
-- Ship changes
-- Release or publish changes
+## When to use
 
-## Workflow
+- User asks to update changelog and commit/push
+- User runs `/release` or asks to ship / publish gallery changes
 
-### 1. Analyze Changes
+## Invoke
 
-Run `git status --short` and `git diff --stat` to understand what changed. Read key diffs if needed.
+```powershell
+# 1. Inspect (deterministic; includes branch gate)
+python scripts/agent_skills/release_bump.py inspect
 
-### 2. Update CHANGELOG.md
+# 2. If needs_llm_judgment: classify git history, then pass --level
+python scripts/agent_skills/release_bump.py plan --level minor   # or major|patch
 
-- Add a new `## [X.Y.Z] - YYYY-MM-DD` section at the top (below the header).
-- Use today's date.
-- Bump version: patch (Z) for fixes, minor (Y) for features, major (X) for breaking changes.
-- Group entries under: `### Added`, `### Changed`, `### Fixed`, `### Removed`.
-- Follow existing style: bold feature names, concise bullets.
-
-**Template:**
-```markdown
-## [X.Y.Z] - YYYY-MM-DD
-
-### Added
-- **Feature name**: Brief description.
-
-### Changed
-- What changed.
-
-### Fixed
-- What was fixed.
+# 3. Apply file writes only (no git). On non-main branches, confirm first:
+python scripts/agent_skills/release_bump.py apply --level minor
+# after human confirm on a feature branch:
+python scripts/agent_skills/release_bump.py apply --level minor --allow-non-main-branch
 ```
 
-### 3. Bump package.json version
+## LLM judgment slots
 
-If CHANGELOG version differs from `package.json`, update `package.json` to match.
+1. When `needs_llm_judgment` is true — classify dirty work / git history as
+   feature vs fix vs breaking, then pass `--level`.
+2. Draft Unreleased bullets (bold labels, short) when promoting from git history
+   rather than an already-filled Unreleased section.
 
-### 4. Commit and Push
+## Human authority
 
-```bash
-git add CHANGELOG.md package.json
-# Add other changed files the user intends to ship
-git add -A  # or specific paths
-git commit -m "chore: release vX.Y.Z"
-git push
-```
+1. If `needs_human_confirm_branch` — stop; confirm the branch before apply/commit
+   (not `main`/`master`, and user did not name this branch for release).
+2. Commit and push **only** when the user explicitly asks.
+3. Exclude junk (`tmp/`, `*.log`, `gallery-mcp.lock`, secrets).
 
-Use conventional commit: `chore:`, `feat:`, `fix:` as appropriate.
+## Semver rubric (encoded in harness; override with `--level`)
 
-## Notes
+1. Breaking / removed → **major**
+2. Else if Added count ≥ Fixed and Added ≥ 1 → **minor**
+3. Else Fixed-dominant or Changed-only → **patch**
 
-- Do not commit unless the user explicitly requested it.
-- Ask before pushing if remote might have conflicts.
-- Exclude temporary files (e.g. `verify.js`, `*.log`) from commits unless intentional.
+## After apply
+
+- Suggest `chore: release vX.Y.Z` (do not commit unless asked).
+- Stage `CHANGELOG.md`, `package.json`, and intentional release files only.
+
+## Related
+
+- Compilation: [`.agent/SKILL_COMPILATION.md`](../../.agent/SKILL_COMPILATION.md)
+- Command: [`.cursor/commands/release.md`](../../.cursor/commands/release.md)

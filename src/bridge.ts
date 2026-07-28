@@ -365,6 +365,14 @@ function createHttpBridge(): Window['electron'] {
 
         onAppModeChanged: noop,
 
+        // Not supported in browser mode — the bounding box toggle lives in the Electron View menu.
+         
+        setSingleImageViewOpen: (_open: boolean) => Promise.resolve(true),
+
+        getShowBoundingBox: () => Promise.resolve(false),
+
+        onShowBoundingBoxChanged: noop,
+
         selectDirectory: () => Promise.resolve(null),
 
         getDiagnostics: async () => {
