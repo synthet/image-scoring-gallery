@@ -27,7 +27,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-/** Same set as `IMAGE_EXTENSIONS` in electron/main.ts (backup). */
+/** Same set as `BACKUP_IMAGE_EXTENSIONS` in electron/backupSpace.ts. */
 const IMAGE_EXTENSIONS = new Set([
     '.jpg',
     '.jpeg',
@@ -44,6 +44,8 @@ const IMAGE_EXTENSIONS = new Set([
     '.orf',
     '.rw2',
 ]);
+
+// Keep in sync with electron/backupSpace.ts BACKUP_IMAGE_EXTENSIONS.
 
 async function collectImageFiles(rootDir, dir, acc) {
     const entries = await fs.readdir(dir, { withFileTypes: true });

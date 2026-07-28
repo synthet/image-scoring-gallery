@@ -9,7 +9,7 @@ import {
 } from './sortSql';
 import { absolutizeThumbnailPath } from './thumbnailPathNormalize';
 import { applyThumbnailPathRemaps } from './pathsRemap';
-import type { AppConfig, DatabaseConfig } from './types';
+import type { AppConfig, DatabaseConfig, ScoredImageForBackup } from './types';
 import { createDatabaseConnector, IDatabaseConnector, QueryParam, TxQuery } from './db/provider';
 
 // Load configuration
@@ -2420,13 +2420,23 @@ export async function deleteImage(id: number): Promise<boolean> {
     }
 }
 
-import { ScoredImageForBackup } from './types';
-
 /**
  * Get scored images for backup planning at or above minScore (score_general 0–1).
+ * When includeCurated is true, also include curated picks below the floor.
  */
-export async function getAllScoredImagesForBackup(minScore = 0): Promise<ScoredImageForBackup[]> {
-    const sql = `
+export async function getAllScoredImagesForBackup(
+    minScore = 0,
+    options: { includeCurated?: boolean } = {},
+): Promise<ScoredImageForBackup[]> {
+    const includeCurated = options.includeCurated !== false;
+
+    const rows = await queryWithOptionalPickStatus<ScoredImageForBackup & { is_pick: number | boolean }>(
+        (includePickStatus) => {
+            const pickExpr = effectivePickStatusExpr(includePickStatus, 'i');
+            const where = includeCurated
+                ? `(i.score_general >= ? OR (${pickExpr}) = 1)`
+                : `i.score_general >= ?`;
+            return `
         SELECT
             i.id,
             COALESCE(fp.path, i.file_path) as path,
@@ -2434,23 +2444,40 @@ export async function getAllScoredImagesForBackup(minScore = 0): Promise<ScoredI
             i.score_general as composite_score,
             i.image_hash,
             i.stack_id,
-            ${castDate(CAPTURE_TS_EI)}::text as capture_date
+            ${castDate(CAPTURE_TS_EI)}::text as capture_date,
+            CASE WHEN (${pickExpr}) = 1 THEN 1 ELSE 0 END AS is_pick
         FROM images i
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
         LEFT JOIN image_exif e ON e.image_id = i.id
         LEFT JOIN image_xmp xm ON xm.image_id = i.id
-        WHERE i.score_general >= ?
+        WHERE ${where}
         ORDER BY i.score_general DESC NULLS LAST
     `;
-    const rows = await query(sql, [minScore]) as ScoredImageForBackup[];
-    return rows;
+        },
+        [minScore],
+    );
+
+    return rows.map((r) => ({
+        ...r,
+        is_pick: Boolean(r.is_pick),
+    }));
 }
 
 /** Cheap candidate count (no joins/dedup) for the backup pre-flight fast path. */
-export async function countScoredImagesForBackup(minScore = 0): Promise<number> {
-    const rows = await query<{ c: number }>(
-        `SELECT COUNT(*) AS c FROM images WHERE score_general >= ?`,
+export async function countScoredImagesForBackup(
+    minScore = 0,
+    options: { includeCurated?: boolean } = {},
+): Promise<number> {
+    const includeCurated = options.includeCurated !== false;
+    const rows = await queryWithOptionalPickStatus<{ c: number }>(
+        (includePickStatus) => {
+            const pickExpr = effectivePickStatusExpr(includePickStatus, 'i');
+            const where = includeCurated
+                ? `(i.score_general >= ? OR (${pickExpr}) = 1)`
+                : `i.score_general >= ?`;
+            return `SELECT COUNT(*) AS c FROM images i WHERE ${where}`;
+        },
         [minScore],
     );
     return Number(rows[0]?.c ?? 0);

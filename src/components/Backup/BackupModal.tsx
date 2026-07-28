@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { bridge } from '../../bridge';
-import type { BackupPreviewInfo, BackupProgress, BackupResult, BackupTargetInfo } from '../../../electron/types';
+import type {
+    BackupPreviewInfo,
+    BackupProgress,
+    BackupResult,
+    BackupTargetInfo,
+    BackupVerifyReport,
+} from '../../../electron/types';
 
 interface Props {
     isOpen: boolean;
@@ -18,12 +24,21 @@ const PHASE_LABELS: Record<string, string> = {
     done: 'Complete',
 };
 
+function formatBytes(n: number | null | undefined): string {
+    if (n == null || !Number.isFinite(n) || n >= Number.MAX_SAFE_INTEGER / 2) return '—';
+    const gib = n / (1024 * 1024 * 1024);
+    if (gib >= 1) return `${gib.toFixed(1)} GiB`;
+    return `${(n / (1024 * 1024)).toFixed(0)} MiB`;
+}
+
 export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onComplete }) => {
     const [progress, setProgress] = useState<BackupProgress>({ phase: 'scanning', current: 0, total: 0, detail: '' });
     const [result, setResult] = useState<BackupResult | null>(null);
     const [targetInfo, setTargetInfo] = useState<BackupTargetInfo | null>(null);
     const [preview, setPreview] = useState<BackupPreviewInfo | null>(null);
     const [previewLoading, setPreviewLoading] = useState(false);
+    const [verifyReport, setVerifyReport] = useState<BackupVerifyReport | null>(null);
+    const [verifyLoading, setVerifyLoading] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isRunning, setIsRunning] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
@@ -54,9 +69,19 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
             setError(null);
             setShowDeleteConfirm(false);
             setPreview(null);
+            setVerifyReport(null);
             setProgress({ phase: 'scanning', current: 0, total: 0, detail: '' });
         });
     }, [isOpen, targetPath]);
+
+    const runVerify = () => {
+        if (!targetPath || verifyLoading) return;
+        setVerifyLoading(true);
+        bridge.backupVerifyTarget(targetPath)
+            .then((report) => setVerifyReport(report))
+            .catch((err) => console.error('Failed to verify backup target:', err))
+            .finally(() => setVerifyLoading(false));
+    };
 
     const runBackup = (confirmMassDelete: boolean) => {
         if (!targetPath || isRunning) return;
@@ -130,7 +155,13 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
         result.staleRemoved > 0
         || result.droppedForSpace > 0
         || (result.manifestPruned ?? 0) > 0
+        || (result.rotatedOut ?? 0) > 0
     );
+
+    const capacityUsedPct =
+        targetInfo?.capacityBytes && targetInfo.capacityBytes > 0 && targetInfo.freeBytes != null
+            ? Math.min(100, Math.round(((targetInfo.capacityBytes - targetInfo.freeBytes) / targetInfo.capacityBytes) * 100))
+            : null;
 
     return (
         <div style={{
@@ -201,6 +232,19 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                             <div>Scored candidates: <strong>{preview.candidateCount.toLocaleString()}</strong></div>
                             <div>Planned for this run: <strong>{preview.plannedComputed ? preview.plannedCount.toLocaleString() : 'computed during backup'}</strong></div>
                             <div>Manifest entries: <strong>{preview.manifestCount.toLocaleString()}</strong></div>
+                            {preview.roughFillRatio != null && (
+                                <div>
+                                    Fill ratio: <strong>{preview.roughFillRatio.toFixed(2)}</strong>
+                                    {preview.effectiveMaxPerCluster != null && (
+                                        <> · max/cluster: <strong>{preview.effectiveMaxPerCluster}</strong></>
+                                    )}
+                                </div>
+                            )}
+                            {(preview.wouldRotateOut ?? 0) > 0 && (
+                                <div style={{ color: '#ffb74d' }}>
+                                    Would rotate out: <strong>{preview.wouldRotateOut!.toLocaleString()}</strong>
+                                </div>
+                            )}
                             {!preview.pruneStaleFiles && preview.manifestPrunedCount > 0 && (
                                 <div style={{ color: '#888', marginTop: 4 }}>
                                     Manifest rows not in plan: {preview.manifestPrunedCount.toLocaleString()} (files kept on disk)
@@ -236,13 +280,20 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                             </div>
                             <div style={{ fontSize: '0.9em', lineHeight: 1.6, color: '#ddd' }}>
                                 This run will <strong>permanently delete{' '}
-                                {(preview.wouldDeleteFiles + preview.wouldDeleteDroppedForSpace).toLocaleString()} files</strong> from
+                                {(
+                                    (preview.wouldDeleteFiles ?? 0)
+                                    + (preview.wouldDeleteDroppedForSpace ?? 0)
+                                    + (preview.wouldRotateOut ?? 0)
+                                ).toLocaleString()} files</strong> from
                                 the backup folder.
                                 {preview.wouldDeleteFiles > 0 && (
                                     <> {preview.wouldDeleteFiles.toLocaleString()} are no longer in the current selection.</>
                                 )}
                                 {preview.wouldDeleteDroppedForSpace > 0 && (
                                     <> {preview.wouldDeleteDroppedForSpace.toLocaleString()} are existing copies dropped for insufficient disk space.</>
+                                )}
+                                {(preview.wouldRotateOut ?? 0) > 0 && (
+                                    <> {preview.wouldRotateOut!.toLocaleString()} would be rotated out for higher-scoring admits.</>
                                 )}
                                 {preview.prebuildProtectedCount > 0 && (
                                     <> Prebuild entries ({preview.prebuildProtectedCount.toLocaleString()}) will also be removed if you continue.</>
@@ -261,10 +312,73 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                                         Size: <strong>{(targetInfo.bytes / (1024 * 1024 * 1024)).toFixed(2)} GB</strong> |
                                         Last sync: <strong>{targetInfo.lastBackup ? new Date(targetInfo.lastBackup).toLocaleDateString() : 'Never'}</strong>
                                     </div>
+                                    {targetInfo.freeBytes != null && targetInfo.capacityBytes != null && (
+                                        <div style={{ marginTop: 8, color: '#aaa' }}>
+                                            Free: <strong>{formatBytes(targetInfo.freeBytes)}</strong> of{' '}
+                                            <strong>{formatBytes(targetInfo.capacityBytes)}</strong>
+                                            {targetInfo.usableBytes != null && (
+                                                <> (usable ~{formatBytes(targetInfo.usableBytes)})</>
+                                            )}
+                                            {capacityUsedPct != null && (
+                                                <div style={{
+                                                    marginTop: 6, height: 6, background: '#333', borderRadius: 3, overflow: 'hidden',
+                                                }}>
+                                                    <div style={{
+                                                        height: '100%', width: `${capacityUsedPct}%`,
+                                                        background: capacityUsedPct > 90 ? '#ff6b6b' : '#0078d4',
+                                                    }} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    {targetInfo.lastBackupSessionAt && (
+                                        <div style={{ marginTop: 6, color: '#8bc34a', fontSize: '0.85em' }}>
+                                            Recognized drive — last backed up{' '}
+                                            {new Date(targetInfo.lastBackupSessionAt).toLocaleString()}
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div style={{ padding: '12px', background: 'rgba(255,169,77,0.05)', border: '1px solid rgba(255,169,77,0.2)', borderRadius: 6 }}>
                                     Notice: Target directory is empty or missing manifest. A fresh backup will be started.
+                                    {targetInfo.freeBytes != null && (
+                                        <div style={{ marginTop: 6, color: '#888' }}>
+                                            Free: {formatBytes(targetInfo.freeBytes)} of {formatBytes(targetInfo.capacityBytes)}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            <div style={{ marginTop: 12 }}>
+                                <button
+                                    type="button"
+                                    onClick={runVerify}
+                                    disabled={verifyLoading}
+                                    style={{
+                                        padding: '6px 12px', background: 'transparent', border: '1px solid #555',
+                                        color: '#ccc', borderRadius: 4, cursor: verifyLoading ? 'wait' : 'pointer',
+                                        fontSize: '0.85em',
+                                    }}
+                                >
+                                    {verifyLoading ? 'Verifying…' : 'Verify destination'}
+                                </button>
+                            </div>
+                            {verifyReport && (
+                                <div style={{
+                                    marginTop: 10, padding: '10px 12px', background: '#252526',
+                                    border: '1px solid #333', borderRadius: 6, fontSize: '0.85em', lineHeight: 1.6,
+                                }}>
+                                    <div>Manifest rows: <strong>{verifyReport.manifestRows.toLocaleString()}</strong></div>
+                                    <div>Present on disk: <strong>{verifyReport.presentOnDisk.toLocaleString()}</strong></div>
+                                    <div style={{ color: verifyReport.missingOnDisk > 0 ? '#ffb74d' : '#aaa' }}>
+                                        Missing: <strong>{verifyReport.missingOnDisk.toLocaleString()}</strong>
+                                        {' '}({formatBytes(verifyReport.missingBytes)} phantom)
+                                    </div>
+                                    <div>Orphans on disk: <strong>{verifyReport.orphanFiles.toLocaleString()}</strong></div>
+                                    {verifyReport.xmpOnlyDirs > 0 && (
+                                        <div style={{ color: '#888' }}>
+                                            XMP-only dirs (not deleted): {verifyReport.xmpOnlyDirs.toLocaleString()}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -373,6 +487,27 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                                             <strong style={{ color: '#ffb74d' }}>{result.droppedForSpace.toLocaleString()}</strong>
                                         </div>
                                     )}
+                                    {(result.rotatedOut ?? 0) > 0 && (
+                                        <div>
+                                            Rotated out for higher scores:{' '}
+                                            <strong style={{ color: '#ffb74d' }}>{result.rotatedOut!.toLocaleString()}</strong>
+                                        </div>
+                                    )}
+                                    {(result.reconcileDroppedMissing != null || result.reconcileAdopted != null) && (
+                                        <div style={{ color: '#aaa' }}>
+                                            Reconcile: dropped {result.reconcileDroppedMissing ?? 0} missing, adopted{' '}
+                                            {result.reconcileAdopted ?? 0} orphans
+                                        </div>
+                                    )}
+                                    {result.rejectReasons && Object.keys(result.rejectReasons).length > 0 && (
+                                        <div style={{ marginTop: 6, color: '#aaa' }}>
+                                            Rejects:{' '}
+                                            {Object.entries(result.rejectReasons)
+                                                .filter(([, n]) => (n ?? 0) > 0)
+                                                .map(([k, n]) => `${k}=${n}`)
+                                                .join(', ')}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -452,7 +587,11 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                                     color: '#fff', borderRadius: 6, cursor: 'pointer', fontWeight: 600,
                                 }}
                             >
-                                Delete {((preview?.wouldDeleteFiles ?? 0) + (preview?.wouldDeleteDroppedForSpace ?? 0)).toLocaleString()} files and continue
+                                Delete {(
+                                    (preview?.wouldDeleteFiles ?? 0)
+                                    + (preview?.wouldDeleteDroppedForSpace ?? 0)
+                                    + (preview?.wouldRotateOut ?? 0)
+                                ).toLocaleString()} files and continue
                             </button>
                         </>
                     )}

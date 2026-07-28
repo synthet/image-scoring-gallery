@@ -17,6 +17,14 @@ export interface BackupConfig {
     pruneStaleFiles: boolean;
     /** When true, delete destination copies dropped for insufficient disk space. Default false. */
     pruneDroppedForSpace: boolean;
+    /** Fraction of volume capacity reserved as free-space buffer. */
+    reserveFraction: number;
+    /** Include curated picks (pick_status=1 / Green|Blue|Purple) even below minScore. */
+    includeCurated: boolean;
+    /** When true, evict lower-scoring resident files to admit higher-scoring drops. Default false. */
+    rotateLowScores: boolean;
+    /** Incoming must beat resident by this much to rotate. */
+    rotateScoreMargin: number;
 }
 
 export const DEFAULT_BACKUP_CONFIG: BackupConfig = {
@@ -27,6 +35,10 @@ export const DEFAULT_BACKUP_CONFIG: BackupConfig = {
     pairBatchSize: 500,
     pruneStaleFiles: false,
     pruneDroppedForSpace: false,
+    reserveFraction: 0.02,
+    includeCurated: true,
+    rotateLowScores: false,
+    rotateScoreMargin: 0.05,
 };
 
 /** Require UI confirmation before deleting this many stale files. */
@@ -43,6 +55,10 @@ function asBoolean(value: unknown, fallback: boolean): boolean {
     return typeof value === 'boolean' ? value : fallback;
 }
 
+function clampReserveFraction(value: number): number {
+    return Math.min(0.5, Math.max(0, value));
+}
+
 /** Parse backup section from merged app config. */
 export function loadBackupConfig(raw: Record<string, unknown> | undefined): BackupConfig {
     if (!raw) return { ...DEFAULT_BACKUP_CONFIG };
@@ -54,6 +70,15 @@ export function loadBackupConfig(raw: Record<string, unknown> | undefined): Back
         pairBatchSize: Math.max(50, Math.floor(asNumber(raw.pairBatchSize, DEFAULT_BACKUP_CONFIG.pairBatchSize))),
         pruneStaleFiles: asBoolean(raw.pruneStaleFiles, DEFAULT_BACKUP_CONFIG.pruneStaleFiles),
         pruneDroppedForSpace: asBoolean(raw.pruneDroppedForSpace, DEFAULT_BACKUP_CONFIG.pruneDroppedForSpace),
+        reserveFraction: clampReserveFraction(
+            asNumber(raw.reserveFraction, DEFAULT_BACKUP_CONFIG.reserveFraction),
+        ),
+        includeCurated: asBoolean(raw.includeCurated, DEFAULT_BACKUP_CONFIG.includeCurated),
+        rotateLowScores: asBoolean(raw.rotateLowScores, DEFAULT_BACKUP_CONFIG.rotateLowScores),
+        rotateScoreMargin: Math.max(
+            0,
+            asNumber(raw.rotateScoreMargin, DEFAULT_BACKUP_CONFIG.rotateScoreMargin),
+        ),
     };
 }
 

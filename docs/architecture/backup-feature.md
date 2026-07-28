@@ -42,6 +42,10 @@ flowchart LR
 | `pairBatchSize` | `500` | Max IDs per pgvector pair-query batch |
 | `pruneStaleFiles` | **`false`** | When true, delete destination files no longer in the current plan (mirror mode) |
 | `pruneDroppedForSpace` | **`false`** | When true, delete destination copies dropped for insufficient disk space |
+| `reserveFraction` | `0.02` | Fraction of volume capacity reserved as free-space buffer (clamped 0–0.5) |
+| `includeCurated` | **`true`** | Include curated picks below `minScore`; exempt picks from near-dupe trim |
+| `rotateLowScores` | **`false`** | Opt-in: evict lower-scoring residents to admit higher-scoring drops |
+| `rotateScoreMargin` | `0.05` | Incoming must beat resident score by this margin to rotate |
 
 Parsed by [`electron/backupConfig.ts`](../../electron/backupConfig.ts). `maxPerCluster` is scaled down when destination free space is tight (`effectiveMaxPerCluster`).
 
@@ -52,17 +56,17 @@ Use **`minScore: 0.7`** for a curated export; **`0` or `0.5`** for broader archi
 ## Pipeline (`backup:run` in `electron/main.ts`)
 
 1. Load `manifest.json` (or empty).
-2. Query **`getAllScoredImagesForBackup(minScore)`** — includes `capture_date`, `stack_id`.
-3. Estimate disk pressure → dynamic similarity threshold + effective `maxPerCluster`.
-4. **Selection** — [`deduplicateByDateGroups`](../../electron/backupSelection.ts): stack pre-filter (top 2 per real stack; unstacked images kept as singletons), batched pair queries, BFS clusters, MMR multi-keep; optional `applyCrossDayDedup`.
-5. Batch **`getImageDetailsBatch`** + **`getEmbeddingsBatch`** for layout and space MMR (default space `mobilenet_v2_imagenet_gap` only — see [technical/EMBEDDING_SPACES.md](../technical/EMBEDDING_SPACES.md)).
-6. Plan paths `camera/lens/year/date/basename`; skip unresolved `_unknown_camera` / `_unknown_lens`.
-7. **`syncStaleBackupEntries`** — remove manifest rows not in the current plan; **unlink files only when `pruneStaleFiles: true`**. Prebuild entries (`id: 0`) are never unlinked unless the user confirms a mass delete.
-8. Incremental skip via manifest size match.
-9. **`selectPlanProportional`** with `diversityLambda` for MMR backfill under byte budget. Dropped items are **not deleted** unless `pruneDroppedForSpace: true` — and when enabled, deleting already-on-disk dropped copies is subject to the **same mass-delete confirmation gate** as stale prune. All destructive confirmation gates are evaluated **before** any file is unlinked.
-10. Copy files + XMP sidecars; write `manifest.json` **atomically** (temp file + `fsync` + rotate previous to `.bak` + rename) so a crash mid-write cannot corrupt the manifest.
+2. **Scan destination** and **reconcile** (drop phantoms, adopt orphans as `id: 0`); skip-copy uses disk size match.
+3. Query **`getAllScoredImagesForBackup(minScore, { includeCurated })`** — includes `capture_date`, `stack_id`, `is_pick`.
+4. Estimate disk pressure (sampled mean source size + present-candidate adjustment) → dynamic similarity threshold + effective `maxPerCluster`.
+5. **Selection** — [`deduplicateByDateGroups`](../../electron/backupSelection.ts): stack pre-filter (top 2 per real stack; **picks never trimmed**); batched pair queries; BFS clusters; MMR multi-keep with **pick exemption**; optional `applyCrossDayDedup` (ISO week buckets).
+6. Batch **`getImageDetailsBatch`** + **`getEmbeddingsBatch`** for layout and space MMR.
+7. Plan paths `camera/lens/year/date/basename`; skip unresolved `_unknown_camera` / `_unknown_lens`.
+8. **`syncStaleBackupEntries`** — remove manifest rows not in the current plan; **unlink files only when `pruneStaleFiles: true`**. Prebuild entries (`id: 0`) are never unlinked unless the user confirms a mass delete. Then prune empty dirs left by deletes.
+9. **`selectPlanProportional`** with `reserveFraction` + `diversityLambda`. Optional **`rotateLowScores`** may evict residents (never `id: 0`) for higher-scoring drops after confirmation gates.
+10. Copy files + XMP sidecars; **checkpoint manifest every 250 copies** (+ `finally`); write atomically (temp + `fsync` + `.bak` only on first write of the run).
 
----
+> **Selection note:** curated picks (`is_pick`) bypass the score floor when `includeCurated` is true and are never dropped by stack/cluster near-dupe selection in favor of a higher-scoring non-pick.
 
 ## Stale cleanup and prebuild manifests
 
