@@ -6,6 +6,9 @@ describe('loadBackupConfig', () => {
         expect(loadBackupConfig(undefined)).toEqual(DEFAULT_BACKUP_CONFIG);
         expect(DEFAULT_BACKUP_CONFIG.pruneStaleFiles).toBe(false);
         expect(DEFAULT_BACKUP_CONFIG.pruneDroppedForSpace).toBe(false);
+        expect(DEFAULT_BACKUP_CONFIG.rotateLowScores).toBe(false);
+        expect(DEFAULT_BACKUP_CONFIG.includeCurated).toBe(true);
+        expect(DEFAULT_BACKUP_CONFIG.reserveFraction).toBe(0.02);
         expect(DEFAULT_BACKUP_CONFIG.minScore).toBe(0.5);
     });
 
@@ -14,6 +17,11 @@ describe('loadBackupConfig', () => {
         expect(cfg.minScore).toBe(0.8);
         expect(cfg.crossDayDedup).toBe(true);
         expect(cfg.diversityLambda).toBe(DEFAULT_BACKUP_CONFIG.diversityLambda);
+    });
+
+    it('clamps reserveFraction', () => {
+        expect(loadBackupConfig({ reserveFraction: 0.9 }).reserveFraction).toBe(0.5);
+        expect(loadBackupConfig({ reserveFraction: -1 }).reserveFraction).toBe(0);
     });
 });
 
@@ -28,6 +36,11 @@ describe('effectiveMaxPerCluster', () => {
 
     it('caps at 2 for medium fill', () => {
         expect(effectiveMaxPerCluster(3, 0.6)).toBe(2);
+    });
+
+    it('returns 2 at corrected ~0.63 fill where legacy 0.41 forced 1', () => {
+        expect(effectiveMaxPerCluster(2, 0.63)).toBe(2);
+        expect(effectiveMaxPerCluster(2, 0.41)).toBe(1);
     });
 });
 

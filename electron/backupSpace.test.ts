@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
     analyzeStaleManifestEntries,
     pruneStaleManifestEntries,
+    reconcileManifestWithDisk,
     syncStaleBackupEntries,
     selectPlanProportional,
     xmpSidecarPath,
@@ -274,5 +275,28 @@ describe('syncStaleBackupEntries', () => {
         const result = await syncStaleBackupEntries('/target', m, new Set([]), true, true);
         expect(result.filesRemoved).toBe(1);
         expect(result.prebuildProtectedCount).toBe(0);
+    });
+});
+
+describe('reconcileManifestWithDisk', () => {
+    it('adopts orphans as id 0, drops phantoms, keeps matching', () => {
+        const m: BackupManifest = {
+            updatedAt: 't',
+            images: [
+                { id: 5, relPath: 'Cam/A.NEF', score: 0.8, size: 10, hash: 'h' },
+                { id: 6, relPath: 'Cam/missing.NEF', score: 0.7, size: 20, hash: '' },
+            ],
+        };
+        const disk = new Map<string, number>([
+            ['cam/a.nef', 11],
+            ['Cam/orphan.NEF', 30],
+        ]);
+        const result = reconcileManifestWithDisk(m, disk);
+        expect(result.droppedMissing).toBe(1);
+        expect(result.adopted).toBe(1);
+        expect(result.unchanged).toBe(1);
+        expect(m.images).toHaveLength(2);
+        expect(m.images.find((e) => e.id === 5)?.size).toBe(11);
+        expect(m.images.find((e) => e.id === 0)?.relPath).toMatch(/orphan/i);
     });
 });

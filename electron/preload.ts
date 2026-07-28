@@ -14,6 +14,7 @@ import type {
     BackupProgress,
     BackupResult,
     BackupPreviewInfo,
+    BackupVerifyReport,
     SyncCandidate,
     ImagePhaseStatus,
     SubStackRow,
@@ -313,6 +314,10 @@ contextBridge.exposeInMainWorld('electron', {
     backupPreview: async (targetPath: string) => {
         const response = await ipcRenderer.invoke('backup:preview', targetPath);
         return unwrapEnvelope<BackupPreviewInfo | null>(response);
+    },
+    backupVerifyTarget: async (targetPath: string) => {
+        const response = await ipcRenderer.invoke('backup:verify-target', targetPath);
+        return unwrapEnvelope<BackupVerifyReport | null>(response);
     },
     backupRun: async (targetPath: string, options?: { confirmMassDelete?: boolean }) => {
         const response = await ipcRenderer.invoke('backup:run', {

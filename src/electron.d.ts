@@ -33,6 +33,7 @@ import type {
     BackupResult,
     BackupPreviewInfo,
     BackupTargetInfo,
+    BackupVerifyReport,
     DuplicateResponse,
     ExportImageContext,
     FileImageMetadataResult,
@@ -62,6 +63,7 @@ export type {
     BackupProgress,
     BackupResult,
     BackupTargetInfo,
+    BackupVerifyReport,
     DuplicateResponse,
     ExportImageContext,
     FileImageMetadataResult,
@@ -182,6 +184,7 @@ declare global {
             // ── Backup ──────────────────────────────────────────────────
             backupCheckTarget: (targetPath: string) => Promise<BackupTargetInfo | null>;
             backupPreview: (targetPath: string) => Promise<BackupPreviewInfo | null>;
+            backupVerifyTarget: (targetPath: string) => Promise<BackupVerifyReport | null>;
             backupRun: (
                 targetPath: string,
                 options?: { confirmMassDelete?: boolean },

@@ -35,6 +35,7 @@ export function imageScore(img: ScoredImageForBackup): number {
 
 /**
  * Within a date group, auto-select top scorers per stack before embedding dedup.
+ * Curated picks are never trimmed out of a real stack.
  * Returns IDs to dedupe further vs already rejected stack duplicates.
  */
 export function applyStackPrefilter(
@@ -66,11 +67,15 @@ export function applyStackPrefilter(
             dedupeCandidates.push(...members);
             continue;
         }
-        const sorted = [...members].sort((a, b) => imageScore(b) - imageScore(a));
-        dedupeCandidates.push(...sorted.slice(0, maxKeepPerStack));
-        for (let i = maxKeepPerStack; i < sorted.length; i++) {
-            stackRejectedIds.push(sorted[i].id);
-        }
+        const picks = members.filter((m) => m.is_pick);
+        const nonPicks = members.filter((m) => !m.is_pick);
+        const sortedNon = [...nonPicks].sort((a, b) => imageScore(b) - imageScore(a));
+        const remainingSlots = Math.max(0, maxKeepPerStack - picks.length);
+        const keptNon = sortedNon.slice(0, remainingSlots);
+        const rejectedNon = sortedNon.slice(remainingSlots);
+        // If picks alone exceed maxKeep, still keep all picks (curated exemption).
+        dedupeCandidates.push(...picks, ...keptNon);
+        for (const r of rejectedNon) stackRejectedIds.push(r.id);
     }
 
     return { dedupeCandidates, stackRejectedIds };
@@ -202,18 +207,35 @@ export type ClusterPickOptions = {
     embeddings: Map<number, Float32Array>;
 };
 
-/** Pick cluster survivors: score-only when maxKeep=1, else MMR. */
+/** Pick cluster survivors: curated picks always kept; non-picks compete for remaining slots. */
 export function pickClusterSurvivors(
     cluster: ScoredImageForBackup[],
     options: ClusterPickOptions,
 ): { kept: ScoredImageForBackup[]; rejected: ScoredImageForBackup[] } {
     if (cluster.length === 0) return { kept: [], rejected: [] };
 
-    const sorted = [...cluster].sort((a, b) => imageScore(b) - imageScore(a));
-    const k = Math.min(options.maxKeep, sorted.length);
+    const picks = cluster.filter((img) => img.is_pick);
+    const nonPicks = cluster.filter((img) => !img.is_pick);
+    const remainingSlots = Math.max(0, options.maxKeep - picks.length);
+
+    if (nonPicks.length === 0) {
+        return { kept: picks, rejected: [] };
+    }
+
+    const sorted = [...nonPicks].sort((a, b) => imageScore(b) - imageScore(a));
+    const k = Math.min(remainingSlots, sorted.length);
+
+    if (k <= 0) {
+        return { kept: picks, rejected: sorted };
+    }
+
+    if (k === 1 && options.maxKeep <= 1 && picks.length === 0) {
+        return { kept: [sorted[0]], rejected: sorted.slice(1) };
+    }
 
     if (k <= 1) {
-        return { kept: [sorted[0]], rejected: sorted.slice(1) };
+        const keptNon = sorted.slice(0, k);
+        return { kept: [...picks, ...keptNon], rejected: sorted.slice(k) };
     }
 
     const mmrItems: MmrItem[] = sorted.map((img) => ({
@@ -223,9 +245,22 @@ export function pickClusterSurvivors(
     }));
 
     const pickedIds = new Set(selectWithMmr(mmrItems, k, options.diversityLambda).map((x) => x.id));
-    const kept = sorted.filter((img) => pickedIds.has(img.id));
+    const keptNon = sorted.filter((img) => pickedIds.has(img.id));
     const rejected = sorted.filter((img) => !pickedIds.has(img.id));
-    return { kept, rejected };
+    return { kept: [...picks, ...keptNon], rejected };
+}
+
+/** ISO-8601 week key (year-Www) using the Thursday rule. */
+export function isoWeekKey(dateKey: string): string {
+    if (!ISO_DATE.test(dateKey)) return 'unknown';
+    const d = new Date(`${dateKey}T12:00:00Z`);
+    // ISO week date: Thursday of this week determines the ISO year
+    const day = d.getUTCDay() || 7; // Mon=1 … Sun=7
+    d.setUTCDate(d.getUTCDate() + 4 - day);
+    const isoYear = d.getUTCFullYear();
+    const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+    const weekNum = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+    return `${isoYear}-W${String(weekNum).padStart(2, '0')}`;
 }
 
 /** Week bucket key for cross-day dedup: ISO year-week + camera + lens. */
@@ -235,13 +270,7 @@ export function crossDayBucketKey(
     lens: string,
 ): string {
     const dateKey = backupDateKey(img);
-    let week = 'unknown';
-    if (ISO_DATE.test(dateKey)) {
-        const d = new Date(`${dateKey}T12:00:00Z`);
-        const jan1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        const weekNum = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getUTCDay() + 1) / 7);
-        week = `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
-    }
+    const week = ISO_DATE.test(dateKey) ? isoWeekKey(dateKey) : 'unknown';
     return `${camera}|${lens}|${week}`;
 }
 
@@ -256,6 +285,8 @@ export type DedupResult = {
     selectedIds: Set<number>;
     rejectedCount: number;
     warnings: string[];
+    /** Aggregate counts for modal / BackupResult. */
+    rejectReasons: { stack: number; cluster: number };
 };
 
 /**
@@ -273,18 +304,25 @@ export async function deduplicateByDateGroups(
     const selectedIds = new Set<number>();
     const warnings: string[] = [];
     let rejectedCount = 0;
-    let groupIdx = 0;
-    const totalGroups = groups.size;
+    let stackRejected = 0;
+    let clusterRejected = 0;
+    let imagesProcessed = 0;
+    const totalImages = [...groups.values()].reduce((sum, g) => sum + g.length, 0);
 
     for (const [date, group] of groups.entries()) {
-        groupIdx++;
-        onProgress?.(groupIdx, totalGroups, `Grouping ${date} (${group.length} images)...`);
+        onProgress?.(
+            Math.min(imagesProcessed + group.length, totalImages),
+            Math.max(1, totalImages),
+            `Grouping ${date} (${group.length} images)...`,
+        );
+        imagesProcessed += group.length;
 
         const stackedCount = group.filter((img) => img.stack_id != null).length;
         const folderThreshold = computeFolderSimilarityThreshold(group.length, stackedCount, roughFillRatio);
 
         const { dedupeCandidates, stackRejectedIds } = applyStackPrefilter(group, 2);
         rejectedCount += stackRejectedIds.length;
+        stackRejected += stackRejectedIds.length;
 
         const imageIds = dedupeCandidates.map((img) => img.id);
         const pairResult = await fetchSimilarPairsBatched(
@@ -311,10 +349,16 @@ export async function deduplicateByDateGroups(
             });
             for (const img of kept) selectedIds.add(img.id);
             rejectedCount += rejected.length;
+            clusterRejected += rejected.length;
         }
     }
 
-    return { selectedIds, rejectedCount, warnings };
+    return {
+        selectedIds,
+        rejectedCount,
+        warnings,
+        rejectReasons: { stack: stackRejected, cluster: clusterRejected },
+    };
 }
 
 /** Optional cross-day dedup within camera+lens+week buckets. */
@@ -376,5 +420,10 @@ export async function applyCrossDayDedup(
         }
     }
 
-    return { selectedIds, rejectedCount, warnings };
+    return {
+        selectedIds,
+        rejectedCount,
+        warnings,
+        rejectReasons: { stack: 0, cluster: rejectedCount },
+    };
 }

@@ -1,4 +1,6 @@
-import { BrowserWindow, Menu, dialog } from 'electron';
+import { BrowserWindow, Menu, dialog, app } from 'electron';
+import fs from 'fs';
+import path from 'path';
 import type { SyncGuards } from './main.handlers';
 import type { ExportImageContext } from './types';
 import { revealInExplorer } from './revealInExplorer';
@@ -73,9 +75,31 @@ export function createApplicationMenu(deps: ApplicationMenuDeps): { rebuildAppli
                         enabled: !folderMode && !isBackupRunning && !syncGuards.isSyncRunInProgress() && syncGuards.activeSyncPreviewCount() === 0,
                         click: async () => {
                             const win = deps.getDialogWindow();
+                            let defaultPath: string | undefined;
+                            try {
+                                const sessionsPath = path.join(app.getPath('userData'), 'drive-sessions.json');
+                                const raw = await fs.promises.readFile(sessionsPath, 'utf8').catch(() => '');
+                                if (raw) {
+                                    const all = JSON.parse(raw) as Record<string, {
+                                        backup?: { lastTargetRoot?: string; lastBackupAt?: string };
+                                    }>;
+                                    let bestAt = '';
+                                    for (const session of Object.values(all)) {
+                                        const at = session.backup?.lastBackupAt ?? '';
+                                        const root = session.backup?.lastTargetRoot;
+                                        if (root && at >= bestAt) {
+                                            bestAt = at;
+                                            defaultPath = root;
+                                        }
+                                    }
+                                }
+                            } catch {
+                                /* ignore */
+                            }
                             const result = await dialog.showOpenDialog(win || mainWindow!, {
                                 properties: ['openDirectory', 'createDirectory'],
                                 title: 'Select Destination Folder for Backup',
+                                ...(defaultPath ? { defaultPath } : {}),
                             });
                             if (!result.canceled && result.filePaths[0]) {
                                 mainWindow?.webContents.send('backup:target-selected', result.filePaths[0]);

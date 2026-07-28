@@ -6,8 +6,10 @@ import {
     backupYearFromDateKey,
     buildAdjacencyFromPairs,
     computeFolderSimilarityThreshold,
+    crossDayBucketKey,
     fetchSimilarPairsBatched,
     findClusters,
+    isoWeekKey,
     pickClusterSurvivors,
 } from './backupSelection';
 
@@ -163,6 +165,43 @@ describe('pickClusterSurvivors', () => {
         const keptIds = kept.map((x) => x.id).sort();
         expect(keptIds).toContain(1);
         expect(keptIds).toContain(3);
+    });
+
+    it('always keeps a low-scoring curated pick', () => {
+        const cluster = [
+            img(1, 0.9),
+            img(2, 0.3, { is_pick: true }),
+            img(3, 0.8),
+        ];
+        const { kept, rejected } = pickClusterSurvivors(cluster, {
+            maxKeep: 1,
+            diversityLambda: 0.7,
+            embeddings: new Map(),
+        });
+        expect(kept.map((x) => x.id)).toContain(2);
+        expect(rejected.map((x) => x.id)).not.toContain(2);
+    });
+});
+
+describe('isoWeekKey / crossDayBucketKey', () => {
+    it('uses ISO Thursday rule for year boundaries', () => {
+        expect(isoWeekKey('2021-01-03')).toBe('2020-W53');
+        expect(isoWeekKey('2026-01-01')).toBe('2026-W01');
+        expect(crossDayBucketKey(img(1, 0.5, { capture_date: '2021-01-03' }), 'cam', 'lens'))
+            .toBe('cam|lens|2020-W53');
+    });
+});
+
+describe('applyStackPrefilter picks', () => {
+    it('does not trim a curated pick from a large stack', () => {
+        const group = [
+            img(1, 0.95, { stack_id: 10 }),
+            img(2, 0.9, { stack_id: 10 }),
+            img(3, 0.2, { stack_id: 10, is_pick: true }),
+        ];
+        const { dedupeCandidates, stackRejectedIds } = applyStackPrefilter(group, 2);
+        expect(dedupeCandidates.map((x) => x.id)).toContain(3);
+        expect(stackRejectedIds).not.toContain(3);
     });
 });
 

@@ -424,7 +424,11 @@ function createHttpBridge(): Window['electron'] {
                 prebuildProtectedCount: 0,
                 requiresConfirm: false,
                 manifestPrunedCount: 0,
+                roughFillRatio: 1,
+                effectiveMaxPerCluster: 2,
+                wouldRotateOut: 0,
             }),
+        backupVerifyTarget: () => Promise.resolve(null),
         backupRun: () =>
             Promise.resolve({
                 copied: 0,
@@ -436,6 +440,9 @@ function createHttpBridge(): Window['electron'] {
                 prebuildProtected: 0,
                 droppedForSpace: 0,
                 warnings: undefined,
+                reconcileDroppedMissing: 0,
+                reconcileAdopted: 0,
+                rotatedOut: 0,
             }),
         onBackupTargetSelected: noop,
         onBackupProgress: noop,

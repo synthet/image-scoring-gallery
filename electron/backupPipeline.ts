@@ -13,9 +13,9 @@ import {
     deduplicateByDateGroups,
 } from './backupSelection';
 import type { BackupPlannedItem } from './backupSpace';
-import { xmpSidecarPath } from './backupSpace';
+import { BACKUP_BUFFER_FRACTION, xmpSidecarPath } from './backupSpace';
 import * as db from './db';
-import type { ScoredImageForBackup } from './types';
+import type { BackupRejectReason, ScoredImageForBackup } from './types';
 
 export type BackupPlanBuildResult = {
     allScored: ScoredImageForBackup[];
@@ -26,6 +26,7 @@ export type BackupPlanBuildResult = {
     roughFillRatio: number;
     maxPerCluster: number;
     skippedLayout: number;
+    rejectReasons: Partial<Record<BackupRejectReason, number>>;
 };
 
 export type BackupPlanBuildOptions = {
@@ -39,7 +40,46 @@ export type BackupPlanBuildOptions = {
     toWindowsLocalFsPath: (p: string) => string;
     /** Progress callback for the (potentially long) embedding-dedup pass. */
     onDedupProgress?: (current: number, total: number, detail: string) => void;
+    /**
+     * Destination disk map (relPath → size) from scanBackupDestination.
+     * Used to exclude already-present candidates from the fill-ratio denominator.
+     */
+    presentRelPaths?: ReadonlySet<string>;
 };
+
+const AVG_RAW_BYTES_FALLBACK = 30 * 1024 * 1024;
+const SAMPLE_SIZE = 200;
+
+function normalizeRelKey(relPath: string): string {
+    return relPath.replace(/\\/g, '/').toLowerCase();
+}
+
+/** Sample mean source file size for fill-ratio estimation. */
+export async function sampleMeanSourceBytes(
+    paths: string[],
+    sampleSize = SAMPLE_SIZE,
+): Promise<number> {
+    if (paths.length === 0) return AVG_RAW_BYTES_FALLBACK;
+    const n = Math.min(sampleSize, paths.length);
+    const indices = new Set<number>();
+    while (indices.size < n) {
+        indices.add(Math.floor(Math.random() * paths.length));
+    }
+    let sum = 0;
+    let counted = 0;
+    for (const i of indices) {
+        try {
+            const st = await fs.promises.stat(paths[i]);
+            if (st.size > 0) {
+                sum += st.size;
+                counted++;
+            }
+        } catch {
+            /* skip */
+        }
+    }
+    return counted > 0 ? sum / counted : AVG_RAW_BYTES_FALLBACK;
+}
 
 export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<BackupPlanBuildResult> {
     const {
@@ -52,17 +92,44 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         isUnresolvedSyncLayout,
         toWindowsLocalFsPath,
         onDedupProgress,
+        presentRelPaths,
     } = options;
 
     const warnings: string[] = [];
-    const allScored = await db.getAllScoredImagesForBackup(backupConfig.minScore);
+    const allScored = await db.getAllScoredImagesForBackup(
+        backupConfig.minScore,
+        { includeCurated: backupConfig.includeCurated },
+    );
     const totalImages = allScored.length;
 
-    const AVG_RAW_BYTES = 30 * 1024 * 1024;
-    const bufferBytes = capacityBytes < Number.MAX_SAFE_INTEGER ? capacityBytes * 0.02 : 0;
-    const usableEstimate = Math.max(0, freeBytes - bufferBytes);
+    const reserve =
+        capacityBytes < Number.MAX_SAFE_INTEGER
+            ? capacityBytes * (backupConfig.reserveFraction ?? BACKUP_BUFFER_FRACTION)
+            : 0;
+    const usableEstimate = Math.max(0, freeBytes - reserve);
+
+    const samplePaths = allScored.map((img) => toWindowsLocalFsPath(img.path));
+    const meanBytes = await sampleMeanSourceBytes(samplePaths);
+
+    // Candidates already at destination consume no budget.
+    let presentCount = 0;
+    if (presentRelPaths && presentRelPaths.size > 0) {
+        const presentKeys = new Set([...presentRelPaths].map(normalizeRelKey));
+        for (const img of allScored) {
+            const fileName = path.basename(img.path);
+            // We don't know layout yet; approximate by checking if any disk path ends with the file name.
+            // Prefer exact planned relPaths when available later — for estimator, count by basename presence.
+            for (const key of presentKeys) {
+                if (key.endsWith('/' + fileName.toLowerCase()) || key.endsWith('\\' + fileName.toLowerCase()) || key === fileName.toLowerCase()) {
+                    presentCount++;
+                    break;
+                }
+            }
+        }
+    }
+    const budgetCandidates = Math.max(1, totalImages - presentCount);
     const roughFillRatio = totalImages > 0
-        ? Math.min(1, usableEstimate / (totalImages * AVG_RAW_BYTES))
+        ? Math.min(1, usableEstimate / (budgetCandidates * meanBytes))
         : 1;
     const maxPerCluster = effectiveMaxPerCluster(backupConfig.maxPerCluster, roughFillRatio);
 
@@ -92,6 +159,10 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
     let selectedImages = dedupResult.selectedIds;
     let rejectedCount = dedupResult.rejectedCount;
     let toBackup = allScored.filter((img) => selectedImages.has(img.id));
+    const rejectReasons: Partial<Record<BackupRejectReason, number>> = {
+        stack: dedupResult.rejectReasons.stack,
+        cluster: dedupResult.rejectReasons.cluster,
+    };
 
     if (backupConfig.crossDayDedup && toBackup.length > 1) {
         const layoutDetailsCross = await db.getImageDetailsBatch(toBackup.map((img) => img.id));
@@ -123,6 +194,7 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
 
     const planned: BackupPlannedItem[] = [];
     let skippedLayout = 0;
+    let missingSource = 0;
 
     for (const img of toBackup) {
         const fileName = path.basename(img.path);
@@ -145,6 +217,7 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
             stats = await fs.promises.stat(sourcePath);
         } catch {
             skippedLayout++;
+            missingSource++;
             continue;
         }
 
@@ -170,6 +243,9 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         });
     }
 
+    rejectReasons.layout = skippedLayout - missingSource;
+    rejectReasons['missing-source'] = missingSource;
+
     return {
         allScored,
         toBackup,
@@ -179,5 +255,6 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         roughFillRatio,
         maxPerCluster,
         skippedLayout,
+        rejectReasons,
     };
 }

@@ -1,6 +1,6 @@
 /**
  * Backup destination space: volume stats, XMP sidecar helpers, stale cleanup,
- * and proportional per-folder selection so every date-folder gets representation.
+ * destination scan/reconcile, and proportional per-folder selection.
  */
 
 import fs from 'fs';
@@ -10,6 +10,28 @@ import { selectWithMmrBudget, type MmrItem } from './backupDiversity';
 
 /** Fraction of total volume capacity reserved as free-space buffer. */
 export const BACKUP_BUFFER_FRACTION = 0.02;
+
+/** Image extensions recognized by backup destination scans (shared with prebuild script). */
+export const BACKUP_IMAGE_EXTENSIONS = new Set([
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.nef',
+    '.arw',
+    '.cr2',
+    '.dng',
+    '.heic',
+    '.webp',
+    '.tiff',
+    '.tif',
+    '.raw',
+    '.orf',
+    '.rw2',
+]);
+
+function normalizeRelKey(relPath: string): string {
+    return relPath.replace(/\\/g, '/').toLowerCase();
+}
 
 export type BackupPlannedItem = {
     img: ScoredImageForBackup;
@@ -145,6 +167,173 @@ export async function unlinkStaleBackupFiles(
     return removed;
 }
 
+export type DestinationScanResult = {
+    /** relPath → size (case-preserving first-seen path). */
+    diskMap: Map<string, number>;
+    /** Lowercased relPath keys for case-insensitive lookup. */
+    diskKeys: Set<string>;
+    /** Directories that contain only .xmp sidecars. */
+    xmpOnlyDirs: number;
+};
+
+/**
+ * Recursive walk of a backup destination → relPath → size.
+ * Skips manifest.json and non-image files; counts xmp-only directories.
+ */
+export async function scanBackupDestination(targetPath: string): Promise<DestinationScanResult> {
+    const diskMap = new Map<string, number>();
+    const diskKeys = new Set<string>();
+    let xmpOnlyDirs = 0;
+
+    async function walk(dir: string): Promise<{ images: number; xmpOnly: boolean }> {
+        let entries: fs.Dirent[];
+        try {
+            entries = await fs.promises.readdir(dir, { withFileTypes: true });
+        } catch {
+            return { images: 0, xmpOnly: false };
+        }
+
+        let images = 0;
+        let hasXmp = false;
+        let hasOther = false;
+
+        for (const ent of entries) {
+            const full = path.join(dir, ent.name);
+            if (ent.isDirectory()) {
+                const child = await walk(full);
+                images += child.images;
+                continue;
+            }
+            if (!ent.isFile()) continue;
+            const base = ent.name;
+            const lower = base.toLowerCase();
+            if (lower === 'manifest.json' || lower.startsWith('manifest.json.')) continue;
+            const ext = path.extname(base).toLowerCase();
+            if (ext === '.xmp') {
+                hasXmp = true;
+                continue;
+            }
+            if (!BACKUP_IMAGE_EXTENSIONS.has(ext)) {
+                hasOther = true;
+                continue;
+            }
+            const rel = path.relative(targetPath, full);
+            if (rel.startsWith('..')) continue;
+            try {
+                const st = await fs.promises.stat(full);
+                const key = normalizeRelKey(rel);
+                if (!diskKeys.has(key)) {
+                    diskMap.set(rel, st.size);
+                    diskKeys.add(key);
+                }
+                images++;
+            } catch {
+                /* skip unreadable */
+            }
+        }
+
+        if (images === 0 && hasXmp && !hasOther && dir !== targetPath) {
+            xmpOnlyDirs++;
+        }
+        return { images, xmpOnly: images === 0 && hasXmp && !hasOther };
+    }
+
+    await walk(targetPath);
+    return { diskMap, diskKeys, xmpOnlyDirs };
+}
+
+export type ReconcileManifestResult = {
+    adopted: number;
+    droppedMissing: number;
+    unchanged: number;
+};
+
+/**
+ * Mutate manifest to match disk: drop phantom rows, adopt untracked files as id:0.
+ * Case-insensitive matching. Returns counts for BackupResult.
+ */
+export function reconcileManifestWithDisk(
+    manifest: BackupManifest,
+    diskMap: Map<string, number>,
+): ReconcileManifestResult {
+    const byKey = new Map<string, BackupManifestEntry>();
+    for (const entry of manifest.images) {
+        byKey.set(normalizeRelKey(entry.relPath), entry);
+    }
+
+    const diskByKey = new Map<string, { relPath: string; size: number }>();
+    for (const [relPath, size] of diskMap) {
+        diskByKey.set(normalizeRelKey(relPath), { relPath, size });
+    }
+
+    let droppedMissing = 0;
+    let unchanged = 0;
+    const kept: BackupManifestEntry[] = [];
+
+    for (const [key, entry] of byKey) {
+        const onDisk = diskByKey.get(key);
+        if (!onDisk) {
+            droppedMissing++;
+            continue;
+        }
+        kept.push({
+            ...entry,
+            relPath: onDisk.relPath,
+            size: onDisk.size > 0 ? onDisk.size : entry.size,
+        });
+        unchanged++;
+        diskByKey.delete(key);
+    }
+
+    let adopted = 0;
+    for (const { relPath, size } of diskByKey.values()) {
+        kept.push({
+            id: 0,
+            relPath,
+            score: 0,
+            size,
+            hash: '',
+        });
+        adopted++;
+    }
+
+    manifest.images = kept;
+    return { adopted, droppedMissing, unchanged };
+}
+
+/**
+ * Remove empty ancestor directories of deleted files (up to but excluding rootPath).
+ * Non-empty rmdir fails harmlessly. Does not delete xmp-only dirs (caller must not pass those).
+ */
+export async function pruneEmptyDirs(rootPath: string, removedRelPaths: string[]): Promise<number> {
+    const rootResolved = path.resolve(rootPath);
+    const dirs = new Set<string>();
+    for (const rel of removedRelPaths) {
+        let dir = path.dirname(path.join(rootPath, rel));
+        while (true) {
+            const resolved = path.resolve(dir);
+            if (resolved === rootResolved || !resolved.startsWith(rootResolved)) break;
+            dirs.add(resolved);
+            const parent = path.dirname(resolved);
+            if (parent === resolved) break;
+            dir = parent;
+        }
+    }
+
+    // Deepest first
+    const ordered = [...dirs].sort((a, b) => b.length - a.length);
+    let pruned = 0;
+    for (const dir of ordered) {
+        try {
+            await fs.promises.rmdir(dir);
+            pruned++;
+        } catch {
+            /* not empty or missing */
+        }
+    }
+    return pruned;
+}
+
 /**
  * Sync manifest with plan and optionally delete stale files from disk.
  */
@@ -192,9 +381,13 @@ export function selectPlanProportional(
     planned: BackupPlannedItem[],
     freeBytes: number,
     capacityBytes: number,
-    options: SelectPlanOptions = {},
+    options: SelectPlanOptions & { reserveFraction?: number } = {},
 ): { selected: BackupPlannedItem[]; droppedRelPaths: string[] } {
-    const bufferBytes = capacityBytes * BACKUP_BUFFER_FRACTION;
+    const reserve =
+        typeof options.reserveFraction === 'number' && Number.isFinite(options.reserveFraction)
+            ? Math.min(0.5, Math.max(0, options.reserveFraction))
+            : BACKUP_BUFFER_FRACTION;
+    const bufferBytes = capacityBytes * reserve;
 
     // Separate skip-copy (both image + xmp already on disk) from need-copy.
     const skipItems: BackupPlannedItem[] = [];

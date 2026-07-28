@@ -293,6 +293,11 @@ export interface BackupTargetInfo {
     imageCount: number;
     lastBackup: string | null;
     bytes: number;
+    freeBytes?: number | null;
+    capacityBytes?: number | null;
+    usableBytes?: number | null;
+    /** Present when target resolves to a known drive session with prior backup. */
+    lastBackupSessionAt?: string | null;
 }
 
 export interface BackupManifestEntry {
@@ -316,6 +321,10 @@ export interface BackupSettings {
     pairBatchSize?: number;
     pruneStaleFiles?: boolean;
     pruneDroppedForSpace?: boolean;
+    reserveFraction?: number;
+    includeCurated?: boolean;
+    rotateLowScores?: boolean;
+    rotateScoreMargin?: number;
 }
 
 export interface BackupPreviewInfo {
@@ -335,6 +344,10 @@ export interface BackupPreviewInfo {
     prebuildProtectedCount: number;
     requiresConfirm: boolean;
     manifestPrunedCount: number;
+    roughFillRatio?: number;
+    effectiveMaxPerCluster?: number;
+    /** Resident files that would be rotated out when rotateLowScores is enabled. */
+    wouldRotateOut?: number;
 }
 
 export interface BackupRunOptions {
@@ -351,6 +364,8 @@ export interface ScoredImageForBackup {
     image_hash: string | null;
     stack_id: number | null;
     capture_date: string | null;
+    /** True when curated pick (pick_status / Green|Blue|Purple). */
+    is_pick?: boolean;
 }
 
 export interface BackupProgress {
@@ -359,6 +374,8 @@ export interface BackupProgress {
     total: number;
     detail?: string;
 }
+
+export type BackupRejectReason = 'stack' | 'cluster' | 'layout' | 'missing-source' | 'space';
 
 export interface BackupResult {
     copied: number;
@@ -375,6 +392,25 @@ export interface BackupResult {
     droppedForSpace: number;
     /** Non-fatal issues (e.g. similarity query failures). */
     warnings?: string[];
+    /** Phantom rows dropped / orphans adopted during reconcile. */
+    reconcileDroppedMissing?: number;
+    reconcileAdopted?: number;
+    /** Files rotated out for higher-scoring admits. */
+    rotatedOut?: number;
+    /** Aggregate reject counts by reason. */
+    rejectReasons?: Partial<Record<BackupRejectReason, number>>;
+    emptyDirsPruned?: number;
+}
+
+/** Report from backup:verify-target. */
+export interface BackupVerifyReport {
+    manifestRows: number;
+    presentOnDisk: number;
+    missingOnDisk: number;
+    missingBytes: number;
+    missingPrebuild: number;
+    orphanFiles: number;
+    xmpOnlyDirs: number;
 }
 
 // -- Pipeline phase types --
