@@ -37,13 +37,26 @@ Author under `.cursor/` only; run `python scripts/sync_assistant_trees.py` so `.
 
 ## Compiled in this repo
 
-None yet. Existing deterministic scripts (`scripts/check-type-sync.mjs`,
-`scripts/validate-api-types.mjs`, `scripts/doctor.mjs`, `scripts/prebuild-backup-manifest.mjs`) are
-already code, not compiled skills — a compile turns a *prose skill* into one of these.
-
 | Skill / command | Harness | LLM slots |
 |-----------------|---------|-----------|
-| — | — | — |
+| `changelog-commit-push`, `/release` | `scripts/agent_skills/release_bump.py` | Classify git history when Unreleased empty; draft bullets |
+| `verification-before-completion` | `scripts/agent_skills/verification_before_completion.py` | Name claim; interpret whether output supports “done” |
+| `validate-implementation` | `scripts/agent_skills/validate_implementation.py` | Verdict when evidence is manual/ambiguous |
+
+```powershell
+python scripts/agent_skills/release_bump.py inspect
+python scripts/agent_skills/release_bump.py plan --level minor
+python scripts/agent_skills/release_bump.py apply --level minor
+
+python scripts/agent_skills/verification_before_completion.py --suite --run --json
+
+python scripts/agent_skills/validate_implementation.py parse path/to/spec.md
+python scripts/agent_skills/validate_implementation.py report path/to/spec.md --name "feature"
+```
+
+Existing deterministic scripts (`scripts/check-type-sync.mjs`,
+`scripts/validate-api-types.mjs`, `scripts/doctor.mjs`, `scripts/prebuild-backup-manifest.mjs`) are
+already code, not compiled skills — a compile turns a *prose skill* into one of these.
 
 ## How to compile another skill
 
@@ -53,7 +66,7 @@ Run [`/compile-skill <name>`](../.cursor/commands/compile-skill.md), which drive
 2. Partition steps into code / LLM / human — do not freeze judgment into brittle rules.
 3. Implement the harness with a read-only default and `--json`.
 4. Shrink `SKILL.md` to a bootloader that points at the harness and lists judgment slots.
-5. Add tests next to the repo's other script tests.
+5. Add tests (`tests/test_agent_skills_harnesses.py` for Python harnesses).
 6. Sync trees, update [SKILL_INVENTORY.md](SKILL_INVENTORY.md), run
    [AST10 review](SKILL_CHANGE_AST10_REVIEW.md).
 

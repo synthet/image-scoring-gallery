@@ -1,49 +1,44 @@
 # /release — Release (gallery)
 
-Run a **semver release** for **this repo** (`image-scoring-gallery` / **Driftara Gallery**): bump version from the **majority** of change types, update `CHANGELOG.md`, commit, and push.
+Run a **semver release** for **this repo** (`image-scoring-gallery` / **Driftara Gallery**)
+via the compiled harness. Do **not** re-derive version/changelog paths by hand.
 
 ## Before you start
 
-- Apply the **`changelog-commit-push`** skill (`.cursor/skills/changelog-commit-push/SKILL.md`) for changelog style and commit conventions.
-- Do **not** commit junk (`tmp/`, `*.log`, `lint_output*.txt`, secrets). Stage only intentional release files.
+- Apply **`changelog-commit-push`** (`.cursor/skills/changelog-commit-push/SKILL.md`).
+- Do **not** commit junk (`tmp/`, `*.log`, `gallery-mcp.lock`, secrets).
 
-## 1. Inspect what will ship
+## 1. Inspect
 
-- `git status --short` and `git diff --stat` (and `git diff` for substantive edits if needed).
-- Current version: `package.json` → `"version"`.
-- Latest changelog heading: top `## [X.Y.Z]` in `CHANGELOG.md`.
+```powershell
+python scripts/agent_skills/release_bump.py inspect
+```
 
-## 2. Choose the next semver (majority rule)
+- If `needs_human_confirm_branch` is true — **stop** and confirm the branch with
+  the user before apply/commit (unless they already named this branch for release).
+- If `needs_llm_judgment` is true — classify uncommitted / recent git history as
+  feature vs fix vs breaking, then choose `--level`.
 
-Classify **uncommitted** (or user-specified) work into:
+## 2. Plan (optional) and apply
 
-| Kind | Examples |
-|------|----------|
-| **Breaking** | Removed API/IPC, incompatible DB expectations, renamed user-facing behavior |
-| **Feature** | New UI, new IPC, new scripts, meaningful behavior additions |
-| **Fix** | Bug fixes, corrections |
-| **Chore** | Docs-only, typos, internal refactors with no user-visible change |
+```powershell
+python scripts/agent_skills/release_bump.py plan --level minor   # or major|patch
+python scripts/agent_skills/release_bump.py apply --level minor
+# feature branch after human confirm:
+python scripts/agent_skills/release_bump.py apply --level minor --allow-non-main-branch
+```
 
-**Bump rules (apply in order):**
+Harness writes `package.json` + `CHANGELOG.md` only. It never commits or pushes.
 
-1. If there is **any** breaking item → **major** (`X+1.0.0`).
-2. Else tally **feature** vs **fix** (ignore pure **chore** unless there is nothing else). If **feature count ≥ fix count** and **feature count ≥ 1** → **minor** (`x.Y+1.0`). If **fix count > feature count** → **patch** (`x.y.Z+1`).
-3. If only chore/docs → **patch**.
+## 3. Commit and push (human-gated)
 
-If the user stated a level (`major` / `minor` / `patch`), use that instead.
-
-## 3. Edit files
-
-- **`CHANGELOG.md`**: Insert `## [newVersion] - YYYY-MM-DD` directly under the file header block (below the intro lines), with `### Added` / `### Changed` / `### Fixed` / `### Removed` as needed. Match existing tone: bold labels, short bullets.
-- **`package.json`**: Set `"version"` to **newVersion** (must match the changelog entry).
-
-## 4. Commit and push
+Only when the user asked to commit/push:
 
 ```bash
 git add CHANGELOG.md package.json
-# plus any other files that are part of this release, if already reviewed
+# plus any other intentional release files
 git commit -m "chore: release v<newVersion>"
 git push
 ```
 
-If push fails (e.g. non-fast-forward), fetch/rebase or merge as appropriate, then push again. Summarize what shipped and the version for the user.
+Summarize what shipped and the version for the user.

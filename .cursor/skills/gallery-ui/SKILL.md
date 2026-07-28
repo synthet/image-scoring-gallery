@@ -82,6 +82,10 @@ Uses `react-virtuoso`'s `VirtuosoGrid`:
 - Dual mode: images vs stacks
 - Label borders: package `LABEL_COLORS` / `--label-*`, not status colors
 - Images: `media://` protocol (main process)
+- **Detection overlays** (`bird_bbox` / `BirdBoxOverlay`): center an
+  `aspect-ratio: img_w / img_h` wrapper inside `.imageArea` so fractional boxes
+  align under `object-fit: contain` letterboxing — do **not** position against
+  the full cell.
 
 ## FilterPanel
 

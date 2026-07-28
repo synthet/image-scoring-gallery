@@ -18,17 +18,17 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | Skill `name` | Path | Purpose (short) | Risk | Claude mirror | Last reviewed |
 |--------------|------|-----------------|------|---------------|---------------|
 | backlog-queue | `.cursor/skills/backlog-queue/SKILL.md` | Cross-repo GitHub Project board contract (claim, transition, file) | L1 | Yes | 2026-04-28 |
-| changelog-commit-push | `.cursor/skills/changelog-commit-push/SKILL.md` | CHANGELOG, commit, push | L2 | — | 2026-04-25 |
+| changelog-commit-push | `.cursor/skills/changelog-commit-push/SKILL.md` | CHANGELOG + package.json via `scripts/agent_skills/release_bump.py`; commit/push human-gated | L2 | Yes | 2026-07-26 |
 | commit-conventions | `.cursor/skills/commit-conventions/SKILL.md` | Conventional Commits / PR titles | L1 | — | 2026-04-25 |
 | docs-wiki | `.cursor/skills/docs-wiki/SKILL.md` | OKF-style `docs/` wiki conventions | L1 | — | 2026-06-16 |
 | eval | `.cursor/skills/eval/SKILL.md` | Capture task quality signals (test_pass_rate / first_try_success / iteration_count) → agent-memory feedback loop | L1 | Yes | 2026-06-19 |
-| gallery-electron-ts | `.cursor/skills/gallery-electron-ts/SKILL.md` | Electron / TS / db contract | L1 | — | 2026-04-25 |
-| gallery-ui | `.cursor/skills/gallery-ui/SKILL.md` | Renderer UI, CSS Modules, design tokens | L1 | — | 2026-06-21 |
+| gallery-electron-ts | `.cursor/skills/gallery-electron-ts/SKILL.md` | Electron / TS / db contract | L1 | Yes | 2026-07-26 |
+| gallery-ui | `.cursor/skills/gallery-ui/SKILL.md` | Renderer UI, CSS Modules, design tokens | L1 | Yes | 2026-07-26 |
 | security-review | `.cursor/skills/security-review/SKILL.md` | Pre-merge security sanity | L1 | — | 2026-04-25 |
 | subagent-review | `.cursor/skills/subagent-review/SKILL.md` | External Codex/Gemini review via subagent-orchestrator MCP | L2 | Yes | 2026-05-26 |
 | image-scoring-mcp | `.cursor/skills/image-scoring-mcp/SKILL.md` | Compact MCP search/dispatch for gallery | L2 | — | 2026-07-01 |
 | codebase-size-audit | `.cursor/skills/codebase-size-audit/SKILL.md` | Large-file / long-method read-only audit | L1 | — | 2026-07-01 |
-| validate-implementation | `.cursor/skills/validate-implementation/SKILL.md` | Per-AC Verified/Failed/Unknown gate before /pr-ready | L1 | — | 2026-07-01 |
+| validate-implementation | `.cursor/skills/validate-implementation/SKILL.md` | Per-AC gate via `scripts/agent_skills/validate_implementation.py` | L1 | Yes | 2026-07-26 |
 | threat-modeling-agentic-tools | `.cursor/skills/threat-modeling-agentic-tools/SKILL.md` | MCP/hook/prompt-injection threat modeling | L1 | — | 2026-07-01 |
 | mcp-server-design | `.cursor/skills/mcp-server-design/SKILL.md` | Safe MCP server design for `mcp-server/` | L1 | — | 2026-07-01 |
 | agent-memory | `.cursor/skills/agent-memory/SKILL.md` | Log/dream/promote via sibling backend scripts | L2 | Yes | 2026-07-04 |
@@ -43,7 +43,7 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | karpathy-guidelines | `.cursor/skills/karpathy-guidelines/SKILL.md` | Deliberate coding checklist (pairs with karpathy-coding rule) | L1 | Yes | 2026-07-21 |
 | systematic-debugging | `.cursor/skills/systematic-debugging/SKILL.md` | Evidence-first root-cause before guess-and-check fixes | L2 | Yes | 2026-07-21 |
 | test-driven-development | `.cursor/skills/test-driven-development/SKILL.md` | Red-green-refactor; fail-first tests | L1 | Yes | 2026-07-21 |
-| verification-before-completion | `.cursor/skills/verification-before-completion/SKILL.md` | Fresh command evidence before "done" claims | L1 | Yes | 2026-07-21 |
+| verification-before-completion | `.cursor/skills/verification-before-completion/SKILL.md` | Fresh proofs via `scripts/agent_skills/verification_before_completion.py` | L1 | Yes | 2026-07-26 |
 | skill-authoring | `.cursor/skills/skill-authoring/SKILL.md` | Create/improve Cursor-canonical skills + sync | L1 | Yes | 2026-07-21 |
 | critical-commit-audit | `.cursor/skills/critical-commit-audit/SKILL.md` | High-severity post-commit review; IPC/preload/API-client path tracing | L2 | Yes | 2026-07-25 |
 | lesson-to-skill | `.cursor/skills/lesson-to-skill/SKILL.md` | Turn session corrections, mistakes, and repetitions into enriched or new assets | L1 | Yes | 2026-07-25 |
