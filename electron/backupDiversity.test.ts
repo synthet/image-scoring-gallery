@@ -26,14 +26,14 @@ describe('selectWithMmr', () => {
 });
 
 describe('selectWithMmrBudget', () => {
-    it('respects byte budget', () => {
+    it('respects byte budget', async () => {
         type Item = MmrItem & { bytes: number };
         const items: Item[] = [
             { id: 1, score: 0.9, bytes: 100 },
             { id: 2, score: 0.85, bytes: 100 },
             { id: 3, score: 0.8, bytes: 100 },
         ];
-        const picked = selectWithMmrBudget(items, 150, 0.7);
+        const picked = await selectWithMmrBudget(items, 150, 0.7);
         expect(picked.length).toBe(1);
         expect(picked[0].id).toBe(1);
     });

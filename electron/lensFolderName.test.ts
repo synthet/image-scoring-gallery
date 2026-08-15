@@ -27,15 +27,25 @@ describe('normalizeLensFolderName', () => {
         [undefined, UNKNOWN_LENS_FOLDER],
         ['', UNKNOWN_LENS_FOLDER],
         ['   ', UNKNOWN_LENS_FOLDER],
+        // Unrecognised *marketing* names still sanitize — that is what sanitize is for.
         ['FTZ Adapter', 'FTZ Adapter'],
+        // Recognisably invalid lens data must NOT become a folder name. Both of these were
+        // found as literal directories on a live backup destination (E:\Photos\Z6ii).
+        ['0mm', UNKNOWN_LENS_FOLDER],
+        ['0mm f/0', UNKNOWN_LENS_FOLDER],
+        ['0 0 0 0', UNKNOWN_LENS_FOLDER],
+        ['0 0 0.0 0', UNKNOWN_LENS_FOLDER],
+        ['NIKKOR 0mm f/1.8', UNKNOWN_LENS_FOLDER],
     ];
 
     it.each(cases)('%s → %s', (raw, expected) => {
         expect(normalizeLensFolderName(raw)).toBe(expected);
     });
 
-    it('falls back for invalid 0mm token', () => {
-        expect(normalizeLensFolderName('0mm')).toBe(sanitizeLensName('0mm'));
+    it('never emits a sanitized junk folder for zero-focal EXIF', () => {
+        for (const raw of ['0mm', '0mm f/0', '0 0 0 0']) {
+            expect(normalizeLensFolderName(raw)).not.toBe(sanitizeLensName(raw));
+        }
     });
 });
 

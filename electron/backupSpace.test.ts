@@ -84,24 +84,24 @@ describe('xmpSidecarPath', () => {
 describe('selectPlanProportional', () => {
     const capacity = 1_000_000; // 1 MB total capacity
 
-    it('keeps everything when space is ample', () => {
+    it('keeps everything when space is ample', async () => {
         const items = [
             plan(1, 0.9, 100, 'a'),
             plan(2, 0.5, 100, 'b'),
         ];
-        const { selected, droppedRelPaths } = selectPlanProportional(items, 500_000, capacity);
+        const { selected, droppedRelPaths } = await selectPlanProportional(items, 500_000, capacity);
         expect(droppedRelPaths).toEqual([]);
         expect(selected).toHaveLength(2);
     });
 
-    it('drops lowest-scoring items when space is tight', () => {
+    it('drops lowest-scoring items when space is tight', async () => {
         // 400 bytes needed, only ~480 usable (500 - 2% of 1000 = 480)
         const items = [
             plan(1, 0.99, 200, 'a'),
             plan(2, 0.5, 200, 'a'),
             plan(3, 0.3, 200, 'a'),
         ];
-        const { selected, droppedRelPaths } = selectPlanProportional(items, 500, 1000);
+        const { selected, droppedRelPaths } = await selectPlanProportional(items, 500, 1000);
         // usable = 500 - 20 = 480. Total needed = 600. fillRatio = 480/600 = 0.8.
         // Folder 'a' has 3 items → keep ceil(3*0.8)=3 → still 600 > 480.
         // Overflow phase: sort by score desc, fit greedily → keeps 2 (400 <= 480), drops 1 (600 > 480).
@@ -109,7 +109,7 @@ describe('selectPlanProportional', () => {
         expect(droppedRelPaths).toHaveLength(1);
     });
 
-    it('guarantees minimum 1 image per folder', () => {
+    it('guarantees minimum 1 image per folder', async () => {
         // Two folders, very tight space — each should get at least 1.
         const items = [
             plan(1, 0.9, 400, 'a'),
@@ -120,7 +120,7 @@ describe('selectPlanProportional', () => {
         // Folder a: keep ceil(2*0.58)=2 (ids 1,2). Folder b: keep max(1, ceil(1*0.58))=1 (id 3).
         // Guaranteed: 3 items = 1200 > 700 → overflow → sort by score, keep top 1 (400 <= 700) → actually keeps first two by score.
         // But the key assertion: folder 'b' had at least 1 guaranteed pick before overflow.
-        const { selected } = selectPlanProportional(items, 900, 10_000);
+        const { selected } = await selectPlanProportional(items, 900, 10_000);
         // With overflow, we get at most 1 item (700 / 400 = 1.75 → 1)
         // Actually let me recalculate: usable = 900 - 200 = 700.
         // We can fit 1 item (400 <= 700). No more (800 > 700).
@@ -130,12 +130,12 @@ describe('selectPlanProportional', () => {
         expect(selected.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('skip-copy items are always kept without consuming budget', () => {
+    it('skip-copy items are always kept without consuming budget', async () => {
         const items = [
             plan(1, 0.9, 100, 'a', { skipCopy: true, skipCopyXmp: true }),
             plan(2, 0.5, 1000, 'a'),
         ];
-        const { selected, droppedRelPaths } = selectPlanProportional(items, 500, capacity);
+        const { selected, droppedRelPaths } = await selectPlanProportional(items, 500, capacity);
         // Skip-copy item is free. Need-copy: 1000 > usable (500 - 20_000 < 0 → clamp to 0).
         // Actually capacity is 1_000_000, buffer = 20_000. usable = 500 - 20_000 → clamped to 0.
         // So id2 is dropped.
@@ -143,7 +143,7 @@ describe('selectPlanProportional', () => {
         expect(droppedRelPaths).toContain('a/2.jpg');
     });
 
-    it('includes XMP sidecar size in budget', () => {
+    it('includes XMP sidecar size in budget', async () => {
         // Image is 400 bytes + XMP is 100 bytes = 500 total per item.
         const items = [
             plan(1, 0.99, 400, 'a', { sourceXmpSize: 100, skipCopyXmp: false }),
@@ -152,7 +152,7 @@ describe('selectPlanProportional', () => {
         // usable = 600 - 0 (capacity=Infinity → buffer=0 actually, let me use explicit capacity)
         // capacity = 100_000, buffer = 2000. usable = 600 - 2000 → 0. Both dropped.
         // Let's use a capacity where buffer is small:
-        const { selected, droppedRelPaths } = selectPlanProportional(items, 700, 10_000);
+        const { selected, droppedRelPaths } = await selectPlanProportional(items, 700, 10_000);
         // usable = 700 - 200 = 500. Total needed = 1000. fillRatio = 0.5.
         // Folder a: ceil(2*0.5)=1 → keep id1 (500 bytes).
         // Backfill: id2 (500 bytes) → 500+500=1000 > 500. Can't.
@@ -162,7 +162,7 @@ describe('selectPlanProportional', () => {
         expect(droppedRelPaths).toHaveLength(1);
     });
 
-    it('proportional selection across multiple folders', () => {
+    it('proportional selection across multiple folders', async () => {
         // 3 folders: a(4 images), b(2 images), c(1 image). Each 100 bytes.
         const items = [
             plan(1, 0.95, 100, 'a'),
@@ -176,7 +176,7 @@ describe('selectPlanProportional', () => {
         // usable = 400 - buffer(20_000*... let's use small capacity)
         // capacity = 50_000, buffer = 1000. usable = 400 - 1000 → 0 → everything dropped.
         // Let's give enough room for ~4 items:
-        const { selected } = selectPlanProportional(items, 500, 5_000);
+        const { selected } = await selectPlanProportional(items, 500, 5_000);
         // capacity=5000, buffer=100. usable = 500 - 100 = 400. Total = 700. fillRatio = 400/700 ≈ 0.57.
         // a: ceil(4*0.57)=3, b: ceil(2*0.57)=2, c: max(1, ceil(1*0.57))=1. Guaranteed: 6 items=600.
         // 600 > 400 → overflow: sort by score desc, greedily fit: 0.95(100), 0.90(200), 0.85(300), 0.80(400). 4 items fit.
@@ -187,7 +187,7 @@ describe('selectPlanProportional', () => {
         // 0.80 beats 0.70 in global score-based overflow
     });
 
-    it('backfill phase adds unselected items when space remains', () => {
+    it('backfill phase adds unselected items when space remains', async () => {
         const items = [
             plan(1, 0.99, 100, 'a'),
             plan(2, 0.50, 100, 'a'),
@@ -195,7 +195,7 @@ describe('selectPlanProportional', () => {
         ];
         // capacity = 100_000, buffer = 2000. usable = 50_000 - 2000 = 48_000. Total = 300.
         // Everything fits in initial check → all kept.
-        const { selected, droppedRelPaths } = selectPlanProportional(items, 50_000, 100_000);
+        const { selected, droppedRelPaths } = await selectPlanProportional(items, 50_000, 100_000);
         expect(selected).toHaveLength(3);
         expect(droppedRelPaths).toEqual([]);
     });

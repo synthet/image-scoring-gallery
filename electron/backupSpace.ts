@@ -387,6 +387,8 @@ export async function syncStaleBackupEntries(
 export type SelectPlanOptions = {
     /** When set and < 1, global backfill uses MMR instead of pure score. */
     diversityLambda?: number;
+    /** Forwarded to the MMR backfill so long selections can report progress. */
+    onMmrProgress?: (picked: number, candidates: number) => void;
 };
 
 /**
@@ -400,12 +402,12 @@ export type SelectPlanOptions = {
  * Skip-copy items are always included and do not consume the free-space budget
  * (they are already on disk).
  */
-export function selectPlanProportional(
+export async function selectPlanProportional(
     planned: BackupPlannedItem[],
     freeBytes: number,
     capacityBytes: number,
     options: SelectPlanOptions & { reserveFraction?: number } = {},
-): { selected: BackupPlannedItem[]; droppedRelPaths: string[] } {
+): Promise<{ selected: BackupPlannedItem[]; droppedRelPaths: string[] }> {
     const reserve =
         typeof options.reserveFraction === 'number' && Number.isFinite(options.reserveFraction)
             ? Math.min(0.5, Math.max(0, options.reserveFraction))
@@ -484,10 +486,11 @@ export function selectPlanProportional(
                 bytes: itemBytes(p),
                 plan: p,
             }));
-            const mmrPicked = selectWithMmrBudget(
+            const mmrPicked = await selectWithMmrBudget(
                 candidates,
                 remainingBudget,
                 options.diversityLambda ?? 0.7,
+                { onProgress: options.onMmrProgress },
             );
             for (const c of mmrPicked) {
                 backfilled.push(c.plan);
@@ -524,7 +527,12 @@ export function selectPlanProportional(
                 bytes: itemBytes(p),
                 plan: p,
             }));
-            const mmrPicked = selectWithMmrBudget(candidates, usableBytes, options.diversityLambda ?? 0.7);
+            const mmrPicked = await selectWithMmrBudget(
+                candidates,
+                usableBytes,
+                options.diversityLambda ?? 0.7,
+                { onProgress: options.onMmrProgress },
+            );
             selected = mmrPicked.map((c) => c.plan);
         } else {
             allCandidates.sort((a, b) => b.score - a.score);

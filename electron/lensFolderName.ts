@@ -27,7 +27,31 @@ export const UNKNOWN_LENS_FOLDER = '_unknown_lens';
 
 /** Strip unnecessary .0 decimals from focal numbers (parity with Python `_fmt_focal`). */
 export function formatFocalToken(value: number): string {
-    return Number.isInteger(value) ? String(value) : String(value);
+    return String(value);
+}
+
+/**
+ * True when the lens data is recognisably *invalid* rather than merely unrecognised.
+ *
+ * Distinguishes "EXIF reports no usable lens" (`0mm`, `0 0 0 0`) — where the image has no
+ * real lens and must fall to {@link UNKNOWN_LENS_FOLDER} so sync/backup skips it — from an
+ * unrecognised *marketing* name, which is still meaningful once sanitized.
+ *
+ * Without this, `0 0 0 0` and `0mm f/0` get sanitized into literal folder names; both were
+ * observed on a live backup destination.
+ */
+function isDegenerateLensSpec(trimmed: string): boolean {
+    const focal = trimmed.match(FOCAL_MM_PATTERN);
+    if (focal && INVALID_LENS_TOKENS.has(focal[1].toLowerCase())) return true;
+
+    const quad = trimmed.match(NIKON_LENS_QUAD_PATTERN);
+    if (quad) {
+        const minF = parseFloat(quad[1]);
+        const maxF = parseFloat(quad[2]);
+        if (!Number.isFinite(minF) || !Number.isFinite(maxF)) return false;
+        return minF <= 0 || maxF <= 0;
+    }
+    return false;
 }
 
 /** Parse Nikon numeric lens specification into canonical `…mm` folder token. */
@@ -74,6 +98,10 @@ export function normalizeLensFolderName(raw: string | undefined | null): string 
     const quad = parseNikonLensQuad(trimmed);
     if (quad) {
         return quad;
+    }
+
+    if (isDegenerateLensSpec(trimmed)) {
+        return UNKNOWN_LENS_FOLDER;
     }
 
     return sanitizeLensName(raw);

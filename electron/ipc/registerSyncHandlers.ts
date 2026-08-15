@@ -15,6 +15,7 @@ import type {
 } from '../types';
 import * as db from '../db';
 import { resolveDriveId } from '../driveIdentity';
+import { createStageLog } from '../stageLog';
 import {
   getDriveSessionStore,
   type DriveSession,
@@ -50,7 +51,6 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
     rebuildApplicationMenu,
     isUnresolvedSyncLayout,
   } = deps;
-  const mainWindow = getMainWindow();
 
       /** Maps EXIF Model to a folder segment; uses shared rules in `cameraFolderName.ts` (Python: `camera_folder_name`). */
       function normalizeCameraModel(raw: string | undefined | null): string {
@@ -188,13 +188,14 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
       ): Promise<SyncFromSourceResult> {
           const currentConfig = loadConfig();
           const destRoot = (currentConfig?.sync?.destinationRoot || 'D:\\Photos').replace(/\//g, '\\');
-          if (!dryRun) {
-              console.log(
-                  `[Main] Sync: source=${sourcePath}, dest=${destRoot}, pickedCount=${pickedCandidates?.length ?? 'all'}`
-              );
-          }
+          const log = createStageLog(dryRun ? 'Sync:preview' : 'Sync:run');
+          log.stage('started', {
+              source: sourcePath,
+              dest: destRoot,
+              picked: pickedCandidates?.length ?? 'all',
+          });
 
-          mainWindow?.webContents.send('sync:progress', {
+          getMainWindow()?.webContents.send('sync:progress', {
               phase: 'detecting',
               current: 0,
               total: 0,
@@ -202,12 +203,13 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
           });
 
           const thresholdDate = await detectSyncThresholdDate(destRoot);
+          log.stage('threshold detected', { thresholdDate: thresholdDate ?? 'none' });
 
           let allFiles: string[];
           if (pickedCandidates) {
               allFiles = pickedCandidates.map((c) => c.sourcePath);
           } else {
-              mainWindow?.webContents.send('sync:progress', {
+              getMainWindow()?.webContents.send('sync:progress', {
                   phase: 'scanning',
                   current: 0,
                   total: 0,
@@ -218,9 +220,11 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
               allFiles = await collectImageFiles(sourcePath);
           }
           const totalScanned = allFiles.length;
+          log.stage('source scanned', { files: totalScanned });
 
           if (allFiles.length === 0) {
-              mainWindow?.webContents.send('sync:progress', {
+              log.stage('nothing to process — finished');
+              getMainWindow()?.webContents.send('sync:progress', {
                   phase: 'done', current: 0, total: 0,
                   detail: dryRun ? 'Preview complete (nothing to process)' : 'Sync complete (nothing to copy)'
               });
@@ -247,7 +251,7 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
               };
           }
 
-          mainWindow?.webContents.send('sync:progress', {
+          getMainWindow()?.webContents.send('sync:progress', {
               phase: 'scanning', current: totalScanned, total: totalScanned,
               detail: `Found ${totalScanned} image files`
           });
@@ -482,13 +486,30 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                   } finally {
                       processedCount++;
                       if (processedCount % 5 === 0 || processedCount === totalCandidates) {
-                          mainWindow?.webContents.send('sync:progress', {
+                          getMainWindow()?.webContents.send('sync:progress', {
                               phase: processPhase, current: processedCount, total: totalCandidates, detail: fileName
+                          });
+                      }
+                      if (processedCount % 250 === 0) {
+                          log.stage('processing files', {
+                              progress: `${processedCount}/${totalCandidates}`,
+                              copied,
+                              skipped: skippedCount,
+                              errors: errors.length,
                           });
                       }
                   }
               }));
           }
+          log.stage('per-file pass finished', {
+              processed: processedCount,
+              copied,
+              wouldCopy,
+              importOnly,
+              skipped: skippedCount,
+              exifSkipped,
+              errors: errors.length,
+          });
 
           // Persist the per-drive session so the next scan (preview or run) can
           // skip EXIF for unchanged files. Best-effort: never let a store failure
@@ -521,7 +542,16 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
 
           if (dryRun) {
               const sortedFolders = Array.from(newFolderRelPaths).sort();
-              mainWindow?.webContents.send('sync:progress', {
+              log.stage('preview complete', {
+                  scanned: totalScanned,
+                  wouldCopy,
+                  importOnly,
+                  skipped: skippedCount,
+                  newFolders: sortedFolders.length,
+                  errors: errors.length,
+                  totalSec: (log.totalMs() / 1000).toFixed(1),
+              });
+              getMainWindow()?.webContents.send('sync:progress', {
                   phase: 'done', current: 0, total: 0, detail: 'Preview complete'
               });
               return {
@@ -540,6 +570,10 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
 
           const pendingEntries = Array.from(pendingImports.entries());
           const foldersTouched = new Set(pendingEntries.map(([fp]) => path.dirname(fp)));
+          log.stage('import phase starting', {
+              pending: pendingEntries.length,
+              folders: foldersTouched.size,
+          });
           let imported = 0;
           const importErrors: string[] = [];
           const folderIdCache = new Map<string, number>();
@@ -549,7 +583,7 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
               const [destFileAbs, meta] = pendingEntries[i];
               const folderPath = path.dirname(destFileAbs);
 
-              mainWindow?.webContents.send('sync:progress', {
+              getMainWindow()?.webContents.send('sync:progress', {
                   phase: 'importing',
                   current: i + 1,
                   total: pendingEntries.length,
@@ -618,7 +652,16 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
               }
           }
 
-          mainWindow?.webContents.send('sync:progress', {
+          log.stage('run complete', {
+              scanned: totalScanned,
+              copied,
+              imported,
+              skipped: skippedCount,
+              folders: foldersTouched.size,
+              errors: errors.length + importErrors.length,
+              totalSec: (log.totalMs() / 1000).toFixed(1),
+          });
+          getMainWindow()?.webContents.send('sync:progress', {
               phase: 'done', current: 0, total: 0, detail: 'Sync complete'
           });
 

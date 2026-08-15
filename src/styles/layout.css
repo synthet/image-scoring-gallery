@@ -30,13 +30,20 @@ body {
   display: flex;
   flex-direction: column;
   transition: width 0.2s ease, min-width 0.2s ease;
-  overflow: hidden;
+  /* visible so CalendarPicker (and similar) can overhang the grid;
+     collapsed state still clips. Stack above .main-content so the
+     overhang is not painted under the gallery panel. */
+  overflow: visible;
+  position: relative;
+  z-index: 20;
 }
 
 .sidebarCollapsed {
   width: 0;
   min-width: 0;
   border-right: none;
+  overflow: hidden;
+  z-index: 0;
 }
 
 @media (max-width: 1100px) {

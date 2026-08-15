@@ -15,6 +15,7 @@ import {
 import type { BackupPlannedItem } from './backupSpace';
 import { BACKUP_BUFFER_FRACTION, xmpSidecarPath } from './backupSpace';
 import * as db from './db';
+import { createStageLog } from './stageLog';
 import type { BackupRejectReason, ScoredImageForBackup } from './types';
 
 export type BackupPlanBuildResult = {
@@ -41,18 +42,19 @@ export type BackupPlanBuildOptions = {
     /** Progress callback for the (potentially long) embedding-dedup pass. */
     onDedupProgress?: (current: number, total: number, detail: string) => void;
     /**
-     * Destination disk map (relPath → size) from scanBackupDestination.
+     * Image ids already recorded in the destination manifest (adopted `id: 0` rows excluded).
      * Used to exclude already-present candidates from the fill-ratio denominator.
+     *
+     * Ids rather than paths: the layout (`camera/lens/year/date`) is not known this early, so
+     * matching on filename collides across cameras and dates. A basename heuristic here once
+     * reported 45,339 candidates "already at destination" against a destination holding only
+     * 31,746 files, inflating `roughFillRatio` and hence `maxPerCluster`.
      */
-    presentRelPaths?: ReadonlySet<string>;
+    presentImageIds?: ReadonlySet<number>;
 };
 
 const AVG_RAW_BYTES_FALLBACK = 30 * 1024 * 1024;
 const SAMPLE_SIZE = 200;
-
-function normalizeRelKey(relPath: string): string {
-    return relPath.replace(/\\/g, '/').toLowerCase();
-}
 
 /** Sample mean source file size for fill-ratio estimation. */
 export async function sampleMeanSourceBytes(
@@ -92,8 +94,11 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         isUnresolvedSyncLayout,
         toWindowsLocalFsPath,
         onDedupProgress,
-        presentRelPaths,
+        presentImageIds,
     } = options;
+
+    const log = createStageLog('BackupPlan');
+    log.stage('querying scored images', { minScore: backupConfig.minScore });
 
     const warnings: string[] = [];
     const allScored = await db.getAllScoredImagesForBackup(
@@ -101,6 +106,7 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         { includeCurated: backupConfig.includeCurated },
     );
     const totalImages = allScored.length;
+    log.stage('scored images loaded', { images: totalImages });
 
     const reserve =
         capacityBytes < Number.MAX_SAFE_INTEGER
@@ -110,21 +116,15 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
 
     const samplePaths = allScored.map((img) => toWindowsLocalFsPath(img.path));
     const meanBytes = await sampleMeanSourceBytes(samplePaths);
+    log.stage('sampled mean source size', { meanMiB: (meanBytes / 1024 ** 2).toFixed(1) });
 
-    // Candidates already at destination consume no budget.
+    // Candidates already at destination consume no budget. Exact: a scored image is present
+    // iff the manifest tracks it by id. Adopted rows (`id: 0`) are deliberately excluded —
+    // they are untracked files on disk, not candidates competing for this run's budget.
     let presentCount = 0;
-    if (presentRelPaths && presentRelPaths.size > 0) {
-        const presentKeys = new Set([...presentRelPaths].map(normalizeRelKey));
+    if (presentImageIds && presentImageIds.size > 0) {
         for (const img of allScored) {
-            const fileName = path.basename(img.path);
-            // We don't know layout yet; approximate by checking if any disk path ends with the file name.
-            // Prefer exact planned relPaths when available later — for estimator, count by basename presence.
-            for (const key of presentKeys) {
-                if (key.endsWith('/' + fileName.toLowerCase()) || key.endsWith('\\' + fileName.toLowerCase()) || key === fileName.toLowerCase()) {
-                    presentCount++;
-                    break;
-                }
-            }
+            if (presentImageIds.has(img.id)) presentCount++;
         }
     }
     const budgetCandidates = Math.max(1, totalImages - presentCount);
@@ -132,6 +132,12 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         ? Math.min(1, usableEstimate / (budgetCandidates * meanBytes))
         : 1;
     const maxPerCluster = effectiveMaxPerCluster(backupConfig.maxPerCluster, roughFillRatio);
+    log.stage('budget estimated', {
+        alreadyAtDestination: presentCount,
+        budgetCandidates,
+        roughFillRatio: roughFillRatio.toFixed(3),
+        maxPerCluster,
+    });
 
     const groups = new Map<string, ScoredImageForBackup[]>();
     for (const img of allScored) {
@@ -139,6 +145,7 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         if (!groups.has(date)) groups.set(date, []);
         groups.get(date)!.push(img);
     }
+    log.stage('grouped by date', { dateGroups: groups.size });
 
     const dedupDeps = {
         fetchPairs: (ids: number[], threshold: number) => db.getSimilarPairsInGroup(ids, threshold),
@@ -155,6 +162,13 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         onDedupProgress,
     );
     warnings.push(...dedupResult.warnings);
+    log.stage('date-group dedup', {
+        selected: dedupResult.selectedIds.size,
+        rejected: dedupResult.rejectedCount,
+        byStack: dedupResult.rejectReasons.stack ?? 0,
+        byCluster: dedupResult.rejectReasons.cluster ?? 0,
+        warnings: dedupResult.warnings.length,
+    });
 
     let selectedImages = dedupResult.selectedIds;
     let rejectedCount = dedupResult.rejectedCount;
@@ -187,10 +201,19 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         selectedImages = crossResult.selectedIds;
         rejectedCount += crossResult.rejectedCount;
         toBackup = toBackup.filter((img) => selectedImages.has(img.id));
+        log.stage('cross-day dedup', {
+            remaining: toBackup.length,
+            rejected: crossResult.rejectedCount,
+        });
     }
 
     const layoutDetails = await db.getImageDetailsBatch(toBackup.map((img) => img.id));
     const embeddingMap = await db.getEmbeddingsBatch(toBackup.map((img) => img.id));
+    log.stage('layout metadata fetched', {
+        images: toBackup.length,
+        withExif: layoutDetails.size,
+        withEmbedding: embeddingMap.size,
+    });
 
     const planned: BackupPlannedItem[] = [];
     let skippedLayout = 0;
@@ -245,6 +268,12 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
 
     rejectReasons.layout = skippedLayout - missingSource;
     rejectReasons['missing-source'] = missingSource;
+    log.stage('plan ready', {
+        planned: planned.length,
+        skippedLayout: skippedLayout - missingSource,
+        missingSource,
+        totalSec: (log.totalMs() / 1000).toFixed(1),
+    });
 
     return {
         allScored,
