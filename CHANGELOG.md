@@ -4,6 +4,18 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.29.0] - 2026-08-15
+
+### Added
+- **Backup resilience** (#173): Crash-safe checkpoints, reconcile, picks preservation, and opt-in rotation.
+- **Bird bbox confidence styling** (#168): Confidence-colored detection overlay borders in the grid and viewer.
+
+### Fixed
+- **Backup scan UI hang** (#174): Keep Electron responsive during destination scan; async MMR diversity picks with event-loop yields.
+- **Shot on Date calendar**: Sidebar no longer clips the date picker behind the gallery grid.
+- **Degenerate lens folders**: Map invalid EXIF lens specs (`0mm`, `0 0 0 0`) to `_unknown_lens` so sync/backup skip them.
+- **Backup present-count collision**: Budget estimator uses manifest image ids instead of colliding filenames.
+
 ## [7.28.0] - 2026-07-26
 
 ### Added

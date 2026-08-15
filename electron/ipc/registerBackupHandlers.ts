@@ -28,6 +28,7 @@ import {
 import { resolveDriveId } from '../driveIdentity';
 import { getDriveSessionStore } from '../driveSessionStore';
 import { toWindowsLocalFsPath } from '../pathWinWsl';
+import { createStageLog } from '../stageLog';
 import { normalizeLensFolderName } from '../lensFolderName';
 import type {
     BackupManifest,
@@ -62,6 +63,20 @@ function normalizeRelKey(relPath: string): string {
     return relPath.replace(/\\/g, '/').toLowerCase();
 }
 
+/**
+ * Image ids the manifest already tracks at the destination. Adopted rows carry `id: 0`
+ * (see `reconcileManifestWithDisk`) and are excluded — they are untracked files on disk,
+ * not scored candidates competing for this run's budget.
+ */
+export function manifestTrackedIds(manifest: BackupManifest): Set<number> {
+    const ids = new Set<number>();
+    for (const entry of manifest.images) {
+        if (entry.id !== 0) ids.add(entry.id);
+    }
+    return ids;
+}
+
+
 export function registerBackupHandlers(deps: BackupHandlersDeps): void {
     const {
         ipcMain,
@@ -74,7 +89,6 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
         normalizeCameraModel,
         isUnresolvedSyncLayout,
     } = deps;
-    const mainWindow = getMainWindow();
 
     async function loadBackupManifest(targetPath: string): Promise<{ manifest: BackupManifest; manifestPath: string }> {
         const manifestPath = path.join(targetPath, 'manifest.json');
@@ -210,7 +224,7 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
             normalizeLensFolderName,
             isUnresolvedSyncLayout,
             toWindowsLocalFsPath,
-            presentRelPaths: scan.diskKeys,
+            presentImageIds: manifestTrackedIds(manifest),
         });
 
         const desiredRelPaths = new Set(planBuild.planned.map((p) => p.relPath));
@@ -239,7 +253,7 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
         }
 
         const currentFreeBytes = await getVolumeFreeBytes(targetPath) ?? freeBytes;
-        const { droppedRelPaths } = selectPlanProportional(
+        const { droppedRelPaths } = await selectPlanProportional(
             plannedWithSkip,
             currentFreeBytes,
             capacityBytes,
@@ -352,12 +366,24 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
 
     ipcMain.handle('backup:verify-target', wrapIpcHandler(async (_, targetPath: string): Promise<BackupVerifyReport | null> => {
         if (!targetPath) return null;
+        const log = createStageLog('Backup:verify');
+        log.stage('started', { target: targetPath });
         try {
             const { manifest } = await loadBackupManifest(targetPath);
+            log.stage('manifest loaded', { rows: manifest.images.length });
             const scan = await scanBackupDestination(targetPath);
-            return reconcileManifestWithDiskReport(manifest, scan.diskKeys, {
+            log.stage('destination scanned', { files: scan.diskMap.size });
+            const report = reconcileManifestWithDiskReport(manifest, scan.diskKeys, {
                 xmpOnlyDirs: scan.xmpOnlyDirs,
             });
+            log.stage('complete', {
+                manifestRows: report.manifestRows,
+                presentOnDisk: report.presentOnDisk,
+                missingOnDisk: report.missingOnDisk,
+                orphanFiles: report.orphanFiles,
+                xmpOnlyDirs: report.xmpOnlyDirs,
+            });
+            return report;
         } catch (e) {
             console.error('[Main] Backup verify-target failed:', e);
             return null;
@@ -366,8 +392,17 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
 
     ipcMain.handle('backup:preview', wrapIpcHandler(async (_, targetPath: string): Promise<BackupPreviewInfo | null> => {
         if (!targetPath) return null;
+        const log = createStageLog('Backup:preview');
+        log.stage('started', { target: targetPath });
         try {
-            return await computeBackupPreview(targetPath);
+            const preview = await computeBackupPreview(targetPath);
+            log.stage('complete', {
+                candidates: preview.candidateCount,
+                planned: preview.plannedCount,
+                plannedComputed: preview.plannedComputed,
+                manifestRows: preview.manifestCount,
+            });
+            return preview;
         } catch (e) {
             console.error('[Main] Backup preview failed:', e);
             return null;
@@ -397,8 +432,10 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
         setIsBackupRunning(true);
         rebuildApplicationMenu();
 
+        // Resolve the window per send: handlers are registered before createWindow(),
+        // so capturing it once at registration time yields a permanent null.
         const sendProgress = (progress: BackupProgress) => {
-            mainWindow?.webContents.send('backup:progress', progress);
+            getMainWindow()?.webContents.send('backup:progress', progress);
         };
 
         const emptyResult = (errors: string[] = [], warnings: string[] = []): BackupResult => ({
@@ -418,8 +455,15 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
             emptyDirsPruned: 0,
         });
 
+        const log = createStageLog('Backup');
+        log.stage('run started', { target: targetPath, confirmMassDelete });
+
         try {
             const { freeBytes, capacityBytes } = await resolveBackupVolumeStats(targetPath);
+            log.stage('volume stats', {
+                freeGiB: (freeBytes / 1024 ** 3).toFixed(1),
+                capacityGiB: (capacityBytes / 1024 ** 3).toFixed(1),
+            });
 
             sendProgress({
                 phase: 'scanning',
@@ -433,7 +477,16 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
             const backupConfig = loadBackupConfig(
                 appConfig.backup as Record<string, unknown> | undefined,
             );
+            log.stage('config loaded', {
+                minScore: backupConfig.minScore,
+                includeCurated: backupConfig.includeCurated,
+                pruneStaleFiles: backupConfig.pruneStaleFiles,
+                pruneDroppedForSpace: backupConfig.pruneDroppedForSpace,
+                rotateLowScores: backupConfig.rotateLowScores,
+            });
+
             const { manifest, manifestPath } = await loadBackupManifest(targetPath);
+            log.stage('manifest loaded', { rows: manifest.images.length });
 
             sendProgress({
                 phase: 'scanning',
@@ -452,6 +505,11 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                     });
                 },
             });
+            log.stage('destination scanned', {
+                files: scan.diskMap.size,
+                xmpOnlyDirs: scan.xmpOnlyDirs,
+            });
+
             sendProgress({
                 phase: 'scanning',
                 current: scan.diskMap.size,
@@ -464,6 +522,11 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 xmpOnlyDirs: scan.xmpOnlyDirs,
             });
             const reconcileResult = reconcileManifestWithDisk(manifest, scan.diskMap);
+            log.stage('manifest reconciled', {
+                adopted: reconcileResult.adopted,
+                droppedMissing: reconcileResult.droppedMissing,
+                unchanged: reconcileResult.unchanged,
+            });
             let manifestIndexByKey = buildManifestIndex(manifest);
             let manifestDirty = reconcileResult.adopted > 0 || reconcileResult.droppedMissing > 0;
             let firstManifestWrite = true;
@@ -504,7 +567,7 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                     normalizeLensFolderName,
                     isUnresolvedSyncLayout,
                     toWindowsLocalFsPath,
-                    presentRelPaths: scan.diskKeys,
+                    presentImageIds: manifestTrackedIds(manifest),
                     onDedupProgress: (current, total, detail) =>
                         sendProgress({ phase: 'deduplicating', current, total, detail }),
                 });
@@ -512,6 +575,15 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 console.error('[Main] Backup: failed to build plan:', e);
                 return emptyResult([String(e)]);
             }
+            log.stage('plan built', {
+                scored: planBuild.allScored.length,
+                planned: planBuild.planned.length,
+                rejected: planBuild.rejectedCount,
+                skippedLayout: planBuild.skippedLayout,
+                roughFillRatio: planBuild.roughFillRatio.toFixed(3),
+                maxPerCluster: planBuild.maxPerCluster,
+            });
+            for (const w of planBuild.warnings) console.warn('[Backup] plan warning:', w);
 
             const warnings = [...planBuild.warnings];
             if (planBuild.allScored.length === 0) {
@@ -587,17 +659,35 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 }
             }
 
+            log.stage('skip-copy analysis', {
+                planned: planned.length,
+                alreadyOnDisk: planned.filter((p) => p.skipCopy).length,
+                staleManifestRows: stalePreview.staleManifestCount,
+                wouldDeleteFiles,
+            });
+
             const currentFreeBytes = await getVolumeFreeBytes(targetPath) ?? freeBytes;
 
-            const { selected: selectedPlan, droppedRelPaths } = selectPlanProportional(
+            const { selected: selectedPlan, droppedRelPaths } = await selectPlanProportional(
                 planned,
                 currentFreeBytes,
                 capacityBytes,
                 {
                     diversityLambda: backupConfig.diversityLambda,
                     reserveFraction: backupConfig.reserveFraction,
+                    onMmrProgress: (picked, candidates) => sendProgress({
+                        phase: 'calculating',
+                        current: picked,
+                        total: candidates,
+                        detail: `Selecting for diversity (${picked.toLocaleString()} of ${candidates.toLocaleString()} candidates)…`,
+                    }),
                 },
             );
+            log.stage('budget selection', {
+                selected: selectedPlan.length,
+                droppedForSpace: droppedRelPaths.length,
+                freeGiB: (currentFreeBytes / 1024 ** 3).toFixed(1),
+            });
 
             let finalPlan = selectedPlan;
             const droppedSet = new Set(droppedRelPaths);
@@ -737,14 +827,27 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 }
             }
 
+            log.stage('destination cleanup', {
+                manifestPruned,
+                filesRemoved,
+                prebuildProtected: prebuildProtectedCount,
+                droppedDeleted: droppedOnDisk.length,
+                rotatedOut,
+            });
+
             const emptyDirsPruned = removedRelPaths.length > 0
                 ? await pruneEmptyDirs(targetPath, removedRelPaths)
                 : 0;
+            if (removedRelPaths.length > 0) {
+                log.stage('empty dirs pruned', { dirs: emptyDirsPruned });
+            }
 
             sendProgress({ phase: 'copying', current: 0, total: finalPlan.length, detail: 'Starting file transfer...' });
+            log.stage('copy phase starting', { files: finalPlan.length });
 
             let copied = 0;
             let copiesSinceCheckpoint = 0;
+            const copyStartedAt = Date.now();
 
             try {
                 for (let i = 0; i < finalPlan.length; i++) {
@@ -802,6 +905,14 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                         manifestDirty = true;
                         copiesSinceCheckpoint++;
                         if (copiesSinceCheckpoint >= MANIFEST_CHECKPOINT_INTERVAL) {
+                            const elapsedSec = (Date.now() - copyStartedAt) / 1000;
+                            log.stage('copy checkpoint', {
+                                progress: `${i + 1}/${finalPlan.length}`,
+                                copied,
+                                skipped,
+                                errors: errors.length,
+                                filesPerSec: elapsedSec > 0 ? (copied / elapsedSec).toFixed(1) : 'n/a',
+                            });
                             sendProgress({
                                 phase: 'cleaning',
                                 current: copied,
@@ -812,10 +923,16 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                             copiesSinceCheckpoint = 0;
                         }
                     } catch (e) {
+                        console.warn(`[Backup] copy failed for ${relPath}:`, e);
                         errors.push(`${fileName}: ${e instanceof Error ? e.message : String(e)}`);
                     }
                 }
             } finally {
+                log.stage('copy phase finished', {
+                    copied,
+                    skipped,
+                    errors: errors.length,
+                });
                 if (manifestDirty) {
                     sendProgress({ phase: 'cleaning', current: 1, total: 1, detail: 'Writing manifest...' });
                     await persistManifest();
@@ -878,6 +995,15 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 total: Math.max(1, finalPlan.length),
                 detail: detailParts.join(' '),
             });
+            log.stage('run complete', {
+                copied,
+                skipped,
+                errors: errors.length,
+                staleRemoved: filesRemoved,
+                rotatedOut,
+                droppedForSpace,
+                totalSec: (log.totalMs() / 1000).toFixed(1),
+            });
 
             return {
                 copied,
@@ -895,6 +1021,9 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 rejectReasons,
                 emptyDirsPruned,
             };
+        } catch (e) {
+            console.error(`[Backup] run failed after ${(log.totalMs() / 1000).toFixed(1)}s:`, e);
+            throw e;
         } finally {
             setIsBackupRunning(false);
             rebuildApplicationMenu();
