@@ -11,6 +11,10 @@ timestamp: 2026-06-30T00:00:00Z
 
 Chronological record of wiki maintenance activities. Newest entries first.
 
+## 2026-09
+
+- 2026-09-24: created — [features/planned/burst-culling-explainability.md](features/planned/burst-culling-explainability.md): clean-room UX spec (best-frame star, nearly-tied badge, sub-bursts, score breakdown + reasons, client-side Adjust scoring, overlays, compare/zoom-to-eye, species popover, per-photo diagnostics bundle) tied to the backend subject-aware culling evidence plan and localization rollout; catalog row in [features/planned/README.md](features/planned/README.md).
+
 ## 2026-07
 
 - 2026-07-21: updated — Onboard Graphify (soft): [graphify.mdc](../.cursor/rules/graphify.mdc), [AGENTS.md § Graphify](../AGENTS.md), deferred install-tiers + mcp-code-intelligence/agent-search, `.graphifyignore`, optional `graphify-gallery` MCP example; `graphify-out/` gitignored.
