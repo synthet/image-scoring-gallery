@@ -13,7 +13,13 @@ import {
     deduplicateByDateGroups,
 } from './backupSelection';
 import type { BackupPlannedItem } from './backupSpace';
-import { BACKUP_BUFFER_FRACTION, xmpSidecarPath } from './backupSpace';
+import { computeBackupUsableBytes, xmpSidecarPath } from './backupSpace';
+import {
+    placementTier,
+    SOLO_FLEET,
+    type FleetIdentity,
+    type PlacementTier,
+} from './backupDistribution';
 import * as db from './db';
 import { createStageLog } from './stageLog';
 import type { BackupRejectReason, ScoredImageForBackup } from './types';
@@ -28,6 +34,10 @@ export type BackupPlanBuildResult = {
     maxPerCluster: number;
     skippedLayout: number;
     rejectReasons: Partial<Record<BackupRejectReason, number>>;
+    /** Fleet identity the plan was built for (echoed for preview / logging). */
+    fleet: FleetIdentity;
+    /** How many planned items landed in each placement tier on this drive. */
+    tierCounts: Record<PlacementTier, number>;
 };
 
 export type BackupPlanBuildOptions = {
@@ -51,6 +61,14 @@ export type BackupPlanBuildOptions = {
      * 31,746 files, inflating `roughFillRatio` and hence `maxPerCluster`.
      */
     presentImageIds?: ReadonlySet<number>;
+    /**
+     * Fleet identity of this destination (from its manifest). Defaults to standalone.
+     * When the fleet has more than one drive, cluster keeper counts are sized against the
+     * *aggregate* fleet capacity so there are enough survivors left to divide between drives.
+     */
+    fleet?: FleetIdentity;
+    /** Bytes already tracked in the destination manifest (reserves capacity for existing backup). */
+    manifestBytes?: number;
 };
 
 const AVG_RAW_BYTES_FALLBACK = 30 * 1024 * 1024;
@@ -95,7 +113,9 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         toWindowsLocalFsPath,
         onDedupProgress,
         presentImageIds,
+        manifestBytes = 0,
     } = options;
+    const fleet = options.fleet ?? SOLO_FLEET;
 
     const log = createStageLog('BackupPlan');
     log.stage('querying scored images', { minScore: backupConfig.minScore });
@@ -108,11 +128,11 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
     const totalImages = allScored.length;
     log.stage('scored images loaded', { images: totalImages });
 
-    const reserve =
-        capacityBytes < Number.MAX_SAFE_INTEGER
-            ? capacityBytes * (backupConfig.reserveFraction ?? BACKUP_BUFFER_FRACTION)
-            : 0;
-    const usableEstimate = Math.max(0, freeBytes - reserve);
+    const { usableBytes: usableEstimate, reserveFraction } = computeBackupUsableBytes(
+        freeBytes,
+        capacityBytes,
+        manifestBytes,
+    );
 
     const samplePaths = allScored.map((img) => toWindowsLocalFsPath(img.path));
     const meanBytes = await sampleMeanSourceBytes(samplePaths);
@@ -131,11 +151,26 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
     const roughFillRatio = totalImages > 0
         ? Math.min(1, usableEstimate / (budgetCandidates * meanBytes))
         : 1;
-    const maxPerCluster = effectiveMaxPerCluster(backupConfig.maxPerCluster, roughFillRatio);
+
+    // Cluster keeper counts are a *fleet* decision, not a per-drive one. Sizing them against
+    // one small drive collapses every cluster to a single keeper (effectiveMaxPerCluster
+    // returns 1 below a 0.5 fill ratio), which leaves nothing for the other drives to take —
+    // the fleet would then store three copies of the same subset. Sizing against the combined
+    // capacity keeps enough burst frames alive to spread out.
+    const fleetFillRatio = totalImages > 0
+        ? Math.min(1, (usableEstimate * fleet.size) / (budgetCandidates * meanBytes))
+        : 1;
+    const maxPerCluster = effectiveMaxPerCluster(
+        backupConfig.maxPerCluster * fleet.size,
+        fleetFillRatio,
+    );
     log.stage('budget estimated', {
         alreadyAtDestination: presentCount,
         budgetCandidates,
+        manifestReserveFraction: reserveFraction.toFixed(3),
         roughFillRatio: roughFillRatio.toFixed(3),
+        fleetFillRatio: fleetFillRatio.toFixed(3),
+        fleet: `${fleet.ordinal}/${fleet.size}`,
         maxPerCluster,
     });
 
@@ -154,7 +189,7 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
 
     const dedupResult = await deduplicateByDateGroups(
         groups,
-        roughFillRatio,
+        fleetFillRatio,
         maxPerCluster,
         backupConfig.diversityLambda,
         backupConfig.pairBatchSize,
@@ -171,6 +206,7 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
     });
 
     let selectedImages = dedupResult.selectedIds;
+    let clusterRanks = dedupResult.clusterRanks;
     let rejectedCount = dedupResult.rejectedCount;
     let toBackup = allScored.filter((img) => selectedImages.has(img.id));
     const rejectReasons: Partial<Record<BackupRejectReason, number>> = {
@@ -199,6 +235,8 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         );
         warnings.push(...crossResult.warnings);
         selectedImages = crossResult.selectedIds;
+        // Cross-day re-clusters across date boundaries, so its ranks supersede the per-date ones.
+        clusterRanks = crossResult.clusterRanks;
         rejectedCount += crossResult.rejectedCount;
         toBackup = toBackup.filter((img) => selectedImages.has(img.id));
         log.stage('cross-day dedup', {
@@ -216,6 +254,7 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
     });
 
     const planned: BackupPlannedItem[] = [];
+    const tierCounts: Record<PlacementTier, number> = { mirror: 0, shard: 0, offshard: 0 };
     let skippedLayout = 0;
     let missingSource = 0;
 
@@ -250,6 +289,15 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
             sourceXmpSize = xmpStats.size;
         } catch { /* no sidecar */ }
 
+        // An image with no recorded rank never went through clustering (it can only reach
+        // here via a fail-open path); treat it as its own cluster so it mirrors everywhere.
+        const clusterRank = clusterRanks.get(img.id) ?? { groupKey: `cluster:${img.id}`, rank: 0 };
+        const tier = placementTier(
+            { isPick: img.is_pick === true, rank: clusterRank.rank, groupKey: clusterRank.groupKey },
+            fleet,
+        );
+        tierCounts[tier]++;
+
         planned.push({
             img,
             sourcePath,
@@ -263,6 +311,9 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
             skipCopyXmp: sourceXmpSize === 0,
             leafFolder: dateStr,
             embedding: embeddingMap.get(img.id),
+            tier,
+            groupKey: clusterRank.groupKey,
+            rank: clusterRank.rank,
         });
     }
 
@@ -272,6 +323,9 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         planned: planned.length,
         skippedLayout: skippedLayout - missingSource,
         missingSource,
+        mirror: tierCounts.mirror,
+        shard: tierCounts.shard,
+        offshard: tierCounts.offshard,
         totalSec: (log.totalMs() / 1000).toFixed(1),
     });
 
@@ -285,5 +339,7 @@ export async function buildBackupPlan(options: BackupPlanBuildOptions): Promise<
         maxPerCluster,
         skippedLayout,
         rejectReasons,
+        fleet,
+        tierCounts,
     };
 }

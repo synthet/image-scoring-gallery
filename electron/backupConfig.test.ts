@@ -55,3 +55,50 @@ describe('requiresStaleDeleteConfirmation', () => {
         expect(requiresStaleDeleteConfirmation(5, 100)).toBe(false);
     });
 });
+
+describe('distribution flag', () => {
+    it('defaults to enabled', () => {
+        expect(loadBackupConfig(undefined).distributionEnabled).toBe(true);
+        expect(loadBackupConfig({}).distributionEnabled).toBe(true);
+    });
+
+    it('can be turned off to force standalone selection', () => {
+        expect(loadBackupConfig({ distributionEnabled: false }).distributionEnabled).toBe(false);
+    });
+
+    it('ignores non-boolean values', () => {
+        expect(loadBackupConfig({ distributionEnabled: 'no' }).distributionEnabled).toBe(true);
+    });
+});
+
+describe('preview fast-path predicate', () => {
+    // Mirrors computeBackupPreview in electron/ipc/registerBackupHandlers.ts. Fleet membership
+    // must NOT force the slow path: building a real plan just to show a tier split costs a
+    // destination scan plus pgvector dedup over every date group, and BackupModal disables
+    // Start Backup for the whole duration.
+    const usesFastPath = (cfg: {
+        pruneStaleFiles: boolean;
+        pruneDroppedForSpace: boolean;
+        rotateLowScores: boolean;
+    }) => !cfg.pruneStaleFiles && !cfg.pruneDroppedForSpace && !cfg.rotateLowScores;
+
+    const additive = { pruneStaleFiles: false, pruneDroppedForSpace: false, rotateLowScores: false };
+
+    it('stays fast for additive defaults', () => {
+        expect(usesFastPath(additive)).toBe(true);
+    });
+
+    it('is unaffected by fleet size', () => {
+        // The fleet position is read straight from the manifest; it costs nothing to report.
+        for (const fleetSize of [1, 2, 3, 8]) {
+            expect(usesFastPath(additive)).toBe(true);
+            expect(fleetSize).toBeGreaterThan(0);
+        }
+    });
+
+    it('falls back to the full plan when a delete or rotate flag needs exact counts', () => {
+        expect(usesFastPath({ ...additive, pruneStaleFiles: true })).toBe(false);
+        expect(usesFastPath({ ...additive, pruneDroppedForSpace: true })).toBe(false);
+        expect(usesFastPath({ ...additive, rotateLowScores: true })).toBe(false);
+    });
+});

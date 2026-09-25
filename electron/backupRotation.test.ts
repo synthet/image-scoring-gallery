@@ -28,6 +28,9 @@ function planned(id: number, score: number, size: number): BackupPlannedItem {
         skipCopy: false,
         skipCopyXmp: true,
         leafFolder: 'd',
+        tier: 'shard',
+        groupKey: `cluster:${id}`,
+        rank: 0,
     };
 }
 

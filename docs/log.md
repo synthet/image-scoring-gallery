@@ -4,7 +4,7 @@ title: "Documentation Activity Log"
 description: "Chronological record of wiki maintenance activities. Newest entries first."
 resource: "docs/log.md"
 tags: ["gallery-docs"]
-timestamp: 2026-06-30T00:00:00Z
+timestamp: 2026-08-29T00:00:00Z
 ---
 
 # Documentation Activity Log
@@ -14,6 +14,10 @@ Chronological record of wiki maintenance activities. Newest entries first.
 ## 2026-09
 
 - 2026-09-24: created — [features/planned/burst-culling-explainability.md](features/planned/burst-culling-explainability.md): clean-room UX spec (best-frame star, nearly-tied badge, sub-bursts, score breakdown + reasons, client-side Adjust scoring, overlays, compare/zoom-to-eye, species popover, per-photo diagnostics bundle) tied to the backend subject-aware culling evidence plan and localization rollout; catalog row in [features/planned/README.md](features/planned/README.md).
+
+## 2026-08
+
+- 2026-08-29: updated — [architecture/backup-feature.md](architecture/backup-feature.md): new **Distributed multi-drive backup (fleet)** section (manifest `driveOrdinal`/`fleetSize`, mirror/shard/offshard tiers, FNV-1a shard assignment, fleet-aggregate cluster sizing, two-pass budgeting); added `distributionEnabled` config row, `backup:set-fleet-identity` IPC row, `electron/backupDistribution.ts` module row; corrected stale pipeline path (`electron/main.ts` -> `electron/ipc/registerBackupHandlers.ts`) and the fixed "top 2 per stack" wording.
 
 ## 2026-07
 

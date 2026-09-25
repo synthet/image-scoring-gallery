@@ -10,13 +10,14 @@ import {
 } from '../backupAudit';
 import {
     analyzeStaleManifestEntries,
-    BACKUP_BUFFER_FRACTION,
+    computeBackupUsableBytes,
     getVolumeCapacityBytes,
     getVolumeFreeBytes,
     pruneEmptyDirs,
     reconcileManifestWithDisk,
     scanBackupDestination,
     selectPlanProportional,
+    sumManifestBytes,
     syncStaleBackupEntries,
     xmpSidecarPath,
 } from '../backupSpace';
@@ -25,6 +26,13 @@ import {
     loadBackupConfig,
     requiresStaleDeleteConfirmation,
 } from '../backupConfig';
+import {
+    isDistributed,
+    MAX_FLEET_SIZE,
+    parseFleetIdentity,
+    SOLO_FLEET,
+    type FleetIdentity,
+} from '../backupDistribution';
 import { resolveDriveId } from '../driveIdentity';
 import { getDriveSessionStore } from '../driveSessionStore';
 import { toWindowsLocalFsPath } from '../pathWinWsl';
@@ -133,6 +141,11 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
         await fs.promises.rename(tmpPath, manifestPath);
     }
 
+    /** Fleet identity for a destination, honouring the `distributionEnabled` escape hatch. */
+    function resolveFleet(manifest: BackupManifest, distributionEnabled: boolean): FleetIdentity {
+        return distributionEnabled ? parseFleetIdentity(manifest) : { ...SOLO_FLEET };
+    }
+
     async function resolveBackupVolumeStats(targetPath: string): Promise<{ freeBytes: number; capacityBytes: number }> {
         let freeBytes = await getVolumeFreeBytes(targetPath);
         let capacityBytes = await getVolumeCapacityBytes(targetPath);
@@ -147,11 +160,9 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
     function computeUsableBytes(
         freeBytes: number,
         capacityBytes: number,
-        reserveFraction: number,
+        manifestBytes: number,
     ): number {
-        const reserve = Math.min(0.5, Math.max(0, reserveFraction));
-        const bufferBytes = capacityBytes * reserve;
-        return Math.max(0, freeBytes - bufferBytes);
+        return computeBackupUsableBytes(freeBytes, capacityBytes, manifestBytes).usableBytes;
     }
 
     function buildManifestIndex(manifest: BackupManifest): Map<string, number> {
@@ -187,8 +198,13 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
         const appConfig = loadAppConfig(getConfigPath(electronDirname));
         const backupConfig = loadBackupConfig(appConfig.backup as Record<string, unknown> | undefined);
         const { manifest } = await loadBackupManifest(targetPath);
+        const fleet = resolveFleet(manifest, backupConfig.distributionEnabled);
         const { freeBytes, capacityBytes } = await resolveBackupVolumeStats(targetPath);
 
+        // Fleet membership deliberately does NOT force the slow path. Building the real plan
+        // just to show a tier split costs a destination scan plus pgvector dedup over every
+        // date group — minutes during which the modal's Start button stays disabled. The
+        // fleet position is free to report; the tier counts arrive with BackupResult instead.
         const fastPath = !backupConfig.pruneStaleFiles
             && !backupConfig.pruneDroppedForSpace
             && !backupConfig.rotateLowScores;
@@ -202,6 +218,8 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 plannedCount: 0,
                 plannedComputed: false,
                 manifestCount: manifest.images.length,
+                driveOrdinal: fleet.ordinal,
+                fleetSize: fleet.size,
                 pruneStaleFiles: false,
                 pruneDroppedForSpace: false,
                 wouldDeleteFiles: 0,
@@ -215,6 +233,7 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
         }
 
         const scan = await scanBackupDestination(targetPath);
+        const manifestBytes = sumManifestBytes(manifest.images);
         const planBuild = await buildBackupPlan({
             targetPath,
             backupConfig,
@@ -225,6 +244,8 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
             isUnresolvedSyncLayout,
             toWindowsLocalFsPath,
             presentImageIds: manifestTrackedIds(manifest),
+            manifestBytes,
+            fleet,
         });
 
         const desiredRelPaths = new Set(planBuild.planned.map((p) => p.relPath));
@@ -259,7 +280,7 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
             capacityBytes,
             {
                 diversityLambda: backupConfig.diversityLambda,
-                reserveFraction: backupConfig.reserveFraction,
+                manifestBytes,
             },
         );
 
@@ -315,24 +336,23 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
             roughFillRatio: planBuild.roughFillRatio,
             effectiveMaxPerCluster: planBuild.maxPerCluster,
             wouldRotateOut,
+            driveOrdinal: fleet.ordinal,
+            fleetSize: fleet.size,
+            mirrorCount: planBuild.tierCounts.mirror,
+            shardCount: planBuild.tierCounts.shard,
+            offshardCount: planBuild.tierCounts.offshard,
         };
     }
 
     ipcMain.handle('backup:check-target', wrapIpcHandler(async (_, targetPath: string): Promise<BackupTargetInfo | null> => {
         if (!targetPath) return null;
 
-        const appConfig = loadAppConfig(getConfigPath(electronDirname));
-        const backupConfig = loadBackupConfig(appConfig.backup as Record<string, unknown> | undefined);
         const { freeBytes, capacityBytes } = await resolveBackupVolumeStats(targetPath);
-        const usableBytes = computeUsableBytes(
-            freeBytes,
-            capacityBytes,
-            backupConfig.reserveFraction ?? BACKUP_BUFFER_FRACTION,
-        );
         const lastBackupSessionAt = await resolveLastBackupSessionAt(targetPath);
 
         const manifestPath = path.join(targetPath, 'manifest.json');
         if (!fs.existsSync(manifestPath)) {
+            const usableBytes = computeUsableBytes(freeBytes, capacityBytes, 0);
             return {
                 exists: false,
                 imageCount: 0,
@@ -342,26 +362,81 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 capacityBytes,
                 usableBytes,
                 lastBackupSessionAt,
+                driveOrdinal: null,
+                fleetSize: null,
             };
         }
 
         try {
             const content = await fs.promises.readFile(manifestPath, 'utf8');
             const manifest = JSON.parse(content) as BackupManifest;
+            const manifestBytes = sumManifestBytes(manifest.images);
+            const usableBytes = computeUsableBytes(freeBytes, capacityBytes, manifestBytes);
+            // Raw declared values, not `resolveFleet`: the modal edits what is on the drive,
+            // so it must show what the manifest actually says even if config disables sharding.
             return {
                 exists: true,
                 imageCount: manifest.images.length,
                 lastBackup: manifest.updatedAt,
-                bytes: manifest.images.reduce((sum: number, img: BackupManifestEntry) => sum + (img.size || 0), 0),
+                bytes: manifestBytes,
                 freeBytes,
                 capacityBytes,
                 usableBytes,
                 lastBackupSessionAt,
+                driveOrdinal: manifest.driveOrdinal ?? null,
+                fleetSize: manifest.fleetSize ?? null,
             };
         } catch (e) {
             console.error('[Main] Backup: failed to read manifest:', e);
             return null;
         }
+    }));
+
+    /**
+     * Declare (or clear) this destination's position in a multi-drive backup fleet.
+     *
+     * Writes into the destination's own `manifest.json` so the drive is self-describing —
+     * plug it into another machine and it still knows it is drive 2 of 3. Editing by hand is
+     * not an option: the manifest is compact single-line JSON with tens of thousands of rows.
+     *
+     * Pass `fleetSize: 1` (or 0/null) to return the drive to standalone selection.
+     */
+    ipcMain.handle('backup:set-fleet-identity', wrapIpcHandler(async (
+        _,
+        targetPath: string,
+        driveOrdinal: number,
+        fleetSize: number,
+    ): Promise<FleetIdentity> => {
+        if (!targetPath || typeof targetPath !== 'string') {
+            throw new Error('Backup target path is required');
+        }
+        if (getIsBackupRunning()) {
+            throw new Error('Cannot change the fleet identity while a backup is running.');
+        }
+
+        const size = Math.floor(Number(fleetSize));
+        const ordinal = Math.floor(Number(driveOrdinal));
+        if (!Number.isFinite(size) || size < 1 || size > MAX_FLEET_SIZE) {
+            throw new Error(`Fleet size must be between 1 and ${MAX_FLEET_SIZE}.`);
+        }
+        if (!Number.isFinite(ordinal) || ordinal < 1 || ordinal > size) {
+            throw new Error(`Drive number must be between 1 and ${size}.`);
+        }
+
+        const { manifest, manifestPath } = await loadBackupManifest(targetPath);
+        if (size === 1) {
+            delete manifest.driveOrdinal;
+            delete manifest.fleetSize;
+        } else {
+            manifest.driveOrdinal = ordinal;
+            manifest.fleetSize = size;
+        }
+        manifest.updatedAt = new Date().toISOString();
+        await fs.promises.mkdir(targetPath, { recursive: true });
+        await writeManifestAtomic(manifestPath, manifest);
+
+        console.log(`[Main] Backup: ${targetPath} is now drive ${ordinal} of ${size}.`);
+        return parseFleetIdentity(manifest);
     }));
 
     ipcMain.handle('backup:verify-target', wrapIpcHandler(async (_, targetPath: string): Promise<BackupVerifyReport | null> => {
@@ -486,7 +561,11 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
             });
 
             const { manifest, manifestPath } = await loadBackupManifest(targetPath);
-            log.stage('manifest loaded', { rows: manifest.images.length });
+            const fleet = resolveFleet(manifest, backupConfig.distributionEnabled);
+            log.stage('manifest loaded', {
+                rows: manifest.images.length,
+                fleet: `${fleet.ordinal}/${fleet.size}`,
+            });
 
             sendProgress({
                 phase: 'scanning',
@@ -556,6 +635,7 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 detail: `Querying scored images (min score ${backupConfig.minScore})…`,
             });
 
+            const manifestBytes = sumManifestBytes(manifest.images);
             let planBuild;
             try {
                 planBuild = await buildBackupPlan({
@@ -568,6 +648,8 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                     isUnresolvedSyncLayout,
                     toWindowsLocalFsPath,
                     presentImageIds: manifestTrackedIds(manifest),
+                    manifestBytes,
+                    fleet,
                     onDedupProgress: (current, total, detail) =>
                         sendProgress({ phase: 'deduplicating', current, total, detail }),
                 });
@@ -674,7 +756,7 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 capacityBytes,
                 {
                     diversityLambda: backupConfig.diversityLambda,
-                    reserveFraction: backupConfig.reserveFraction,
+                    manifestBytes,
                     onMmrProgress: (picked, candidates) => sendProgress({
                         phase: 'calculating',
                         current: picked,
@@ -687,6 +769,12 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 selected: selectedPlan.length,
                 droppedForSpace: droppedRelPaths.length,
                 freeGiB: (currentFreeBytes / 1024 ** 3).toFixed(1),
+            });
+
+            const countTiers = (items: readonly { tier: string }[]) => ({
+                mirrored: items.filter((p) => p.tier === 'mirror').length,
+                sharded: items.filter((p) => p.tier === 'shard').length,
+                offshardBackfilled: items.filter((p) => p.tier === 'offshard').length,
             });
 
             let finalPlan = selectedPlan;
@@ -964,7 +1052,14 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 rejectReasons.space = (rejectReasons.space ?? 0) + droppedForSpace;
             }
 
+            const finalTiers = countTiers(finalPlan);
             const detailParts = [`Backup complete: ${copied} copied, ${skipped} skipped.`];
+            if (isDistributed(fleet)) {
+                detailParts.push(
+                    `Drive ${fleet.ordinal} of ${fleet.size}: ${finalTiers.mirrored} mirrored, `
+                    + `${finalTiers.sharded} own slice, ${finalTiers.offshardBackfilled} backfill.`,
+                );
+            }
             if (reconcileResult.adopted > 0) {
                 detailParts.push(`${reconcileResult.adopted} orphan(s) adopted into manifest.`);
             }
@@ -1002,6 +1097,8 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 staleRemoved: filesRemoved,
                 rotatedOut,
                 droppedForSpace,
+                fleet: `${fleet.ordinal}/${fleet.size}`,
+                ...finalTiers,
                 totalSec: (log.totalMs() / 1000).toFixed(1),
             });
 
@@ -1020,6 +1117,9 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 rotatedOut,
                 rejectReasons,
                 emptyDirsPruned,
+                distribution: isDistributed(fleet)
+                    ? { ordinal: fleet.ordinal, size: fleet.size, ...finalTiers }
+                    : undefined,
             };
         } catch (e) {
             console.error(`[Backup] run failed after ${(log.totalMs() / 1000).toFixed(1)}s:`, e);

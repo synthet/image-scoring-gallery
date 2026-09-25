@@ -319,6 +319,15 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('backup:verify-target', targetPath);
         return unwrapEnvelope<BackupVerifyReport | null>(response);
     },
+    backupSetFleetIdentity: async (targetPath: string, driveOrdinal: number, fleetSize: number) => {
+        const response = await ipcRenderer.invoke(
+            'backup:set-fleet-identity',
+            targetPath,
+            driveOrdinal,
+            fleetSize,
+        );
+        return unwrapEnvelope<{ ordinal: number; size: number }>(response);
+    },
     backupRun: async (targetPath: string, options?: { confirmMassDelete?: boolean }) => {
         const response = await ipcRenderer.invoke('backup:run', {
             targetPath,

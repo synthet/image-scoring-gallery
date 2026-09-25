@@ -185,6 +185,12 @@ declare global {
             backupCheckTarget: (targetPath: string) => Promise<BackupTargetInfo | null>;
             backupPreview: (targetPath: string) => Promise<BackupPreviewInfo | null>;
             backupVerifyTarget: (targetPath: string) => Promise<BackupVerifyReport | null>;
+            /** Declare this destination's position in a multi-drive fleet (size 1 = standalone). */
+            backupSetFleetIdentity: (
+                targetPath: string,
+                driveOrdinal: number,
+                fleetSize: number,
+            ) => Promise<{ ordinal: number; size: number }>;
             backupRun: (
                 targetPath: string,
                 options?: { confirmMassDelete?: boolean },

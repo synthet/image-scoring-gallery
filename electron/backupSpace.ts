@@ -7,9 +7,49 @@ import fs from 'fs';
 import path from 'path';
 import type { BackupManifest, BackupManifestEntry, ScoredImageForBackup } from './types';
 import { selectWithMmrBudget, type MmrItem } from './backupDiversity';
+import type { PlacementTier } from './backupDistribution';
 
-/** Fraction of total volume capacity reserved as free-space buffer. */
+/** @deprecated Budgeting uses {@link computeManifestReserveFraction} instead. */
 export const BACKUP_BUFFER_FRACTION = 0.02;
+
+/** Sum of `size` fields across manifest rows. */
+export function sumManifestBytes(images: readonly { size?: number }[]): number {
+    return images.reduce((sum, img) => sum + (img.size || 0), 0);
+}
+
+/**
+ * Fraction of volume capacity already committed by the destination manifest.
+ * Existing backup bytes are treated as reserved; only the remainder is available for growth.
+ */
+export function computeManifestReserveFraction(
+    manifestBytes: number,
+    capacityBytes: number,
+): number {
+    if (!Number.isFinite(manifestBytes) || manifestBytes <= 0) return 0;
+    if (!Number.isFinite(capacityBytes) || capacityBytes <= 0 || capacityBytes >= Number.MAX_SAFE_INTEGER) {
+        return 0;
+    }
+    return Math.min(1, manifestBytes / capacityBytes);
+}
+
+/**
+ * Byte budget for new backup copies after honoring manifest-committed space.
+ * Capped by actual free space on the volume.
+ */
+export function computeBackupUsableBytes(
+    freeBytes: number,
+    capacityBytes: number,
+    manifestBytes: number,
+): { usableBytes: number; reserveFraction: number } {
+    const reserveFraction = computeManifestReserveFraction(manifestBytes, capacityBytes);
+    if (!Number.isFinite(capacityBytes) || capacityBytes <= 0 || capacityBytes >= Number.MAX_SAFE_INTEGER) {
+        return { usableBytes: Math.max(0, freeBytes), reserveFraction: 0 };
+    }
+    const reservedBytes = capacityBytes * reserveFraction;
+    const remainingCapacity = Math.max(0, capacityBytes - reservedBytes);
+    const usableBytes = Math.max(0, Math.min(freeBytes, remainingCapacity));
+    return { usableBytes, reserveFraction };
+}
 
 /** Image extensions recognized by backup destination scans (shared with prebuild script). */
 export const BACKUP_IMAGE_EXTENSIONS = new Set([
@@ -52,6 +92,15 @@ export type BackupPlannedItem = {
     leafFolder: string;
     /** Optional embedding for MMR space selection. */
     embedding?: Float32Array;
+    /**
+     * Fleet placement for *this* destination. `shard` for every item on a standalone drive.
+     * `offshard` items are another drive's slice and only fill leftover space here.
+     */
+    tier: PlacementTier;
+    /** Stable cluster identity this item was ranked within (diagnostics / shard assignment). */
+    groupKey: string;
+    /** 0-based rank among its cluster's keepers. */
+    rank: number;
 };
 
 /**
@@ -391,56 +440,39 @@ export type SelectPlanOptions = {
     onMmrProgress?: (picked: number, candidates: number) => void;
 };
 
+/** Bytes this item still has to write (already-correct files on disk cost nothing). */
+function plannedItemBytes(p: BackupPlannedItem): number {
+    let bytes = 0;
+    if (!p.skipCopy) bytes += p.sourceSize;
+    if (!p.skipCopyXmp && p.sourceXmpSize > 0) bytes += p.sourceXmpSize;
+    return bytes;
+}
+
+function sumBytes(items: readonly BackupPlannedItem[]): number {
+    return items.reduce((sum, p) => sum + plannedItemBytes(p), 0);
+}
+
 /**
- * Proportional per-folder selection.
+ * Proportional per-folder selection of one candidate pool under a byte budget.
  *
  * Every leaf-folder (date group) gets `max(1, ceil(count * fillRatio))` of its
  * highest-scoring images. Remaining budget is filled greedily by global score or MMR.
- * If even the minimums exceed the budget the lowest-scoring guaranteed items
- * are dropped until the plan fits.
+ * If even the minimums exceed the budget the whole pool is re-selected globally.
  *
- * Skip-copy items are always included and do not consume the free-space budget
- * (they are already on disk).
+ * Callers pass only items that still need copying — skip-copy items are free and are
+ * added back by {@link selectPlanProportional}.
  */
-export async function selectPlanProportional(
-    planned: BackupPlannedItem[],
-    freeBytes: number,
-    capacityBytes: number,
-    options: SelectPlanOptions & { reserveFraction?: number } = {},
-): Promise<{ selected: BackupPlannedItem[]; droppedRelPaths: string[] }> {
-    const reserve =
-        typeof options.reserveFraction === 'number' && Number.isFinite(options.reserveFraction)
-            ? Math.min(0.5, Math.max(0, options.reserveFraction))
-            : BACKUP_BUFFER_FRACTION;
-    const bufferBytes = capacityBytes * reserve;
+async function selectWithinBudget(
+    needCopy: BackupPlannedItem[],
+    usableBytes: number,
+    options: SelectPlanOptions,
+): Promise<{ selected: BackupPlannedItem[]; usedBytes: number }> {
+    if (needCopy.length === 0 || usableBytes <= 0) return { selected: [], usedBytes: 0 };
 
-    // Separate skip-copy (both image + xmp already on disk) from need-copy.
-    const skipItems: BackupPlannedItem[] = [];
-    const needCopy: BackupPlannedItem[] = [];
-    for (const p of planned) {
-        if (p.skipCopy && p.skipCopyXmp) {
-            skipItems.push(p);
-        } else {
-            needCopy.push(p);
-        }
-    }
-
-    const itemBytes = (p: BackupPlannedItem): number => {
-        let bytes = 0;
-        if (!p.skipCopy) bytes += p.sourceSize;
-        if (!p.skipCopyXmp && p.sourceXmpSize > 0) bytes += p.sourceXmpSize;
-        return bytes;
-    };
-
-    const totalNewBytes = needCopy.reduce((sum, p) => sum + itemBytes(p), 0);
-    const usableBytes = Math.max(0, freeBytes - bufferBytes);
-
-    // If everything fits, keep it all.
+    const totalNewBytes = sumBytes(needCopy);
     if (totalNewBytes <= usableBytes) {
-        return { selected: [...skipItems, ...needCopy], droppedRelPaths: [] };
+        return { selected: [...needCopy], usedBytes: totalNewBytes };
     }
-
-    // ---- Proportional per-folder selection ----
 
     const fillRatio = usableBytes > 0 && totalNewBytes > 0
         ? Math.min(1, usableBytes / totalNewBytes)
@@ -466,7 +498,7 @@ export async function selectPlanProportional(
         unselected.push(...items.slice(keep));
     }
 
-    let usedBytes = guaranteed.reduce((s, p) => s + itemBytes(p), 0);
+    let usedBytes = sumBytes(guaranteed);
 
     // Phase 2: Global backfill — add highest-scoring (or MMR) unselected if space remains.
     const backfilled: BackupPlannedItem[] = [];
@@ -483,7 +515,7 @@ export async function selectPlanProportional(
                 id: p.img.id,
                 score: p.score,
                 embedding: p.embedding,
-                bytes: itemBytes(p),
+                bytes: plannedItemBytes(p),
                 plan: p,
             }));
             const mmrPicked = await selectWithMmrBudget(
@@ -499,7 +531,7 @@ export async function selectPlanProportional(
         } else {
             unselected.sort((a, b) => b.score - a.score);
             for (const p of unselected) {
-                const b = itemBytes(p);
+                const b = plannedItemBytes(p);
                 if (usedBytes + b <= usableBytes) {
                     backfilled.push(p);
                     usedBytes += b;
@@ -524,7 +556,7 @@ export async function selectPlanProportional(
                 id: p.img.id,
                 score: p.score,
                 embedding: p.embedding,
-                bytes: itemBytes(p),
+                bytes: plannedItemBytes(p),
                 plan: p,
             }));
             const mmrPicked = await selectWithMmrBudget(
@@ -539,7 +571,7 @@ export async function selectPlanProportional(
             let trimmedBytes = 0;
             const trimmed: BackupPlannedItem[] = [];
             for (const p of allCandidates) {
-                const b = itemBytes(p);
+                const b = plannedItemBytes(p);
                 if (trimmedBytes + b <= usableBytes) {
                     trimmed.push(p);
                     trimmedBytes += b;
@@ -547,12 +579,66 @@ export async function selectPlanProportional(
             }
             selected = trimmed;
         }
+        usedBytes = sumBytes(selected);
     }
 
-    const selectedSet = new Set(selected.map(p => p.relPath));
+    return { selected, usedBytes };
+}
+
+/**
+ * Budget-aware plan selection for one destination.
+ *
+ * Fleet-aware in two passes: this drive's own slice (`mirror` + `shard`) competes for the
+ * whole budget first, then any leftover space is backfilled with `offshard` items — another
+ * drive's slice — so a large drive is never left half-empty. On a standalone drive every
+ * item is `shard`, the second pass is empty, and the result is identical to the previous
+ * single-pass behaviour.
+ *
+ * Skip-copy items are always included and do not consume the free-space budget
+ * (they are already on disk).
+ */
+export async function selectPlanProportional(
+    planned: BackupPlannedItem[],
+    freeBytes: number,
+    capacityBytes: number,
+    options: SelectPlanOptions & { manifestBytes?: number } = {},
+): Promise<{ selected: BackupPlannedItem[]; droppedRelPaths: string[] }> {
+    const manifestBytes = options.manifestBytes ?? 0;
+    const { usableBytes } = computeBackupUsableBytes(freeBytes, capacityBytes, manifestBytes);
+
+    // Separate skip-copy (both image + xmp already on disk) from need-copy.
+    const skipItems: BackupPlannedItem[] = [];
+    const needCopy: BackupPlannedItem[] = [];
+    for (const p of planned) {
+        if (p.skipCopy && p.skipCopyXmp) {
+            skipItems.push(p);
+        } else {
+            needCopy.push(p);
+        }
+    }
+
+    // If everything fits, keep it all — tiers never cost coverage when there is room.
+    if (sumBytes(needCopy) <= usableBytes) {
+        return { selected: [...skipItems, ...needCopy], droppedRelPaths: [] };
+    }
+
+    const owned: BackupPlannedItem[] = [];
+    const offshard: BackupPlannedItem[] = [];
+    for (const p of needCopy) {
+        (p.tier === 'offshard' ? offshard : owned).push(p);
+    }
+
+    const ownPass = await selectWithinBudget(owned, usableBytes, options);
+    const leftover = Math.max(0, usableBytes - ownPass.usedBytes);
+    const backfillPass = leftover > 0 && offshard.length > 0
+        ? await selectWithinBudget(offshard, leftover, options)
+        : { selected: [] as BackupPlannedItem[], usedBytes: 0 };
+
+    const selected = [...ownPass.selected, ...backfillPass.selected];
+    const selectedSet = new Set(selected.map((p) => p.relPath));
     const droppedRelPaths = needCopy
-        .filter(p => !selectedSet.has(p.relPath))
-        .map(p => p.relPath);
+        .filter((p) => !selectedSet.has(p.relPath))
+        .map((p) => p.relPath);
 
     return { selected: [...skipItems, ...selected], droppedRelPaths };
 }

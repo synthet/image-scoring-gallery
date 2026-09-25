@@ -298,6 +298,9 @@ export interface BackupTargetInfo {
     usableBytes?: number | null;
     /** Present when target resolves to a known drive session with prior backup. */
     lastBackupSessionAt?: string | null;
+    /** Fleet position declared by this destination's manifest (null when standalone). */
+    driveOrdinal?: number | null;
+    fleetSize?: number | null;
 }
 
 export interface BackupManifestEntry {
@@ -310,6 +313,13 @@ export interface BackupManifestEntry {
 
 export interface BackupManifest {
     updatedAt: string;
+    /**
+     * 1-based position of this drive within a multi-drive backup fleet. Set together with
+     * `fleetSize` via `backup:set-fleet-identity`; absent means standalone.
+     */
+    driveOrdinal?: number;
+    /** Total drives in the fleet. Absent or 1 disables distribution for this destination. */
+    fleetSize?: number;
     images: BackupManifestEntry[];
 }
 
@@ -325,6 +335,7 @@ export interface BackupSettings {
     includeCurated?: boolean;
     rotateLowScores?: boolean;
     rotateScoreMargin?: number;
+    distributionEnabled?: boolean;
 }
 
 export interface BackupPreviewInfo {
@@ -340,6 +351,15 @@ export interface BackupPreviewInfo {
     wouldDeleteFiles: number;
     /** Destination copies that would be deleted for insufficient space (pruneDroppedForSpace). */
     wouldDeleteDroppedForSpace: number;
+    /** Fleet position this preview was computed for (1/1 when standalone). */
+    driveOrdinal?: number;
+    fleetSize?: number;
+    /** Planned items copied to every drive in the fleet (curated picks + cluster leaders). */
+    mirrorCount?: number;
+    /** Planned items that are this drive's exclusive slice. */
+    shardCount?: number;
+    /** Planned items owned by another drive, kept only as leftover-space backfill. */
+    offshardCount?: number;
     /** Prebuild manifest rows (id 0) protected from deletion unless confirmed. */
     prebuildProtectedCount: number;
     requiresConfirm: boolean;
@@ -400,6 +420,17 @@ export interface BackupResult {
     /** Aggregate reject counts by reason. */
     rejectReasons?: Partial<Record<BackupRejectReason, number>>;
     emptyDirsPruned?: number;
+    /** Fleet placement summary; absent on a standalone destination. */
+    distribution?: {
+        ordinal: number;
+        size: number;
+        /** Copied here because every drive keeps them. */
+        mirrored: number;
+        /** Copied here as this drive's exclusive slice. */
+        sharded: number;
+        /** Another drive's slice, admitted only because space was left over. */
+        offshardBackfilled: number;
+    };
 }
 
 /** Report from backup:verify-target. */
