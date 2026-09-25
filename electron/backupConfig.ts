@@ -17,7 +17,7 @@ export interface BackupConfig {
     pruneStaleFiles: boolean;
     /** When true, delete destination copies dropped for insufficient disk space. Default false. */
     pruneDroppedForSpace: boolean;
-    /** Fraction of volume capacity reserved as free-space buffer. */
+    /** @deprecated Ignored — reserve is computed from manifest size vs volume capacity. */
     reserveFraction: number;
     /** Include curated picks (pick_status=1 / Green|Blue|Purple) even below minScore. */
     includeCurated: boolean;
@@ -25,6 +25,12 @@ export interface BackupConfig {
     rotateLowScores: boolean;
     /** Incoming must beat resident by this much to rotate. */
     rotateScoreMargin: number;
+    /**
+     * Master switch for multi-drive fleet distribution. Already a no-op unless the
+     * destination manifest declares `fleetSize > 1`; this only exists to force a drive
+     * back to standalone selection without editing its manifest.
+     */
+    distributionEnabled: boolean;
 }
 
 export const DEFAULT_BACKUP_CONFIG: BackupConfig = {
@@ -39,6 +45,7 @@ export const DEFAULT_BACKUP_CONFIG: BackupConfig = {
     includeCurated: true,
     rotateLowScores: false,
     rotateScoreMargin: 0.05,
+    distributionEnabled: true,
 };
 
 /** Require UI confirmation before deleting this many stale files. */
@@ -78,6 +85,10 @@ export function loadBackupConfig(raw: Record<string, unknown> | undefined): Back
         rotateScoreMargin: Math.max(
             0,
             asNumber(raw.rotateScoreMargin, DEFAULT_BACKUP_CONFIG.rotateScoreMargin),
+        ),
+        distributionEnabled: asBoolean(
+            raw.distributionEnabled,
+            DEFAULT_BACKUP_CONFIG.distributionEnabled,
         ),
     };
 }

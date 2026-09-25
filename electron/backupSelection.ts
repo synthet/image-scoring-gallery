@@ -4,6 +4,7 @@
 
 import type { ScoredImageForBackup } from './types';
 import { selectWithMmr, type MmrItem } from './backupDiversity';
+import { clusterGroupKey } from './backupDistribution';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const PATH_DATE = /(\d{4}-\d{2}-\d{2})/;
@@ -31,6 +32,19 @@ export function backupYearFromDateKey(dateKey: string): string {
 
 export function imageScore(img: ScoredImageForBackup): number {
     return img.composite_score ?? 0;
+}
+
+/**
+ * Score descending, then id ascending.
+ *
+ * The id tie-break is not cosmetic: fleet distribution derives a drive's shard from an
+ * image's rank within its cluster, so equal-scoring images resolving by array order would
+ * reshuffle the shards between runs and force a full re-copy. Mirrors the intent of
+ * `QUALITY_TIEBREAK_ORDER_SQL_EX_I` in `db.ts`, which ends on `i.id ASC` for the same reason.
+ */
+export function compareForKeep(a: ScoredImageForBackup, b: ScoredImageForBackup): number {
+    const diff = imageScore(b) - imageScore(a);
+    return diff !== 0 ? diff : a.id - b.id;
 }
 
 /**
@@ -69,7 +83,7 @@ export function applyStackPrefilter(
         }
         const picks = members.filter((m) => m.is_pick);
         const nonPicks = members.filter((m) => !m.is_pick);
-        const sortedNon = [...nonPicks].sort((a, b) => imageScore(b) - imageScore(a));
+        const sortedNon = [...nonPicks].sort(compareForKeep);
         const remainingSlots = Math.max(0, maxKeepPerStack - picks.length);
         const keptNon = sortedNon.slice(0, remainingSlots);
         const rejectedNon = sortedNon.slice(remainingSlots);
@@ -214,7 +228,7 @@ export function pickClusterSurvivors(
 ): { kept: ScoredImageForBackup[]; rejected: ScoredImageForBackup[] } {
     if (cluster.length === 0) return { kept: [], rejected: [] };
 
-    const picks = cluster.filter((img) => img.is_pick);
+    const picks = cluster.filter((img) => img.is_pick).sort(compareForKeep);
     const nonPicks = cluster.filter((img) => !img.is_pick);
     const remainingSlots = Math.max(0, options.maxKeep - picks.length);
 
@@ -222,7 +236,7 @@ export function pickClusterSurvivors(
         return { kept: picks, rejected: [] };
     }
 
-    const sorted = [...nonPicks].sort((a, b) => imageScore(b) - imageScore(a));
+    const sorted = [...nonPicks].sort(compareForKeep);
     const k = Math.min(remainingSlots, sorted.length);
 
     if (k <= 0) {
@@ -281,13 +295,35 @@ export type DedupDeps = {
     fetchEmbeddings: (ids: number[]) => Promise<Map<number, Float32Array>>;
 };
 
+/** Where a survivor sits in its similarity cluster — the input to fleet shard assignment. */
+export type ClusterRank = {
+    /** Stable cluster identity (`cluster:<minMemberId>`). */
+    groupKey: string;
+    /** 0-based rank among the cluster's keepers; 0 is the primary keeper. */
+    rank: number;
+};
+
 export type DedupResult = {
     selectedIds: Set<number>;
     rejectedCount: number;
     warnings: string[];
     /** Aggregate counts for modal / BackupResult. */
     rejectReasons: { stack: number; cluster: number };
+    /** imageId -> its cluster identity and rank. Every selected id is present. */
+    clusterRanks: Map<number, ClusterRank>;
 };
+
+/** Record the keeper order of one cluster into a rank map. */
+function recordClusterRanks(
+    target: Map<number, ClusterRank>,
+    cluster: readonly ScoredImageForBackup[],
+    kept: readonly ScoredImageForBackup[],
+): void {
+    const groupKey = clusterGroupKey(cluster.map((img) => img.id));
+    for (let rank = 0; rank < kept.length; rank++) {
+        target.set(kept[rank].id, { groupKey, rank });
+    }
+}
 
 /**
  * Per-date-group stack pre-filter, batched similarity dedup, and MMR multi-keep per cluster.
@@ -302,6 +338,7 @@ export async function deduplicateByDateGroups(
     onProgress?: DedupProgress,
 ): Promise<DedupResult> {
     const selectedIds = new Set<number>();
+    const clusterRanks = new Map<number, ClusterRank>();
     const warnings: string[] = [];
     let rejectedCount = 0;
     let stackRejected = 0;
@@ -320,7 +357,12 @@ export async function deduplicateByDateGroups(
         const stackedCount = group.filter((img) => img.stack_id != null).length;
         const folderThreshold = computeFolderSimilarityThreshold(group.length, stackedCount, roughFillRatio);
 
-        const { dedupeCandidates, stackRejectedIds } = applyStackPrefilter(group, 2);
+        // Keep at least 2 per real stack (historic behaviour); a fleet-scaled maxPerCluster
+        // raises it so there are enough burst frames left for the drives to divide up.
+        const { dedupeCandidates, stackRejectedIds } = applyStackPrefilter(
+            group,
+            Math.max(2, maxPerCluster),
+        );
         rejectedCount += stackRejectedIds.length;
         stackRejected += stackRejectedIds.length;
 
@@ -348,6 +390,7 @@ export async function deduplicateByDateGroups(
                 embeddings,
             });
             for (const img of kept) selectedIds.add(img.id);
+            recordClusterRanks(clusterRanks, cluster, kept);
             rejectedCount += rejected.length;
             clusterRejected += rejected.length;
         }
@@ -358,6 +401,7 @@ export async function deduplicateByDateGroups(
         rejectedCount,
         warnings,
         rejectReasons: { stack: stackRejected, cluster: clusterRejected },
+        clusterRanks,
     };
 }
 
@@ -371,6 +415,7 @@ export async function applyCrossDayDedup(
     deps: DedupDeps,
 ): Promise<DedupResult> {
     const selectedIds = new Set<number>();
+    const clusterRanks = new Map<number, ClusterRank>();
     const warnings: string[] = [];
     let rejectedCount = 0;
 
@@ -388,7 +433,10 @@ export async function applyCrossDayDedup(
 
     for (const [, bucket] of buckets) {
         if (bucket.length < 2) {
-            for (const img of bucket) selectedIds.add(img.id);
+            for (const img of bucket) {
+                selectedIds.add(img.id);
+                recordClusterRanks(clusterRanks, [img], [img]);
+            }
             continue;
         }
 
@@ -401,7 +449,10 @@ export async function applyCrossDayDedup(
         );
         if (pairResult.error) {
             warnings.push(`Cross-day similarity query failed: ${pairResult.error}`);
-            for (const img of bucket) selectedIds.add(img.id);
+            for (const img of bucket) {
+                selectedIds.add(img.id);
+                recordClusterRanks(clusterRanks, [img], [img]);
+            }
             continue;
         }
 
@@ -416,6 +467,7 @@ export async function applyCrossDayDedup(
                 embeddings,
             });
             for (const img of kept) selectedIds.add(img.id);
+            recordClusterRanks(clusterRanks, cluster, kept);
             rejectedCount += rejected.length;
         }
     }
@@ -425,5 +477,6 @@ export async function applyCrossDayDedup(
         rejectedCount,
         warnings,
         rejectReasons: { stack: 0, cluster: rejectedCount },
+        clusterRanks,
     };
 }

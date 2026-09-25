@@ -43,12 +43,21 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
     const [isRunning, setIsRunning] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [driveOrdinalInput, setDriveOrdinalInput] = useState(1);
+    const [fleetSizeInput, setFleetSizeInput] = useState(1);
+    const [fleetSaving, setFleetSaving] = useState(false);
+    const [fleetError, setFleetError] = useState<string | null>(null);
     const runRef = useRef(false);
 
     useEffect(() => {
         if (isOpen && targetPath) {
             bridge.backupCheckTarget(targetPath)
-                .then(info => setTargetInfo(info))
+                .then(info => {
+                    setTargetInfo(info);
+                    setDriveOrdinalInput(info?.driveOrdinal ?? 1);
+                    setFleetSizeInput(info?.fleetSize ?? 1);
+                    setFleetError(null);
+                })
                 .catch(err => console.error('Failed to check backup target:', err));
 
             queueMicrotask(() => setPreviewLoading(true));
@@ -147,6 +156,36 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
 
     if (!isOpen) return null;
 
+    const fleetDirty = driveOrdinalInput !== (targetInfo?.driveOrdinal ?? 1)
+        || fleetSizeInput !== (targetInfo?.fleetSize ?? 1);
+
+    const fleetInputStyle: React.CSSProperties = {
+        width: 56, padding: '4px 6px', background: '#1e1e1e', color: '#ddd',
+        border: '1px solid #444', borderRadius: 4,
+    };
+
+    /**
+     * Persist the fleet position into the destination's own manifest, then reload the
+     * preview — the tier split depends entirely on this value.
+     */
+    const saveFleetIdentity = () => {
+        setFleetSaving(true);
+        setFleetError(null);
+        bridge.backupSetFleetIdentity(targetPath, driveOrdinalInput, fleetSizeInput)
+            .then(() => bridge.backupCheckTarget(targetPath))
+            .then(info => {
+                setTargetInfo(info);
+                setDriveOrdinalInput(info?.driveOrdinal ?? 1);
+                setFleetSizeInput(info?.fleetSize ?? 1);
+                setPreviewLoading(true);
+                return bridge.backupPreview(targetPath)
+                    .then(p => setPreview(p))
+                    .finally(() => setPreviewLoading(false));
+            })
+            .catch(err => setFleetError(err instanceof Error ? err.message : String(err)))
+            .finally(() => setFleetSaving(false));
+    };
+
     const truncatedPath = targetPath.length > 60 ? targetPath.slice(0, 57) + '...' : targetPath;
     const phaseLabel = PHASE_LABELS[progress.phase] || progress.phase;
     const pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
@@ -216,6 +255,78 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                         </div>
                     )}
 
+                    {!isRunning && !isComplete && !error && !showDeleteConfirm && (
+                        <div style={{
+                            marginBottom: 24, padding: '14px 16px', background: '#252526',
+                            borderRadius: 8, border: '1px solid #333', fontSize: '0.88em', lineHeight: 1.7,
+                        }}>
+                            <div style={{ fontWeight: 600, marginBottom: 4, color: '#ddd' }}>Backup fleet</div>
+                            <div style={{ fontSize: '0.9em', color: '#888', marginBottom: 10 }}>
+                                When several drives share a library that fits on none of them, give each
+                                drive its own number. Every drive still keeps your picks and each burst&rsquo;s
+                                best frame; the remaining frames are split between drives, so the set stores
+                                far more photos overall. Leave the fleet size at 1 for a standalone drive.
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <span>Drive</span>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={fleetSizeInput}
+                                    value={driveOrdinalInput}
+                                    onChange={(e) => setDriveOrdinalInput(
+                                        Math.min(fleetSizeInput, Math.max(1, Math.floor(Number(e.target.value) || 1))),
+                                    )}
+                                    disabled={fleetSaving}
+                                    style={fleetInputStyle}
+                                />
+                                <span>of</span>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={64}
+                                    value={fleetSizeInput}
+                                    onChange={(e) => {
+                                        const size = Math.min(64, Math.max(1, Math.floor(Number(e.target.value) || 1)));
+                                        setFleetSizeInput(size);
+                                        // Shrinking the fleet below this drive's number would otherwise
+                                        // leave an invalid pair that only fails on Save.
+                                        setDriveOrdinalInput((ordinal) => Math.min(ordinal, size));
+                                    }}
+                                    disabled={fleetSaving}
+                                    style={fleetInputStyle}
+                                />
+                                <button
+                                    onClick={saveFleetIdentity}
+                                    disabled={fleetSaving || !fleetDirty}
+                                    title={fleetDirty
+                                        ? 'Write this position into the drive’s manifest'
+                                        : 'Already saved — change a number to enable'}
+                                    style={{
+                                        padding: '5px 14px', borderRadius: 4, border: '1px solid #444',
+                                        background: fleetDirty ? '#0e639c' : '#333',
+                                        color: fleetDirty ? '#fff' : '#777',
+                                        cursor: fleetDirty && !fleetSaving ? 'pointer' : 'default',
+                                    }}
+                                >{fleetSaving ? 'Saving…' : 'Save'}</button>
+                            </div>
+                            {/* A disabled Save reads as broken unless we say what is already stored. */}
+                            <div style={{ marginTop: 8, fontSize: '0.9em' }}>
+                                {fleetError ? (
+                                    <span style={{ color: '#f48771' }}>{fleetError}</span>
+                                ) : fleetDirty ? (
+                                    <span style={{ color: '#ffb74d' }}>Unsaved change — press Save to store it on this drive.</span>
+                                ) : (targetInfo?.fleetSize ?? 1) > 1 ? (
+                                    <span style={{ color: '#9ccc65' }}>
+                                        Saved — this drive is {targetInfo!.driveOrdinal} of {targetInfo!.fleetSize}.
+                                    </span>
+                                ) : (
+                                    <span style={{ color: '#888' }}>Saved — standalone drive (no distribution).</span>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {previewLoading && !isRunning && !isComplete && (
                         <div style={{ marginBottom: 16, fontSize: '0.85em', color: '#888' }}>
                             Analyzing selection and destination…
@@ -232,11 +343,28 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                             <div>Scored candidates: <strong>{preview.candidateCount.toLocaleString()}</strong></div>
                             <div>Planned for this run: <strong>{preview.plannedComputed ? preview.plannedCount.toLocaleString() : 'computed during backup'}</strong></div>
                             <div>Manifest entries: <strong>{preview.manifestCount.toLocaleString()}</strong></div>
-                            {preview.roughFillRatio != null && (
+                            {/* Fast path returns a placeholder 0 — showing it reads as "disk full". */}
+                            {preview.roughFillRatio != null && preview.plannedComputed && (
                                 <div>
                                     Fill ratio: <strong>{preview.roughFillRatio.toFixed(2)}</strong>
                                     {preview.effectiveMaxPerCluster != null && (
                                         <> · max/cluster: <strong>{preview.effectiveMaxPerCluster}</strong></>
+                                    )}
+                                </div>
+                            )}
+                            {(preview.fleetSize ?? 1) > 1 && (
+                                <div style={{ marginTop: 4, color: '#9ccc65' }}>
+                                    Drive <strong>{preview.driveOrdinal}</strong> of{' '}
+                                    <strong>{preview.fleetSize}</strong>
+                                    {preview.plannedComputed ? (
+                                        <>
+                                            {' '}—{' '}
+                                            <strong>{(preview.mirrorCount ?? 0).toLocaleString()}</strong> on every drive,{' '}
+                                            <strong>{(preview.shardCount ?? 0).toLocaleString()}</strong> this drive&rsquo;s slice,{' '}
+                                            <strong>{(preview.offshardCount ?? 0).toLocaleString()}</strong> available as backfill
+                                        </>
+                                    ) : (
+                                        <span style={{ color: '#888' }}> — split computed during backup</span>
                                     )}
                                 </div>
                             )}
@@ -453,6 +581,21 @@ export const BackupModal: React.FC<Props> = ({ isOpen, targetPath, onClose, onCo
                                         <div style={{ color: '#888', fontSize: '0.8em', textTransform: 'uppercase', marginBottom: 4 }}>Errors</div>
                                         <div style={{ fontSize: '1.5em', fontWeight: 600, color: result.errors.length > 0 ? '#ff6b6b' : '#888' }}>{result.errors.length}</div>
                                     </div>
+                                </div>
+                            )}
+
+                            {isComplete && result?.distribution && (
+                                <div style={{
+                                    marginTop: 16, padding: '14px 16px',
+                                    background: 'rgba(156,204,101,0.08)', border: '1px solid rgba(156,204,101,0.35)',
+                                    borderRadius: 8, fontSize: '0.9em', lineHeight: 1.6,
+                                }}>
+                                    <div style={{ fontWeight: 600, color: '#9ccc65', marginBottom: 8 }}>
+                                        Drive {result.distribution.ordinal} of {result.distribution.size}
+                                    </div>
+                                    <div>Kept on every drive: <strong>{result.distribution.mirrored.toLocaleString()}</strong></div>
+                                    <div>This drive&rsquo;s own slice: <strong>{result.distribution.sharded.toLocaleString()}</strong></div>
+                                    <div>Backfilled from other drives&rsquo; slices: <strong>{result.distribution.offshardBackfilled.toLocaleString()}</strong></div>
                                 </div>
                             )}
 

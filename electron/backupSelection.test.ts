@@ -7,10 +7,12 @@ import {
     buildAdjacencyFromPairs,
     computeFolderSimilarityThreshold,
     crossDayBucketKey,
+    deduplicateByDateGroups,
     fetchSimilarPairsBatched,
     findClusters,
     isoWeekKey,
     pickClusterSurvivors,
+    type SimilarPair,
 } from './backupSelection';
 
 function img(
@@ -210,5 +212,121 @@ describe('computeFolderSimilarityThreshold', () => {
         const lowBurst = computeFolderSimilarityThreshold(100, 10, 0.5);
         const highBurst = computeFolderSimilarityThreshold(100, 80, 0.5);
         expect(highBurst).toBeLessThan(lowBurst);
+    });
+});
+
+// ── cluster ranks (fleet shard input) ─────────────────────────
+
+describe('deduplicateByDateGroups cluster ranks', () => {
+    const noPairs = async () => ({ pairs: [] as SimilarPair[] });
+    const noEmbeddings = async () => new Map<number, Float32Array>();
+
+    function scored(id: number, score: number, extra: Partial<ScoredImageForBackup> = {}) {
+        return {
+            id,
+            path: `/p/2024-05-01/${id}.jpg`,
+            file_name: `${id}.jpg`,
+            composite_score: score,
+            image_hash: null,
+            stack_id: null,
+            capture_date: '2024-05-01',
+            ...extra,
+        } as ScoredImageForBackup;
+    }
+
+    it('ranks every survivor and keys the group on the lowest member id', async () => {
+        const group = [scored(7, 0.9), scored(3, 0.8)];
+        const result = await deduplicateByDateGroups(
+            new Map([['2024-05-01', group]]),
+            1,
+            2,
+            0.7,
+            500,
+            { fetchPairs: noPairs, fetchEmbeddings: noEmbeddings },
+        );
+
+        // No pairs returned, so each image is its own single-member cluster.
+        expect(result.clusterRanks.get(7)).toEqual({ groupKey: 'cluster:7', rank: 0 });
+        expect(result.clusterRanks.get(3)).toEqual({ groupKey: 'cluster:3', rank: 0 });
+    });
+
+    it('gives rank 0 to the highest scorer of a cluster', async () => {
+        const group = [scored(1, 0.5), scored(2, 0.9), scored(3, 0.7)];
+        const pairs: SimilarPair[] = [
+            { id_a: 1, id_b: 2, similarity: 0.95 },
+            { id_a: 2, id_b: 3, similarity: 0.95 },
+        ];
+        const result = await deduplicateByDateGroups(
+            new Map([['2024-05-01', group]]),
+            1,
+            3,
+            1,
+            500,
+            { fetchPairs: async () => ({ pairs }), fetchEmbeddings: noEmbeddings },
+        );
+
+        expect(result.clusterRanks.get(2)?.rank).toBe(0);
+        expect(result.clusterRanks.get(3)?.rank).toBe(1);
+        expect(result.clusterRanks.get(1)?.rank).toBe(2);
+        // All three share one cluster identity, keyed on the lowest member id.
+        expect(result.clusterRanks.get(2)?.groupKey).toBe('cluster:1');
+    });
+
+    it('gives rank 0 to a curated pick even when it scores lowest', async () => {
+        const group = [scored(1, 0.95), scored(2, 0.1, { is_pick: true })];
+        const pairs: SimilarPair[] = [{ id_a: 1, id_b: 2, similarity: 0.99 }];
+        const result = await deduplicateByDateGroups(
+            new Map([['2024-05-01', group]]),
+            1,
+            2,
+            1,
+            500,
+            { fetchPairs: async () => ({ pairs }), fetchEmbeddings: noEmbeddings },
+        );
+
+        expect(result.clusterRanks.get(2)?.rank).toBe(0);
+        expect(result.clusterRanks.get(1)?.rank).toBe(1);
+    });
+
+    it('resolves equal scores by id so ranks are stable across runs', async () => {
+        // Shard assignment is derived from rank; array-order ties would reshuffle every
+        // drive's slice between runs and force a full re-copy.
+        const pairs: SimilarPair[] = [
+            { id_a: 4, id_b: 9, similarity: 0.99 },
+            { id_a: 9, id_b: 6, similarity: 0.99 },
+        ];
+        const run = (order: number[]) => deduplicateByDateGroups(
+            new Map([['2024-05-01', order.map((id) => scored(id, 0.8))]]),
+            1,
+            3,
+            1,
+            500,
+            { fetchPairs: async () => ({ pairs }), fetchEmbeddings: noEmbeddings },
+        );
+
+        const a = await run([9, 4, 6]);
+        const b = await run([4, 6, 9]);
+        for (const id of [4, 6, 9]) {
+            expect(a.clusterRanks.get(id)).toEqual(b.clusterRanks.get(id));
+        }
+        expect(a.clusterRanks.get(4)?.rank).toBe(0);
+        expect(a.clusterRanks.get(9)?.rank).toBe(2);
+    });
+
+    it('keeps more than two frames of a real stack when maxPerCluster allows', async () => {
+        // A fleet-scaled maxPerCluster must reach the stack pre-filter, or a burst can never
+        // yield more survivors than a single drive would keep.
+        const burst = [1, 2, 3, 4, 5].map((id) => scored(id, 1 - id * 0.01, { stack_id: 42 }));
+        const result = await deduplicateByDateGroups(
+            new Map([['2024-05-01', burst]]),
+            1,
+            4,
+            1,
+            500,
+            { fetchPairs: noPairs, fetchEmbeddings: noEmbeddings },
+        );
+
+        expect(result.selectedIds.size).toBe(4);
+        expect(result.rejectReasons.stack).toBe(1);
     });
 });

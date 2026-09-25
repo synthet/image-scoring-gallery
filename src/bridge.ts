@@ -427,8 +427,14 @@ function createHttpBridge(): Window['electron'] {
                 roughFillRatio: 1,
                 effectiveMaxPerCluster: 2,
                 wouldRotateOut: 0,
+                driveOrdinal: 1,
+                fleetSize: 1,
+                mirrorCount: 0,
+                shardCount: 0,
+                offshardCount: 0,
             }),
         backupVerifyTarget: () => Promise.resolve(null),
+        backupSetFleetIdentity: () => Promise.reject(new Error('Not available in browser mode')),
         backupRun: () =>
             Promise.resolve({
                 copied: 0,

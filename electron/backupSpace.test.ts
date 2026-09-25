@@ -2,6 +2,8 @@ import path from 'path';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
     analyzeStaleManifestEntries,
+    computeBackupUsableBytes,
+    computeManifestReserveFraction,
     pruneStaleManifestEntries,
     reconcileManifestWithDisk,
     syncStaleBackupEntries,
@@ -9,6 +11,11 @@ import {
     xmpSidecarPath,
     type BackupPlannedItem,
 } from './backupSpace';
+import {
+    clusterGroupKey,
+    placementTier,
+    type FleetIdentity,
+} from './backupDistribution';
 import type { BackupManifest, ScoredImageForBackup } from './types';
 
 vi.mock('fs', () => ({
@@ -38,7 +45,10 @@ function plan(
     score: number,
     sourceSize: number,
     leafFolder: string,
-    opts?: Partial<Pick<BackupPlannedItem, 'skipCopy' | 'skipCopyXmp' | 'sourceXmpSize'>>,
+    opts?: Partial<Pick<
+        BackupPlannedItem,
+        'skipCopy' | 'skipCopyXmp' | 'sourceXmpSize' | 'tier' | 'groupKey' | 'rank'
+    >>,
 ): BackupPlannedItem {
     return {
         img: img(id, score),
@@ -52,6 +62,9 @@ function plan(
         skipCopy: opts?.skipCopy ?? false,
         skipCopyXmp: opts?.skipCopyXmp ?? true,
         leafFolder,
+        tier: opts?.tier ?? 'shard',
+        groupKey: opts?.groupKey ?? `cluster:${id}`,
+        rank: opts?.rank ?? 0,
     };
 }
 
@@ -79,6 +92,51 @@ describe('xmpSidecarPath', () => {
     });
 });
 
+// ── manifest reserve / usable bytes ───────────────────────────
+
+describe('computeManifestReserveFraction', () => {
+    const cap = 265.29 * 1024 ** 3;
+
+    it('is zero when manifest is empty', () => {
+        expect(computeManifestReserveFraction(0, cap)).toBe(0);
+    });
+
+    it('is manifest size divided by capacity', () => {
+        const manifest = cap * 0.999;
+        expect(computeManifestReserveFraction(manifest, cap)).toBeCloseTo(0.999, 5);
+    });
+
+    it('clamps to 1 when manifest exceeds capacity', () => {
+        expect(computeManifestReserveFraction(cap * 1.2, cap)).toBe(1);
+    });
+});
+
+describe('computeBackupUsableBytes', () => {
+    const cap = 1_000_000;
+
+    it('uses all free space when manifest is empty', () => {
+        expect(computeBackupUsableBytes(500_000, cap, 0)).toEqual({
+            usableBytes: 500_000,
+            reserveFraction: 0,
+        });
+    });
+
+    it('reserves manifest bytes and caps by free space', () => {
+        const manifest = 600_000;
+        expect(computeBackupUsableBytes(500_000, cap, manifest)).toEqual({
+            usableBytes: 400_000,
+            reserveFraction: 0.6,
+        });
+    });
+
+    it('returns zero when manifest fills the drive', () => {
+        expect(computeBackupUsableBytes(1_000, cap, cap)).toEqual({
+            usableBytes: 0,
+            reserveFraction: 1,
+        });
+    });
+});
+
 // ── selectPlanProportional ────────────────────────────────────
 
 describe('selectPlanProportional', () => {
@@ -95,16 +153,12 @@ describe('selectPlanProportional', () => {
     });
 
     it('drops lowest-scoring items when space is tight', async () => {
-        // 400 bytes needed, only ~480 usable (500 - 2% of 1000 = 480)
         const items = [
             plan(1, 0.99, 200, 'a'),
             plan(2, 0.5, 200, 'a'),
             plan(3, 0.3, 200, 'a'),
         ];
         const { selected, droppedRelPaths } = await selectPlanProportional(items, 500, 1000);
-        // usable = 500 - 20 = 480. Total needed = 600. fillRatio = 480/600 = 0.8.
-        // Folder 'a' has 3 items → keep ceil(3*0.8)=3 → still 600 > 480.
-        // Overflow phase: sort by score desc, fit greedily → keeps 2 (400 <= 480), drops 1 (600 > 480).
         expect(selected.map(p => p.score)).toEqual(expect.arrayContaining([0.99, 0.5]));
         expect(droppedRelPaths).toHaveLength(1);
     });
@@ -135,10 +189,12 @@ describe('selectPlanProportional', () => {
             plan(1, 0.9, 100, 'a', { skipCopy: true, skipCopyXmp: true }),
             plan(2, 0.5, 1000, 'a'),
         ];
-        const { selected, droppedRelPaths } = await selectPlanProportional(items, 500, capacity);
-        // Skip-copy item is free. Need-copy: 1000 > usable (500 - 20_000 < 0 → clamp to 0).
-        // Actually capacity is 1_000_000, buffer = 20_000. usable = 500 - 20_000 → clamped to 0.
-        // So id2 is dropped.
+        const { selected, droppedRelPaths } = await selectPlanProportional(
+            items,
+            500,
+            capacity,
+            { manifestBytes: capacity - 100 },
+        );
         expect(selected.map(p => p.relPath)).toContain('a/1.jpg');
         expect(droppedRelPaths).toContain('a/2.jpg');
     });
@@ -176,10 +232,9 @@ describe('selectPlanProportional', () => {
         // usable = 400 - buffer(20_000*... let's use small capacity)
         // capacity = 50_000, buffer = 1000. usable = 400 - 1000 → 0 → everything dropped.
         // Let's give enough room for ~4 items:
-        const { selected } = await selectPlanProportional(items, 500, 5_000);
-        // capacity=5000, buffer=100. usable = 500 - 100 = 400. Total = 700. fillRatio = 400/700 ≈ 0.57.
-        // a: ceil(4*0.57)=3, b: ceil(2*0.57)=2, c: max(1, ceil(1*0.57))=1. Guaranteed: 6 items=600.
-        // 600 > 400 → overflow: sort by score desc, greedily fit: 0.95(100), 0.90(200), 0.85(300), 0.80(400). 4 items fit.
+        const { selected, droppedRelPaths } = await selectPlanProportional(items, 500, 5_000, {
+            manifestBytes: 4_600,
+        });
         expect(selected.length).toBe(4);
         // Overflow falls back to global score ranking
         const scores = selected.map(p => p.score).sort((a, b) => b - a);
@@ -193,9 +248,10 @@ describe('selectPlanProportional', () => {
             plan(2, 0.50, 100, 'a'),
             plan(3, 0.80, 100, 'b'),
         ];
-        // capacity = 100_000, buffer = 2000. usable = 50_000 - 2000 = 48_000. Total = 300.
-        // Everything fits in initial check → all kept.
-        const { selected, droppedRelPaths } = await selectPlanProportional(items, 50_000, 100_000);
+        // capacity = 100_000, manifest reserves 98_000 → 2_000 remaining, capped by free 50_000.
+        const { selected, droppedRelPaths } = await selectPlanProportional(items, 50_000, 100_000, {
+            manifestBytes: 98_000,
+        });
         expect(selected).toHaveLength(3);
         expect(droppedRelPaths).toEqual([]);
     });
@@ -298,5 +354,145 @@ describe('reconcileManifestWithDisk', () => {
         expect(m.images).toHaveLength(2);
         expect(m.images.find((e) => e.id === 5)?.size).toBe(11);
         expect(m.images.find((e) => e.id === 0)?.relPath).toMatch(/orphan/i);
+    });
+});
+
+// ── selectPlanProportional: fleet distribution ────────────────
+
+describe('selectPlanProportional (fleet distribution)', () => {
+    /**
+     * A library of `clusters` clusters of `perCluster` frames each. Rank 0 of every cluster
+     * is mirrored; ranks 1+ are sharded. Every item is the same size so budgets are easy to
+     * reason about.
+     */
+    function fleetLibrary(clusters: number, perCluster: number, size: number) {
+        const items: { id: number; groupKey: string; rank: number; isPick: boolean }[] = [];
+        let id = 1;
+        for (let c = 0; c < clusters; c++) {
+            const groupKey = clusterGroupKey([c * 1000]);
+            for (let rank = 0; rank < perCluster; rank++) {
+                items.push({ id: id++, groupKey, rank, isPick: false });
+            }
+        }
+        return items.map((it) => ({ ...it, size }));
+    }
+
+    function planFor(
+        item: { id: number; groupKey: string; rank: number; isPick: boolean; size: number },
+        fleet: FleetIdentity,
+    ): BackupPlannedItem {
+        // Score descends with rank so the per-folder phase keeps cluster leaders first.
+        const score = 1 - item.rank * 0.01;
+        return plan(item.id, score, item.size, `day-${item.groupKey}`, {
+            tier: placementTier(item, fleet),
+            groupKey: item.groupKey,
+            rank: item.rank,
+        });
+    }
+
+    const CAPACITY = 0; // no reserve buffer — budgets below are exact
+
+    it('is unchanged for a standalone drive', async () => {
+        const library = fleetLibrary(20, 4, 10);
+        const solo: FleetIdentity = { ordinal: 1, size: 1 };
+        const withFleet = library.map((it) => planFor(it, solo));
+        const withoutFleet = library.map((it) => planFor(it, solo));
+
+        const a = await selectPlanProportional(withFleet, 300, CAPACITY, {});
+        const b = await selectPlanProportional(withoutFleet, 300, CAPACITY, {});
+
+        expect(a.selected.map((p) => p.relPath).sort())
+            .toEqual(b.selected.map((p) => p.relPath).sort());
+        expect(withFleet.every((p) => p.tier === 'shard')).toBe(true);
+    });
+
+    it('stores more distinct images across the fleet than any single drive holds', async () => {
+        // 40 clusters x 4 frames = 160 candidates of 10 bytes; each drive fits 60.
+        const library = fleetLibrary(40, 4, 10);
+        const perDriveBudget = 600;
+
+        const drives = await Promise.all([1, 2, 3].map(async (ordinal) => {
+            const fleet: FleetIdentity = { ordinal, size: 3 };
+            const { selected } = await selectPlanProportional(
+                library.map((it) => planFor(it, fleet)),
+                perDriveBudget,
+                CAPACITY,
+                {},
+            );
+            return new Set(selected.map((p) => p.relPath));
+        }));
+
+        const union = new Set(drives.flatMap((d) => [...d]));
+        const largestDrive = Math.max(...drives.map((d) => d.size));
+
+        // 40 mirrored leaders + 3 x 20 sharded frames = 100 distinct images, where three
+        // identically-configured drives would together have held only 60.
+        expect(largestDrive).toBe(60);
+        expect(union.size).toBe(100);
+        // Each drive is actually full — distribution must not waste capacity.
+        for (const d of drives) expect(d.size).toBe(60);
+    });
+
+    it('keeps every cluster leader on every drive', async () => {
+        const library = fleetLibrary(30, 4, 10);
+        const leaders = library.filter((it) => it.rank === 0);
+
+        for (const ordinal of [1, 2, 3]) {
+            const fleet: FleetIdentity = { ordinal, size: 3 };
+            const planned = library.map((it) => planFor(it, fleet));
+            const { selected } = await selectPlanProportional(planned, 600, CAPACITY, {});
+            const kept = new Set(selected.map((p) => p.relPath));
+            for (const leader of leaders) {
+                expect(kept.has(`day-${leader.groupKey}/${leader.id}.jpg`)).toBe(true);
+            }
+        }
+    });
+
+    it('backfills leftover space with another drive’s slice', async () => {
+        // One drive with room for everything: it should take offshard items rather than
+        // leave capacity unused.
+        const library = fleetLibrary(10, 4, 10);
+        const fleet: FleetIdentity = { ordinal: 1, size: 3 };
+        const planned = library.map((it) => planFor(it, fleet));
+        const offshardCount = planned.filter((p) => p.tier === 'offshard').length;
+        expect(offshardCount).toBeGreaterThan(0);
+
+        // Budget just short of the whole library, so the "everything fits" shortcut is skipped.
+        const { selected } = await selectPlanProportional(planned, 390, CAPACITY, {});
+        const backfilled = selected.filter((p) => p.tier === 'offshard');
+
+        expect(backfilled.length).toBeGreaterThan(0);
+        expect(selected).toHaveLength(39);
+    });
+
+    it('gives this drive’s own slice priority over another drive’s', async () => {
+        const library = fleetLibrary(10, 4, 10);
+        const fleet: FleetIdentity = { ordinal: 2, size: 3 };
+        const planned = library.map((it) => planFor(it, fleet));
+        const owned = planned.filter((p) => p.tier !== 'offshard');
+
+        // Exactly enough room for the owned tier and nothing more.
+        const { selected } = await selectPlanProportional(
+            planned,
+            owned.length * 10,
+            CAPACITY,
+            {},
+        );
+
+        expect(selected.filter((p) => p.tier === 'offshard')).toHaveLength(0);
+        expect(selected).toHaveLength(owned.length);
+    });
+
+    it('is stable across runs so a drive does not re-copy its slice', async () => {
+        const library = fleetLibrary(25, 4, 10);
+        const fleet: FleetIdentity = { ordinal: 3, size: 3 };
+        const first = await selectPlanProportional(
+            library.map((it) => planFor(it, fleet)), 500, CAPACITY, {},
+        );
+        const second = await selectPlanProportional(
+            library.map((it) => planFor(it, fleet)), 500, CAPACITY, {},
+        );
+        expect(first.selected.map((p) => p.relPath))
+            .toEqual(second.selected.map((p) => p.relPath));
     });
 });
