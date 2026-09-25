@@ -1,25 +1,42 @@
 {
   "_comment": "Copy to .cursor/mcp.json (gitignored). Uses workspaceFolder:image-scoring-gallery for multi-root workspaces. Build: cd mcp-server && npm install && npm run build:registry.",
-  "_comment_fff": "Optional fff file search — project-level only (needs repo cwd). Install: irm https://raw.githubusercontent.com/dmtrKovalenko/fff/main/install-mcp.ps1 | iex. See AGENTS.md § fff.",
+  "_comment_fff": "Optional fff file search \u2014 project-level only (needs repo cwd). Install: irm https://raw.githubusercontent.com/dmtrKovalenko/fff/main/install-mcp.ps1 | iex. See AGENTS.md \u00a7 fff.",
   "mcpServers": {
     "is-ui-mcp": {
       "command": "node",
-      "args": ["mcp-server/dist/compactIndex.js"],
+      "args": [
+        "mcp-server/dist/compactIndex.js"
+      ],
       "cwd": "${workspaceFolder:image-scoring-gallery}"
+    },
+    "llmwiki-ro-core": {
+      "_comment": "Shared evidence-bound LLM Wiki (read/search). Skill: .cursor/skills/llm-wiki/SKILL.md. Root: D:/Projects/synthet-llm-wiki",
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        "D:/Projects/synthet-llm-wiki",
+        "python",
+        "D:/Projects/synthet-llm-wiki/scripts/run_llmwiki_mcp.py"
+      ]
     }
   },
   "_fff_gallery_example": {
     "fff-gallery": {
       "command": "fff-mcp",
-      "args": ["${workspaceFolder:image-scoring-gallery}"],
+      "args": [
+        "${workspaceFolder:image-scoring-gallery}"
+      ],
       "cwd": "${workspaceFolder:image-scoring-gallery}"
     }
   },
   "_graphify_gallery_example": {
-    "_comment": "Optional — graphify-mcp on PATH (uv tool install \"graphifyy[mcp]\") and graphify-out/graph.json (graphify . --code-only). Soft; see AGENTS.md § Graphify and .cursor/skills/graphify/SKILL.md. Copy into mcpServers when enabling.",
+    "_comment": "Optional \u2014 graphify-mcp on PATH (uv tool install \"graphifyy[mcp]\") and graphify-out/graph.json (graphify . --code-only). Soft; see AGENTS.md \u00a7 Graphify and .cursor/skills/graphify/SKILL.md. Copy into mcpServers when enabling.",
     "graphify-gallery": {
       "command": "graphify-mcp",
-      "args": ["graphify-out/graph.json"],
+      "args": [
+        "graphify-out/graph.json"
+      ],
       "cwd": "${workspaceFolder:image-scoring-gallery}"
     }
   }

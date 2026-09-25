@@ -29,7 +29,7 @@ Compact **search + dispatch** is the default gallery agent surface. **Naming:** 
 
 1. Copy [`.cursor/mcp.example.json`](.cursor/mcp.example.json) → **`.cursor/mcp.json`** (gitignored).
 2. `cd mcp-server && npm install && npm run build:registry`
-3. Reload MCP in Cursor.
+3. Reload MCP in Cursor. **`llmwiki-ro-core`** is included for the shared LLM Wiki (`D:\Projects\synthet-llm-wiki`); skill: [`.cursor/skills/llm-wiki/SKILL.md`](.cursor/skills/llm-wiki/SKILL.md).
 
 Both repos use the same Cursor entrypoint pattern: `node ${workspaceFolder}/mcp-server/dist/compactIndex.js`.
 
@@ -50,6 +50,7 @@ dispatch("api.api_health", {})
 |-------------------|-----------|------------------------|
 | **`is-ui-mcp`** | stdio | No — **`search`**, **`dispatch`**, **`sse_status`**; proxies **`live.*` IPC** to SSE when Electron is up |
 | **`is-ui-live`** | SSE (Electron) | Yes — direct live IPC/CDP actions via dispatch |
+| **`llmwiki-ro-core`** | stdio | Shared LLM Wiki read/search — [`.cursor/skills/llm-wiki/SKILL.md`](.cursor/skills/llm-wiki/SKILL.md) |
 
 **Not in default config:** `is-ui-router`, `is-ui-local`, `is-ui-api` (debug entrypoints under `mcp-server/dist/*Index.js` only).
 

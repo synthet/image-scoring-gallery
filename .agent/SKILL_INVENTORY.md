@@ -21,6 +21,7 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | changelog-commit-push | `.cursor/skills/changelog-commit-push/SKILL.md` | CHANGELOG + package.json via `scripts/agent_skills/release_bump.py`; commit/push human-gated | L2 | Yes | 2026-07-26 |
 | commit-conventions | `.cursor/skills/commit-conventions/SKILL.md` | Conventional Commits / PR titles | L1 | — | 2026-04-25 |
 | docs-wiki | `.cursor/skills/docs-wiki/SKILL.md` | OKF-style `docs/` wiki conventions | L1 | — | 2026-06-16 |
+| llm-wiki | `.cursor/skills/llm-wiki/SKILL.md` | Shared evidence-bound LLM Wiki via MCP `llmwiki-ro-core` / CLI | L2 | Yes | 2026-09-21 |
 | eval | `.cursor/skills/eval/SKILL.md` | Capture task quality signals (test_pass_rate / first_try_success / iteration_count) → agent-memory feedback loop | L1 | Yes | 2026-06-19 |
 | gallery-electron-ts | `.cursor/skills/gallery-electron-ts/SKILL.md` | Electron / TS / db contract | L1 | Yes | 2026-07-26 |
 | gallery-ui | `.cursor/skills/gallery-ui/SKILL.md` | Renderer UI, CSS Modules, design tokens | L1 | Yes | 2026-07-26 |
