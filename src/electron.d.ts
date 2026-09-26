@@ -40,6 +40,7 @@ import type {
     FolderRow,
     FsReadDirResult,
     ImageDetail,
+    ImageEyeKeypoints,
     ImagePhaseStatus,
     ImageQueryOptions,
     ImageRow,
@@ -151,6 +152,9 @@ declare global {
             setSingleImageViewOpen: (open: boolean) => Promise<boolean>;
             getShowBoundingBox: () => Promise<boolean>;
             onShowBoundingBoxChanged: (callback: (show: boolean) => void) => () => void;
+            getShowEyes: () => Promise<boolean>;
+            onShowEyesChanged: (callback: (show: boolean) => void) => () => void;
+            getEyeKeypoints: (ids: number[]) => Promise<Record<number, ImageEyeKeypoints>>;
             selectDirectory: () => Promise<string | null>;
             openExternalUrl: (url: string) => Promise<void>;
             getDiagnostics: () => Promise<DiagnosticsReport>;

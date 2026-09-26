@@ -37,6 +37,11 @@ export function registerDbHandlers(deps: DbHandlersDeps): void {
           return result;
       }));
 
+      ipcMain.handle('db:get-eye-keypoints', wrapIpcHandler(async (_, ids: unknown) => {
+          if (!Array.isArray(ids)) throw new Error('ids must be an array of image ids');
+          return await db.getEyeKeypointsBatch(ids.map(Number));
+      }));
+
       ipcMain.handle('db:get-image-phase-statuses', wrapIpcHandler(async (_, id) => {
           return await db.getImagePhaseStatuses(id);
       }));

@@ -3,6 +3,7 @@ import type {
     ImageQueryOptions,
     ImageRow,
     ImageDetail,
+    ImageEyeKeypoints,
     ImageUpdates,
     FolderRow,
     DuplicateResponse,
@@ -72,6 +73,10 @@ contextBridge.exposeInMainWorld('electron', {
     getImageDetails: async (id: number) => {
         const response = await ipcRenderer.invoke('db:get-image-details', id);
         return unwrapEnvelope<ImageDetail | null>(response);
+    },
+    getEyeKeypoints: async (ids: number[]) => {
+        const response = await ipcRenderer.invoke('db:get-eye-keypoints', ids);
+        return unwrapEnvelope<Record<number, ImageEyeKeypoints>>(response);
     },
     getImagePhaseStatuses: async (id: number) => {
         const response = await ipcRenderer.invoke('db:get-image-phase-statuses', id);
@@ -263,6 +268,16 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.on('show-bounding-box-changed', handler);
         return () => {
             ipcRenderer.removeListener('show-bounding-box-changed', handler);
+        };
+    },
+    getShowEyes: async () => {
+        return ipcRenderer.invoke('app:get-show-eyes') as Promise<boolean>;
+    },
+    onShowEyesChanged: (callback: (show: boolean) => void) => {
+        const handler = (_: unknown, show: boolean) => callback(show);
+        ipcRenderer.on('show-eyes-changed', handler);
+        return () => {
+            ipcRenderer.removeListener('show-eyes-changed', handler);
         };
     },
     selectDirectory: async () => {
