@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useDatabase } from './hooks/useDatabase';
 import { useSessionRecorder } from './hooks/useSessionRecorder';
 import AppContent from './AppContent';
-import { AppModeProvider, useAppMode } from './context/AppModeContext';
+import { AppModeProvider } from './context/AppModeProvider';
+import { useAppMode } from './context/AppModeContext';
 import { FsGallery } from './components/FsMode/FsGallery';
 import { bridge } from './bridge';
 import styles from './components/FsMode/FsGallery.module.css';
@@ -16,6 +17,12 @@ function AppShell() {
   const [folderModeBlockedHint, setFolderModeBlockedHint] = useState<string | null>(null);
   const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
   const prevConnected = useRef<boolean | null>(null);
+  const loggedFirstConnection = useRef(false);
+
+  // Latch before committing children so a later disconnect preserves the gallery.
+  if (isConnected && !hasConnectedOnce) {
+    setHasConnectedOnce(true);
+  }
 
   useEffect(() => {
     return bridge.onAppModeChanged((m) => setMode(m));
@@ -24,9 +31,9 @@ function AppShell() {
   // Log only on real transitions (avoids strict-mode double logs and repeated "restored" spam)
   useEffect(() => {
     const was = prevConnected.current;
-    if (isConnected && !hasConnectedOnce) {
+    if (isConnected && !loggedFirstConnection.current) {
       Logger.info('[AppShell] First DB connection established — latching hasConnectedOnce');
-      setHasConnectedOnce(true);
+      loggedFirstConnection.current = true;
     } else if (isConnected && was === false && hasConnectedOnce) {
       Logger.info('[AppShell] DB connection restored after transient disconnect');
     } else if (!isConnected && hasConnectedOnce) {

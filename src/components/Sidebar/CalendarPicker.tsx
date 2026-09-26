@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X, Calendar as CalendarIcon } from 'lucide-react';
 import styles from './CalendarPicker.module.css';
 import { bridge } from '../../bridge';
@@ -28,29 +28,30 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({
     const [isOpen, setIsOpen] = useState(false);
     const activeOpsCount = useOperationStore((s) => s.activeOps.size);
 
-    const fetchDates = useCallback(async () => {
-        try {
-            const opts: {
-                folderId?: number;
-                minRating?: number;
-                colorLabel?: string;
-                keyword?: string;
-            } = {};
-            if (folderId) opts.folderId = folderId;
-            if (minRating && minRating > 0) opts.minRating = minRating;
-            if (colorLabel) opts.colorLabel = colorLabel;
-            if (keyword?.trim()) opts.keyword = keyword.trim();
-            const dates = await bridge.getDatesWithShots(opts);
-            setActiveDates(new Set(dates));
-        } catch (err) {
-            console.error('Failed to fetch active dates:', err);
-        }
-    }, [folderId, minRating, colorLabel, keyword]);
-
-    // Refetch when filters change or when an import/sync operation completes (activeOpsCount drops)
+    // Refetch on filter/operation changes; ignore results from superseded requests.
     useEffect(() => {
-        fetchDates();
-    }, [fetchDates, activeOpsCount]);
+        let cancelled = false;
+        const fetchDates = async () => {
+            try {
+                const opts: {
+                    folderId?: number;
+                    minRating?: number;
+                    colorLabel?: string;
+                    keyword?: string;
+                } = {};
+                if (folderId) opts.folderId = folderId;
+                if (minRating && minRating > 0) opts.minRating = minRating;
+                if (colorLabel) opts.colorLabel = colorLabel;
+                if (keyword?.trim()) opts.keyword = keyword.trim();
+                const dates = await bridge.getDatesWithShots(opts);
+                if (!cancelled) setActiveDates(new Set(dates));
+            } catch (err) {
+                console.error('Failed to fetch active dates:', err);
+            }
+        };
+        void fetchDates();
+        return () => { cancelled = true; };
+    }, [folderId, minRating, colorLabel, keyword, activeOpsCount]);
 
     const daysInMonth = useMemo(() => {
         const year = viewDate.getFullYear();

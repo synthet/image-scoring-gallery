@@ -51,7 +51,7 @@ let sessionLogManager: SessionLogManager | null = null;
 
 let appGalleryMode: 'db' | 'folder' = 'db';
 let appShowBoundingBox = false;
-let isSingleImageViewOpen = false;
+let _isSingleImageViewOpen = false;
 let currentSelectionPath: string | null = null;
 let isBackupRunning = false;
 const syncGuards = createSyncGuards(() => isBackupRunning);
@@ -368,7 +368,7 @@ async function startFullApplication(): Promise<void> {
         getExportContext: () => currentExportImageContext,
         setExportContext: (ctx) => { currentExportImageContext = ctx; },
         getShowBoundingBox: () => appShowBoundingBox,
-        setSingleImageViewOpen: (open) => { isSingleImageViewOpen = open; },
+        setSingleImageViewOpen: (open) => { _isSingleImageViewOpen = open; },
         rebuildApplicationMenu,
     });
 
