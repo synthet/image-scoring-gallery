@@ -373,6 +373,13 @@ function createHttpBridge(): Window['electron'] {
 
         onShowBoundingBoxChanged: noop,
 
+        // Eye keypoints are an Electron-only diagnostic overlay (View > Eyes).
+        getShowEyes: () => Promise.resolve(false),
+
+        onShowEyesChanged: noop,
+
+        getEyeKeypoints: () => Promise.resolve({}),
+
         selectDirectory: () => Promise.resolve(null),
 
         getDiagnostics: async () => {
@@ -529,6 +536,7 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
     getImagesBySubStack: () => Promise.resolve([]),
     getImageDetails: () => Promise.resolve(null),
     getImagePhaseStatuses: () => Promise.resolve([]),
+    getEyeKeypoints: () => Promise.resolve({}),
     updateImageDetails: () => Promise.resolve(false),
     deleteImage: () => Promise.resolve(false),
     deleteFolder: () => Promise.resolve(false),

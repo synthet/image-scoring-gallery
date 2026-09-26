@@ -13,6 +13,8 @@ export type ApplicationMenuDeps = {
     setGalleryMode: (mode: 'db' | 'folder') => void;
     getShowBoundingBox: () => boolean;
     setShowBoundingBox: (show: boolean) => void;
+    getShowEyes: () => boolean;
+    setShowEyes: (show: boolean) => void;
     syncGuards: SyncGuards;
     getIsBackupRunning: () => boolean;
     getExportContext: () => ExportImageContext | null;
@@ -200,6 +202,12 @@ export function createApplicationMenu(deps: ApplicationMenuDeps): { rebuildAppli
                         type: 'checkbox',
                         checked: deps.getShowBoundingBox(),
                         click: (item) => deps.setShowBoundingBox(item.checked),
+                    },
+                    {
+                        label: 'Eyes',
+                        type: 'checkbox',
+                        checked: deps.getShowEyes(),
+                        click: (item) => deps.setShowEyes(item.checked),
                     },
                     { type: 'separator' },
                     {

@@ -12,6 +12,7 @@ export type AppHandlersDeps = {
     getExportContext: () => ExportImageContext | null;
     setExportContext: (context: ExportImageContext | null) => void;
     getShowBoundingBox: () => boolean;
+    getShowEyes: () => boolean;
     setSingleImageViewOpen: (open: boolean) => void;
     rebuildApplicationMenu: () => void;
 };
@@ -38,6 +39,7 @@ export function registerAppHandlers(deps: AppHandlersDeps): void {
     });
 
     ipcMain.handle('app:get-show-bounding-box', () => deps.getShowBoundingBox());
+    ipcMain.handle('app:get-show-eyes', () => deps.getShowEyes());
 
     ipcMain.handle('export:set-current-image-context', async (_, context: ExportImageContext | null) => {
         deps.setExportContext(context);

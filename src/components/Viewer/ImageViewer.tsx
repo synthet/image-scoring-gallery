@@ -3,6 +3,9 @@ import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Searc
 import { SimilarSearchDrawer } from './SimilarSearchDrawer';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
 import { BirdBoxOverlay } from '../Shared/BirdBoxOverlay';
+import { EyeKeypointsOverlay } from '../Shared/EyeKeypointsOverlay';
+import { hasDrawableEyes } from '../Shared/eyeKeypoints';
+import { useEyeKeypoints, useShowEyes } from '../../hooks/useEyeKeypoints';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { apiBaseUrlForExternalOpen } from '../../utils/apiBaseUrlForBrowser';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
@@ -826,6 +829,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [error, setError] = React.useState<string | null>(null);
     const [phaseStatuses, setPhaseStatuses] = React.useState<ImagePhaseStatus[] | null>(null);
     const [showBoundingBox, setShowBoundingBox] = React.useState(false);
+    const showEyes = useShowEyes();
+    const viewerImageIds = React.useMemo(() => [image.id], [image.id]);
+    const eyes = useEyeKeypoints(viewerImageIds, showEyes).get(image.id);
 
     // Follow View > Bounding Box from the main-process menu (also used by the gallery grid).
     useEffect(() => {
@@ -1098,6 +1104,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                             style={{ maxWidth: '100%', maxHeight: '95vh', width: 'auto', height: 'auto', objectFit: 'contain', boxShadow: '0 0 20px rgba(0,0,0,0.5)' }}
                         />
                         {showBoundingBox && image.bird_bbox && <BirdBoxOverlay bbox={image.bird_bbox} />}
+                        {showEyes && hasDrawableEyes(eyes) && <EyeKeypointsOverlay eyes={eyes} size={22} />}
                     </div>
                 ) : (
                     <div style={{ color: '#666' }}>{error || 'Image not found'}</div>

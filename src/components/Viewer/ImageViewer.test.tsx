@@ -50,6 +50,9 @@ type ElectronMock = {
     setSingleImageViewOpen: ReturnType<typeof vi.fn>;
     getShowBoundingBox: ReturnType<typeof vi.fn>;
     onShowBoundingBoxChanged: ReturnType<typeof vi.fn>;
+    getShowEyes: ReturnType<typeof vi.fn>;
+    onShowEyesChanged: ReturnType<typeof vi.fn>;
+    getEyeKeypoints: ReturnType<typeof vi.fn>;
     api: {
         propagateTags: ReturnType<typeof vi.fn>;
         fixImageMetadata: ReturnType<typeof vi.fn>;
@@ -94,6 +97,9 @@ function makeElectronMock(overrides: Partial<ElectronMock> = {}): ElectronMock {
         setSingleImageViewOpen: vi.fn().mockResolvedValue(true),
         getShowBoundingBox: vi.fn().mockResolvedValue(false),
         onShowBoundingBoxChanged: vi.fn().mockReturnValue(() => {}),
+        getShowEyes: vi.fn().mockResolvedValue(false),
+        onShowEyesChanged: vi.fn().mockReturnValue(() => {}),
+        getEyeKeypoints: vi.fn().mockResolvedValue({}),
         api: {
             propagateTags: vi.fn().mockResolvedValue({
                 success: true,
@@ -546,5 +552,60 @@ describe('ImageViewer bird bounding box', () => {
 
         expect(await screen.findByText('Bird Detection')).not.toBeNull();
         expect(screen.getByText('91%')).not.toBeNull();
+    });
+});
+
+describe('ImageViewer eye keypoints', () => {
+    let electron: ElectronMock;
+
+    beforeEach(async () => {
+        const { clearEyeKeypointsCacheForTests } = await import('../../hooks/useEyeKeypoints');
+        clearEyeKeypointsCacheForTests();
+        electron = makeElectronMock();
+        (window as unknown as { electron: ElectronMock }).electron = electron;
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            blob: async () => new Blob(['preview'], { type: 'image/jpeg' }),
+        }));
+    });
+
+    afterEach(() => {
+        (window as unknown as { electron?: ElectronMock }).electron = undefined;
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    it('draws both eyes when View > Eyes is on', async () => {
+        electron.getShowEyes.mockResolvedValue(true);
+        electron.getImageDetails.mockResolvedValue({ ...baseImage });
+        electron.getEyeKeypoints.mockResolvedValue({
+            [baseImage.id]: {
+                display_width: 6000,
+                display_height: 4000,
+                points: [
+                    { name: 'left_eye', x: 0.5, y: 0.3, confidence: 0.95 },
+                    { name: 'right_eye', x: 0.55, y: 0.31, confidence: 0.4 },
+                ],
+            },
+        });
+
+        render(
+            <ImageViewer image={baseImage} onClose={vi.fn()} allImages={[baseImage]} currentIndex={0} />,
+        );
+
+        const markers = await screen.findAllByTestId('eye-keypoint-marker');
+        expect(markers).toHaveLength(2);
+        expect(markers[0].style.left).toBe('50%');
+        expect(electron.getEyeKeypoints).toHaveBeenCalledWith([baseImage.id]);
+    });
+
+    it('does not fetch keypoints while the toggle is off', async () => {
+        electron.getImageDetails.mockResolvedValue({ ...baseImage });
+        render(
+            <ImageViewer image={baseImage} onClose={vi.fn()} allImages={[baseImage]} currentIndex={0} />,
+        );
+
+        await waitFor(() => expect(electron.getImageDetails).toHaveBeenCalled());
+        expect(electron.getEyeKeypoints).not.toHaveBeenCalled();
+        expect(screen.queryByTestId('eye-keypoint-marker')).toBeNull();
     });
 });
