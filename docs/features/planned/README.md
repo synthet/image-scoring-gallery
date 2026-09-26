@@ -4,7 +4,7 @@ title: "Planned Features"
 description: "Documentation for features not yet implemented."
 resource: "docs/features/planned/README.md"
 tags: ["features", "gallery-docs", "index", "planned"]
-timestamp: 2026-06-16T00:00:00Z
+timestamp: 2026-09-25T00:00:00Z
 ---
 
 # Planned Features
@@ -15,5 +15,7 @@ Documentation for features not yet implemented.
 - [Embedding Applications](embeddings/README.md) - AI-powered similarity search, duplicate detection, tag propagation, and more (8 specs)
 - [Single Bird Species per Image (BioCLIP top‑1)](species-conflict-resolution.md) - Assign exactly one `species:*` keyword per bird image — the BioCLIP 2 max-score result; backend `top_k=1` default + backfill
 - [Burst Culling Explainability](burst-culling-explainability.md) - Best-frame star, "nearly tied" badge, sub-bursts, score breakdown with reasons, client-side Adjust scoring, diagnostic overlays, compare + zoom-to-eye, species suggestions (depends on backend localization Stage 5–6)
+
+- [Human Culling Labelling Mode](human-culling-labelling-mode.md) - Blind pick/keep/reject + best frame over the backend's sampled groups, flip-compare loupe, saves to `human_labels` (backend #415)
 
 [← Back to Features](../README.md)
