@@ -1,0 +1,44 @@
+{
+  "_comment": "Jev agent harness config for image-scoring-gallery (no secrets). Hooks run the sibling backend harness: ../image-scoring-backend/scripts/agent_harness. Modes per decision: off | shadow | on; JEV_HARNESS_MODE env overrides all. Docs: https://github.com/synthet/image-scoring-backend/blob/master/docs/technical/JEV_AGENT_HARNESS.md",
+  "model": "jev-1.13.0",
+  "timeout_seconds": 4,
+  "max_calls_per_session": 150,
+  "min_confidence": 0.5,
+  "permission_deny_threshold": 0.8,
+  "permission_ask_threshold": 0.6,
+  "sensitivity_threshold": 0.6,
+  "decisions": {
+    "context": "on",
+    "permission": "shadow",
+    "review_sensitivity": "on",
+    "route": "on",
+    "subgoal_dedup": "on",
+    "tool_rerank": "on"
+  },
+  "restricted_globs": ["config.json", "environment.json"],
+  "standard_globs": ["api-contract/**", "public/**"],
+  "inspect_skip": [
+    "scripts/sync_assistant_trees.py",
+    "scripts/check-type-sync.mjs",
+    "scripts/sync-api-contract.mjs"
+  ],
+  "packs": {
+    "external-cli-subagents": {"triggers": ["codex", "gemini", "external review", "subagent", "second opinion", "tie-?breaker"]},
+    "graphify": {"triggers": ["graphify", "architecture", "how does .* connect", "god node", "dependency graph", "subsystem map"]},
+    "documentation": {"triggers": ["\\bdocs?\\b", "wiki", "okf", "documentation", "readme"]},
+    "changelog-commit-push": {"triggers": ["changelog", "release", "version bump", "\\bship\\b", "publish"]},
+    "gallery-ui-design": {"triggers": ["\\bui\\b", "\\bcss\\b", "style", "design token", "component", "layout", "theme"]},
+    "implementation": {"triggers": ["implement", "refactor", "\\bfix\\b", "add (a|an|the) "]},
+    "review-and-ci": {"triggers": ["\\bci\\b", "workflow", "merge", "pr-ready", "github actions", "failing check", "lint"]},
+    "spec-and-planning": {"triggers": ["\\bspec\\b", "\\bplan\\b", "acceptance criteria", "design note", "roadmap"]},
+    "footguns-electron": {"triggers": ["electron", "\\bipc\\b", "preload", "main process", "\\bsync\\b", "import", "tombstone", "db\\.ts", "\\bsql\\b", "postgres"]},
+    "footguns-export": {"triggers": ["export", "\\bjpe?g\\b", "exif", "orientation", "upside.down", "\\bnef\\b", "\\braw\\b", "preview"]}
+  },
+  "route": {
+    "_comment": "Illustrative list prices (USD per 1M tokens) from the Jev design note; update to current pricing before relying on absolute numbers.",
+    "frontier": {"input": 5, "output": 25},
+    "delegate": {"input": 3, "output": 15},
+    "chars_per_token": 4,
+    "leave_frontier_threshold": 0.7
+  }
+}

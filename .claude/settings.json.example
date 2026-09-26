@@ -1,24 +1,97 @@
 {
-  "_comment": "Claude Code MCP: copy .mcp.json.example → .mcp.json. Enable compact tools only (search/dispatch/sse_status). Backend triage via sibling is-be-mcp.",
+  "_comment": "Claude Code MCP: copy .mcp.json.example → .mcp.json. Enable compact tools only (search/dispatch/sse_status). Backend triage via sibling is-be-mcp. Hooks run the Jev agent harness from the sibling backend — see .claude/HOOKS.md.",
   "permissions": {
     "allow": [
       "mcp__is-ui-mcp__search",
       "mcp__is-ui-mcp__dispatch",
-      "mcp__is-ui-mcp__sse_status"
+      "mcp__is-ui-mcp__sse_status",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(rg:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run doctor:*)",
+      "Bash(npx tsc --noEmit:*)",
+      "Bash(npx tsc -p electron/tsconfig.json --noEmit:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(npm run test:run:*)",
+      "Bash(python scripts/sync_assistant_trees.py --check)",
+      "Bash(python scripts/ci/check_agent_frontmatter.py)",
+      "Bash(python scripts/ci/check_secrets.py)",
+      "Bash(python ../image-scoring-backend/scripts/agent_harness/cli.py:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:localhost)",
+      "WebFetch(domain:127.0.0.1)"
+    ],
+    "ask": [
+      "Read(./config.json)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(rm -rf:*)"
+    ],
+    "deny": [
+      "Read(./secrets.json)",
+      "Read(**/secrets.json)",
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./environment.json)",
+      "Read(~/.ssh/**)",
+      "Edit(./.git/config)",
+      "Bash(git config extensions.worktreeConfig:*)"
+    ],
+    "additionalDirectories": [
+      "../image-scoring-backend"
     ]
   },
-  "enabledMcpjsonServers": ["is-ui-mcp"],
-  "disabledMcpjsonServers": [
-    "playwright",
-    "imgscore-el-playwright",
-    "imgscore-el-chrome-devtools",
-    "is-ui-router",
-    "is-ui-local",
-    "is-ui-api",
-    "is-ui-live",
-    "is-ui-full"
-  ],
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" && python \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" user-prompt --repo \"$CLAUDE_PROJECT_DIR\" || true",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" && python \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" session-compact --repo \"$CLAUDE_PROJECT_DIR\" || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" && python \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" pre-bash --repo \"$CLAUDE_PROJECT_DIR\" || true",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*__run_subagent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" && python \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" pre-review --repo \"$CLAUDE_PROJECT_DIR\" || true",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Bash",
@@ -30,5 +103,18 @@
         ]
       }
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "is-ui-mcp"
+  ],
+  "disabledMcpjsonServers": [
+    "playwright",
+    "imgscore-el-playwright",
+    "imgscore-el-chrome-devtools",
+    "is-ui-router",
+    "is-ui-local",
+    "is-ui-api",
+    "is-ui-live",
+    "is-ui-full"
+  ]
 }
