@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import type { AgentCullRecommendation } from '../../types/agentCullReview';
@@ -15,10 +15,16 @@ const {
     revealInExplorerMock,
     getShowBoundingBoxMock,
     onShowBoundingBoxChangedMock,
+    getShowEyesMock,
+    onShowEyesChangedMock,
+    getEyeKeypointsMock,
 } = vi.hoisted(() => ({
     revealInExplorerMock: vi.fn().mockResolvedValue(true),
     getShowBoundingBoxMock: vi.fn().mockResolvedValue(false),
     onShowBoundingBoxChangedMock: vi.fn().mockReturnValue(() => {}),
+    getShowEyesMock: vi.fn().mockResolvedValue(false),
+    onShowEyesChangedMock: vi.fn().mockReturnValue(() => {}),
+    getEyeKeypointsMock: vi.fn().mockResolvedValue({}),
 }));
 
 vi.mock('../../bridge', () => ({
@@ -26,6 +32,9 @@ vi.mock('../../bridge', () => ({
         revealInExplorer: revealInExplorerMock,
         getShowBoundingBox: getShowBoundingBoxMock,
         onShowBoundingBoxChanged: onShowBoundingBoxChangedMock,
+        getShowEyes: getShowEyesMock,
+        onShowEyesChanged: onShowEyesChangedMock,
+        getEyeKeypoints: getEyeKeypointsMock,
     },
 }));
 
@@ -315,5 +324,69 @@ describe('GalleryGrid bird bounding box', () => {
 
         await screen.findByText('DSC_2013.NEF');
         expect(screen.queryByTestId('bird-bbox-overlay')).toBeNull();
+    });
+});
+
+describe('GalleryGrid eye keypoints', () => {
+    const image = {
+        id: 3001,
+        file_path: 'D:/Photos/DSC_3001.NEF',
+        file_name: 'DSC_3001.NEF',
+        thumbnail_path: 'D:/photos/thumbs/DSC_3001.jpg',
+        score_general: 0.7,
+        rating: 3,
+        label: 'Green',
+        bird_bbox: null,
+    };
+    const eyes = {
+        display_width: 6000,
+        display_height: 4000,
+        points: [{ name: 'left_eye' as const, x: 0.25, y: 0.4, confidence: 0.9 }],
+    };
+
+    beforeEach(async () => {
+        const { clearEyeKeypointsCacheForTests } = await import('../../hooks/useEyeKeypoints');
+        clearEyeKeypointsCacheForTests();
+        getShowEyesMock.mockReset();
+        getShowEyesMock.mockResolvedValue(false);
+        onShowEyesChangedMock.mockReset();
+        onShowEyesChangedMock.mockReturnValue(() => {});
+        getEyeKeypointsMock.mockReset();
+        getEyeKeypointsMock.mockResolvedValue({ 3001: eyes });
+    });
+
+    it('draws eye markers as fractions of the display frame when View > Eyes is on', async () => {
+        getShowEyesMock.mockResolvedValue(true);
+        render(<GalleryGrid images={[image]} />);
+
+        const marker = await screen.findByTestId('eye-keypoint-marker');
+        expect(marker.style.left).toBe('25%');
+        expect(marker.style.top).toBe('40%');
+        expect(getEyeKeypointsMock).toHaveBeenCalledWith([3001]);
+    });
+
+    it('does not fetch or draw while the toggle is off, then draws when the menu turns it on', async () => {
+        let notify: ((show: boolean) => void) | undefined;
+        onShowEyesChangedMock.mockImplementation((cb: (show: boolean) => void) => {
+            notify = cb;
+            return () => {};
+        });
+        render(<GalleryGrid images={[image]} />);
+
+        await screen.findByText('DSC_3001.NEF');
+        expect(getEyeKeypointsMock).not.toHaveBeenCalled();
+        expect(screen.queryByTestId('eye-keypoint-marker')).toBeNull();
+
+        act(() => notify!(true));
+        expect(await screen.findByTestId('eye-keypoint-marker')).not.toBeNull();
+    });
+
+    it('draws nothing for images without keypoints', async () => {
+        getShowEyesMock.mockResolvedValue(true);
+        getEyeKeypointsMock.mockResolvedValue({});
+        render(<GalleryGrid images={[image]} />);
+
+        await waitFor(() => expect(getEyeKeypointsMock).toHaveBeenCalled());
+        expect(screen.queryByTestId('eye-keypoint-marker')).toBeNull();
     });
 });

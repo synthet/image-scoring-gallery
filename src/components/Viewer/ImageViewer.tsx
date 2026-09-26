@@ -3,6 +3,9 @@ import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Searc
 import { SimilarSearchDrawer } from './SimilarSearchDrawer';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
 import { BirdBoxOverlay } from '../Shared/BirdBoxOverlay';
+import { EyeKeypointsOverlay } from '../Shared/EyeKeypointsOverlay';
+import { hasDrawableEyes } from '../Shared/eyeKeypoints';
+import { useEyeKeypoints, useShowEyes } from '../../hooks/useEyeKeypoints';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { apiBaseUrlForExternalOpen } from '../../utils/apiBaseUrlForBrowser';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
@@ -297,7 +300,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         } finally {
             setFixMetadataBusy(false);
         }
-    }, [addNotification, bridge, image.file_path, image.id]);
+    }, [addNotification, image.file_path, image.id]);
     
     const handleOpenBackend = useCallback(async () => {
         try {
@@ -308,7 +311,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             console.error('[ImageViewer] Failed to open backend URL:', err);
             addNotification('Failed to open backend detail view', 'error');
         }
-    }, [bridge, image.id, addNotification]);
+    }, [image.id, addNotification]);
 
     useKeyboardLayer('drawer', useCallback((e: KeyboardEvent) => {
         if (e.key === 'Escape') {
@@ -347,7 +350,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 setDetailsError(null);
             }
         }
-    }, [currentIndex, allImages, initialImage]);
+    }, [currentIndex, allImages, initialImage, readOnlyFilesystemMode]);
 
     // Fetch full details
     useEffect(() => {
@@ -507,7 +510,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         fetchExif();
         return () => { active = false; };
     }, [
-        image.id, serverFsPath, image.exif_iso, image.exif_shutter,
+        image.id, serverFsPath, readOnlyFilesystemMode, image.exif_iso, image.exif_shutter,
         image.exif_aperture, image.exif_focal_length, image.exif_model, image.exif_lens_model
     ]);
 
@@ -826,6 +829,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [error, setError] = React.useState<string | null>(null);
     const [phaseStatuses, setPhaseStatuses] = React.useState<ImagePhaseStatus[] | null>(null);
     const [showBoundingBox, setShowBoundingBox] = React.useState(false);
+    const showEyes = useShowEyes();
+    const viewerImageIds = React.useMemo(() => [image.id], [image.id]);
+    const eyes = useEyeKeypoints(viewerImageIds, showEyes).get(image.id);
 
     // Follow View > Bounding Box from the main-process menu (also used by the gallery grid).
     useEffect(() => {
@@ -1098,6 +1104,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                             style={{ maxWidth: '100%', maxHeight: '95vh', width: 'auto', height: 'auto', objectFit: 'contain', boxShadow: '0 0 20px rgba(0,0,0,0.5)' }}
                         />
                         {showBoundingBox && image.bird_bbox && <BirdBoxOverlay bbox={image.bird_bbox} />}
+                        {showEyes && hasDrawableEyes(eyes) && <EyeKeypointsOverlay eyes={eyes} size={22} />}
                     </div>
                 ) : (
                     <div style={{ color: '#666' }}>{error || 'Image not found'}</div>

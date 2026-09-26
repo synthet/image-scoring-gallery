@@ -77,6 +77,9 @@ import { GalleryThumbnail } from './GalleryThumbnail';
 import { ThumbnailPlaceholder } from './ThumbnailPlaceholder';
 import { BirdBoxOverlay } from '../Shared/BirdBoxOverlay';
 import { isDrawableBirdBbox } from '../Shared/birdBboxStyle';
+import { EyeKeypointsOverlay } from '../Shared/EyeKeypointsOverlay';
+import { hasDrawableEyes } from '../Shared/eyeKeypoints';
+import { useEyeKeypoints, useShowEyes } from '../../hooks/useEyeKeypoints';
 import type { BirdBoundingBox } from '../../../electron/types';
 
 interface GalleryGridProps {
@@ -204,6 +207,9 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     const virtuosoRef = useRef<VirtuosoGridHandle>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, image: Image } | null>(null);
     const [showBoundingBox, setShowBoundingBox] = useState(false);
+    const showEyes = useShowEyes();
+    const imageIds = useMemo(() => images.map((img) => img.id), [images]);
+    const eyeKeypoints = useEyeKeypoints(imageIds, showEyes);
 
     // Escape key handler for parent navigation (only when viewer is closed)
     useKeyboardLayer('page', useCallback((e: KeyboardEvent) => {
@@ -367,19 +373,20 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
             />
         );
         const bbox = showBoundingBox && isDrawableBirdBbox(img.bird_bbox) ? img.bird_bbox : null;
-        if (!bbox) return thumb;
+        const eyes = showEyes ? eyeKeypoints.get(img.id) : undefined;
+        const drawEyes = hasDrawableEyes(eyes);
+        if (!bbox && !drawEyes) return thumb;
+        const aspectRatio = bbox ? `${bbox.img_w} / ${bbox.img_h}` : `${eyes!.display_width} / ${eyes!.display_height}`;
         return (
             <div className={styles.thumbFit}>
-                <div
-                    className={styles.thumbContent}
-                    style={{ aspectRatio: `${bbox.img_w} / ${bbox.img_h}` }}
-                >
+                <div className={styles.thumbContent} style={{ aspectRatio }}>
                     {thumb}
-                    <BirdBoxOverlay bbox={bbox} />
+                    {bbox && <BirdBoxOverlay bbox={bbox} />}
+                    {drawEyes && <EyeKeypointsOverlay eyes={eyes!} size={10} />}
                 </div>
             </div>
         );
-    }, [useGalleryThumbnail, showBoundingBox]);
+    }, [useGalleryThumbnail, showBoundingBox, showEyes, eyeKeypoints]);
 
     const renderImageCard = useCallback((img: Image, onClick: () => void, showPickRejectStatus = false) => {
         const labelColor = getLabelColor(img.label);

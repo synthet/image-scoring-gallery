@@ -51,7 +51,7 @@ let sessionLogManager: SessionLogManager | null = null;
 
 let appGalleryMode: 'db' | 'folder' = 'db';
 let appShowBoundingBox = false;
-let _isSingleImageViewOpen = false;
+let appShowEyes = false;
 let currentSelectionPath: string | null = null;
 let isBackupRunning = false;
 const syncGuards = createSyncGuards(() => isBackupRunning);
@@ -107,6 +107,14 @@ function setShowBoundingBoxAndNotify(show: boolean) {
     }
 }
 
+function setShowEyesAndNotify(show: boolean) {
+    appShowEyes = show;
+    rebuildApplicationMenu();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('show-eyes-changed', show);
+    }
+}
+
 function initApplicationMenu(): void {
     ({ rebuildApplicationMenu } = createApplicationMenu({
         getMainWindow: () => mainWindow,
@@ -116,6 +124,8 @@ function initApplicationMenu(): void {
         setGalleryMode: setGalleryModeAndNotify,
         getShowBoundingBox: () => appShowBoundingBox,
         setShowBoundingBox: setShowBoundingBoxAndNotify,
+        getShowEyes: () => appShowEyes,
+        setShowEyes: setShowEyesAndNotify,
         syncGuards,
         getIsBackupRunning: () => isBackupRunning,
         getExportContext: () => currentExportImageContext,
@@ -368,7 +378,7 @@ async function startFullApplication(): Promise<void> {
         getExportContext: () => currentExportImageContext,
         setExportContext: (ctx) => { currentExportImageContext = ctx; },
         getShowBoundingBox: () => appShowBoundingBox,
-        setSingleImageViewOpen: (open) => { _isSingleImageViewOpen = open; },
+        getShowEyes: () => appShowEyes,
         rebuildApplicationMenu,
     });
 
