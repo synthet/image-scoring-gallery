@@ -4,7 +4,8 @@ title: "Planning"
 description: "Roadmap, migration plans, and task tracking."
 resource: "docs/planning/README.md"
 tags: ["gallery-docs", "index", "planning"]
-timestamp: 2026-06-16T00:00:00Z
+timestamp: 2026-09-25T18:00:00Z
+okf_version: 0.1
 ---
 
 # Planning
@@ -20,6 +21,7 @@ Roadmap, migration plans, and task tracking.
 - [Gallery visual improvements](GALLERY_VISUAL_IMPROVEMENTS.md) - UI polish and layout backlog
 - [DB abstraction layer](db_abstraction_layer.md) - Electron DB provider refactor notes
 - [Codebase size refactor plan](CODEBASE_SIZE_REFACTOR_PLAN.md) - Phased LoC reduction checklist (audit-driven; pairs with backend plan)
+- [Evidence-led review workflow improvement candidates](reference-workflow-improvement-candidates.md) - Clean-room proposal for comparison, progressive evidence, close calls, reversible actions, diagnostics, accessibility, and large-library performance
 
 [← Back to Documentation Index](../README.md)
 
