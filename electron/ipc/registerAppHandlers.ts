@@ -13,7 +13,6 @@ export type AppHandlersDeps = {
     setExportContext: (context: ExportImageContext | null) => void;
     getShowBoundingBox: () => boolean;
     getShowEyes: () => boolean;
-    setSingleImageViewOpen: (open: boolean) => void;
     rebuildApplicationMenu: () => void;
 };
 
@@ -31,9 +30,8 @@ export function registerAppHandlers(deps: AppHandlersDeps): void {
 
     ipcMain.handle('app:get-gallery-mode', () => deps.getGalleryMode());
 
-    // Renderer reports single-image viewer open/close (kept for future menu state; Bounding Box is always enabled).
-    ipcMain.handle('app:set-viewer-open', async (_, open: unknown) => {
-        deps.setSingleImageViewOpen(Boolean(open));
+    // Keep the viewer-open notification contract; the menu has no viewer-only state today.
+    ipcMain.handle('app:set-viewer-open', async () => {
         rebuildApplicationMenu();
         return true;
     });
