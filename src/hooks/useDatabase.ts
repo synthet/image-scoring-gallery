@@ -521,13 +521,14 @@ export function useStacks(
         enabled,
     );
 
+    const { removeItemsWhere } = result;
     const removeStackByImageId = React.useCallback(
         (imageId: number) => {
-            result.removeItemsWhere(
+            removeItemsWhere(
                 (item) => item.id === imageId || item.rep_image_id === imageId,
             );
         },
-        [result.removeItemsWhere],
+        [removeItemsWhere],
     );
 
     return {

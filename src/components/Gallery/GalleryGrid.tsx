@@ -75,7 +75,8 @@ import type { Folder } from '../Tree/treeUtils';
 import { Folder as FolderIcon, Layers, AlertTriangle } from 'lucide-react';
 import { GalleryThumbnail } from './GalleryThumbnail';
 import { ThumbnailPlaceholder } from './ThumbnailPlaceholder';
-import { BirdBoxOverlay, isDrawableBirdBbox } from '../Shared/BirdBoxOverlay';
+import { BirdBoxOverlay } from '../Shared/BirdBoxOverlay';
+import { isDrawableBirdBbox } from '../Shared/birdBboxStyle';
 import type { BirdBoundingBox } from '../../../electron/types';
 
 interface GalleryGridProps {

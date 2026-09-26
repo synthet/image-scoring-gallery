@@ -52,6 +52,7 @@ function AppContent() {
   const [smartCoverEnabled, setSmartCoverEnabled] = useState(false);
   /** After first folder load in browser, restore session once so the next persist sees hydrated state. */
   const [browserSessionReady, setBrowserSessionReady] = useState(() => !isBrowserPersistenceEnabled());
+  const [browserSnapshot] = useState(readGalleryBrowserSnapshot);
   const activeOps = useOperationStore((s) => s.activeOps);
 
   useEffect(() => {
@@ -81,12 +82,10 @@ function AppContent() {
     };
   }, []);
 
-  useEffect(() => {
-    const sortBy = filters.sortBy;
-    if (!sortBy) return;
-    if (isSortOptionValue(sortBy, sortOptions)) return;
+  // Normalize before children query with a sort option removed by the backend.
+  if (filters.sortBy && filters.sortBy !== 'score_general' && !isSortOptionValue(filters.sortBy, sortOptions)) {
     setFilters((prev) => ({ ...prev, sortBy: 'score_general' }));
-  }, [filters.sortBy, sortOptions]);
+  }
 
   const { folders, loading: foldersLoading, refresh: refreshFolders } = useFolders();
   const { keywords, loading: keywordsLoading, fetch: fetchKeywords } = useKeywords();
@@ -256,10 +255,10 @@ function AppContent() {
     return () => window.removeEventListener('focus', onFocus);
   }, [toolView, queryFilters, subfolderIds, totalCount, refreshGallery]);
 
-  useEffect(() => {
-    if (!isBrowserPersistenceEnabled()) return;
-    if (foldersLoading || browserSessionReady) return;
-    const snap = readGalleryBrowserSnapshot();
+  // These setters belong to this component (including its custom hooks).
+  // Restore once before committing children or persisting the hydrated session.
+  if (!foldersLoading && !browserSessionReady) {
+    const snap = browserSnapshot;
     if (snap) {
       setFilters(snap.filters);
       setSmartCoverEnabled(snap.smartCoverEnabled);
@@ -284,7 +283,7 @@ function AppContent() {
       }
     }
     setBrowserSessionReady(true);
-  }, [foldersLoading, folders, browserSessionReady, setActiveStackInfo, setActiveSubStackId, setActiveSubStackInfo, setActiveUngroupedSubStack, setStacksMode]);
+  }
 
   useEffect(() => {
     if (!isBrowserPersistenceEnabled() || !browserSessionReady) return;
@@ -568,6 +567,9 @@ function AppContent() {
     setSubStacks,
     setStackImages,
     setSubStackImages,
+    setSelectedFolderId,
+    setIncludeSubfolders,
+    setActiveStackId,
   ]);
 
   const canGalleryNavigateBack = useMemo(
