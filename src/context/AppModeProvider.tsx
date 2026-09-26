@@ -1,17 +1,6 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { bridge, setGalleryAppMode } from '../bridge';
-
-export type GalleryAppMode = 'db' | 'folder';
-
-interface AppModeContextValue {
-    mode: GalleryAppMode;
-    setMode: (m: GalleryAppMode) => void;
-    /** Resolves true when the host switched to folder mode (Electron IPC succeeded). */
-    enterFolderMode: () => Promise<boolean>;
-    exitFolderMode: () => Promise<void>;
-}
-
-const AppModeContext = createContext<AppModeContextValue | null>(null);
+import { AppModeContext, type GalleryAppMode } from './AppModeContext';
 
 export function AppModeProvider({ children }: { children: React.ReactNode }) {
     const [mode, setModeState] = useState<GalleryAppMode>('db');
@@ -58,12 +47,4 @@ export function AppModeProvider({ children }: { children: React.ReactNode }) {
     );
 
     return <AppModeContext.Provider value={value}>{children}</AppModeContext.Provider>;
-}
-
-export function useAppMode(): AppModeContextValue {
-    const ctx = useContext(AppModeContext);
-    if (!ctx) {
-        throw new Error('useAppMode must be used within AppModeProvider');
-    }
-    return ctx;
 }

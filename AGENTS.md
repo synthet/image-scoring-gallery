@@ -198,7 +198,7 @@ See [`.cursor/mcp.example.json`](.cursor/mcp.example.json) and [`.graphifyignore
 |---------|-----------|-------|
 | Vite dev server | `npm run dev:web` | Serves React UI on `http://localhost:5173` |
 | Electron app | `ELECTRON_IS_DEV=1 npx electron .` | Requires Vite running first; compile TS with `npx tsc -p electron/tsconfig.json` before launching |
-| Lint | `npm run lint` | Baseline debt (~70+ errors); CI runs ESLint non-blocking; keep touched files lint-clean |
+| Lint | `npm run lint` | Blocking CI gate: zero errors required; existing warnings remain non-blocking; keep touched files lint-clean |
 | Tests | `npm run test:run` | Vitest, 461 tests across 68 files |
 | Coverage | `npm run test:coverage` | V8 coverage; thresholds enforced in CI (see `vitest.config.ts`) |
 | Type-check | `npx tsc --noEmit` | Checks renderer TS; electron TS uses `npx tsc -p electron/tsconfig.json` |

@@ -777,7 +777,7 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
                 offshardBackfilled: items.filter((p) => p.tier === 'offshard').length,
             });
 
-            let finalPlan = selectedPlan;
+            const finalPlan = selectedPlan;
             const droppedSet = new Set(droppedRelPaths);
             const droppedItems = planned.filter((p) => droppedSet.has(p.relPath));
 

@@ -1,4 +1,10 @@
 import { LABEL_COLORS } from '@synthet/image-scoring-design';
+import type { BirdBoundingBox } from '../../../electron/types';
+
+/** True when the box has usable detector dimensions for fractional positioning. */
+export function isDrawableBirdBbox(bbox: BirdBoundingBox | null | undefined): bbox is BirdBoundingBox {
+    return !!bbox && bbox.img_w > 0 && bbox.img_h > 0;
+}
 
 type Rgb = [number, number, number];
 

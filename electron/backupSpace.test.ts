@@ -232,7 +232,7 @@ describe('selectPlanProportional', () => {
         // usable = 400 - buffer(20_000*... let's use small capacity)
         // capacity = 50_000, buffer = 1000. usable = 400 - 1000 → 0 → everything dropped.
         // Let's give enough room for ~4 items:
-        const { selected, droppedRelPaths } = await selectPlanProportional(items, 500, 5_000, {
+        const { selected } = await selectPlanProportional(items, 500, 5_000, {
             manifestBytes: 4_600,
         });
         expect(selected.length).toBe(4);

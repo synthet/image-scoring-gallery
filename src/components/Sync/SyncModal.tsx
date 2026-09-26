@@ -220,7 +220,7 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
                     setIsSyncRunning(false);
                 }
             });
-    }, [sourcePath, previewLoading, isSyncRunning, startOp, updateOp, completeOp]);
+    }, [sourcePath, previewLoading, isSyncRunning, preview?.candidates, startOp, updateOp, completeOp]);
 
     const handleClose = () => {
         if (isComplete && onComplete) {
