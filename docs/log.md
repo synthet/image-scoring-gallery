@@ -4,7 +4,7 @@ title: "Documentation Activity Log"
 description: "Chronological record of wiki maintenance activities. Newest entries first."
 resource: "docs/log.md"
 tags: ["gallery-docs"]
-timestamp: 2026-08-29T00:00:00Z
+timestamp: 2026-09-25T18:00:00Z
 ---
 
 # Documentation Activity Log
@@ -13,6 +13,8 @@ Chronological record of wiki maintenance activities. Newest entries first.
 
 ## 2026-09
 
+- 2026-09-25: created — [planning/reference-workflow-improvement-candidates.md](planning/reference-workflow-improvement-candidates.md): clean-room proposal for persistent comparison, progressive evidence, score exploration, close-call review, durable grouping edits, degraded states, reversible actions, diagnostics, accessibility, and large-library performance; indexed in [planning/README.md](planning/README.md) and [README.md](README.md).
+- 2026-09-24: created — [reports/10-gallery-improvement-audit-2026-09.md](reports/10-gallery-improvement-audit-2026-09.md): clean-room product, UX, accessibility, security, reliability, and maintainability audit with prioritized findings, acceptance criteria, and a phased delivery sequence; indexed in [reports/README.md](reports/README.md) and [README.md](README.md).
 - 2026-09-24: created — [features/planned/burst-culling-explainability.md](features/planned/burst-culling-explainability.md): clean-room UX spec (best-frame star, nearly-tied badge, sub-bursts, score breakdown + reasons, client-side Adjust scoring, overlays, compare/zoom-to-eye, species popover, per-photo diagnostics bundle) tied to the backend subject-aware culling evidence plan and localization rollout; catalog row in [features/planned/README.md](features/planned/README.md).
 
 ## 2026-08
