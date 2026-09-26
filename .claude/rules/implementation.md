@@ -1,0 +1,24 @@
+---
+description: Implementation discipline — match codebase style and minimize diff noise
+paths:
+  - "**/src/**"
+  - "**/electron/**"
+  - "**/mcp-server/**"
+---
+
+# Implementation
+
+## Style
+
+- **Match** naming, formatting, imports, and abstractions already used in the touched files.
+- **Reuse** existing helpers and patterns instead of introducing parallel utilities.
+
+## Changes
+
+- Every line in the diff should **serve the request**; avoid cosmetic reformatting of unrelated code.
+- Preserve existing comments unless they are wrong or the behavior changed.
+
+## Quality bar
+
+- **Tests-first:** write failing test stubs from the plan/spec acceptance criteria and confirm they fail *before* implementing, then implement until they pass (see `/implement`). Never assume generated code works until it has been executed.
+- Handle errors in a way consistent with surrounding code (no silent swallowing unless intentional).

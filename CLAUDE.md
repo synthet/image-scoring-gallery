@@ -15,23 +15,19 @@ The backend owns DDL/schema migrations. This app connects via PostgreSQL (`pg`) 
 
 ## Backlog & queue (read this before picking work)
 
-The canonical queue is the **GitHub Project board**, not `TODO.md`:
-
-**→ https://github.com/users/synthet/projects/1**
-
-It spans both repos. The `TODO.md` files are pointers only.
-
-**Mandatory contract for every agent (human or AI). Do all five steps:**
-
-1. **Pick from `Stage = Ready`** on the board, sorted by `priority:p0..p3`. If `Ready` is empty, ask the maintainer — do not invent work.
-2. **Claim** the issue: `/task-claim <N>` (preferred) or the manual `gh` flow in [`docs/project/00-backlog-workflow.md`](docs/project/00-backlog-workflow.md). Claiming assigns you and moves the card to `Stage = Claimed`.
-3. **Flip to `Stage = In Progress`** on your first commit.
-4. **If blocked**, move the card to `Stage = Blocked` *and* comment on the issue with the blocker + what would unblock it. Do not silently abandon a claimed card.
-5. **Reference the issue in the PR** with `Closes #<N>` (the PR template requires it). Move the card to `Stage = Review` while the PR is open; merging closes the issue and flips `Status = Done`.
+The canonical queue is the **GitHub Project board** — **https://github.com/users/synthet/projects/1** — spanning both repos; `TODO.md` files are pointers only. The five-step contract (pick from `Stage = Ready` → claim → `In Progress` on first commit → `Blocked` with a comment → `Closes #<N>` + `Review`) is the always-on **`backlog-queue`** rule; follow it for every task.
 
 **Project ID quick-reference** (for scripts): project node `PVT_kwHOAFXgIs4BWC3c`, Stage field `PVTSSF_lAHOAFXgIs4BWC3czhRaNZ0`. Full Stage option IDs and command examples in [`docs/project/00-backlog-workflow.md`](docs/project/00-backlog-workflow.md) §5.
 
-**Do not** add tasks to `TODO.md`, do not work without an issue, and do not skip the Stage transitions — agents that don't update Stage make the queue lie about what's actually being worked on.
+## Agent harness (Jev)
+
+Claude Code hooks in `.claude/settings.json` call the **sibling backend** harness (`../image-scoring-backend/scripts/agent_harness/hook.py --repo .`); Jev makes the per-turn decisions on top of a deterministic policy it can only tighten:
+
+- **`UserPromptSubmit`** — injects intent-scoped rule packs from `.cursor/rules/` (hide / short / full); **`SessionStart(compact)`** re-pins them.
+- **`PreToolUse(Bash)`** — denies reading/shipping `config.json`, env files and keys, `.git/config` writes, force-push to main; asks on destructive ops; reads scripts before they run.
+- **`PreToolUse(run_subagent)`** — blocks restricted files or secret-looking text going to external reviewers.
+
+Config: `.agent/jev_harness.json`; `JEV_HARNESS_MODE=off` disables Jev calls. CLI: `python ../image-scoring-backend/scripts/agent_harness/cli.py --repo . budget | check | packs | route | subgoal | bundle`. Doc: [JEV_AGENT_HARNESS.md](https://github.com/synthet/image-scoring-backend/blob/master/docs/technical/JEV_AGENT_HARNESS.md).
 
 ## MCP mcp-kanban (optional, user-level)
 
