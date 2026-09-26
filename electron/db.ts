@@ -9,7 +9,7 @@ import {
 } from './sortSql';
 import { absolutizeThumbnailPath } from './thumbnailPathNormalize';
 import { applyThumbnailPathRemaps } from './pathsRemap';
-import type { AppConfig, DatabaseConfig, ScoredImageForBackup } from './types';
+import type { AppConfig, DatabaseConfig, EyeKeypoint, ImageEyeKeypoints, ScoredImageForBackup } from './types';
 import { createDatabaseConnector, IDatabaseConnector, QueryParam, TxQuery } from './db/provider';
 
 // Load configuration
@@ -2507,6 +2507,56 @@ export async function getImageDetailsBatch(ids: number[]): Promise<Map<number, B
     const rows = await query<BackupLayoutDetail>(sql, ids);
     for (const row of rows) {
         out.set(row.id, row);
+    }
+    return out;
+}
+
+/**
+ * Visible eye keypoints for a batch of images, keyed by image id (backend #426, shadow tables).
+ * Images without a current keypoint run, or with no visible eye, are absent from the map.
+ * Returns an empty map when the keypoint tables do not exist yet (older backend schema).
+ */
+export async function getEyeKeypointsBatch(ids: number[]): Promise<Record<number, ImageEyeKeypoints>> {
+    const out: Record<number, ImageEyeKeypoints> = {};
+    const unique = [...new Set(ids.filter((id) => Number.isInteger(id) && id > 0))];
+    if (unique.length === 0) return out;
+    const placeholders = unique.map(() => '?').join(', ');
+    const sql = `
+        SELECT r.image_id, r.display_width, r.display_height, k.name, k.x, k.y, k.confidence
+        FROM image_localization_runs r
+        JOIN image_regions g ON g.localization_run_id = r.id AND g.rank = 0
+        JOIN image_keypoint_runs kr ON kr.region_id = g.id AND kr.is_current AND kr.status = 'detected'
+        JOIN image_region_keypoints k ON k.keypoint_run_id = kr.id
+        WHERE r.image_id IN (${placeholders})
+          AND r.detector_key = 'bird' AND r.is_current
+          AND r.display_width > 0 AND r.display_height > 0
+          AND k.visible AND k.name IN ('left_eye', 'right_eye')
+    `;
+    let rows: Array<{
+        image_id: number; display_width: number; display_height: number;
+        name: EyeKeypoint['name']; x: number; y: number; confidence: number | null;
+    }>;
+    try {
+        rows = await query(sql, unique);
+    } catch (err) {
+        // 42P01 = undefined_table: the backend has not created the keypoint tables yet.
+        const code = (err as { code?: string }).code;
+        if (code === '42P01' || /image_keypoint_runs|image_region_keypoints/.test(String(err))) return out;
+        throw err;
+    }
+    for (const row of rows) {
+        const id = Number(row.image_id);
+        const entry = out[id] ?? (out[id] = {
+            display_width: Number(row.display_width),
+            display_height: Number(row.display_height),
+            points: [],
+        });
+        entry.points.push({
+            name: row.name,
+            x: Number(row.x),
+            y: Number(row.y),
+            confidence: row.confidence == null ? null : Number(row.confidence),
+        });
     }
     return out;
 }

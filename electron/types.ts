@@ -61,6 +61,24 @@ export interface BirdBoundingBox {
     area_frac?: number;
 }
 
+/**
+ * Shadow subject keypoints for one image (backend #426): the current `bird_head_pose` run on the
+ * primary region of the current `bird` localization run. `x`/`y` are 0..1 of the display-oriented
+ * frame whose size is `display_width` x `display_height`.
+ */
+export interface EyeKeypoint {
+    name: 'left_eye' | 'right_eye';
+    x: number;
+    y: number;
+    confidence: number | null;
+}
+
+export interface ImageEyeKeypoints {
+    display_width: number;
+    display_height: number;
+    points: EyeKeypoint[];
+}
+
 export interface ImageDetail extends ImageRow {
     job_id?: string;
     file_type?: string;
