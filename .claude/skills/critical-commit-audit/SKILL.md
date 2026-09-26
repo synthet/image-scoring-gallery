@@ -21,7 +21,7 @@ Inspect **recent commits** and identify **critical** correctness bugs that escap
 
 ## Operational workflow (this repo)
 
-1. **Scope commits** — Default: `git log -n 20 --oneline` (or a user-provided range, e.g. `main..HEAD`, `abc123..def456`). Prioritize **merge commits** and **large diffs**.
+1. **Scope commits** — Default: `git log -n 20 --oneline` (or a user-provided range, e.g. `main..HEAD`, `abc123..def456`). Prioritize **merge commits** and **large diffs**. Start from the shared review bundle (`python ../image-scoring-backend/scripts/agent_harness/cli.py --repo . bundle --base <range start>`) instead of re-deriving the changed-file map; other read-only reviewers of the same HEAD reuse it.
 2. **Review** — For each changed area, read the full diff, then follow symbols to **callers** and **callees**. In an Electron app the highest-blast-radius boundaries are the **main ↔ renderer IPC contract**, the **preload bridge** (`contextIsolation` / exposed API surface), the **API client** against the sibling backend, and file-system access to user photo folders.
 3. **Data and process boundaries** — If commits touch cached previews, backup manifests, or anything that writes to disk, consider ordering, partial writes, and idempotency; trace what happens on failure or retry. A renderer crash must not leave a half-written manifest.
 4. **Security specifics** — Watch for `nodeIntegration` re-enabled, `contextIsolation` disabled, unvalidated IPC arguments crossing the bridge, path traversal in file handlers, and remote content loaded into a privileged window.

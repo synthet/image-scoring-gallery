@@ -108,6 +108,10 @@ Two failure modes to guard against:
 
 ## Fan-out extras
 
+- **Register every subgoal before spawning it** (`python ../image-scoring-backend/scripts/agent_harness/cli.py --repo . subgoal add "<text>"`; mark `done`/`drop` as it
+  resolves). Duplicates of work already done or in flight come back as `duplicate_of` — do not launch them.
+- **Price delegation per context rebuild** with `... cli.py route` — a cheaper worker only saves money when
+  it gets a small purpose-built brief and returns a compact result.
 - **Define the reducer before the fan-out.** Decide how findings will be merged, deduplicated, and
   ranked before any worker starts; otherwise you get N reports and no answer.
 - **Every handoff is an artifact contract.** Workers return structured findings with evidence, not

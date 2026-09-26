@@ -4,6 +4,7 @@ description: >-
   Update CHANGELOG.md and package.json via compiled release_bump harness, then
   commit/push only when the user asks. Use for /release, changelog updates, or
   shipping gallery versions.
+disable-model-invocation: true
 ---
 
 # Changelog, commit & push (compiled)
