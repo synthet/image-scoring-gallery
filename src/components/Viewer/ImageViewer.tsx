@@ -300,7 +300,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         } finally {
             setFixMetadataBusy(false);
         }
-    }, [addNotification, bridge, image.file_path, image.id]);
+    }, [addNotification, image.file_path, image.id]);
     
     const handleOpenBackend = useCallback(async () => {
         try {
@@ -311,7 +311,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             console.error('[ImageViewer] Failed to open backend URL:', err);
             addNotification('Failed to open backend detail view', 'error');
         }
-    }, [bridge, image.id, addNotification]);
+    }, [image.id, addNotification]);
 
     useKeyboardLayer('drawer', useCallback((e: KeyboardEvent) => {
         if (e.key === 'Escape') {
@@ -350,7 +350,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 setDetailsError(null);
             }
         }
-    }, [currentIndex, allImages, initialImage]);
+    }, [currentIndex, allImages, initialImage, readOnlyFilesystemMode]);
 
     // Fetch full details
     useEffect(() => {
@@ -510,7 +510,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         fetchExif();
         return () => { active = false; };
     }, [
-        image.id, serverFsPath, image.exif_iso, image.exif_shutter,
+        image.id, serverFsPath, readOnlyFilesystemMode, image.exif_iso, image.exif_shutter,
         image.exif_aperture, image.exif_focal_length, image.exif_model, image.exif_lens_model
     ]);
 

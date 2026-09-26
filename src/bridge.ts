@@ -112,7 +112,7 @@ function bridgeIsElectronHost(): boolean {
     return typeof window !== 'undefined' && !!window.electron;
 }
 
-function useFolderModeStubs(): boolean {
+function shouldUseFolderModeStubs(): boolean {
     return bridgeIsElectronHost() && galleryAppMode === 'folder';
 }
 
@@ -593,7 +593,7 @@ export const bridge: Window['electron'] = new Proxy({} as Window['electron'], {
                 ? window.electron
                 : _httpBridge;
         
-        const folderStubs = useFolderModeStubs();
+        const folderStubs = shouldUseFolderModeStubs();
 
         if (prop === 'api') {
             return new Proxy({} as Window['electron']['api'], {
