@@ -39,6 +39,16 @@ and deterministic rules in normal code; give Jev narrow semantic judgments only.
 5. Return the selected answer fields (`choice` / `score` / `noul`), `confidence` / `probabilities`
    when present, and the `model` used. Do not dump secrets or raw SDK internals.
 
+## Harness decision points (automatic)
+
+This repo's Claude Code hooks call the sibling backend harness
+(`../image-scoring-backend/scripts/agent_harness`), which asks Jev per-turn questions through the
+backend's `modules/typesafe` client: which rule packs a request sees, whether a script may run, whether
+files may go to an external reviewer, whether a subtask can leave the main model, and whether a subgoal
+is a duplicate. Modes live in `.agent/jev_harness.json`. See
+[JEV_AGENT_HARNESS.md](https://github.com/synthet/image-scoring-backend/blob/master/docs/technical/JEV_AGENT_HARNESS.md).
+Use the `jev-rw-systemone` MCP tools for ad-hoc judgments; leave those decision points to the harness.
+
 ## Boundaries
 
 - Do not treat Jev as a chat model, coder, or image judge.

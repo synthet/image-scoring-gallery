@@ -28,6 +28,14 @@ branches simultaneously — humans orchestrate, agents execute.
 4. **Test boundaries** — For each subtask, how it validates **independently**: which
    failing test stubs / assertions prove it done on its own branch without the others.
 
+5. **Route each subtask (Jev harness, sibling backend)** — price it per context rebuild, not per token:
+   `python ../image-scoring-backend/scripts/agent_harness/cli.py --repo . route --task "<title + done means>" --files <brief files>`.
+   `stay` keeps it on the main model; `delegate` means hand a sub-agent **only** that brief and ask for a
+   compact result. Restricted files (`config.json`, env, keys) always stay first-party.
+
+6. **Deduplicate** — register each subtask before launching it:
+   `python ../image-scoring-backend/scripts/agent_harness/cli.py --repo . subgoal add "<title>"`; skip anything reported as `duplicate_of`.
+
 ## Done when
 
 - Each subtask can be `/plan`-ed independently with no hidden dependencies.

@@ -1,6 +1,5 @@
 ---
 description: Canonical sources and gallery agent boundaries (Driftara Gallery)
-alwaysApply: true
 ---
 
 # Agent canonical sources (gallery)

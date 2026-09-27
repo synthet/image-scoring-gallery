@@ -4,7 +4,7 @@ title: "Documentation Activity Log"
 description: "Chronological record of wiki maintenance activities. Newest entries first."
 resource: "docs/log.md"
 tags: ["gallery-docs"]
-timestamp: 2026-09-25T18:00:00Z
+timestamp: 2026-09-26T00:00:00Z
 ---
 
 # Documentation Activity Log
@@ -13,6 +13,7 @@ Chronological record of wiki maintenance activities. Newest entries first.
 
 ## 2026-09
 
+- 2026-09-26: updated — agent infra (not wiki pages): Claude Code rules now load conditionally (`globs` → `paths:`), intent-only rules are served per request by the sibling backend's Jev harness hook, new path-scoped footguns packs distilled from [LESSONS_LEARNED.md](LESSONS_LEARNED.md) (`.cursor/rules/footguns-electron.mdc`, `footguns-export.mdc`); design in backend [JEV_AGENT_HARNESS.md](https://github.com/synthet/image-scoring-backend/blob/master/docs/technical/JEV_AGENT_HARNESS.md) (#178).
 - 2026-09-25: created — [features/planned/human-culling-labelling-mode.md](features/planned/human-culling-labelling-mode.md): in-app, blind labelling mode for the backend's human culling label set (#415) — per-frame pick/keep/reject, one best frame, flip-compare loupe, validation and `human_labels` persistence; indexed in [features/planned/README.md](features/planned/README.md).
 - 2026-09-25: created — [planning/reference-workflow-improvement-candidates.md](planning/reference-workflow-improvement-candidates.md): clean-room proposal for persistent comparison, progressive evidence, score exploration, close-call review, durable grouping edits, degraded states, reversible actions, diagnostics, accessibility, and large-library performance; indexed in [planning/README.md](planning/README.md) and [README.md](README.md).
 - 2026-09-24: created — [reports/10-gallery-improvement-audit-2026-09.md](reports/10-gallery-improvement-audit-2026-09.md): clean-room product, UX, accessibility, security, reliability, and maintainability audit with prioritized findings, acceptance criteria, and a phased delivery sequence; indexed in [reports/README.md](reports/README.md) and [README.md](README.md).

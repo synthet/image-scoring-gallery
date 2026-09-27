@@ -1,7 +1,7 @@
 ---
 description: Conventions for maintaining docs/ as an OKF-style wiki — frontmatter, cross-references, indexes, logs, page structure
-globs: "docs/**"
-alwaysApply: false
+paths:
+  - "docs/**"
 ---
 
 # Documentation wiki conventions
