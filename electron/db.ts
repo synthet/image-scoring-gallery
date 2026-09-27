@@ -2512,6 +2512,12 @@ export async function getImageDetailsBatch(ids: number[]): Promise<Map<number, B
 }
 
 /**
+ * Eyes below this confidence are not drawn. Mirrors the backend's `EYE_CONSUMER_MIN_CONF`: its
+ * 2026-09-27 spot check found points under 0.8 almost always off the eye.
+ */
+const EYE_MIN_CONFIDENCE = 0.8;
+
+/**
  * Visible eye keypoints for a batch of images, keyed by image id (backend #426, shadow tables).
  * Images without a current keypoint run, or with no visible eye, are absent from the map.
  * Returns an empty map when the keypoint tables do not exist yet (older backend schema).
@@ -2530,7 +2536,7 @@ export async function getEyeKeypointsBatch(ids: number[]): Promise<Record<number
         WHERE r.image_id IN (${placeholders})
           AND r.detector_key = 'bird' AND r.is_current
           AND r.display_width > 0 AND r.display_height > 0
-          AND k.visible AND k.name IN ('left_eye', 'right_eye')
+          AND k.visible AND k.confidence >= ${EYE_MIN_CONFIDENCE} AND k.name IN ('left_eye', 'right_eye')
     `;
     let rows: Array<{
         image_id: number; display_width: number; display_height: number;
