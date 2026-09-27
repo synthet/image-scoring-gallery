@@ -1,0 +1,15 @@
+---
+description: Electron main-process footguns — skip fast paths must check the DB, NEF UUIDs, tombstones, WSL-style paths, IPC boundary
+globs: "electron/**"
+alwaysApply: false
+---
+
+# Footguns: Electron main process
+
+Distilled from [docs/LESSONS_LEARNED.md](../../docs/LESSONS_LEARNED.md) (§ Sync / import correctness, § Environment & tooling traps, § Architecture boundaries).
+
+- **A "skip, already done" fast path must check the full success condition.** Disk presence ≠ indexed: the below-threshold quick-skip in `runSyncFromSource` (now `electron/ipc/registerSyncHandlers.ts`) must confirm the DB row (`db.findImageByFilePath`) before skipping.
+- **Camera-original NEFs have no embedded UUID.** `image_uuid` is generated at import; dedupe by destination path and verify by (EXIF capture date + filename), never UUID.
+- **Honour tombstones.** Sync must skip or dedupe against `deleted_images`, or culled images resurrect.
+- **Postgres stores WSL-style paths** (`/mnt/d/Photos/...`): normalize with `normalizePathForDb` before querying. Postgres regex has no `\d`; use `[0-9]`.
+- **DB and filesystem access stay in the main process** behind IPC/preload; the backend owns schema and REST — do not invent columns or endpoints.

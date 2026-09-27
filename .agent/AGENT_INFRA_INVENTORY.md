@@ -16,7 +16,9 @@
 | [.agent/subagents/README.md](subagents/README.md) | Gallery logical roles | coding | active | .cursor/agents | None |
 | [.agent/AGENT_INFRA_INVENTORY.md](AGENT_INFRA_INVENTORY.md) | Catalog of agent-facing paths | governance | active | This file | Refresh on major infra changes |
 | [.cursor/rules/agent-canonical-sources.mdc](../.cursor/rules/agent-canonical-sources.mdc) | IPC boundary, backend authority, commands | gallery, cross-repo | active | docs/CANONICAL_SOURCES.md | Mirror `.claude/rules/` |
-| [.claude/rules/agent-canonical-sources.mdc](../.claude/rules/agent-canonical-sources.mdc) | Claude mirror of canonical-sources rule | gallery | duplicate-of | `.cursor/rules/agent-canonical-sources.mdc` | Same-PR sync |
+| [.claude/rules/*.md](../.claude/rules/) | Claude rules generated from `.cursor/rules` | governance | active | `.cursor/rules` | `sync_assistant_trees.py` translates frontmatter: `alwaysApply: true` → always-on, `globs` → `paths:`; intent-only rules (external-cli-subagents, graphify) are not mirrored — the Jev harness hook serves them per request |
+| [.agent/jev_harness.json](jev_harness.json) | Jev harness config: modes, restricted globs (`config.json`, `environment.json`), pack triggers | governance | active | backend `scripts/agent_harness` | Hooks in `.claude/settings.json` call the sibling backend harness |
+| [.cursor/rules/footguns-*.mdc](../.cursor/rules/) | Path-scoped footguns (electron, export) | gallery | active | docs/LESSONS_LEARNED.md | Update when a lesson graduates |
 | [.cursor/commands/*.md](../.cursor/commands/) | Slash commands | workflow | active | agent-sdlc | None |
 | [.cursor/skills/*/SKILL.md](../.cursor/skills/) | Skills | coding | active | SKILL_INVENTORY | Run `sync_assistant_trees.py` after changes |
 | [scripts/sync_assistant_trees.py](../scripts/sync_assistant_trees.py) | `.cursor/` → `.claude/` mirror | governance | active | backend twin | CI: agent-infra.yml |
@@ -27,12 +29,11 @@
 | [.cursor/rules/agent-memory.mdc](../.cursor/rules/agent-memory.mdc) | Project memory rule | governance | active | backend twin | Scripts in sibling backend |
 | [.agent-memory/CURSOR_USAGE.md](../.agent-memory/CURSOR_USAGE.md) | Memory pointer stub | governance | active | backend `.agent-memory/` | No local dream engine |
 | [.cursor/agents/*.md](../.cursor/agents/) | Subagents | coding | active | AGENTS.md | Sync `.claude/agents/` |
-| [.cursor/rules/external-cli-subagents.mdc](../.cursor/rules/external-cli-subagents.mdc) | External Codex/Gemini review safety | governance | active | subagent-orchestrator | Mirror `.claude/rules/` |
-| [.cursor/rules/graphify.mdc](../.cursor/rules/graphify.mdc) | Soft Graphify architecture-graph guidance (`alwaysApply: false`) | coding | active | Graphify-Labs/graphify | Mirror `.claude/rules/`; optional third-party CLI |
+| [.cursor/rules/external-cli-subagents.mdc](../.cursor/rules/external-cli-subagents.mdc) | External Codex/Gemini review safety | governance | active | subagent-orchestrator | Intent-only pack; enforced by the harness `PreToolUse(run_subagent)` hook |
+| [.cursor/rules/graphify.mdc](../.cursor/rules/graphify.mdc) | Soft Graphify architecture-graph guidance (`alwaysApply: false`) | coding | active | Graphify-Labs/graphify | Intent-only: served by the harness hook, not mirrored; optional third-party CLI |
 | [.cursor/skills/subagent-review/](../.cursor/skills/subagent-review/) | MCP external review workflow | workflow | active | `../subagent-orchestrator` | Mirror `.claude/skills/` |
 | [docs/technical/EXTERNAL_CLI_REVIEWS.md](../docs/technical/EXTERNAL_CLI_REVIEWS.md) | Setup for imgscore-el-subagent-orchestrator MCP | cross-repo | active | backend EXTERNAL_CLI_REVIEWS | None |
 | [.claude/commands/*.md](../.claude/commands/) | Claude commands | workflow | active | .cursor/commands | Keep aligned |
-| [.claude/rules/documentation.mdc](../.claude/rules/documentation.mdc) | Wiki rules mirror | docs-only | duplicate-of | .cursor/rules/documentation.mdc | Sync on doc rule changes |
 | [.claude/skills/backlog-queue/SKILL.md](../.claude/skills/backlog-queue/SKILL.md) | Board contract mirror | cross-repo | duplicate-of | .cursor/skills/backlog-queue | Same-PR sync |
 | [.claude/agents/*.md](../.claude/agents/) | Subagent mirrors | coding | duplicate-of | .cursor/agents | Same-PR sync |
 | [.agent/skills/*/SKILL.md](skills/) | Third-party / mirror skills | mixed | mixed | .cursor/skills where dup | `firebird-db` filename is historical; body documents PostgreSQL |

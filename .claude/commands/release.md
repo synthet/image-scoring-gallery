@@ -1,3 +1,7 @@
+---
+disable-model-invocation: true
+---
+
 # /release — Release (gallery)
 
 Run a **semver release** for **this repo** (`image-scoring-gallery` / **Driftara Gallery**)
