@@ -30,15 +30,8 @@ jobs:
       - name: Run coverage (threshold gate)
         run: npm run test:coverage
 
-      - name: ESLint (baseline debt — non-blocking)
-        id: eslint
-        continue-on-error: true
+      - name: ESLint
         run: npm run lint
-
-      - name: ESLint debt warning
-        if: steps.eslint.outcome == 'failure'
-        run: |
-          echo "::warning::ESLint reported problems. Baseline debt is tracked; keep touched files lint-clean."
 
       - name: Lint MCP doc vocabulary
         run: python scripts/lint_mcp_doc_vocabulary.py --error
