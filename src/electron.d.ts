@@ -71,6 +71,7 @@ export type {
     FolderRow,
     FsReadDirResult,
     ImageDetail,
+    ImageEyeKeypoints,
     ImagePhaseStatus,
     ImageQueryOptions,
     ImageRow,
