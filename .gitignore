@@ -69,3 +69,9 @@ test_result.json
 
 # Workspace MCP configuration
 .agents/mcp_config.json
+
+# Maintainer-only proprietary / third-party notes (never commit)
+docs/private/
+.docs/private/
+codex-session-*.md
+2026-??-??-*.txt
