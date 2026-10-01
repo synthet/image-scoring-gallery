@@ -22,6 +22,7 @@ Catalog of shipped desktop behavior. Backend API/schema/pipeline contracts remai
 | Sync from device | NEF-oriented source sync/import flow, backend registration/scheduling, and phase status expectations. | [06-sync-from-device-workflow.md](06-sync-from-device-workflow.md) | [electron/main.ts](../../../electron/main.ts), [electron/scheduleProcessing.ts](../../../electron/scheduleProcessing.ts), backend [ELECTRON_SYNC_IMPORT_AND_PHASES.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/ELECTRON_SYNC_IMPORT_AND_PHASES.md) |
 | Culling stack analytics | Sidebar culling insights and per-stack analytics banner (folder/stack scope). | [06-culling-stack-analytics.md](06-culling-stack-analytics.md) | [src/components/CullingAnalytics/](../../../src/components/CullingAnalytics/), backend [CULLING_ANALYTICS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/CULLING_ANALYTICS.md) |
 | Stack / sub-stack navigation | Stacks-mode drill-down; auto-open when a root stack has one sub-stack card. | [08-stack-substack-navigation.md](08-stack-substack-navigation.md) | [src/hooks/useStacksMode.ts](../../../src/hooks/useStacksMode.ts) |
+| Visual evidence overlays | Viewer evidence panel (E), layer chips 1–5, heatmap/mask overlays, export JSON pack, backend evidence API. | [09-visual-evidence-overlays.md](09-visual-evidence-overlays.md) | `src/components/Evidence/`, `src/hooks/useImageEvidence.ts`, `ImageViewer.tsx` |
 
 ## Backend Cross-Links
 

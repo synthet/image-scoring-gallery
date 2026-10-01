@@ -218,6 +218,16 @@ function createHttpBridge(): Window['electron'] {
 
         getImagePhaseStatuses: (id) => get(`/db/image/${id}/phase-statuses`),
 
+        getImageEvidence: (imageId) =>
+            get<import('./types/imageEvidence').ImageEvidencePayload>(
+                `/backend/images/${imageId}/evidence`,
+                undefined,
+                { rawJson: true },
+            ),
+
+        exportEvidencePack: () =>
+            Promise.reject(new Error('Export evidence pack requires the Electron app')),
+
         updateImageDetails: (id, updates) => post(`/db/image/${id}`, updates),
 
         deleteImage: (id) => del(`/db/image/${id}`),
@@ -537,6 +547,8 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
     getImageDetails: () => Promise.resolve(null),
     getImagePhaseStatuses: () => Promise.resolve([]),
     getEyeKeypoints: () => Promise.resolve({}),
+    getImageEvidence: () => Promise.resolve(null),
+    exportEvidencePack: () => Promise.reject(new Error('folder mode')),
     updateImageDetails: () => Promise.resolve(false),
     deleteImage: () => Promise.resolve(false),
     deleteFolder: () => Promise.resolve(false),

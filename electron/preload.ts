@@ -78,6 +78,14 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('db:get-eye-keypoints', ids);
         return unwrapEnvelope<Record<number, ImageEyeKeypoints>>(response);
     },
+    getImageEvidence: async (imageId: number) => {
+        const response = await ipcRenderer.invoke('api:evidence:get-image', imageId);
+        return unwrapEnvelope<Record<string, unknown>>(response);
+    },
+    exportEvidencePack: async (imageId: number, destPath: string) => {
+        const response = await ipcRenderer.invoke('api:evidence:export-pack', { imageId, destPath });
+        return unwrapEnvelope<{ path: string }>(response);
+    },
     getImagePhaseStatuses: async (id: number) => {
         const response = await ipcRenderer.invoke('db:get-image-phase-statuses', id);
         return unwrapEnvelope<ImagePhaseStatus[]>(response);

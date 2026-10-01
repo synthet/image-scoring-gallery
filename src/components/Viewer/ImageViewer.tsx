@@ -6,6 +6,14 @@ import { BirdBoxOverlay } from '../Shared/BirdBoxOverlay';
 import { EyeKeypointsOverlay } from '../Shared/EyeKeypointsOverlay';
 import { hasDrawableEyes } from '../Shared/eyeKeypoints';
 import { useEyeKeypoints, useShowEyes } from '../../hooks/useEyeKeypoints';
+import { useImageEvidence } from '../../hooks/useImageEvidence';
+import { useEvidenceLayers } from '../../hooks/useEvidenceLayers';
+import { EvidenceLayerChips } from '../Evidence/EvidenceLayerChips';
+import { EvidenceLegend } from '../Evidence/EvidenceLegend';
+import { GridHeatmapOverlay } from '../Evidence/GridHeatmapOverlay';
+import { SubjectMaskOverlay } from '../Evidence/SubjectMaskOverlay';
+import { EvidenceScoreBreakdown } from '../Evidence/EvidenceScoreBreakdown';
+import type { EvidenceLayerId } from '../../types/imageEvidence';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { apiBaseUrlForExternalOpen } from '../../utils/apiBaseUrlForBrowser';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
@@ -313,6 +321,18 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         }
     }, [image.id, addNotification]);
 
+    const { data: evidence, loading: evidenceLoading } = useImageEvidence(
+        image.id,
+        !readOnlyFilesystemMode,
+    );
+    const {
+        layers: evidenceLayers,
+        toggle: toggleEvidenceLayer,
+        setLayer: setEvidenceLayer,
+        panelOpen: evidencePanelOpen,
+        cyclePanel: cycleEvidencePanel,
+    } = useEvidenceLayers(evidence?.gates);
+
     useKeyboardLayer('drawer', useCallback((e: KeyboardEvent) => {
         if (e.key === 'Escape') {
             onClose();
@@ -323,9 +343,16 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         } else if (e.key === 'ArrowRight' && onNavigate && allImages && currentIndex < allImages.length - 1) {
             onNavigate(currentIndex + 1);
             return true;
+        } else if (e.key === 'e' || e.key === 'E') {
+            cycleEvidencePanel();
+            return true;
+        } else if (e.key >= '1' && e.key <= '5') {
+            const map: EvidenceLayerId[] = ['region', 'mask', 'keypoints', 'sharpness', 'noise'];
+            toggleEvidenceLayer(map[Number(e.key) - 1]);
+            return true;
         }
         return false;
-    }, [onClose, onNavigate, currentIndex, allImages]), !isDeleteDialogOpen);
+    }, [onClose, onNavigate, currentIndex, allImages, cycleEvidencePanel, toggleEvidenceLayer]), !isDeleteDialogOpen);
 
     const currentIdRef = useRef(initialImage.id);
 
@@ -1104,7 +1131,34 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                             style={{ maxWidth: '100%', maxHeight: '95vh', width: 'auto', height: 'auto', objectFit: 'contain', boxShadow: '0 0 20px rgba(0,0,0,0.5)' }}
                         />
                         {showBoundingBox && image.bird_bbox && <BirdBoxOverlay bbox={image.bird_bbox} />}
+                        {evidenceLayers.region && image.bird_bbox && <BirdBoxOverlay bbox={image.bird_bbox} />}
                         {showEyes && hasDrawableEyes(eyes) && <EyeKeypointsOverlay eyes={eyes} size={22} />}
+                        {evidenceLayers.keypoints && showEyes && hasDrawableEyes(eyes) && (
+                            <EyeKeypointsOverlay eyes={eyes} size={22} />
+                        )}
+                        {evidence?.mask_rle && evidenceLayers.mask && evidence.display_width > 0 && (
+                            <SubjectMaskOverlay
+                                mask={evidence.mask_rle}
+                                displayWidth={evidence.display_width}
+                                displayHeight={evidence.display_height}
+                            />
+                        )}
+                        {evidence?.focus_grid && evidenceLayers.sharpness && (
+                            <GridHeatmapOverlay
+                                grid={evidence.focus_grid}
+                                mode="sharpness"
+                                displayWidth={evidence.display_width}
+                                displayHeight={evidence.display_height}
+                            />
+                        )}
+                        {evidence?.noise_grid && evidenceLayers.noise && (
+                            <GridHeatmapOverlay
+                                grid={evidence.noise_grid}
+                                mode="noise"
+                                displayWidth={evidence.display_width}
+                                displayHeight={evidence.display_height}
+                            />
+                        )}
                     </div>
                 ) : (
                     <div style={{ color: '#666' }}>{error || 'Image not found'}</div>
@@ -1122,6 +1176,46 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 gap: 20,
                 overflowY: 'auto'
             }}>
+                {!readOnlyFilesystemMode && evidencePanelOpen && (
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <span style={{ fontWeight: 600 }}>Evidence</span>
+                            <button
+                                type="button"
+                                style={{ fontSize: '0.75em' }}
+                                disabled={evidenceLoading}
+                                onClick={() => void (async () => {
+                                    try {
+                                        const dir = await bridge.selectDirectory();
+                                        if (!dir) return;
+                                        const { path: out } = await bridge.exportEvidencePack(image.id, dir);
+                                        addNotification(`Evidence pack saved: ${out}`, 'success');
+                                    } catch {
+                                        addNotification('Could not export evidence pack', 'error');
+                                    }
+                                })()}
+                            >
+                                Export pack
+                            </button>
+                        </div>
+                        <EvidenceLayerChips
+                            layers={evidenceLayers}
+                            gates={evidence?.gates}
+                            onToggle={toggleEvidenceLayer}
+                        />
+                        <EvidenceLegend
+                            evidence={evidence}
+                            activeHeatmap={
+                                evidenceLayers.sharpness ? 'sharpness' : evidenceLayers.noise ? 'noise' : null
+                            }
+                        />
+                        <EvidenceScoreBreakdown
+                            evidence={evidence}
+                            onShowLayer={(layer) => setEvidenceLayer(layer, true)}
+                        />
+                    </div>
+                )}
+
                 <div>
                     <h2 style={{ fontSize: '1.2em', margin: '0 0 10px 0', wordBreak: 'break-all' }}>{image.file_name}</h2>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#aaa', fontSize: '0.9em' }}>
