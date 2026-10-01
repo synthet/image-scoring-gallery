@@ -53,6 +53,7 @@ type ElectronMock = {
     getShowEyes: ReturnType<typeof vi.fn>;
     onShowEyesChanged: ReturnType<typeof vi.fn>;
     getEyeKeypoints: ReturnType<typeof vi.fn>;
+    getImageEvidence: ReturnType<typeof vi.fn>;
     api: {
         propagateTags: ReturnType<typeof vi.fn>;
         fixImageMetadata: ReturnType<typeof vi.fn>;
@@ -100,6 +101,7 @@ function makeElectronMock(overrides: Partial<ElectronMock> = {}): ElectronMock {
         getShowEyes: vi.fn().mockResolvedValue(false),
         onShowEyesChanged: vi.fn().mockReturnValue(() => {}),
         getEyeKeypoints: vi.fn().mockResolvedValue({}),
+        getImageEvidence: vi.fn().mockResolvedValue(null),
         api: {
             propagateTags: vi.fn().mockResolvedValue({
                 success: true,

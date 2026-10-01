@@ -156,6 +156,8 @@ declare global {
             getShowEyes: () => Promise<boolean>;
             onShowEyesChanged: (callback: (show: boolean) => void) => () => void;
             getEyeKeypoints: (ids: number[]) => Promise<Record<number, ImageEyeKeypoints>>;
+            getImageEvidence: (imageId: number) => Promise<Record<string, unknown>>;
+            exportEvidencePack: (imageId: number, destPath: string) => Promise<{ path: string }>;
             selectDirectory: () => Promise<string | null>;
             openExternalUrl: (url: string) => Promise<void>;
             getDiagnostics: () => Promise<DiagnosticsReport>;
