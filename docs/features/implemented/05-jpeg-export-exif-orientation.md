@@ -13,7 +13,7 @@ timestamp: 2026-10-05T00:00:00Z
 
 **Primary code:** [`src/utils/exportImageBake.ts`](../../../src/utils/exportImageBake.ts) (renderer bake), [`src/components/Viewer/ImageViewer.tsx`](../../../src/components/Viewer/ImageViewer.tsx) (builds export payload from the same preview bytes), [`electron/main.ts`](../../../electron/main.ts) (`exportCurrentImage`, `resetExportedJpegExifOrientation`).
 
-**Related:** NEF embedded previews — [`01-nef-raw-fallback.md`](01-nef-raw-fallback.md); backend embedded preview transpose — [`modules/ui/source_image_api.py`](https://github.com/synthet/image-scoring-backend/blob/main/modules/ui/source_image_api.py) (`ImageOps.exif_transpose` on RAW preview path).
+**Related:** NEF embedded previews — [`01-nef-raw-fallback.md`](01-nef-raw-fallback.md); backend embedded preview transpose — [`modules/ui/source_image_api.py`](https://github.com/synthet/image-scoring-pipeline/blob/master/modules/ui/source_image_api.py) (`ImageOps.exif_transpose` on RAW preview path).
 
 ---
 
