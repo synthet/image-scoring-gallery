@@ -4,12 +4,16 @@ title: "Documentation Activity Log"
 description: "Chronological record of wiki maintenance activities. Newest entries first."
 resource: "docs/log.md"
 tags: ["gallery-docs"]
-timestamp: 2026-09-26T00:00:00Z
+timestamp: 2026-10-05T00:00:00Z
 ---
 
 # Documentation Activity Log
 
 Chronological record of wiki maintenance activities. Newest entries first.
+
+## 2026-10
+
+- 2026-10-05: updated — [JPEG export and EXIF orientation](features/implemented/05-jpeg-export-exif-orientation.md): documented Chromium's oriented decode, source TIFF orientation for browser RAW fallbacks, numeric ExifTool preview stamping, thumbnail cache recovery, diagnostic tools, and unchanged image 240203 with real-file verification evidence.
 
 ## 2026-09
 

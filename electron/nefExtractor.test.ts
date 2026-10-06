@@ -94,11 +94,11 @@ describe('NefExtractor', () => {
       expect(exiftool.write).toHaveBeenCalledWith(
         expect.any(String),
         { Orientation: 6 },
-        ['-overwrite_original']
+        ['-n', '-overwrite_original']
       );
     });
 
-    it('applies numeric orientation 8 when tag is "Rotate 270 CW"', async () => {
+    it('writes orientation 8 in numeric mode so ExifTool does not turn it into 3', async () => {
       const fakeBuffer = Buffer.from('rotated-270');
       vi.mocked(exiftool.read).mockResolvedValue({ Orientation: 'Rotate 270 CW' } as never);
       vi.mocked(exiftool.extractJpgFromRaw).mockResolvedValue(undefined as never);
@@ -111,7 +111,7 @@ describe('NefExtractor', () => {
       expect(exiftool.write).toHaveBeenCalledWith(
         expect.any(String),
         { Orientation: 8 },
-        ['-overwrite_original']
+        ['-n', '-overwrite_original']
       );
     });
 
@@ -128,7 +128,7 @@ describe('NefExtractor', () => {
       expect(exiftool.write).toHaveBeenCalledWith(
         expect.any(String),
         { Orientation: 8 },
-        ['-overwrite_original']
+        ['-n', '-overwrite_original']
       );
     });
 

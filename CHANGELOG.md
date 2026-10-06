@@ -4,6 +4,9 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+### Fixed
+- **RAW preview orientation:** Avoid applying EXIF rotation twice in Chromium, retain source TIFF orientation in browser preview fallbacks, and stamp Electron preview orientation in numeric ExifTool mode. Verified desktop/browser parity and preserved backend image 240203.
+
 ## [7.29.0] - 2026-08-15
 
 ### Added

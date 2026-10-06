@@ -1,5 +1,6 @@
 import { bridge } from '../bridge';
 import { toMediaUrl } from './mediaUrl';
+import { bakeExifOrientationToBlob } from './exportImageBake';
 
 /**
  * LibRaw Viewer - NEF/RAW file preview utility
@@ -50,14 +51,14 @@ export class NefViewer {
                     let blob = this.extractFromSubIFD(arrayBuffer);
                     if (blob) {
                         console.log(`[NefViewer] ✓ Tier 2 succeeded (SubIFD parsing)`);
-                        return blob;
+                        return this.orientClientPreview(blob, arrayBuffer);
                     }
 
                     // Tier 3: JPEG marker scanning
                     blob = await this.extractEmbeddedJpeg(arrayBuffer);
                     if (blob) {
                         console.log(`[NefViewer] ✓ Tier 3 succeeded (marker scanning)`);
-                        return blob;
+                        return this.orientClientPreview(blob, arrayBuffer);
                     }
 
                     console.warn('[NefViewer] ✗ All tiers failed - returning null');
@@ -88,12 +89,12 @@ export class NefViewer {
                 let blob = this.extractFromSubIFD(arrayBuffer);
                 if (blob) {
                     console.log('[NefViewer] ✓ Browser Tier 2 (SubIFD) succeeded');
-                    return blob;
+                    return this.orientClientPreview(blob, arrayBuffer);
                 }
                 blob = await this.extractEmbeddedJpeg(arrayBuffer);
                 if (blob) {
                     console.log('[NefViewer] ✓ Browser Tier 3 (JPEG markers) succeeded');
-                    return blob;
+                    return this.orientClientPreview(blob, arrayBuffer);
                 }
                 console.warn('[NefViewer] Browser client-side parse found no embedded JPEG');
             } catch (e) {
@@ -103,6 +104,31 @@ export class NefViewer {
 
         console.warn('[NefViewer] ✗ Returning null - will fallback to thumbnail');
         return null;
+    }
+
+    /** Client-extracted JPEGs can omit Orientation, which lives on the source RAW's IFD0. */
+    private async orientClientPreview(blob: Blob, buffer: ArrayBuffer): Promise<Blob> {
+        try {
+            const view = new DataView(buffer);
+            if (view.byteLength < 8) return blob;
+            const { littleEndian, ifd0Offset } = this.parseTiffHeader(view);
+            if (ifd0Offset == null || ifd0Offset + 2 > view.byteLength) return blob;
+            const entries = view.getUint16(ifd0Offset, littleEndian);
+            for (let i = 0; i < entries; i++) {
+                const offset = ifd0Offset + 2 + i * 12;
+                if (offset + 12 > view.byteLength) break;
+                if (view.getUint16(offset, littleEndian) !== 0x0112
+                    || view.getUint16(offset + 2, littleEndian) !== 3
+                    || view.getUint32(offset + 4, littleEndian) !== 1) continue;
+                const orientation = view.getUint16(offset + 8, littleEndian);
+                if (orientation < 2 || orientation > 8) return blob;
+                const baked = await bakeExifOrientationToBlob(blob, 'image/jpeg', orientation);
+                return baked?.didNormalize ? baked.blob : blob;
+            }
+        } catch (error) {
+            console.warn('[NefViewer] Client preview orientation failed:', error);
+        }
+        return blob;
     }
 
     /**

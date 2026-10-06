@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NefViewer } from './nefViewer';
 import { bridge } from '../bridge';
+import { bakeExifOrientationToBlob } from './exportImageBake';
+
+vi.mock('./exportImageBake', () => ({ bakeExifOrientationToBlob: vi.fn() }));
 
 // Mock bridge
 vi.mock('../bridge', () => ({
@@ -21,11 +24,13 @@ describe('NefViewer', () => {
     nefViewer = NefViewer.getInstance();
     // Ensure window.electron exists for the tests to enter the main logic
     setElectron({});
+    vi.mocked(bakeExifOrientationToBlob).mockReset();
   });
 
   afterEach(() => {
     setElectron(undefined);
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('Tier 1: uses bridge.extractNefPreview successfully', async () => {
@@ -181,5 +186,39 @@ describe('NefViewer', () => {
     const result = await nefViewer.extractWithFallback('/mnt/x.nef');
     expect(result).toBeNull();
     vi.unstubAllGlobals();
+  });
+
+  it.each([true, false])('browser: retains source TIFF orientation in client preview (little endian=%s)', async (littleEndian) => {
+    setElectron(undefined);
+    const buffer = new ArrayBuffer(96);
+    const view = new DataView(buffer);
+    view.setUint16(0, littleEndian ? 0x4949 : 0x4d4d);
+    view.setUint16(2, 42, littleEndian);
+    view.setUint32(4, 8, littleEndian);
+    view.setUint16(8, 2, littleEndian);
+    view.setUint16(10, 0x0112, littleEndian);
+    view.setUint16(12, 3, littleEndian);
+    view.setUint32(14, 1, littleEndian);
+    view.setUint16(18, 8, littleEndian);
+    view.setUint16(22, 0x014a, littleEndian);
+    view.setUint16(24, 4, littleEndian);
+    view.setUint32(26, 1, littleEndian);
+    view.setUint32(30, 38, littleEndian);
+    view.setUint16(38, 2, littleEndian);
+    view.setUint16(40, 0x0201, littleEndian);
+    view.setUint32(48, 78, littleEndian);
+    view.setUint16(52, 0x0202, littleEndian);
+    view.setUint32(60, 4, littleEndian);
+    new Uint8Array(buffer).set([0xff, 0xd8, 0xff, 0xd9], 78);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => buffer }));
+    const upright = new Blob(['upright'], { type: 'image/jpeg' });
+    vi.mocked(bakeExifOrientationToBlob).mockResolvedValue({
+      blob: upright, width: 100, height: 200, sourceOrientation: 8, didNormalize: true,
+    });
+
+    const result = await nefViewer.extractWithFallback('/mnt/d/Photos/portrait.nef');
+
+    expect(bakeExifOrientationToBlob).toHaveBeenCalledWith(expect.any(Blob), 'image/jpeg', 8);
+    expect(result).toBe(upright);
   });
 });

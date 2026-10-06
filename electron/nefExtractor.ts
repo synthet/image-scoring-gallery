@@ -74,7 +74,8 @@ export class NefExtractor {
             // Stamp numeric Orientation onto the extract so bake / browsers can apply it.
             if (orientation != null && orientation >= 2) {
                 console.log(`[NefExtractor] Detected orientation: ${orientation}, applying to extracted JPEG`);
-                await exiftool.write(tempJpeg, { Orientation: orientation }, ['-overwrite_original']);
+                // ExifTool treats a bare numeric value as a print-converted label unless -n is set.
+                await exiftool.write(tempJpeg, { Orientation: orientation }, ['-n', '-overwrite_original']);
             }
 
             const buffer = await fs.readFile(tempJpeg);
