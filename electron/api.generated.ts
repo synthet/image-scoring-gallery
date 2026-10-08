@@ -1684,6 +1684,26 @@ export interface paths {
         patch: operations["update_image_api_images__image_id__patch"];
         trace?: never;
     };
+    "/api/images/{image_id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Visual evidence for inspector overlays
+         * @description Returns precomputed or on-demand evidence artifacts (grids, mask RLE, bands, gates) for gallery evidence layers. See docs/planning/visual-evidence-api-and-grids.md.
+         */
+        get: operations["get_image_evidence_api_images__image_id__evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/images/{image_id}/neighbors": {
         parameters: {
             query?: never;
@@ -1934,6 +1954,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/analytics/scores/matrix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Image × score-dimension matrix
+         * @description Every image with every score dimension (composites + all models incl. shadow), column-oriented, `COALESCE(normalized, raw_score)` rounded to 3 decimals. Cached in-process; supports `If-None-Match` → 304. PostgreSQL only.
+         */
+        get: operations["get_score_matrix_api_analytics_scores_matrix_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analytics/scores/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Score-dimension descriptives and correlations
+         * @description Per-dimension descriptives (mean, median, mode, IQR, std, skewness, kurtosis, boxplot whiskers, 50-bin histogram) and pairwise-complete Pearson / Spearman matrices with p-values and n. PostgreSQL only.
+         */
+        get: operations["get_score_stats_api_analytics_scores_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analytics/scores/regression": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * OLS regression of a target score on predictor scores
+         * @description Multiple linear regression on complete rows: coefficients (β, standardized β, SE, t, p, 95% CI, VIF), R², adjusted R², 5-fold CV R², RMSE, MAE, F-test, sampled residuals and rule-based recommendations. `predictors` defaults to all non-shadow models. PostgreSQL only.
+         */
+        get: operations["get_score_regression_api_analytics_scores_regression_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analytics/scores/stacks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Within-stack culling signal per score dimension
+         * @description For stacks with at least `min_size` scored images: within-stack spread, within-stack variance share, tie rate, top-gap, pick/reject pairwise AUC (images.pick_status), top-1 pick rate, stacks.best_image_id match rate, and mean within-stack Spearman agreement between dimensions. PostgreSQL only.
+         */
+        get: operations["get_score_stacks_api_analytics_scores_stacks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analytics/scores/keywords": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Per-keyword score profiles
+         * @description For the most frequent keywords: per-dimension descriptives of the keyword layer and its shift vs the rest of the library (mean delta, Cohen's d, percentile-rank shift). PostgreSQL only.
+         */
+        get: operations["get_score_keyword_profiles_api_analytics_scores_keywords_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analytics/scores/suitability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Global vs intra-cluster model suitability (Nₐ / Nᵦ)
+         * @description Read-only research report: extended per-dimension profiles, variance decomposition, pooled vs within-cluster correlations, within-cluster pairwise / top-k / NDCG culling metrics and a pairwise logistic model against graded culling labels, global agreement with independent labels, and the Uⱼ = (Gⱼ, Cⱼ) suitability map with cluster-bootstrap CIs. Label provenance is audited; score-derived labels are never treated as independent. PostgreSQL only.
+         */
+        get: operations["get_score_suitability_api_analytics_scores_suitability_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/culling/agent-review/groups": {
         parameters: {
             query?: never;
@@ -2073,6 +2213,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/culling/agent-review/groups/{group_id}/delete-approved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Permanently delete files + DB records for operator-approved removals
+         * @description IRREVERSIBLE. Deletes the source file, thumbnails, and DB record for every
+         *     operator-approved remove candidate in a validated group. Requires ``confirm: true``.
+         */
+        post: operations["delete_approved_agent_cull_group_api_culling_agent_review_groups__group_id__delete_approved_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/culling/agent-review/recommendations/{recommendation_id}/rollback": {
         parameters: {
             query?: never;
@@ -2158,6 +2319,19 @@ export interface paths {
          *
          *             For single files, only 'score' and 'tag' StageRuns are supported.
          *             'cluster' requires a folder path.
+         *
+         *             Folder-scoped submissions are checked against the phase DAG, the same gate
+         *             /api/runs/submit applies. A stage whose prerequisite is neither already complete
+         *             for the scope nor listed earlier in stage_codes returns success=false with
+         *             data.code = 'missing_prerequisites'. Because this endpoint preserves the submitted
+         *             order as the run's execution order, a prerequisite placed after the stage that
+         *             needs it (e.g. ['tag', 'score']) is rejected; siblings under one prerequisite
+         *             ('cluster' and 'tag', both under 'score') are accepted in either order.
+         *             Folder scope means workspace_target, folder_paths, or folder_ids: ids are resolved
+         *             to their folder paths so every folder selector form is gated alike. Image-id and
+         *             image-path selectors are not gated, and neither is a folder_id that resolves to no
+         *             folder row. This rejects some submissions accepted before the localization
+         *             control-plane consolidation (issues #346, #351).
          */
         post: operations["submit_pipeline_api_pipeline_submit_post"];
         delete?: never;
@@ -3086,36 +3260,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/ipc/bridge": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Electron IPC -> FastAPI bridge
-         * @description Bridges Electron-style IPC messages into FastAPI handlers so the desktop
-         *             main process can forward a single contract to Python.
-         *
-         *             Supported channels:
-         *             - `pipeline:submit` -> POST /api/pipeline/submit
-         *             - `pipeline:phase:skip` -> POST /api/pipeline/phase/skip
-         *             - `pipeline:phase:retry` -> POST /api/pipeline/phase/retry
-         *             - `tasks:active` -> GET /api/tasks/active
-         *             - `jobs:queue` -> GET /api/jobs/queue
-         *             - `folders:tree` -> GET /api/folders/tree
-         *             - `folders:phase-status` -> GET /api/folders/phase-status
-         */
-        post: operations["ipc_bridge_api_ipc_bridge_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/maintenance/start": {
         parameters: {
             query?: never;
@@ -3192,6 +3336,36 @@ export interface paths {
         get: operations["get_thread_dump_api_debug_thread_dump_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ipc/bridge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Electron IPC -> FastAPI bridge
+         * @description Bridges Electron-style IPC messages into FastAPI handlers so the desktop
+         *             main process can forward a single contract to Python.
+         *
+         *             Supported channels:
+         *             - `pipeline:submit` -> POST /api/pipeline/submit
+         *             - `pipeline:phase:skip` -> POST /api/pipeline/phase/skip
+         *             - `pipeline:phase:retry` -> POST /api/pipeline/phase/retry
+         *             - `tasks:active` -> GET /api/tasks/active
+         *             - `jobs:queue` -> GET /api/jobs/queue
+         *             - `folders:tree` -> GET /api/folders/tree
+         *             - `folders:phase-status` -> GET /api/folders/phase-status
+         */
+        post: operations["ipc_bridge_api_ipc_bridge_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3322,6 +3496,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AgentCullDeleteApprovedRequest */
+        AgentCullDeleteApprovedRequest: {
+            /**
+             * Actor
+             * @default operator
+             */
+            actor: string;
+            /**
+             * Confirm
+             * @default false
+             */
+            confirm: boolean;
+        };
         /** AgentCullDiscoverRequest */
         AgentCullDiscoverRequest: {
             /** Folder Path */
@@ -3716,12 +3903,12 @@ export interface components {
         };
         /**
          * DeleteFolderCacheRequest
-         * @description Remove a folder subtree from the ``folders`` cache when no images reference it.
+         * @description Remove a folder subtree from the folders cache when no images reference it.
          */
         DeleteFolderCacheRequest: {
             /**
              * Path
-             * @description Absolute folder path matching a cached ``folders.path``.
+             * @description Absolute folder path matching a cached folders.path.
              */
             path: string;
         };
@@ -4372,11 +4559,14 @@ export interface components {
          * PipelineSubmitRequest
          * @description Request model for submitting images/folders to the processing pipeline.
          *
-         *     Chains requested StageRuns sequentially (indexing/metadata/score/tag/cluster).
+         *     Chains requested StageRuns sequentially. Accepts canonical phase codes and the
+         *     legacy score/tag/cluster aliases; prerequisites are enforced for folder scopes.
          *
          *     Attributes:
          *         workspace_target: File or directory path to process.
-         *         stage_codes: Ordered stage run codes to execute (indexing|metadata|score|tag|cluster).
+         *         stage_codes: Ordered stage run codes to execute
+         *             (indexing|metadata|scoring|culling|keywords|bird_species, or the
+         *             score|tag|cluster aliases).
          *         workflow_template: Logical template name for the run (e.g., full_ingest, metadata_only, re_tag).
          */
         PipelineSubmitRequest: {
@@ -4428,7 +4618,7 @@ export interface components {
             workspace_target?: string | null;
             /**
              * Stage Codes
-             * @description Ordered StageRun codes. Valid values: 'indexing', 'metadata', 'score', 'tag', 'cluster'.
+             * @description Ordered StageRun codes. Canonical phase codes: 'indexing', 'metadata', 'scoring', 'culling', 'keywords', 'bird_species'. Legacy aliases 'score', 'tag', 'cluster' (and 'bird-species') are also accepted. This order is preserved as the run's execution order. Prerequisites are enforced for folder-scoped submissions: a stage whose prerequisite is neither complete for the scope nor listed *earlier in this list* is rejected with code 'missing_prerequisites'. Listing a prerequisite after the stage that needs it (e.g. ['tag', 'score']) is rejected.
              * @default [
              *       "score",
              *       "tag"
@@ -4589,6 +4779,12 @@ export interface components {
              * @default true
              */
             generate_captions: boolean;
+            /**
+             * Force
+             * @description When true with explicit folder_paths, bypass the loop guard for a manual per-folder queue (Drive batch still respects max_repeats).
+             * @default false
+             */
+            force: boolean;
         };
         /** RunsDriveStartRequest */
         RunsDriveStartRequest: {
@@ -4630,6 +4826,291 @@ export interface components {
              * @default true
              */
             recursive: boolean;
+        };
+        /**
+         * ScoreKeywordProfilesResponse
+         * @description Per-keyword score profile vs the rest of the library for the most frequent keywords.
+         */
+        ScoreKeywordProfilesResponse: {
+            /** Fingerprint */
+            fingerprint: string;
+            /** Image Count */
+            image_count: number;
+            /** Keys */
+            keys: string[];
+            /** Keywords */
+            keywords: {
+                [key: string]: unknown;
+            }[];
+        };
+        /**
+         * ScoreMatrixResponse
+         * @description Column-oriented image × score-dimension matrix (values rounded to 3 decimals, null = missing).
+         */
+        ScoreMatrixResponse: {
+            /** Fingerprint */
+            fingerprint: string;
+            /** Generated At */
+            generated_at: string;
+            /**
+             * Scope
+             * @description {"kind": "library"} or {"kind": "keyword", "keyword": ...}
+             */
+            scope: {
+                [key: string]: unknown;
+            };
+            /** Image Count */
+            image_count: number;
+            /** Image Ids */
+            image_ids: number[];
+            /** Keys */
+            keys: string[];
+            /** Meta */
+            meta: {
+                [key: string]: components["schemas"]["ScoreSeriesMeta"];
+            };
+            /** Series */
+            series: {
+                [key: string]: (number | null)[];
+            };
+        };
+        /**
+         * ScoreRegressionResponse
+         * @description OLS of a target score on predictor scores, with VIF, fit metrics and recommendations.
+         */
+        ScoreRegressionResponse: {
+            /** Fingerprint */
+            fingerprint: string;
+            /** Scope */
+            scope: {
+                [key: string]: unknown;
+            };
+            /** Target */
+            target: string;
+            /** Predictors */
+            predictors: string[];
+            /** Complete Rows */
+            complete_rows: number;
+            /** Image Count */
+            image_count: number;
+            /** Configured Weights */
+            configured_weights?: {
+                [key: string]: number;
+            } | null;
+            /** N */
+            n: number;
+            /** K */
+            k: number;
+            /** Dof */
+            dof: number;
+            /** Rank Deficient */
+            rank_deficient: boolean;
+            /** Intercept */
+            intercept: {
+                [key: string]: number | null;
+            };
+            /** Coefficients */
+            coefficients: {
+                [key: string]: unknown;
+            }[];
+            /** R2 */
+            r2?: number | null;
+            /** Adj R2 */
+            adj_r2?: number | null;
+            /** Cv R2 */
+            cv_r2?: number | null;
+            /** Rmse */
+            rmse?: number | null;
+            /** Mae */
+            mae?: number | null;
+            /** F Stat */
+            f_stat?: number | null;
+            /** F P */
+            f_p?: number | null;
+            /** Residuals */
+            residuals: {
+                [key: string]: unknown;
+            };
+            /** Recommendations */
+            recommendations: {
+                [key: string]: string;
+            }[];
+        };
+        /**
+         * ScoreSeriesMeta
+         * @description One score dimension in the score-analytics matrix.
+         */
+        ScoreSeriesMeta: {
+            /**
+             * Kind
+             * @description composite | model | shadow
+             */
+            kind: string;
+            /**
+             * Count
+             * @description Images with a value for this dimension
+             */
+            count: number;
+            /** Coverage Pct */
+            coverage_pct: number;
+        };
+        /**
+         * ScoreStacksResponse
+         * @description Within-stack culling-signal metrics per score dimension (spread, pick/reject AUC, agreement).
+         */
+        ScoreStacksResponse: {
+            /** Fingerprint */
+            fingerprint: string;
+            /** Scope */
+            scope: {
+                [key: string]: unknown;
+            };
+            /** Image Count */
+            image_count: number;
+            /** Meta */
+            meta: {
+                [key: string]: components["schemas"]["ScoreSeriesMeta"];
+            };
+            /** Min Size */
+            min_size: number;
+            /** Tie Eps */
+            tie_eps: number;
+            /** Stacks Considered */
+            stacks_considered: number;
+            /** Images In Stacks */
+            images_in_stacks: number;
+            /** Stacks With Picks */
+            stacks_with_picks: number;
+            /** Keys */
+            keys: string[];
+            /** Models */
+            models: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Ranking
+             * @description Dimensions ordered by pick AUC, then within-stack variance share
+             */
+            ranking: string[];
+            /** Agreement */
+            agreement: {
+                [key: string]: (number | null)[][];
+            };
+        };
+        /**
+         * ScoreStatsResponse
+         * @description Per-dimension descriptives and pairwise Pearson/Spearman correlation matrices.
+         */
+        ScoreStatsResponse: {
+            /** Fingerprint */
+            fingerprint: string;
+            /** Generated At */
+            generated_at: string;
+            /** Scope */
+            scope: {
+                [key: string]: unknown;
+            };
+            /** Image Count */
+            image_count: number;
+            /** Keys */
+            keys: string[];
+            /** Meta */
+            meta: {
+                [key: string]: components["schemas"]["ScoreSeriesMeta"];
+            };
+            /** Descriptives */
+            descriptives: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            };
+            /** Correlation */
+            correlation: {
+                [key: string]: (number | null)[][];
+            };
+        };
+        /**
+         * ScoreSuitabilityResponse
+         * @description Global (Nₐ) vs intra-cluster (Nᵦ) model suitability report with provenance manifest.
+         */
+        ScoreSuitabilityResponse: {
+            /** Manifest */
+            manifest: {
+                [key: string]: unknown;
+            };
+            /** Data Dictionary */
+            data_dictionary: {
+                [key: string]: unknown;
+            }[];
+            /** Scope */
+            scope: {
+                [key: string]: unknown;
+            };
+            /** Images */
+            images: number;
+            /** Dimensions */
+            dimensions: string[];
+            /** Kinds */
+            kinds: {
+                [key: string]: string;
+            };
+            /** Clusters */
+            clusters: {
+                [key: string]: unknown;
+            };
+            /** Split */
+            split: {
+                [key: string]: unknown;
+            };
+            /**
+             * Labels
+             * @description Label provenance audit and leakage notes
+             */
+            labels: {
+                [key: string]: unknown;
+            };
+            /** Profiles */
+            profiles: {
+                [key: string]: unknown;
+            };
+            /** Co Missingness */
+            co_missingness: {
+                [key: string]: unknown;
+            };
+            /** Variance */
+            variance: {
+                [key: string]: unknown;
+            };
+            /** Correlation */
+            correlation: {
+                [key: string]: unknown;
+            };
+            /** Pca */
+            pca: {
+                [key: string]: unknown;
+            };
+            /** Culling */
+            culling: {
+                [key: string]: unknown;
+            };
+            /** Pairwise Model */
+            pairwise_model: {
+                [key: string]: unknown;
+            };
+            /** Global */
+            global: {
+                [key: string]: unknown;
+            };
+            /** Suitability */
+            suitability: {
+                [key: string]: unknown;
+            };
+            /** Subgroups */
+            subgroups: {
+                [key: string]: unknown;
+            }[];
+            /** Findings */
+            findings: string[];
         };
         /**
          * ScoringStartRequest
@@ -8618,6 +9099,8 @@ export interface operations {
                 min_score_aesthetic?: number;
                 /** @description Minimum technical score */
                 min_score_technical?: number;
+                /** @description Minimum CLIP quality score (clip_quality_v0) */
+                min_clip_quality_v0?: number;
                 /** @description Filter by folder path */
                 folder_path?: string | null;
                 /** @description Filter by stack ID */
@@ -9293,6 +9776,65 @@ export interface operations {
             };
         };
     };
+    get_image_evidence_api_images__image_id__evidence_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_image_neighbors_api_images__image_id__neighbors_get: {
         parameters: {
             query?: {
@@ -9309,6 +9851,7 @@ export interface operations {
                 min_score_general?: number;
                 min_score_aesthetic?: number;
                 min_score_technical?: number;
+                min_clip_quality_v0?: number;
                 folder_path?: string | null;
                 stack_id?: number | null;
             };
@@ -10003,6 +10546,401 @@ export interface operations {
             };
         };
     };
+    get_score_matrix_api_analytics_scores_matrix_get: {
+        parameters: {
+            query?: {
+                /** @description Restrict to images tagged with this keyword (exact, case-insensitive). Omit for the full library. */
+                keyword?: string | null;
+                /** @description Include legacy (koniq, paq2piq) and research (refcull_*) dimensions, hidden by default. */
+                include_legacy?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreMatrixResponse"];
+                };
+            };
+            /** @description Not modified (ETag match) */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_score_stats_api_analytics_scores_stats_get: {
+        parameters: {
+            query?: {
+                /** @description Restrict to images tagged with this keyword (exact, case-insensitive). Omit for the full library. */
+                keyword?: string | null;
+                /** @description Include legacy (koniq, paq2piq) and research (refcull_*) dimensions, hidden by default. */
+                include_legacy?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreStatsResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_score_regression_api_analytics_scores_regression_get: {
+        parameters: {
+            query?: {
+                /** @description Dimension to predict (e.g. general) */
+                target?: string;
+                /** @description Comma-separated predictor dimensions */
+                predictors?: string | null;
+                /** @description Restrict to images tagged with this keyword (exact, case-insensitive). Omit for the full library. */
+                keyword?: string | null;
+                /** @description Include legacy (koniq, paq2piq) and research (refcull_*) dimensions, hidden by default. */
+                include_legacy?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreRegressionResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_score_stacks_api_analytics_scores_stacks_get: {
+        parameters: {
+            query?: {
+                /** @description Restrict to images tagged with this keyword (exact, case-insensitive). Omit for the full library. */
+                keyword?: string | null;
+                /** @description Minimum scored images per stack */
+                min_size?: number;
+                /** @description Include legacy (koniq, paq2piq) and research (refcull_*) dimensions, hidden by default. */
+                include_legacy?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreStacksResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_score_keyword_profiles_api_analytics_scores_keywords_get: {
+        parameters: {
+            query?: {
+                /** @description Number of keywords (by image count) */
+                limit?: number;
+                /** @description Skip keywords with fewer images */
+                min_images?: number;
+                /** @description Include legacy (koniq, paq2piq) and research (refcull_*) dimensions, hidden by default. */
+                include_legacy?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreKeywordProfilesResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_score_suitability_api_analytics_scores_suitability_get: {
+        parameters: {
+            query?: {
+                /** @description Restrict to images tagged with this keyword (exact, case-insensitive). Omit for the full library. */
+                keyword?: string | null;
+                /** @description auto (manual culling decisions, else unverified pick flags) | manual | unverified | all */
+                culling_labels?: string;
+                /** @description Treat image_xmp.rating as independent global labels */
+                trust_xmp_ratings?: boolean;
+                /** @description Minimum images per cluster (stack) */
+                min_size?: number;
+                /** @description Cluster-bootstrap resamples */
+                bootstrap?: number;
+                /** @description Include legacy (koniq, paq2piq) and research (refcull_*) dimensions, hidden by default. */
+                include_legacy?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreSuitabilityResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_agent_cull_groups_api_culling_agent_review_groups_get: {
         parameters: {
             query?: {
@@ -10433,6 +11371,69 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["AgentCullRecommendationIdsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_approved_agent_cull_group_api_culling_agent_review_groups__group_id__delete_approved_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentCullDeleteApprovedRequest"];
             };
         };
         responses: {
@@ -13521,67 +14522,6 @@ export interface operations {
             };
         };
     };
-    ipc_bridge_api_ipc_bridge_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["IpcBridgeRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IpcBridgeResponse"];
-                };
-            };
-            /** @description Bad Request - Invalid input parameters */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not Found - Resource not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Service Unavailable - Runner not initialized */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     maintenance_start_api_maintenance_start_post: {
         parameters: {
             query?: never;
@@ -13787,6 +14727,67 @@ export interface operations {
             };
         };
     };
+    ipc_bridge_api_ipc_bridge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IpcBridgeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IpcBridgeResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     public_list_images_public_api_images_get: {
         parameters: {
             query?: {
@@ -13806,6 +14807,7 @@ export interface operations {
                 min_score_general?: number;
                 min_score_aesthetic?: number;
                 min_score_technical?: number;
+                min_clip_quality_v0?: number;
                 folder_path?: string | null;
                 stack_id?: number | null;
             };
@@ -14030,6 +15032,7 @@ export interface operations {
                 min_score_general?: number;
                 min_score_aesthetic?: number;
                 min_score_technical?: number;
+                min_clip_quality_v0?: number;
                 folder_path?: string | null;
                 stack_id?: number | null;
             };
