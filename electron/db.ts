@@ -8,6 +8,7 @@ import {
     buildStackSortExpressions,
 } from './sortSql';
 import { absolutizeThumbnailPath } from './thumbnailPathNormalize';
+import { birdBboxSelect } from './normalizedBirdBbox';
 import { applyThumbnailPathRemaps } from './pathsRemap';
 import type { AppConfig, DatabaseConfig, EyeKeypoint, ImageEyeKeypoints, ScoredImageForBackup } from './types';
 import { createDatabaseConnector, IDatabaseConnector, QueryParam, TxQuery } from './db/provider';
@@ -523,7 +524,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.created_at,
             i.thumbnail_path,
             i.thumbnail_path_win,
-            i.bird_bbox,
+            ${birdBboxSelect(config.localization?.read_normalized_first === true)},
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -765,7 +766,7 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
             i.folder_id,
             i.stack_id,
             ${subStackIdSelect(includeSubStackId)},
-            i.bird_bbox,
+            ${birdBboxSelect(config.localization?.read_normalized_first === true)},
             i.created_at,
             i.burst_uuid,
             i.image_uuid,
@@ -1737,7 +1738,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.created_at,
                 i.thumbnail_path,
                 i.thumbnail_path_win,
-                i.bird_bbox,
+                ${birdBboxSelect(config.localization?.read_normalized_first === true)},
                 ${CAPTURE_TS} as capture_date,
                 ${CAPTURE_FALLBACK} as is_capture_date_fallback${nonStackSelectExtra}
             FROM stack_cache sc
@@ -1772,7 +1773,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.created_at,
                 i.thumbnail_path,
                 i.thumbnail_path_win,
-                i.bird_bbox,
+                ${birdBboxSelect(config.localization?.read_normalized_first === true)},
                 ${CAPTURE_TS} as capture_date,
                 ${CAPTURE_FALLBACK} as is_capture_date_fallback${nonStackSelectExtra}
             FROM images i
@@ -1854,7 +1855,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             i.stack_id,
             ${subStackIdSelect(includeSubStackId, 'i')},
             ${imagePickStatusSelect(includePickStatus, 'i')},
-            i.bird_bbox,
+            ${birdBboxSelect(config.localization?.read_normalized_first === true)},
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -2207,7 +2208,7 @@ export async function getImagesBySubStack(subStackId: number, options: ImageQuer
             i.stack_id,
             i.sub_stack_id,
             ${imagePickStatusSelect(includePickStatus, 'i')},
-            i.bird_bbox,
+            ${birdBboxSelect(config.localization?.read_normalized_first === true)},
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -2276,7 +2277,7 @@ export async function getImagesByStackUngrouped(stackId: number, options: ImageQ
             i.stack_id,
             i.sub_stack_id,
             ${imagePickStatusSelect(includePickStatus, 'i')},
-            i.bird_bbox,
+            ${birdBboxSelect(config.localization?.read_normalized_first === true)},
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i

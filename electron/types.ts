@@ -46,7 +46,7 @@ export interface ImageRow {
 }
 
 /**
- * Bird detection box from `images.bird_bbox` (JSONB, written by the backend `bird_species` phase).
+ * Compatibility bird box from the legacy column or the backend-owned normalized selection view.
  * Absolute pixel `xyxy` in EXIF-oriented space; `img_w`/`img_h` are the dimensions of the image
  * the detector saw, so overlays must position by fraction rather than raw pixels.
  */
@@ -225,6 +225,8 @@ export type NormalizedAppConfig = Omit<AppConfig, 'database'> & {
 };
 
 export interface AppConfig {
+    /** Opt-in SQL compatibility view (backend migration 0043); restart after changing. */
+    localization?: { read_normalized_first?: boolean };
     database?: DatabaseConfig;
     dev?: {
         url?: string;

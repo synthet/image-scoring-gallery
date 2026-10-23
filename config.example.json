@@ -21,6 +21,9 @@
             }
         }
     },
+    "localization": {
+        "read_normalized_first": false
+    },
     "dev": {
         "url": "http://localhost:5173"
     },
