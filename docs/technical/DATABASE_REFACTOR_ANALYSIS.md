@@ -10,7 +10,7 @@ timestamp: 2026-06-16T00:00:00Z
 # Database Refactor Compatibility Analysis
 
 ## Overview
-This document analyzes the impact of the proposed [DB_VECTORS_REFACTOR.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/planning/database/DB_VECTORS_REFACTOR.md) on the **image-scoring-gallery** (Electron) application.
+This document analyzes the impact of the proposed [DB_VECTORS_REFACTOR.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/planning/database/DB_VECTORS_REFACTOR.md) on the **image-scoring-gallery** (Electron) application.
 
 ## Compatibility Matrix
 

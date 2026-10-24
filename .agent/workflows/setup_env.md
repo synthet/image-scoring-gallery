@@ -17,7 +17,7 @@ description: Set up the Node.js development environment
 3. **Start PostgreSQL**:
    Ensure the PostgreSQL Docker container is running:
    ```pwsh
-   docker compose -f "../image-scoring-backend/docker-compose.yml" up -d
+   docker compose -f "../image-scoring-pipeline/docker-compose.yml" up -d
    ```
    (Adjust the path if your backend clone is not a sibling folder.)
 

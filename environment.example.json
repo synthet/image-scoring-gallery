@@ -20,11 +20,11 @@
         "port": 7860
     },
     "paths": {
-        "thumbnail_base_dir": "../image-scoring-backend/thumbnails",
+        "thumbnail_base_dir": "../image-scoring-pipeline/thumbnails",
         "thumbnail_path_remap": [
             {
                 "from": "../image-scoring/thumbnails",
-                "to": "../image-scoring-backend/thumbnails"
+                "to": "../image-scoring-pipeline/thumbnails"
             }
         ]
     }

@@ -74,6 +74,7 @@ function showSaveDialog(options: Electron.SaveDialogOptions) {
 
 function resolveBackendWebuiWindowIcon(): string | undefined {
     const candidates = [
+        path.join(__dirname, '..', 'image-scoring-pipeline', 'static', 'favicon.ico'),
         path.join(__dirname, '..', 'image-scoring-backend', 'static', 'favicon.ico'),
         path.join(__dirname, '..', 'image-scoring', 'static', 'favicon.ico'),
     ];
@@ -168,6 +169,8 @@ async function findActiveWebuiPort(): Promise<number | null> {
         const projectRoot = path.resolve(__dirname, '..');
         const projectsDir = path.resolve(projectRoot, '..');
         const lockFiles = [
+            path.join(projectsDir, 'image-scoring-pipeline', 'webui.lock'),
+            path.join(projectsDir, 'image-scoring-pipeline', 'webui-debug.lock'),
             path.join(projectsDir, 'image-scoring-backend', 'webui.lock'),
             path.join(projectsDir, 'image-scoring-backend', 'webui-debug.lock'),
             path.join(projectsDir, 'image-scoring', 'webui.lock'),

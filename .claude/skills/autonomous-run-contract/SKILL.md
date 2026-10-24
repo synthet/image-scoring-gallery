@@ -108,7 +108,7 @@ Two failure modes to guard against:
 
 ## Fan-out extras
 
-- **Register every subgoal before spawning it** (`python ../image-scoring-backend/scripts/agent_harness/cli.py --repo . subgoal add "<text>"`; mark `done`/`drop` as it
+- **Register every subgoal before spawning it** (`python ../image-scoring-pipeline/scripts/agent_harness/cli.py --repo . subgoal add "<text>"`; mark `done`/`drop` as it
   resolves). Duplicates of work already done or in flight come back as `duplicate_of` — do not launch them.
 - **Price delegation per context rebuild** with `... cli.py route` — a cheaper worker only saves money when
   it gets a small purpose-built brief and returns a compact result.

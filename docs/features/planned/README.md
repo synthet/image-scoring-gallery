@@ -4,7 +4,7 @@ title: "Planned Features"
 description: "Documentation for features not yet implemented."
 resource: "docs/features/planned/README.md"
 tags: ["features", "gallery-docs", "index", "planned"]
-timestamp: 2026-09-25T00:00:00Z
+timestamp: 2026-10-10T00:00:00Z
 ---
 
 # Planned Features
@@ -20,5 +20,9 @@ Documentation for features not yet implemented.
 - Shipped viewer slice: [implemented/09-visual-evidence-overlays.md](../implemented/09-visual-evidence-overlays.md)
 
 - [Human Culling Labelling Mode](human-culling-labelling-mode.md) - Blind pick/keep/reject + best frame over the backend's sampled groups, flip-compare loupe, saves to `human_labels` (backend #415)
+- [Loupe Subject Tracking](loupe-subject-tracking.md) - Keep a zoomed loupe on the same part of a moving animal across a burst (holds position when unsure; design options measured on owned bursts)
+- [Backup Copy Identity](backup-copy-identity.md) - **Data safety:** collision-safe destinations, size + content-hash repeat checks, independent sidecar outcomes, never delete foreign sidecars
+- [Archive Picks](archive-picks.md) - One confirmed action copying a folder's picks + sidecars to an archive root, without touching Backup settings
+- [Learn Weights From Choices](learn-weights-from-choices.md) - Fit personal score-tuning weights from culling labels and quick A/B prompts; shooting-style presets
 
 [← Back to Features](../README.md)

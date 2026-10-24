@@ -21,6 +21,9 @@
             }
         }
     },
+    "localization": {
+        "read_normalized_first": false
+    },
     "dev": {
         "url": "http://localhost:5173"
     },
@@ -29,11 +32,11 @@
     },
     "paths": {
         "remap_legacy_image_scoring_thumbnails": true,
-        "thumbnail_base_dir": "../image-scoring-backend/thumbnails",
+        "thumbnail_base_dir": "../image-scoring-pipeline/thumbnails",
         "thumbnail_path_remap": [
             {
                 "from": "../image-scoring/thumbnails",
-                "to": "../image-scoring-backend/thumbnails"
+                "to": "../image-scoring-pipeline/thumbnails"
             }
         ]
     },

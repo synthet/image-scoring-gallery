@@ -2,23 +2,23 @@
 name: codebase-size-audit
 description: >-
   Read-only scan for files ≥1000 LoC and functions/methods ≥150 LoC in this
-  repo and sibling image-scoring-backend. Use for codebase size audit, large file
+  repo and sibling image-scoring-pipeline. Use for codebase size audit, large file
   scan, god-module review, or refactoring hotspot analysis.
 ---
 
 # Codebase size audit (gallery)
 
-Read-only. Uses the canonical script in sibling **image-scoring-backend**:
+Read-only. Uses the canonical script in sibling **image-scoring-pipeline**:
 
 ```bash
 # From gallery root — typical sibling layout
-python ../image-scoring-backend/scripts/audit/codebase_size_audit.py --root .
+python ../image-scoring-pipeline/scripts/audit/codebase_size_audit.py --root .
 
 # Save report
-python ../image-scoring-backend/scripts/audit/codebase_size_audit.py --root . -o .agent/scratch/audit-gallery.md
+python ../image-scoring-pipeline/scripts/audit/codebase_size_audit.py --root . -o .agent/scratch/audit-gallery.md
 ```
 
-Full workflow, thresholds, and refactor guidance: **`../image-scoring-backend/.cursor/skills/codebase-size-audit/SKILL.md`**.
+Full workflow, thresholds, and refactor guidance: **`../image-scoring-pipeline/.cursor/skills/codebase-size-audit/SKILL.md`**.
 
 ## Gallery hotspots (re-check after each audit)
 

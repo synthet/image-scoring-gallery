@@ -25,6 +25,32 @@ export interface KeywordCloudEntry {
     count: number;
 }
 
+export interface AFBox {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    center_x: number;
+    center_y: number;
+}
+
+export interface AFMetadata {
+    version?: string;
+    mode?: string;
+    mode_code?: number | string | null;
+    in_focus?: boolean;
+    focus_distance_m?: number | null;
+    area_x?: number;
+    area_y?: number;
+    area_w?: number;
+    area_h?: number;
+    af_image_w?: number;
+    af_image_h?: number;
+    crop_area?: [number, number, number, number] | null;
+    box?: AFBox;
+    crop_box?: AFBox;
+}
+
 export interface ImageRow {
     id: number;
     file_path: string;
@@ -43,10 +69,11 @@ export interface ImageRow {
     stack_id?: number | null;
     sub_stack_id?: number | null;
     bird_bbox?: BirdBoundingBox | null;
+    af_metadata?: AFMetadata | null;
 }
 
 /**
- * Bird detection box from `images.bird_bbox` (JSONB, written by the backend `bird_species` phase).
+ * Compatibility bird box from the legacy column or the backend-owned normalized selection view.
  * Absolute pixel `xyxy` in EXIF-oriented space; `img_w`/`img_h` are the dimensions of the image
  * the detector saw, so overlays must position by fraction rather than raw pixels.
  */
@@ -225,6 +252,8 @@ export type NormalizedAppConfig = Omit<AppConfig, 'database'> & {
 };
 
 export interface AppConfig {
+    /** Opt-in SQL compatibility view (backend migration 0043); restart after changing. */
+    localization?: { read_normalized_first?: boolean };
     database?: DatabaseConfig;
     dev?: {
         url?: string;
@@ -241,7 +270,7 @@ export interface AppConfig {
     /** Optional path remaps for renamed backend folders (thumbnail JPEG locations) */
     paths?: {
         thumbnail_path_remap?: Array<{ from: string; to: string }>;
-        /** Default true: map .../image-scoring/thumbnails/ → .../image-scoring-backend/thumbnails/ */
+        /** Default true: map .../image-scoring{,-backend}/thumbnails/ → .../image-scoring-pipeline/thumbnails/ */
         remap_legacy_image_scoring_thumbnails?: boolean;
         /** Absolute thumbnails root (your local path from config) */
         thumbnail_base_dir?: string;
@@ -285,6 +314,7 @@ export interface FileImageMetadataDetail {
     exif_focal_length?: string | null;
     exif_model?: string | null;
     exif_lens_model?: string | null;
+    af_metadata?: AFMetadata | null;
 }
 
 export interface FileImageMetadataResult {

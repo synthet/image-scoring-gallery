@@ -1,7 +1,7 @@
 ---
 type: "Report"
 title: "Pipeline input-size study — gallery cross-reference (May 2026)"
-description: "Purpose: Record how the sibling image-scoring-backend pipeline-wide input-size research affects Driftara Gallery display quality, stacks/culling UX, and when gallery code might nee"
+description: "Purpose: Record how the sibling image-scoring-pipeline pipeline-wide input-size research affects Driftara Gallery display quality, stacks/culling UX, and when gallery code might nee"
 resource: "docs/reports/07-pipeline-input-size-study-2026-05.md"
 tags: ["gallery-docs", "reports"]
 timestamp: 2026-06-16T00:00:00Z
@@ -9,18 +9,18 @@ timestamp: 2026-06-16T00:00:00Z
 
 # Pipeline input-size study — gallery cross-reference (May 2026)
 
-**Purpose:** Record how the sibling **image-scoring-backend** pipeline-wide input-size research affects Driftara Gallery display quality, stacks/culling UX, and when gallery code might need coordinated changes.
+**Purpose:** Record how the sibling **image-scoring-pipeline** pipeline-wide input-size research affects Driftara Gallery display quality, stacks/culling UX, and when gallery code might need coordinated changes.
 
-**Authority:** Study design, harness, metrics, and production policy live in **image-scoring-backend** only. This page is a consumer-oriented pointer — do not treat it as the runbook.
+**Authority:** Study design, harness, metrics, and production policy live in **image-scoring-pipeline** only. This page is a consumer-oriented pointer — do not treat it as the runbook.
 
 ## Backend canonical sources
 
 | Document | Role |
 |----------|------|
-| [INPUT_SIZE_CULLING_2026-05-29.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/INPUT_SIZE_CULLING_2026-05-29.md) | Runbook (embedding, IQA, tagging, caption tracks) |
-| [INPUT_SIZE_CULLING_PRELIMINARY_2026-05-30.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/INPUT_SIZE_CULLING_PRELIMINARY_2026-05-30.md) | Status memo, model inventory, phased plan |
-| [UNIFIED_INPUT_POLICY_2026-05-31.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/UNIFIED_INPUT_POLICY_2026-05-31.md) | Tiered pixel-budget draft (gated until eval sign-off) |
-| [MODEL_INPUT_SPECIFICATIONS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/MODEL_INPUT_SPECIFICATIONS.md) | Production IQA / MUSIQ resize rules |
+| [INPUT_SIZE_CULLING_2026-05-29.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reports/INPUT_SIZE_CULLING_2026-05-29.md) | Runbook (embedding, IQA, tagging, caption tracks) |
+| [INPUT_SIZE_CULLING_PRELIMINARY_2026-05-30.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reports/INPUT_SIZE_CULLING_PRELIMINARY_2026-05-30.md) | Status memo, model inventory, phased plan |
+| [UNIFIED_INPUT_POLICY_2026-05-31.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reports/UNIFIED_INPUT_POLICY_2026-05-31.md) | Tiered pixel-budget draft (gated until eval sign-off) |
+| [MODEL_INPUT_SPECIFICATIONS.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/MODEL_INPUT_SPECIFICATIONS.md) | Production IQA / MUSIQ resize rules |
 
 Artifacts: `reports/clip-culling/input-size/` in the backend repo (`native_input_sizes.json`, NPZ caches, `SUMMARY.md`).
 
@@ -30,13 +30,13 @@ Study execution is tracked on the [cross-repo Project board](https://github.com/
 
 | Repo | Issue | Role | Board stage (2026-06-10) |
 |------|-------|------|--------------------------|
-| Backend | [#260](https://github.com/synthet/image-scoring-backend/issues/260) | Epic — NPZ sweeps + unified pixel policy | Backlog |
-| Backend | [#261](https://github.com/synthet/image-scoring-backend/issues/261) | Phase 1 — PyTorch embed + base IQA | **Ready** |
-| Backend | [#262](https://github.com/synthet/image-scoring-backend/issues/262) | Phase 2 — MUSIQ + TOPIQ/ARNIQA @1024 | Backlog |
-| Backend | [#263](https://github.com/synthet/image-scoring-backend/issues/263) | Phase 3 — keywords + BLIP captions | Backlog |
-| Backend | [#264](https://github.com/synthet/image-scoring-backend/issues/264) | Phase 5 — ViT preprocess override (conditional) | Backlog |
-| Backend | [#265](https://github.com/synthet/image-scoring-backend/issues/265) | Phase 6 — policy sign-off | Backlog |
-| Backend | [#266](https://github.com/synthet/image-scoring-backend/issues/266) | Optional — MobileNet NPZ grid | Backlog |
+| Backend | [#260](https://github.com/synthet/image-scoring-pipeline/issues/260) | Epic — NPZ sweeps + unified pixel policy | Backlog |
+| Backend | [#261](https://github.com/synthet/image-scoring-pipeline/issues/261) | Phase 1 — PyTorch embed + base IQA | **Ready** |
+| Backend | [#262](https://github.com/synthet/image-scoring-pipeline/issues/262) | Phase 2 — MUSIQ + TOPIQ/ARNIQA @1024 | Backlog |
+| Backend | [#263](https://github.com/synthet/image-scoring-pipeline/issues/263) | Phase 3 — keywords + BLIP captions | Backlog |
+| Backend | [#264](https://github.com/synthet/image-scoring-pipeline/issues/264) | Phase 5 — ViT preprocess override (conditional) | Backlog |
+| Backend | [#265](https://github.com/synthet/image-scoring-pipeline/issues/265) | Phase 6 — policy sign-off | Backlog |
+| Backend | [#266](https://github.com/synthet/image-scoring-pipeline/issues/266) | Optional — MobileNet NPZ grid | Backlog |
 | **Gallery** | [**#138**](https://github.com/synthet/image-scoring-gallery/issues/138) | Cross-repo — monitor policy for thumbnail impact | Backlog |
 
 Claim backend work via `/task-claim 261` (or sibling issues). Gallery **#138** activates after backend Phase 6 drafts `UNIFIED_INPUT_POLICY.md`. See [00-backlog-workflow.md](../project/00-backlog-workflow.md).
@@ -72,7 +72,7 @@ The backend study sweeps **long-edge pixel budget** (thumbnail vs file decode, R
 | `MAX_SIZE` 512 → 768 | Verify `media://` performance; optional UI note during thumb backfill; no schema change |
 | Culling embedder `max_load_px` change | None in gallery (backend clustering only) |
 | `raw_conversion.max_resolution` change | None in gallery (scoring pipeline only) |
-| New embedding space or column | Cross-repo contract per [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) |
+| New embedding space or column | Cross-repo contract per [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/AGENT_COORDINATION.md) |
 
 ## Related gallery docs
 
@@ -83,6 +83,6 @@ The backend study sweeps **long-edge pixel budget** (thumbnail vs file decode, R
 
 ## Status (2026-06-10)
 
-Backend harness extended (embedding, IQA, tagging, caption tracks); Phase 0 native sizes recorded; full NPZ/eval grid **pending** detached WSL run ([backend #261](https://github.com/synthet/image-scoring-backend/issues/261) is **Ready** on the Project board).
+Backend harness extended (embedding, IQA, tagging, caption tracks); Phase 0 native sizes recorded; full NPZ/eval grid **pending** detached WSL run ([backend #261](https://github.com/synthet/image-scoring-pipeline/issues/261) is **Ready** on the Project board).
 
-Re-check this page when [UNIFIED_INPUT_POLICY_2026-05-31.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/UNIFIED_INPUT_POLICY_2026-05-31.md) contains per-track best configs (not placeholder), then close or update [gallery #138](https://github.com/synthet/image-scoring-gallery/issues/138).
+Re-check this page when [UNIFIED_INPUT_POLICY_2026-05-31.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reports/UNIFIED_INPUT_POLICY_2026-05-31.md) contains per-track best configs (not placeholder), then close or update [gallery #138](https://github.com/synthet/image-scoring-gallery/issues/138).

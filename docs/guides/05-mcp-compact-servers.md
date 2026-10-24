@@ -18,7 +18,7 @@ Driftara Gallery exposes **`is-ui-mcp`** — a Node stdio MCP server with the sa
 | **`dispatch`** | Run `local.*`, `api.*`, or `live.*` actions |
 | **`sse_status`** | Probe whether **`is-ui-live`** SSE is reachable |
 
-Cross-repo contract (envelopes, naming): backend [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/MCP_SEARCH_DISPATCH.md). Full setup matrix (both repos): backend [mcp-compact-servers.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/guides/setup/mcp-compact-servers.md).
+Cross-repo contract (envelopes, naming): backend [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/MCP_SEARCH_DISPATCH.md). Full setup matrix (both repos): backend [mcp-compact-servers.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/guides/setup/mcp-compact-servers.md).
 
 ## Setup
 
@@ -38,7 +38,7 @@ Cross-repo contract (envelopes, naming): backend [MCP_SEARCH_DISPATCH.md](https:
 }
 ```
 
-In a multi-root workspace, folder names must match `image-scoring-backend.code-workspace` (see backend setup guide).
+In a multi-root workspace, folder names must match `image-scoring-pipeline.code-workspace` (see backend setup guide).
 
 ## Live / CDP actions
 
@@ -64,9 +64,9 @@ Copy repo examples into local config (gitignored):
 
 | Agent | Gallery | Backend (browser automation) |
 |-------|---------|------------------------------|
-| **Claude Code** | [`.mcp.json.example`](../../.mcp.json.example) | sibling [`.mcp.json.example`](https://github.com/synthet/image-scoring-backend/blob/main/.mcp.json.example) |
-| **Antigravity** | [`mcp_config.example.json`](../../mcp_config.example.json) | sibling [`mcp_config.example.json`](https://github.com/synthet/image-scoring-backend/blob/main/mcp_config.example.json) |
-| **Codex** | [`.codex/config.example.toml`](../../.codex/config.example.toml) | sibling [`.codex/config.example.toml`](https://github.com/synthet/image-scoring-backend/blob/main/.codex/config.example.toml) |
+| **Claude Code** | [`.mcp.json.example`](../../.mcp.json.example) | sibling [`.mcp.json.example`](https://github.com/synthet/image-scoring-pipeline/blob/main/.mcp.json.example) |
+| **Antigravity** | [`mcp_config.example.json`](../../mcp_config.example.json) | sibling [`mcp_config.example.json`](https://github.com/synthet/image-scoring-pipeline/blob/main/mcp_config.example.json) |
+| **Codex** | [`.codex/config.example.toml`](../../.codex/config.example.toml) | sibling [`.codex/config.example.toml`](https://github.com/synthet/image-scoring-pipeline/blob/main/.codex/config.example.toml) |
 
 **Browser automation** (`browser.navigate`, `browser.snapshot`, …) lives on **`is-be-mcp`** only — no separate Playwright MCP key. Claude permissions: [`.claude/settings.json.example`](../../.claude/settings.json.example).
 

@@ -17,7 +17,7 @@
     "url": "http://127.0.0.1:7860"
   },
   "firebird": {
-    "path": "../image-scoring-backend/Firebird"
+    "path": "../image-scoring-pipeline/Firebird"
   },
   "paths": {
     "remap_legacy_image_scoring_thumbnails": true,

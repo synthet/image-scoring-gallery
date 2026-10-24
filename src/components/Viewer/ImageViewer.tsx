@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Search, FolderOpen, Tag, Loader2, Wrench } from 'lucide-react';
+import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Search, FolderOpen, Tag, Loader2, Wrench, Crosshair } from 'lucide-react';
+import { AFReticleOverlay } from '../Shared/AFReticleOverlay';
 import { SimilarSearchDrawer } from './SimilarSearchDrawer';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
 import { BirdBoxOverlay } from '../Shared/BirdBoxOverlay';
@@ -22,7 +23,7 @@ import { toMediaUrl } from '../../utils/mediaUrl';
 import { formatShutterSpeedDisplay } from '../../utils/formatShutterSpeed';
 import { bridge } from '../../bridge';
 import { STAGE_DISPLAY } from '../../constants/pipelineLabels';
-import type { BirdBoundingBox, ImagePhaseStatus } from '../../../electron/types';
+import type { AFMetadata, BirdBoundingBox, ImagePhaseStatus } from '../../../electron/types';
 import type { TagPropagationRequest } from '../../../electron/apiTypes';
 import { bakeExifOrientationToBlob } from '../../utils/exportImageBake';
 import { pickServerFilesystemPath } from '../../utils/pickServerFilesystemPath';
@@ -62,6 +63,7 @@ interface Image {
     exif_focal_length?: string | null;
     exif_model?: string | null;
     exif_lens_model?: string | null;
+    af_metadata?: AFMetadata | null;
 }
 
 interface ImageViewerProps {
@@ -248,6 +250,7 @@ interface ExifData {
     FocalLength?: string;
     Model?: string;
     LensModel?: string;
+    af_metadata?: AFMetadata | null;
 }
 
 export const ImageViewer: React.FC<ImageViewerProps> = ({
@@ -271,6 +274,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [exifLoading, setExifLoading] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [fixMetadataBusy, setFixMetadataBusy] = React.useState(false);
+    const [showAfOverlay, setShowAfOverlay] = React.useState(true);
     const addNotification = useNotificationStore(state => state.addNotification);
 
     const serverFsPath = React.useMemo(
@@ -342,6 +346,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             return true;
         } else if (e.key === 'ArrowRight' && onNavigate && allImages && currentIndex < allImages.length - 1) {
             onNavigate(currentIndex + 1);
+            return true;
+        } else if (e.key === 'f' || e.key === 'F') {
+            setShowAfOverlay(prev => !prev);
             return true;
         } else if (e.key === 'e' || e.key === 'E') {
             cycleEvidencePanel();
@@ -449,6 +456,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     exif_focal_length: d.exif_focal_length ?? prev.exif_focal_length,
                     exif_model: d.exif_model ?? prev.exif_model,
                     exif_lens_model: d.exif_lens_model ?? prev.exif_lens_model,
+                    af_metadata: d.af_metadata ?? prev.af_metadata,
                 }));
                 setExifData({
                     ISO: d.exif_iso ?? undefined,
@@ -457,6 +465,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     FocalLength: d.exif_focal_length ?? undefined,
                     Model: d.exif_model ?? undefined,
                     LensModel: d.exif_lens_model ?? undefined,
+                    af_metadata: d.af_metadata ?? undefined,
                 });
             } catch (e) {
                 console.error('[ImageViewer] readImageMetadata failed', e);
@@ -492,7 +501,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 Aperture: image.exif_aperture ? Number(image.exif_aperture) : undefined,
                 FocalLength: image.exif_focal_length || undefined,
                 Model: image.exif_model || undefined,
-                LensModel: image.exif_lens_model || undefined
+                LensModel: image.exif_lens_model || undefined,
+                af_metadata: image.af_metadata || undefined,
             });
             setExifLoading(false);
             return;
@@ -538,7 +548,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         return () => { active = false; };
     }, [
         image.id, serverFsPath, readOnlyFilesystemMode, image.exif_iso, image.exif_shutter,
-        image.exif_aperture, image.exif_focal_length, image.exif_model, image.exif_lens_model
+        image.exif_aperture, image.exif_focal_length, image.exif_model, image.exif_lens_model, image.af_metadata
     ]);
 
     // Editing & Drawer State
@@ -1104,6 +1114,34 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     <X size={24} />
                 </button>
 
+                {/* Focus Reticle Overlay Toggle */}
+                {(image.af_metadata || exifData?.af_metadata) && (
+                    <button
+                        type="button"
+                        onClick={() => setShowAfOverlay(prev => !prev)}
+                        title="Toggle Autofocus Reticle [F]"
+                        style={{
+                            position: 'absolute',
+                            top: 20,
+                            left: 75,
+                            background: showAfOverlay ? 'rgba(0, 230, 118, 0.2)' : 'rgba(0,0,0,0.6)',
+                            border: `1px solid ${showAfOverlay ? '#00e676' : '#555'}`,
+                            borderRadius: 4,
+                            padding: '6px 12px',
+                            color: showAfOverlay ? '#00e676' : '#aaa',
+                            fontSize: '0.85em',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            zIndex: 10,
+                        }}
+                    >
+                        <Crosshair size={16} />
+                        <span>Focus Point</span>
+                    </button>
+                )}
+
                 {/* Image Position Indicator */}
                 {allImages && allImages.length > 1 && (
                     <div style={{
@@ -1135,6 +1173,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                         {showEyes && hasDrawableEyes(eyes) && <EyeKeypointsOverlay eyes={eyes} size={22} />}
                         {evidenceLayers.keypoints && showEyes && hasDrawableEyes(eyes) && (
                             <EyeKeypointsOverlay eyes={eyes} size={22} />
+                        )}
+                        {showAfOverlay && (image.af_metadata || exifData?.af_metadata) && (
+                            <AFReticleOverlay af={image.af_metadata || exifData?.af_metadata} />
                         )}
                         {evidence?.mask_rle && evidenceLayers.mask && evidence.display_width > 0 && (
                             <SubjectMaskOverlay
@@ -1717,6 +1758,38 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                             <span style={{ color: '#ccc', fontSize: '0.9em' }}>{exifData.LensModel}</span>
                                         </div>
                                     )}
+                                    {(exifData.af_metadata || image.af_metadata) && (() => {
+                                        const af = exifData.af_metadata || image.af_metadata;
+                                        if (!af) return null;
+                                        const inFocus = Boolean(af.in_focus);
+                                        return (
+                                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #2a2a2a', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ color: '#888' }}>Autofocus:</span>
+                                                    <span style={{
+                                                        padding: '1px 6px',
+                                                        borderRadius: 3,
+                                                        fontSize: '0.9em',
+                                                        backgroundColor: inFocus ? 'rgba(0, 230, 118, 0.15)' : 'rgba(255, 145, 0, 0.15)',
+                                                        color: inFocus ? '#00e676' : '#ff9100',
+                                                        fontWeight: 600,
+                                                    }}>
+                                                        {inFocus ? 'Locked' : 'Unconfirmed'}
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#888' }}>AF Mode:</span>
+                                                    <span style={{ color: '#ccc' }}>{af.mode || 'Unknown'}</span>
+                                                </div>
+                                                {af.focus_distance_m != null && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#888' }}>Focus Distance:</span>
+                                                        <span style={{ color: '#ccc' }}>{af.focus_distance_m.toFixed(2)} m</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             ) : (
                                 <div style={{ fontSize: '0.8em', color: '#666' }}>No EXIF data found</div>

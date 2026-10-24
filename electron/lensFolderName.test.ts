@@ -7,7 +7,7 @@ import {
     UNKNOWN_LENS_FOLDER,
 } from './lensFolderName';
 
-/** Keep cases aligned with image-scoring-backend/tests/test_lens_folder_name.py */
+/** Keep cases aligned with image-scoring-pipeline/tests/test_lens_folder_name.py */
 describe('normalizeLensFolderName', () => {
     const cases: [string | null | undefined, string][] = [
         ['NIKKOR Z 180-600mm f/5.6-6.3 VR', '180-600mm'],

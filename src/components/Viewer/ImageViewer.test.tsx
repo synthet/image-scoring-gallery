@@ -381,7 +381,7 @@ describe('ImageViewer RAW orientation bake', () => {
         rating: 3,
         label: 'Blue',
         keywords: '',
-        thumbnail_path: '/mnt/d/Projects/image-scoring-backend/thumbnails/ab/abc.jpg',
+        thumbnail_path: '/mnt/d/Projects/image-scoring-pipeline/thumbnails/ab/abc.jpg',
     };
 
     beforeEach(() => {

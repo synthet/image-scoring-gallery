@@ -1,5 +1,5 @@
 /**
- * Serves the Python backend's built React SPA from disk (image-scoring-backend/static/app)
+ * Serves the Python backend's built React SPA from disk (image-scoring-pipeline/static/app)
  * and proxies /api, /ws, etc. to the real FastAPI server. Electron can load the UI when
  * :7860 only serves API (or is temporarily down): shell and assets still load from localhost.
  */
@@ -12,6 +12,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 export function resolveBackendUiStaticDir(electronDistDir: string): string | null {
     const candidates = [
+        path.join(electronDistDir, '..', 'image-scoring-pipeline', 'static', 'app'),
         path.join(electronDistDir, '..', 'image-scoring-backend', 'static', 'app'),
         path.join(electronDistDir, '..', 'image-scoring', 'static', 'app'),
     ];

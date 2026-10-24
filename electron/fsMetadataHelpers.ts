@@ -2,7 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import type { ExifTool } from 'exiftool-vendored';
-import type { FileImageMetadataDetail } from './types';
+import type { AFMetadata, FileImageMetadataDetail } from './types';
 import { getConfigPath } from './config';
 import { collapseMalformedThumbnailSegments } from './thumbnailPathNormalize';
 
@@ -90,6 +90,126 @@ export function mergeXmpOverImage(
     return merged;
 }
 
+const NIKON_AF_AREA_MODES: Record<number, string> = {
+    0: 'Pinpoint',
+    1: 'Single',
+    2: 'Dynamic Area',
+    3: 'Wide (S)',
+    4: 'Wide (L)',
+    5: 'Auto',
+    6: '3D-tracking',
+    7: 'Group-area',
+    128: 'Single',
+    129: 'Auto (41 points)',
+    192: 'Pinpoint',
+    193: 'Single',
+    194: 'Dynamic Area',
+    195: 'Wide (S)',
+    196: 'Wide (L)',
+    197: 'Auto',
+    204: 'Dynamic Area (S)',
+    205: 'Dynamic Area (M)',
+    206: 'Dynamic Area (L)',
+    207: '3D-tracking',
+    208: 'Wide (C1/C2)',
+};
+
+export function parseAfMetadataFromTags(m: Record<string, unknown>): AFMetadata | null {
+    const afImgW = Number(m.AFImageWidth);
+    const afImgH = Number(m.AFImageHeight);
+    const areaX = Number(m.AFAreaXPosition);
+    const areaY = Number(m.AFAreaYPosition);
+    const areaW = Number(m.AFAreaWidth);
+    const areaH = Number(m.AFAreaHeight);
+
+    if (!afImgW || !afImgH || Number.isNaN(areaX) || Number.isNaN(areaY) || !areaW || !areaH) {
+        return null;
+    }
+    if (afImgW <= 0 || afImgH <= 0 || areaW <= 0 || areaH <= 0) {
+        return null;
+    }
+
+    const normLeft = (areaX - areaW / 2.0) / afImgW;
+    const normTop = (areaY - areaH / 2.0) / afImgH;
+    const normWidth = areaW / afImgW;
+    const normHeight = areaH / afImgH;
+
+    const modeVal = m.AFAreaMode;
+    let modeStr = 'Unknown';
+    if (typeof modeVal === 'string' && Number.isNaN(Number(modeVal))) {
+        modeStr = modeVal;
+    } else if (typeof modeVal === 'number' || (typeof modeVal === 'string' && !Number.isNaN(Number(modeVal)))) {
+        const code = Number(modeVal);
+        modeStr = NIKON_AF_AREA_MODES[code] || `Mode ${code}`;
+    }
+
+    const focusRes = m.FocusResult ?? m.ContrastDetectAFInFocus;
+    const inFocus =
+        focusRes === 1 ||
+        focusRes === '1' ||
+        String(focusRes).toLowerCase() === 'focus' ||
+        String(focusRes).toLowerCase() === 'true';
+
+    let cropArea: [number, number, number, number] | null = null;
+    const rawCrop = m.CropArea;
+    if (Array.isArray(rawCrop) && rawCrop.length === 4) {
+        cropArea = rawCrop.map(Number) as [number, number, number, number];
+    } else if (typeof rawCrop === 'string') {
+        const parts = rawCrop.replace(/,/g, ' ').trim().split(/\s+/).map(Number);
+        if (parts.length === 4 && !parts.some(Number.isNaN)) {
+            cropArea = parts as [number, number, number, number];
+        }
+    }
+
+    const distRaw = m.FocusDistance;
+    let focusDistanceM: number | null = null;
+    if (typeof distRaw === 'number' && !Number.isNaN(distRaw)) {
+        focusDistanceM = distRaw;
+    } else if (typeof distRaw === 'string') {
+        const parsed = parseFloat(distRaw);
+        if (!Number.isNaN(parsed)) focusDistanceM = parsed;
+    }
+
+    const out: AFMetadata = {
+        version: String(m.AFInfo2Version || ''),
+        mode: modeStr,
+        mode_code: typeof modeVal === 'number' || typeof modeVal === 'string' ? modeVal : null,
+        in_focus: inFocus,
+        focus_distance_m: focusDistanceM,
+        area_x: Math.round(areaX),
+        area_y: Math.round(areaY),
+        area_w: Math.round(areaW),
+        area_h: Math.round(areaH),
+        af_image_w: Math.round(afImgW),
+        af_image_h: Math.round(afImgH),
+        crop_area: cropArea,
+        box: {
+            left: Math.round(normLeft * 100000) / 100000,
+            top: Math.round(normTop * 100000) / 100000,
+            width: Math.round(normWidth * 100000) / 100000,
+            height: Math.round(normHeight * 100000) / 100000,
+            center_x: Math.round((areaX / afImgW) * 100000) / 100000,
+            center_y: Math.round((areaY / afImgH) * 100000) / 100000,
+        },
+    };
+
+    if (cropArea && cropArea.length === 4) {
+        const [cx0, cy0, cw, ch] = cropArea;
+        if (cw > 0 && ch > 0 && (cw < afImgW * 0.95 || ch < afImgH * 0.95)) {
+            out.crop_box = {
+                left: Math.round(((areaX - areaW / 2.0 - cx0) / cw) * 100000) / 100000,
+                top: Math.round(((areaY - areaH / 2.0 - cy0) / ch) * 100000) / 100000,
+                width: Math.round((areaW / cw) * 100000) / 100000,
+                height: Math.round((areaH / ch) * 100000) / 100000,
+                center_x: Math.round(((areaX - cx0) / cw) * 100000) / 100000,
+                center_y: Math.round(((areaY - cy0) / ch) * 100000) / 100000,
+            };
+        }
+    }
+
+    return out;
+}
+
 export function metadataDetailFromTags(m: Record<string, unknown>): FileImageMetadataDetail {
     const title = [m.Title, m.ObjectName, m.Headline].find(
         (x) => typeof x === 'string' && x.trim(),
@@ -159,6 +279,7 @@ export function metadataDetailFromTags(m: Record<string, unknown>): FileImageMet
         exif_focal_length,
         exif_model,
         exif_lens_model,
+        af_metadata: parseAfMetadataFromTags(m) || undefined,
     };
 }
 
@@ -200,7 +321,7 @@ export function isPathInsideLightRoot(root: string, target: string): boolean {
 
 /**
  * Thumbnails may not exist at the exact path from the DB:
- * - Repo renamed to image-scoring-backend while JPEGs still live under .../image-scoring/thumbnails
+ * - Repo renamed (image-scoring → image-scoring-backend → image-scoring-pipeline) while JPEGs still live under an older folder
  * - DB stores flat thumbnails/<hash>.jpg but on-disk layout is nested thumbnails/<aa>/<hash>.jpg
  */
 export function resolveMediaFilePathWithFallbacks(normalizedPath: string): string {
@@ -211,10 +332,12 @@ export function resolveMediaFilePathWithFallbacks(normalizedPath: string): strin
     }
 
     const tryLegacyRepo = (p: string): string | null => {
-        if (/image-scoring-backend/i.test(p)) {
-            const alt = p.replace(/image-scoring-backend/gi, 'image-scoring');
-            if (alt !== p && fs.existsSync(alt)) {
-                return alt;
+        if (/image-scoring-(?:pipeline|backend)/i.test(p)) {
+            for (const name of ['image-scoring-pipeline', 'image-scoring-backend', 'image-scoring']) {
+                const alt = p.replace(/image-scoring-(?:pipeline|backend)/gi, name);
+                if (alt !== p && fs.existsSync(alt)) {
+                    return alt;
+                }
             }
         }
         return null;

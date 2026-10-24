@@ -17,7 +17,7 @@ Run commands from the gallery repo root.
 npm install
 ```
 
-Keep **image-scoring-backend** and **image-scoring-gallery** as sibling directories unless you explicitly configure API URL/port in `config.json`.
+Keep **image-scoring-pipeline** and **image-scoring-gallery** as sibling directories unless you explicitly configure API URL/port in `config.json`.
 
 ## Health
 
@@ -54,8 +54,8 @@ npm run lint
 
 Backend docs:
 
-- [image-scoring-backend DEVELOPMENT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DEVELOPMENT.md)
-- [image-scoring-backend DIAGNOSTICS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DIAGNOSTICS.md)
-- [image-scoring-backend TESTING.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/TESTING.md)
+- [image-scoring-pipeline DEVELOPMENT.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/DEVELOPMENT.md)
+- [image-scoring-pipeline DIAGNOSTICS.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/DIAGNOSTICS.md)
+- [image-scoring-pipeline TESTING.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/TESTING.md)
 
 When changing API/schema/phase integration, list checks for both repos in the final handoff.

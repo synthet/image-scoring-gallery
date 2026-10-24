@@ -2,7 +2,7 @@
 
 Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** for governance. Aligns with [OWASP Agentic Skills Top 10 — AST09](https://github.com/kenhuangus/agentic-skills-top-10#ast09--no-governance).
 
-**PR review prompts:** Use the same first-party checklist as the backend: [../image-scoring-backend/.agent/SKILL_CHANGE_AST10_REVIEW.md](../image-scoring-backend/.agent/SKILL_CHANGE_AST10_REVIEW.md) when both repos are sibling checkouts.
+**PR review prompts:** Use the same first-party checklist as the backend: [../image-scoring-pipeline/.agent/SKILL_CHANGE_AST10_REVIEW.md](../image-scoring-pipeline/.agent/SKILL_CHANGE_AST10_REVIEW.md) when both repos are sibling checkouts.
 
 **Upstream checklist:** [agentic-skills-top-10/checklist.md](https://github.com/kenhuangus/agentic-skills-top-10/blob/main/checklist.md)
 

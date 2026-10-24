@@ -1,6 +1,6 @@
 ---
 name: backlog-queue
-description: Cross-repo GitHub Project board is the canonical task queue. Use whenever picking work, claiming an issue, transitioning Stage, or filing/closing a backlog issue across image-scoring-gallery or image-scoring-backend.
+description: Cross-repo GitHub Project board is the canonical task queue. Use whenever picking work, claiming an issue, transitioning Stage, or filing/closing a backlog issue across image-scoring-gallery or image-scoring-pipeline.
 ---
 
 # Backlog queue (compiled claim/stage)
@@ -8,7 +8,7 @@ description: Cross-repo GitHub Project board is the canonical task queue. Use wh
 > The canonical task queue is the GitHub Project board:
 > **https://github.com/users/synthet/projects/1**
 >
-> It spans both repos: `synthet/image-scoring-gallery` (this repo) and `synthet/image-scoring-backend`.
+> It spans both repos: `synthet/image-scoring-gallery` (this repo) and `synthet/image-scoring-pipeline`.
 > The repo `TODO.md` files are pointers only — **never** add tasks there.
 
 ## Compiled bootloader (claim / Stage)
@@ -17,10 +17,10 @@ Harness lives in the **sibling backend** repo. Do **not** hand-roll Stage IDs.
 
 ```powershell
 # From gallery repo root (sibling layout):
-python ../image-scoring-backend/scripts/agent_skills/backlog_stage.py claim <N> --repo gallery
-python ../image-scoring-backend/scripts/agent_skills/backlog_stage.py set-stage <N> --repo gallery --stage in_progress
-python ../image-scoring-backend/scripts/agent_skills/backlog_stage.py set-stage <N> --repo gallery --stage blocked --comment "Blocked: …"
-python ../image-scoring-backend/scripts/agent_skills/backlog_stage.py set-stage <N> --repo gallery --stage review
+python ../image-scoring-pipeline/scripts/agent_skills/backlog_stage.py claim <N> --repo gallery
+python ../image-scoring-pipeline/scripts/agent_skills/backlog_stage.py set-stage <N> --repo gallery --stage in_progress
+python ../image-scoring-pipeline/scripts/agent_skills/backlog_stage.py set-stage <N> --repo gallery --stage blocked --comment "Blocked: …"
+python ../image-scoring-pipeline/scripts/agent_skills/backlog_stage.py set-stage <N> --repo gallery --stage review
 ```
 
 Slash command `/task-claim <N>` uses the same harness with `--repo gallery` default in this repo.
@@ -72,6 +72,6 @@ Slash command `/task-claim <N>` uses the same harness with `--repo gallery` defa
 
 ## Related
 
-- Backend harness: [`backlog_stage.py`](https://github.com/synthet/image-scoring-backend/blob/main/scripts/agent_skills/backlog_stage.py)
+- Backend harness: [`backlog_stage.py`](https://github.com/synthet/image-scoring-pipeline/blob/main/scripts/agent_skills/backlog_stage.py)
 - Contract: [`docs/project/00-backlog-workflow.md`](../../docs/project/00-backlog-workflow.md)
-- Backend compilation notes: [SKILL_COMPILATION.md](https://github.com/synthet/image-scoring-backend/blob/main/.agent/SKILL_COMPILATION.md)
+- Backend compilation notes: [SKILL_COMPILATION.md](https://github.com/synthet/image-scoring-pipeline/blob/main/.agent/SKILL_COMPILATION.md)

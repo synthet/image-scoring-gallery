@@ -27,7 +27,7 @@ okf_version: 0.1
 **Single source of truth:** edit assets under **`.cursor/`** + **`.agent/`**, then run
 `python scripts/sync_assistant_trees.py` to regenerate the `.claude/` mirror.
 
-**Upstream:** [synthet-code-framework](https://github.com/synthet/synthet-code-framework); domain fork — see [backend framework-adoption-port-manifest](https://github.com/synthet/image-scoring-backend/blob/main/docs/raw/framework-adoption-port-manifest.md) and [backend docs/ai-workflow/README.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/ai-workflow/README.md).
+**Upstream:** [synthet-code-framework](https://github.com/synthet/synthet-code-framework); domain fork — see [backend framework-adoption-port-manifest](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/raw/framework-adoption-port-manifest.md) and [backend docs/ai-workflow/README.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/ai-workflow/README.md).
 
 ### Skill clusters
 

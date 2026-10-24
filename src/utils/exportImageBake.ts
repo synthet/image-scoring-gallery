@@ -1,11 +1,10 @@
 /**
  * Re-encode via canvas so exported pixels are physically upright (EXIF orientation 1).
  *
- * - If we detect EXIF Orientation > 1: decode with `createImageBitmap(..., { imageOrientation: 'none' })`
- *   so pixels are **storage** layout, then apply `applyOrientationTransform`.
- * - Otherwise: standard decode, then `drawImage` directly.
- *
- * Do not combine `from-image` decode with manual orientation transforms. Main process must still
+ * Decode with browser EXIF orientation and draw those upright pixels directly.
+ * Chromium can auto-orient even when asked for `imageOrientation: 'none'`.
+ * Manual transforms are only needed for RAW extracts whose JPEG lacks the source TIFF orientation.
+ * Main process must still
  * force EXIF Orientation=1 after save — see docs/features/implemented/05-jpeg-export-exif-orientation.md
  */
 
@@ -99,14 +98,18 @@ export interface BakeResult {
  * Deterministically re-encodes a raster image so pixels are physically upright.
  * Handles all 8 EXIF orientation tags + mirror cases.
  */
-export async function bakeExifOrientationToBlob(blob: Blob, outMime: string): Promise<BakeResult | null> {
+export async function bakeExifOrientationToBlob(blob: Blob, outMime: string, sourceOrientation?: number): Promise<BakeResult | null> {
     const t = blob.type || '';
     if (!t.startsWith('image/') || t === 'image/svg+xml') {
         console.warn(`[ImageViewer] export bake: skipping non-raster type ${t}`);
         return null;
     }
 
-    const orientation = await getJpegOrientation(blob);
+    const jpegOrientation = await getJpegOrientation(blob);
+    const fallbackOrientation = (jpegOrientation == null || jpegOrientation === 1)
+        && sourceOrientation != null && Number.isInteger(sourceOrientation) && sourceOrientation >= 2 && sourceOrientation <= 8
+        ? sourceOrientation : null;
+    const orientation = fallbackOrientation ?? jpegOrientation;
     const hasOrientation = orientation != null && orientation > 1;
 
     try {
@@ -114,22 +117,20 @@ export async function bakeExifOrientationToBlob(blob: Blob, outMime: string): Pr
         let orientedHeight = 0;
         let drawSource: ImageBitmap | HTMLImageElement;
 
-        // Use manual rotation for everything > 1 to be 100% deterministic.
-        // We explicitly disable browser auto-orientation.
+        // Both decoders return display-oriented pixels. Do not rotate their EXIF a second time.
         try {
-            // Note: 'none' ensures we get raw pixels from the sensor.
-            const bitmap = await createImageBitmap(blob, { imageOrientation: 'none' });
+            const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
             drawSource = bitmap;
             orientedWidth = bitmap.width;
             orientedHeight = bitmap.height;
-            console.debug(`[ImageViewer] export bake: using createImageBitmap (raw pixels, orientation ${orientation ?? 1})`);
+            console.debug(`[ImageViewer] export bake: using createImageBitmap (oriented pixels, orientation ${orientation ?? 1})`);
         } catch (e) {
             console.warn('[ImageViewer] export bake: createImageBitmap failed, falling back to <img>', e);
             
             const objectUrl = URL.createObjectURL(blob);
             const img = new Image();
             img.decoding = 'async';
-            img.style.imageOrientation = 'none';
+            img.style.imageOrientation = 'from-image';
             
             await new Promise<void>((resolve, reject) => {
                 img.onload = () => resolve();
@@ -147,7 +148,7 @@ export async function bakeExifOrientationToBlob(blob: Blob, outMime: string): Pr
         const rawHeight = orientedHeight;
 
         // Swap dimensions for 90/270 degree rotations
-        if (orientation && orientation >= 5 && orientation <= 8) {
+        if (fallbackOrientation && fallbackOrientation >= 5 && fallbackOrientation <= 8) {
             const tmp = orientedWidth;
             orientedWidth = orientedHeight;
             orientedHeight = tmp;
@@ -159,9 +160,9 @@ export async function bakeExifOrientationToBlob(blob: Blob, outMime: string): Pr
         const ctx = canvas.getContext('2d');
         if (!ctx) return null;
 
-        if (orientation && orientation > 1) {
-            console.debug(`[ImageViewer] export bake: applying manual transform for orientation ${orientation}`);
-            applyOrientationTransform(ctx, orientation, rawWidth, rawHeight);
+        if (fallbackOrientation) {
+            console.debug(`[ImageViewer] export bake: applying missing RAW orientation ${fallbackOrientation}`);
+            applyOrientationTransform(ctx, fallbackOrientation, rawWidth, rawHeight);
         }
 
         ctx.drawImage(drawSource, 0, 0);

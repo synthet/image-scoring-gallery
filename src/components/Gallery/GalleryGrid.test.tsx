@@ -217,7 +217,7 @@ describe('GalleryGrid NEF thumbnail preview', () => {
             id: 71662,
             file_path: 'D:/Photos/Z8/DSC_0572.NEF',
             file_name: 'DSC_0572.NEF',
-            thumbnail_path: 'D:/Projects/image-scoring-backend/thumbnails/c5/c518f82f329a4c45ad6f18b567114484.jpg',
+            thumbnail_path: 'D:/Projects/image-scoring-pipeline/thumbnails/c5/c518f82f329a4c45ad6f18b567114484.jpg',
             score_general: 0.9878,
             rating: 0,
             label: null,

@@ -12,7 +12,7 @@ Router-first dispatch. Catalog: `mcp-server/tool_catalog.json`.
 | **`is-ui-live`** | `cdp_*`, `gallery_window_status`, `gallery_ipc_ping` |
 | **`is-be-mcp`** | Sibling backend: **`search`**, **`dispatch`** (preferred for pipeline triage) |
 
-Backend compact contract: [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/MCP_SEARCH_DISPATCH.md). Full backend catalog: [AGENTS.md](https://github.com/synthet/image-scoring-backend/blob/main/AGENTS.md).
+Backend compact contract: [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/MCP_SEARCH_DISPATCH.md). Full backend catalog: [AGENTS.md](https://github.com/synthet/image-scoring-pipeline/blob/main/AGENTS.md).
 
 ## Read-only triage
 

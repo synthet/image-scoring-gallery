@@ -29,8 +29,8 @@ The backend base URL is resolved in this order:
 
 1. **`config.api.url`**: exact base URL, highest priority
 2. **Sibling backend lock file** (first existing file wins), checked in this exact order:
-   - `../image-scoring-backend/webui.lock`
-   - `../image-scoring-backend/webui-debug.lock`
+   - `../image-scoring-pipeline/webui.lock`
+   - `../image-scoring-pipeline/webui-debug.lock`
    - `../image-scoring/webui.lock` *(legacy repo name)*
    - `../image-scoring/webui-debug.lock` *(legacy repo name)*
 3. **Fallback host/port**: `config.api.host` + `config.api.port`
@@ -75,7 +75,7 @@ Fallback host/port:
 
 Automatic lock-file discovery checks these sibling locations relative to the gallery repo:
 
-- `../image-scoring-backend/webui.lock`
-- `../image-scoring-backend/webui-debug.lock`
+- `../image-scoring-pipeline/webui.lock`
+- `../image-scoring-pipeline/webui-debug.lock`
 - `../image-scoring/webui.lock` *(legacy path retained for backwards compatibility)*
 - `../image-scoring/webui-debug.lock` *(legacy path retained for backwards compatibility)*

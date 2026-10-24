@@ -16,7 +16,7 @@
     "test": "cross-env VITEST=1 vitest",
     "test:run": "cross-env VITEST=1 vitest run",
     "test:coverage": "cross-env VITEST=1 vitest run --coverage",
-    "test:db": "cd ../image-scoring-backend && python scripts/setup_test_db.py",
+    "test:db": "cd ../image-scoring-pipeline && python scripts/setup_test_db.py",
     "generate:api-types": "node scripts/generate-api-types.mjs",
     "prebuild-backup-manifest": "node scripts/prebuild-backup-manifest.mjs",
     "contract:update": "node scripts/sync-api-contract.mjs --update",

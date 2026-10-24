@@ -15,7 +15,7 @@ Optional **review-only** second opinions from **Codex** or **Gemini CLI** for th
 
 Same as the backend doc: sibling **`../subagent-orchestrator`**, build `agent-orchestrator`, reload MCP.
 
-**Canonical setup and safety:** [image-scoring-backend EXTERNAL_CLI_REVIEWS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/EXTERNAL_CLI_REVIEWS.md) (or `../image-scoring-backend/docs/technical/EXTERNAL_CLI_REVIEWS.md` when cloned as siblings).
+**Canonical setup and safety:** [image-scoring-pipeline EXTERNAL_CLI_REVIEWS.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/EXTERNAL_CLI_REVIEWS.md) (or `../image-scoring-pipeline/docs/technical/EXTERNAL_CLI_REVIEWS.md` when cloned as siblings).
 
 ## MCP in this repo
 

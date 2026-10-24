@@ -12,7 +12,7 @@ okf_version: 0.1
 
 Point-in-time integration note for **Driftara Gallery** after backend research on stack **#29157** / image **195193** (`DSC_8825.NEF`): a picked hero with high `score_technical` but vision-detectable foreground misfocus.
 
-**Backend authority (full forensics + A/B):** [image-scoring-backend — PICKED_ADVISORY_GAP_195193_2026-06-21.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/PICKED_ADVISORY_GAP_195193_2026-06-21.md)
+**Backend authority (full forensics + A/B):** [image-scoring-pipeline — PICKED_ADVISORY_GAP_195193_2026-06-21.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reports/PICKED_ADVISORY_GAP_195193_2026-06-21.md)
 
 ## Gallery impact
 
@@ -60,4 +60,4 @@ Gallery: re-run dry-run on stack #29157 and confirm a **Quality advisory** card 
 - [Agent cull review (Gallery operator)](../guides/04-agent-cull-review.md)
 - [Culling stack analytics](../features/implemented/06-culling-stack-analytics.md)
 - [Agent-assisted cull review — gallery worklog](../specs/agent-assisted-cull-review/worklog.md)
-- Backend study harness: [agent-cull-cli-matrix.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/study/agent-cull-cli-matrix.md)
+- Backend study harness: [agent-cull-cli-matrix.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/study/agent-cull-cli-matrix.md)

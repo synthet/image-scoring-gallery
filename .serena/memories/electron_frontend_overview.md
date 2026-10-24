@@ -1,6 +1,6 @@
 # Driftara Gallery — frontend overview
 
-This repository (`image-scoring-gallery`, **Driftara Gallery**) is the desktop frontend for **Vexlum Scoring** (`image-scoring-backend`).
+This repository (`image-scoring-gallery`, **Driftara Gallery**) is the desktop frontend for **Vexlum Scoring** (`image-scoring-pipeline`).
 
 ## Key Technologies
 - **Electron**: For cross-platform desktop application capabilities.
