@@ -1,7 +1,7 @@
 ---
 type: "Planned Feature"
 title: "Learn scoring weights from the user's own choices, and shooting-style presets"
-description: "Status: Planned (proposal, clean-room). Fit personal criterion weights from culling labels and quick A/B prompts, and offer presets named by shooting style in score tuning."
+description: "Status: Planned (proposal). Fit personal criterion weights from culling labels and quick A/B prompts, and offer presets named by shooting style in score tuning."
 resource: "docs/features/planned/learn-weights-from-choices.md"
 tags: ["features", "gallery-docs", "planned", "culling", "scoring", "clean-room"]
 timestamp: 2026-10-10T00:00:00Z
@@ -17,7 +17,7 @@ tuning. Also offer presets named by shooting style instead of raw sliders.
 [burst culling explainability §3 (score tuning)](burst-culling-explainability.md#3-adjust-scoring-client-side-re-derivation)
 · Label source: [human culling labelling mode](human-culling-labelling-mode.md) (backend #415)*
 
-## Provenance (clean-room)
+## Provenance
 
 The general idea (personalising weights from a user's choices) comes from a competitive analysis of a
 commercial wildlife burst-culling application's user-visible behaviour. This page describes behaviour

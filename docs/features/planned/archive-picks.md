@@ -1,7 +1,7 @@
 ---
 type: "Planned Feature"
 title: "Archive picks — copy a shoot's selects to the archive in one action"
-description: "Status: Planned (proposal, clean-room). Copy the picked originals of one folder, with sidecars, to an archive root in one confirmed action that never changes regular backup settings."
+description: "Status: Planned (proposal). Copy the picked originals of one folder, with sidecars, to an archive root in one confirmed action that never changes regular backup settings."
 resource: "docs/features/planned/archive-picks.md"
 tags: ["features", "gallery-docs", "planned", "backup", "export", "culling", "clean-room"]
 timestamp: 2026-10-10T00:00:00Z
@@ -17,7 +17,7 @@ one action, without re-checking export options.
 [backup copy identity](backup-copy-identity.md) · Builds on
 [backup-feature.md](../../architecture/backup-feature.md)*
 
-## Provenance (clean-room)
+## Provenance
 
 This workflow idea comes from a competitive analysis of a commercial wildlife burst-culling application's
 user-visible behaviour and documentation. This page describes behaviour only. The folder layout, naming

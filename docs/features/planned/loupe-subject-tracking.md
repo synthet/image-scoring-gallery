@@ -1,7 +1,7 @@
 ---
 type: "Planned Feature"
 title: "Loupe subject tracking across burst frames"
-description: "Status: Planned (proposal, clean-room). Keep a zoomed loupe on the same part of a moving animal while stepping through a burst."
+description: "Status: Planned (proposal). Keep a zoomed loupe on the same part of a moving animal while stepping through a burst."
 resource: "docs/features/planned/loupe-subject-tracking.md"
 tags: ["features", "gallery-docs", "planned", "culling", "viewer", "clean-room"]
 timestamp: 2026-10-10T00:00:00Z
@@ -17,7 +17,7 @@ land on the same part of the animal, not on the same pixel coordinates.
 [burst culling explainability §5](burst-culling-explainability.md#5-compare-view--zoom-to-subject) and the
 loupe in [human culling labelling mode](human-culling-labelling-mode.md).*
 
-## Provenance (clean-room)
+## Provenance
 
 These are UX ideas from a competitive analysis of a commercial wildlife burst-culling application's
 user-visible behaviour and documentation. This page describes behaviour only: no code, assets, copy

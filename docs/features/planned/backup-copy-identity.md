@@ -1,7 +1,7 @@
 ---
 type: "Planned Feature"
 title: "Backup copy identity — collision-safe destinations and verified repeat copies"
-description: "Status: Planned (proposal, clean-room). Stop Backup from treating a camera filename or an equal byte size as proof that two photos are the same file."
+description: "Status: Planned (proposal). Stop Backup from treating a camera filename or an equal byte size as proof that two photos are the same file."
 resource: "docs/features/planned/backup-copy-identity.md"
 tags: ["features", "gallery-docs", "planned", "backup", "export", "data-safety", "clean-room"]
 timestamp: 2026-10-10T00:00:00Z
@@ -16,7 +16,7 @@ skip a copy because an unrelated file at the destination happens to have the sam
 *Status: **Planned (proposal)** · Priority: data safety · Owner: TBD · Spec of the current feature:
 [backup-feature.md](../../architecture/backup-feature.md)*
 
-## Provenance (clean-room)
+## Provenance
 
 The requirement shape comes from a competitive analysis of a commercial wildlife burst-culling
 application's user-visible export behaviour and documentation. This page describes behaviour only: no
