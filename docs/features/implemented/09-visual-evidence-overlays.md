@@ -3,7 +3,7 @@ type: Implemented Feature
 title: Visual evidence overlays (viewer)
 description: Inspector evidence layers — chips, heatmaps, mask, legend, breakdown hooks, IPC to backend evidence API.
 resource: docs/features/implemented/09-visual-evidence-overlays.md
-tags: [features, gallery-docs, implemented, evidence, overlays, clean-room]
+tags: [features, gallery-docs, implemented, evidence, overlays]
 timestamp: 2026-09-30T00:00:00Z
 ---
 
@@ -30,7 +30,7 @@ timestamp: 2026-09-30T00:00:00Z
 | IPC | `api:evidence:get-image`, `api:evidence:export-pack` in `electron/ipc/registerDbHandlers.ts` |
 | HTTP | `bridge.getImageEvidence` → `/gallery-api/backend/images/{id}/evidence` |
 
-**Backend contract:** [VISUAL_EVIDENCE_API.md](https://github.com/synthet/image-scoring-backend/blob/master/docs/technical/VISUAL_EVIDENCE_API.md)
+**Backend contract:** [VISUAL_EVIDENCE_API.md](https://github.com/synthet/image-scoring-pipeline/blob/master/docs/technical/VISUAL_EVIDENCE_API.md)
 
 **Design tokens:** [@synthet/image-scoring-design evidence spec](https://github.com/synthet/image-scoring-ui/blob/main/docs/features/evidence-overlays-design-spec.md) — no hard-coded heatmap hex in overlay components.
 

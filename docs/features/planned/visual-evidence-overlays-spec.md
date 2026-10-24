@@ -3,7 +3,7 @@ type: Feature Spec
 title: Visual evidence overlays — acceptance and remaining phases
 description: Formal acceptance criteria and outstanding gallery/backend work beyond the shipped viewer slice.
 resource: docs/features/planned/visual-evidence-overlays-spec.md
-tags: [features, gallery-docs, planned, evidence, overlays, clean-room]
+tags: [features, gallery-docs, planned, evidence, overlays]
 timestamp: 2026-09-30T00:00:00Z
 ---
 
@@ -13,7 +13,7 @@ timestamp: 2026-09-30T00:00:00Z
 
 **Shipped baseline:** [implemented/09-visual-evidence-overlays.md](../implemented/09-visual-evidence-overlays.md)
 
-**Behaviour authority:** [image-scoring clean-room 05](https://github.com/synthet/image-scoring/blob/main/docs/clean-room/05-diagnostics-and-visual-inspection.md)
+**Behaviour authority:** [image-scoring specs 05](https://github.com/synthet/image-scoring/blob/main/docs/specs/05-diagnostics-and-visual-inspection.md)
 
 ## Layer behaviour (normative)
 

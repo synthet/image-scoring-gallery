@@ -1,9 +1,9 @@
 ---
 type: "Planned Feature"
-title: "Visual evidence overlays — clean-room integration plan (gallery)"
+title: "Visual evidence overlays — integration plan (gallery)"
 description: "Phased plan to ship subject evidence layers in ImageViewer with Driftara look-and-feel, distinct from the reference commercial UI."
 resource: "docs/features/planned/visual-evidence-overlays-integration.md"
-tags: ["features", "gallery-docs", "planned", "culling", "evidence", "overlays", "clean-room"]
+tags: ["features", "gallery-docs", "planned", "culling", "evidence", "overlays"]
 timestamp: 2026-09-30T00:00:00Z
 ---
 
@@ -12,14 +12,14 @@ timestamp: 2026-09-30T00:00:00Z
 *Status: **In progress** (foundation + viewer overlays landed) · Companion to [burst-culling-explainability.md](burst-culling-explainability.md) §4–7.
 
 **Normative spec:** [visual-evidence-overlays-spec.md](visual-evidence-overlays-spec.md) · **Shipped:** [../implemented/09-visual-evidence-overlays.md](../implemented/09-visual-evidence-overlays.md) · **Hub map:** [image-scoring spec index](https://github.com/synthet/image-scoring/blob/main/docs/specs/visual-evidence-overlays/INDEX.md)
-Behaviour spec (clean-room): mirror `image-scoring` monorepo clean-room doc **05 — visual diagnostics and inspector overlays**
+Behaviour spec: mirror `image-scoring` monorepo spec doc **05 — visual diagnostics and inspector overlays**
 (import path in backend/gallery docs, not copied from any RE workspace).*
 
-## Provenance (clean-room)
+## Provenance
 
 Derived from competitive analysis of a commercial application's **observable** inspector behaviour.
 This plan specifies **our** UI architecture, tokens and copy. No code, layout measurements, colour
-hex values, or component structure from reverse-engineering workspaces may be pasted into gallery
+hex values, or component structure from external workspaces may be pasted into gallery
 commits.
 
 ## Goal
@@ -39,7 +39,7 @@ patterns), not a pixel clone of the reference product.
 | Planned UX | [burst-culling-explainability.md](burst-culling-explainability.md) | Backend evidence API still gating |
 
 **Do not** port reference implementations from other repos (e.g. left-rail drawer, cyan theme, shared
-normalization constants). Implement behaviour from the clean-room spec + backend contract; re-fit
+normalization constants). Implement behaviour from the specification + backend contract; re-fit
 numeric thresholds in backend/model, expose only **band labels** and **grid cells** to the gallery.
 
 ## Visual differentiation (intentional departures)
@@ -57,7 +57,7 @@ numeric thresholds in backend/model, expose only **band labels** and **grid cell
 All colours: `var(--color-*)` / design package tokens only. Run leakage grep before merge (no vendor
 product names in gallery PRs).
 
-## Behaviour (from clean-room spec — implementation checklist)
+## Behaviour (from specification — implementation checklist)
 
 1. **Layer groups**
    - Structural: region, mask, keypoints — any combination.
@@ -70,7 +70,7 @@ product names in gallery PRs).
 ## Architecture
 
 ```text
-image-scoring-backend (Stage 6 evidence)
+image-scoring-pipeline (Stage 6 evidence)
   ├─ POST/GET …/images/{id}/evidence
   ├─ artifacts: mask URL | RLE, keypoints, focus_grid, noise_grid, separation summary
   └─ versioning: weights_version + evidence_schema_version
@@ -101,11 +101,11 @@ for production; gallery only **maps cell values → token colours** using server
 - Add Storybook/chromatic snapshots for legend + heatmap swatches.
 - **Exit:** gallery can import tokens without hard-coded hex in overlay files.
 
-### Phase 1 — Backend artifact surface (image-scoring-backend)
+### Phase 1 — Backend artifact surface (image-scoring-pipeline)
 
 - Extend evidence payload with: `focus_grid`, `noise_grid`, `mask` (RLE or CDN path), `separation`
   (subject/background sharpness ratio as **bands**, not vendor thresholds).
-- Align JSON schema with clean-room sidecar **behaviour** (version field, cell sizes documented as
+- Align JSON schema with sidecar **behaviour** (version field, cell sizes documented as
   starting points).
 - **Exit:** fixture JSON under `tests/fixtures/evidence/` consumed by gallery vitest.
 
@@ -139,7 +139,7 @@ for production; gallery only **maps cell values → token colours** using server
   commercial app screenshot.
 - **Performance:** pan/zoom 60fps with two structural + one heatmap layer on 800px preview.
 - **Accessibility:** layer toggles keyboard-focusable; heatmap described in `aria-live` legend text.
-- **Clean-room:** `git diff --cached | grep -iE "burst ?pick|bird-eye|rtmpose-tiny-bird"` empty.
+
 
 ## Non-goals (this track)
 
@@ -161,6 +161,5 @@ Cross-repo: backend Stage 6 evidence schema + `cross-repo` label on paired PRs.
 
 - Gallery: [burst-culling-explainability.md](burst-culling-explainability.md)
 - UI tokens: [image-scoring-ui scoring-evidence-tokens](https://github.com/synthet/image-scoring-ui/blob/main/docs/scoring-evidence-tokens.md)
-- Backend: [subject-aware culling evidence](https://github.com/synthet/image-scoring-backend/blob/master/docs/planning/subject-aware-culling-evidence.md)
-- Clean-room behaviour: **05 — visual diagnostics and inspector overlays** (image-scoring monorepo
-  `docs/clean-room/`, not the dirty-room `docs/full/`)
+- Backend: [subject-aware culling evidence](https://github.com/synthet/image-scoring-pipeline/blob/master/docs/planning/subject-aware-culling-evidence.md)
+- Behaviour: **05 — visual diagnostics and inspector overlays** (image-scoring monorepo `docs/specs/`)
