@@ -3,7 +3,7 @@ type: "Planned Feature"
 title: "Loupe subject tracking across burst frames"
 description: "Status: Planned (proposal). Keep a zoomed loupe on the same part of a moving animal while stepping through a burst."
 resource: "docs/features/planned/loupe-subject-tracking.md"
-tags: ["features", "gallery-docs", "planned", "culling", "viewer", "clean-room"]
+tags: ["features", "gallery-docs", "planned", "culling", "viewer"]
 timestamp: 2026-10-10T00:00:00Z
 okf_version: 0.1
 ---

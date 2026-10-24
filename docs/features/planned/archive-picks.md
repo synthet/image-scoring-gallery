@@ -3,7 +3,7 @@ type: "Planned Feature"
 title: "Archive picks — copy a shoot's selects to the archive in one action"
 description: "Status: Planned (proposal). Copy the picked originals of one folder, with sidecars, to an archive root in one confirmed action that never changes regular backup settings."
 resource: "docs/features/planned/archive-picks.md"
-tags: ["features", "gallery-docs", "planned", "backup", "export", "culling", "clean-room"]
+tags: ["features", "gallery-docs", "planned", "backup", "export", "culling"]
 timestamp: 2026-10-10T00:00:00Z
 okf_version: 0.1
 ---

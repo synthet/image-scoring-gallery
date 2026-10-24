@@ -3,7 +3,7 @@ type: "Planned Feature"
 title: "Learn scoring weights from the user's own choices, and shooting-style presets"
 description: "Status: Planned (proposal). Fit personal criterion weights from culling labels and quick A/B prompts, and offer presets named by shooting style in score tuning."
 resource: "docs/features/planned/learn-weights-from-choices.md"
-tags: ["features", "gallery-docs", "planned", "culling", "scoring", "clean-room"]
+tags: ["features", "gallery-docs", "planned", "culling", "scoring"]
 timestamp: 2026-10-10T00:00:00Z
 okf_version: 0.1
 ---

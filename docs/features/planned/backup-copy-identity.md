@@ -3,7 +3,7 @@ type: "Planned Feature"
 title: "Backup copy identity — collision-safe destinations and verified repeat copies"
 description: "Status: Planned (proposal). Stop Backup from treating a camera filename or an equal byte size as proof that two photos are the same file."
 resource: "docs/features/planned/backup-copy-identity.md"
-tags: ["features", "gallery-docs", "planned", "backup", "export", "data-safety", "clean-room"]
+tags: ["features", "gallery-docs", "planned", "backup", "export", "data-safety"]
 timestamp: 2026-10-10T00:00:00Z
 okf_version: 0.1
 ---
