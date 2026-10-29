@@ -61,7 +61,19 @@ describe.each(['api', 'postgres'])('normalized compatibility reads through %s SQ
         settings.localization = undefined;
         const db = await import('./db');
         await db.getImages();
-        expect(queryMock.mock.calls[0][0]).toContain('i.bird_bbox,');
-        expect(queryMock.mock.calls[0][0]).not.toContain('image_bird_bbox_compat');
+        const sql = queryMock.mock.calls.map(([text]) => String(text)).join('\n');
+        expect(sql).toContain('i.bird_bbox,');
+        expect(sql).not.toContain('image_bird_bbox_compat');
+    });
+
+    it('honors backend freshness independently of the normalized-reader flag', async () => {
+        queryMock.mockImplementation(async (sql: string) => {
+            if (sql.includes('information_schema.columns')) return [{ supported: true }];
+            if (sql.includes('selection_freshness_enabled FROM')) return [{ selection_freshness_enabled: true }];
+            return [];
+        });
+        const db = await import('./db');
+        await db.getImages();
+        expect(queryMock.mock.calls.map(([sql]) => String(sql)).join('\n')).toContain('FROM image_bird_bbox_compat');
     });
 });
