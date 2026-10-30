@@ -8,7 +8,7 @@ import {
     buildStackSortExpressions,
 } from './sortSql';
 import { absolutizeThumbnailPath } from './thumbnailPathNormalize';
-import { birdBboxSelect } from './normalizedBirdBbox';
+import { protectedBirdBboxSelect } from './normalizedBirdBbox';
 import { applyThumbnailPathRemaps } from './pathsRemap';
 import type { AppConfig, DatabaseConfig, EyeKeypoint, ImageEyeKeypoints, ScoredImageForBackup } from './types';
 import { createDatabaseConnector, IDatabaseConnector, QueryParam, TxQuery } from './db/provider';
@@ -524,7 +524,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.created_at,
             i.thumbnail_path,
             i.thumbnail_path_win,
-            ${birdBboxSelect(config.localization?.read_normalized_first === true)},
+            ${await protectedBirdBboxSelect(config.localization?.read_normalized_first === true, query)},
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -738,6 +738,7 @@ async function queryWithOptionalSubStackSchema<T>(
 }
 
 export async function getImageDetails(id: number): Promise<ImageDetailRow | null> {
+    const bboxSelect = await protectedBirdBboxSelect(config.localization?.read_normalized_first === true, query);
     const buildSql = (includeSubStackId: boolean) => `
         SELECT 
             i.id,
@@ -766,7 +767,7 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
             i.folder_id,
             i.stack_id,
             ${subStackIdSelect(includeSubStackId)},
-            ${birdBboxSelect(config.localization?.read_normalized_first === true)},
+            ${bboxSelect},
             i.created_at,
             i.burst_uuid,
             i.image_uuid,
@@ -1700,6 +1701,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
     const whereClauseCache = wherePartsCache.length > 0 ? 'WHERE ' + wherePartsCache.join(' AND ') : '';
     const whereClauseNonStack = 'WHERE ' + wherePartsNonStack.join(' AND ');
 
+    const bboxSelect = await protectedBirdBboxSelect(config.localization?.read_normalized_first === true, query);
     const buildSql = (includePickStatus: boolean) => {
         const stackPickStatusExpr = effectivePickStatusExpr(includePickStatus, 'ci');
         const repPickStatusExpr = effectivePickStatusExpr(includePickStatus, 'i');
@@ -1738,7 +1740,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.created_at,
                 i.thumbnail_path,
                 i.thumbnail_path_win,
-                ${birdBboxSelect(config.localization?.read_normalized_first === true)},
+                ${bboxSelect},
                 ${CAPTURE_TS} as capture_date,
                 ${CAPTURE_FALLBACK} as is_capture_date_fallback${nonStackSelectExtra}
             FROM stack_cache sc
@@ -1773,7 +1775,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.created_at,
                 i.thumbnail_path,
                 i.thumbnail_path_win,
-                ${birdBboxSelect(config.localization?.read_normalized_first === true)},
+                ${bboxSelect},
                 ${CAPTURE_TS} as capture_date,
                 ${CAPTURE_FALLBACK} as is_capture_date_fallback${nonStackSelectExtra}
             FROM images i
@@ -1837,6 +1839,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
     const selectExtra = sortParts.selectExtra ? `,\n            ${sortParts.selectExtra}` : '';
     const joinSql = sortParts.joinSql ? `\n        ${sortParts.joinSql}` : '';
 
+    const bboxSelect = await protectedBirdBboxSelect(config.localization?.read_normalized_first === true, query);
     const buildSql = (includePickStatus: boolean, includeSubStackId: boolean) => `
         SELECT
             i.id,
@@ -1855,7 +1858,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             i.stack_id,
             ${subStackIdSelect(includeSubStackId, 'i')},
             ${imagePickStatusSelect(includePickStatus, 'i')},
-            ${birdBboxSelect(config.localization?.read_normalized_first === true)},
+            ${bboxSelect},
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -2190,6 +2193,7 @@ export async function getImagesBySubStack(subStackId: number, options: ImageQuer
     const selectExtra = sortParts.selectExtra ? `,\n            ${sortParts.selectExtra}` : '';
     const joinSql = sortParts.joinSql ? `\n        ${sortParts.joinSql}` : '';
 
+    const bboxSelect = await protectedBirdBboxSelect(config.localization?.read_normalized_first === true, query);
     const buildSql = (includePickStatus: boolean) => `
         SELECT
             i.id,
@@ -2208,7 +2212,7 @@ export async function getImagesBySubStack(subStackId: number, options: ImageQuer
             i.stack_id,
             i.sub_stack_id,
             ${imagePickStatusSelect(includePickStatus, 'i')},
-            ${birdBboxSelect(config.localization?.read_normalized_first === true)},
+            ${bboxSelect},
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -2259,6 +2263,7 @@ export async function getImagesByStackUngrouped(stackId: number, options: ImageQ
     const selectExtra = sortParts.selectExtra ? `,\n            ${sortParts.selectExtra}` : '';
     const joinSql = sortParts.joinSql ? `\n        ${sortParts.joinSql}` : '';
 
+    const bboxSelect = await protectedBirdBboxSelect(config.localization?.read_normalized_first === true, query);
     const buildSql = (includePickStatus: boolean) => `
         SELECT
             i.id,
@@ -2277,7 +2282,7 @@ export async function getImagesByStackUngrouped(stackId: number, options: ImageQ
             i.stack_id,
             i.sub_stack_id,
             ${imagePickStatusSelect(includePickStatus, 'i')},
-            ${birdBboxSelect(config.localization?.read_normalized_first === true)},
+            ${bboxSelect},
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i

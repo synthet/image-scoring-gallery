@@ -17,7 +17,11 @@ vi.mock('./db/provider', () => ({
     close: vi.fn().mockResolvedValue(undefined),
     verifyStartup: vi.fn().mockResolvedValue(true),
     checkConnection: vi.fn().mockResolvedValue(true),
-    query: queryMock,
+    // Backend capability probes answer "unsupported" so assertions see only data queries.
+    query: (sql: string, params?: unknown[]) =>
+      /information_schema\.columns.*localization_authority_control|to_regclass\('public\.localization_/.test(sql)
+        ? Promise.resolve([])
+        : queryMock(sql, params),
     runTransaction: vi.fn(),
   })),
 }));
