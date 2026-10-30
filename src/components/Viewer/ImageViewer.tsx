@@ -741,7 +741,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 label: editForm.label,
                 keywords: normalizedKeywords
             };
-            const success = await bridge.updateImageDetails(image.id, updates);
+            // Rewriting unchanged keywords would claim generated species tags as user edits.
+            const keywordsChanged = normalizedKeywords !== normalizeKeywords(image.keywords || '');
+            const { keywords: _unchanged, ...metadataOnly } = updates;
+            const success = await bridge.updateImageDetails(image.id, keywordsChanged ? updates : metadataOnly);
             if (success) {
                 setImage({ ...image, ...updates });
                 setEditForm(prev => ({ ...prev, keywords: normalizedKeywords }));
