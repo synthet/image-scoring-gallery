@@ -13,3 +13,4 @@ Distilled from [docs/LESSONS_LEARNED.md](../../docs/LESSONS_LEARNED.md) (§ Sync
 - **Honour tombstones.** Sync must skip or dedupe against `deleted_images`, or culled images resurrect.
 - **Postgres stores WSL-style paths** (`/mnt/d/Photos/...`): normalize with `normalizePathForDb` before querying. Postgres regex has no `\d`; use `[0-9]`.
 - **DB and filesystem access stay in the main process** behind IPC/preload; the backend owns schema and REST — do not invent columns or endpoints.
+- **A new backend capability probe in an `electron/db.ts` reader shifts `queryMock` call order** and consumes rows queued with `mockResolvedValueOnce`, so tests reading `mock.calls[0]` break. Route probe queries outside `queryMock` in those test mocks and run the full `npx vitest run`, not just the new test file.
