@@ -13,7 +13,7 @@ Chronological record of wiki maintenance activities. Newest entries first.
 
 ## 2026-10
 
-- 2026-10-30: updated — [OpenAPI consumer contract](technical/OPENAPI_CONTRACT.md): refreshed the live snapshot and generated types, made generation consume that snapshot instead of a stale sibling export, and added a regression test. Contract checks and both TypeScript checks pass.
+- 2026-10-30: updated — [OpenAPI consumer contract](technical/OPENAPI_CONTRACT.md): made generation consume the committed snapshot instead of a stale sibling export, and added a regression test. The snapshot follows backend master's `openapi.json`. Contract checks and both TypeScript checks pass.
 
 - 2026-10-30: updated — [Visual evidence overlays](features/implemented/09-visual-evidence-overlays.md): fixed the clipped diagnostic menu with viewport positioning, scrolling and focus restoration; cleared the full renderer TypeScript build gate through shared contracts, browser-safe sort defaults and isolated test hosts.
 
