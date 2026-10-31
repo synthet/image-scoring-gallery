@@ -1652,7 +1652,7 @@ export interface paths {
         };
         /**
          * Get image details by ID
-         * @description Returns full details for a single image including all scores, metadata, and file paths.
+         * @description Returns full details for a single image including all scores, metadata, file paths, and cached autofocus/eye preview overlays.
          */
         get: operations["get_image_by_id_api_images__image_id__get"];
         put?: never;
@@ -1691,11 +1691,59 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Visual evidence for inspector overlays
-         * @description Returns precomputed or on-demand evidence artifacts (grids, mask RLE, bands, gates) for gallery evidence layers. See docs/planning/visual-evidence-api-and-grids.md.
-         */
-        get: operations["get_image_evidence_api_images__image_id__evidence_get"];
+        /** Cached visual evidence manifest */
+        get: operations["manifest_api_images__image_id__evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/images/{image_id}/evidence/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request on-demand diagnostics */
+        post: operations["request_api_images__image_id__evidence_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/images/{image_id}/evidence/requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel one diagnostic subscription */
+        delete: operations["cancel_api_images__image_id__evidence_requests__request_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/images/{image_id}/evidence/artifacts/{artifact_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read an immutable diagnostic artifact */
+        get: operations["artifact_api_images__image_id__evidence_artifacts__artifact_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3686,11 +3734,10 @@ export interface components {
             candidate_species?: string[] | null;
             /**
              * Threshold
-             * @description Minimum softmax probability to store a species prediction.
-             * @default 0.1
-             * @example 0.1
+             * @description Minimum softmax probability to store a species prediction. Omit to use config bird_species.min_confidence (default 0.5); below it the image abstains (no_species_match).
+             * @example 0.5
              */
-            threshold: number;
+            threshold?: number | null;
             /**
              * Top K
              * @description Maximum number of species to store per image. Default 1 keeps only the highest-scoring species (BioCLIP argmax).
@@ -3911,6 +3958,16 @@ export interface components {
              * @description Absolute folder path matching a cached folders.path.
              */
             path: string;
+        };
+        /** DiagnosticRequest */
+        DiagnosticRequest: {
+            /** Layers */
+            layers: ("sharpness" | "peaking" | "noise" | "mask" | "head")[];
+            /**
+             * Refresh
+             * @default false
+             */
+            refresh: boolean;
         };
         /**
          * DiagnosticsResponse
@@ -9776,12 +9833,195 @@ export interface operations {
             };
         };
     };
-    get_image_evidence_api_images__image_id__evidence_get: {
+    manifest_api_images__image_id__evidence_get: {
+        parameters: {
+            query?: {
+                schema_version?: number;
+            };
+            header?: never;
+            path: {
+                image_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    request_api_images__image_id__evidence_requests_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 image_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiagnosticRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancel_api_images__image_id__evidence_requests__request_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: number;
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request - Invalid input parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable - Runner not initialized */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    artifact_api_images__image_id__evidence_artifacts__artifact_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: number;
+                artifact_id: string;
             };
             cookie?: never;
         };
