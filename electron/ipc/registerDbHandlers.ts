@@ -5,6 +5,7 @@ import type { ApiService } from '../apiService';
 import type { TextSearchParams } from '../apiTypes';
 import * as db from '../db';
 import { wrapIpcHandler } from './wrapIpcHandler';
+import { DIAGNOSTIC_LAYERS, type DiagnosticLayer } from '../diagnosticTypes';
 
 export type DbHandlersDeps = {
   ipcMain: IpcMain;
@@ -15,6 +16,21 @@ export function registerDbHandlers(deps: DbHandlersDeps): void {
   const { ipcMain, apiService } = deps;
 
   ipcMain.handle('ping', () => 'pong');
+
+  ipcMain.handle('api:evidence:manifest', wrapIpcHandler(async (_, imageId: unknown) => apiService.getDiagnosticManifest(Number(imageId))));
+  ipcMain.handle('api:evidence:request', wrapIpcHandler(async (_, imageId: unknown, layers: unknown, refresh: unknown) => {
+      if (!Array.isArray(layers) || !layers.length || layers.length > 5 || !layers.every(layer => DIAGNOSTIC_LAYERS.includes(layer))) throw new Error('Invalid diagnostic layers');
+      if (typeof refresh !== 'boolean') throw new Error('refresh must be a boolean');
+      return apiService.requestDiagnostics(Number(imageId), layers as DiagnosticLayer[], refresh);
+  }));
+  ipcMain.handle('api:evidence:cancel', wrapIpcHandler(async (_, imageId: unknown, requestId: unknown) => {
+      if (typeof requestId !== 'string') throw new Error('Invalid diagnostic request id');
+      return apiService.cancelDiagnostics(Number(imageId), requestId);
+  }));
+  ipcMain.handle('api:evidence:artifact', wrapIpcHandler(async (_, imageId: unknown, artifactId: unknown) => {
+      if (typeof artifactId !== 'string') throw new Error('Invalid diagnostic artifact id');
+      return apiService.getDiagnosticArtifact(Number(imageId), artifactId);
+  }));
 
       ipcMain.handle('db:check-connection', wrapIpcHandler(async () => {
           return await db.checkConnection();

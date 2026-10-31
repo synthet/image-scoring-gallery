@@ -5,6 +5,7 @@ import { GalleryThumbnail } from '../Gallery/GalleryThumbnail';
 import { bridge } from '../../bridge';
 import { getAdaptiveProgressConfig, getLastSimilarSearchDuration } from '../../utils/similarSearchTiming';
 import { SimilarSearchLoadingOverlay } from './SimilarSearchLoadingOverlay';
+import styles from './SimilarSearchDrawer.module.css';
 
 interface SimilarSearchDrawerProps {
     open: boolean;
@@ -125,7 +126,7 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
             }}>
                 <label style={{ display: 'grid', gap: 4, color: '#bbb', fontSize: '0.8em' }}>
                     <span>Minimum Similarity</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className={styles.thresholdRow}>
                         <input
                             type="range"
                             min={0}
@@ -133,7 +134,7 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
                             step={0.01}
                             value={minSimilarity}
                             onChange={(e) => setMinSimilarity(clampSimilarity(Number(e.currentTarget.value)))}
-                            style={{ flex: 1 }}
+                            className={styles.similaritySlider}
                             aria-label="Minimum Similarity Threshold Slider"
                         />
                         <input
@@ -149,14 +150,7 @@ export function SimilarSearchDrawer({ open, onClose, queryImageId, currentFolder
                                 }
                             }}
                             aria-label="Minimum Similarity Threshold Value"
-                            style={{
-                                width: 60,
-                                backgroundColor: '#1a1a1a',
-                                color: '#ddd',
-                                border: '1px solid #444',
-                                borderRadius: 4,
-                                padding: '3px 6px'
-                            }}
+                            className={styles.thresholdValue}
                         />
                     </div>
                 </label>

@@ -4,7 +4,7 @@ title: "OpenAPI Contract (Gallery Consumer)"
 description: "Driftara Gallery does not define its own REST OpenAPI spec. The canonical contract is owned by image-scoring-pipeline:"
 resource: "docs/technical/OPENAPI_CONTRACT.md"
 tags: ["gallery-docs", "technical"]
-timestamp: 2026-06-16T00:00:00Z
+timestamp: 2026-10-30T22:47:00Z
 ---
 
 # OpenAPI Contract (Gallery Consumer)
@@ -33,14 +33,14 @@ From gallery repo root (expects sibling `../image-scoring-pipeline`):
 npm run contract:diff          # copy backend openapi.json → api-contract/
 npm run contract:update        # fetch live backend /openapi.json (fallback to sibling)
 npm run contract:check         # fail if snapshot is stale
-npm run generate:api-types     # openapi.json → electron/api.generated.ts
+npm run generate:api-types     # api-contract/openapi.json → electron/api.generated.ts
 npm run contract:validate      # snapshot vs apiTypes.ts / apiService.ts coverage
 ```
 
 ## When backend API changes
 
 1. Backend updates code + `openapi.json` + `openapi.yaml` + `API_CONTRACT.md` first.
-2. Run `npm run contract:diff` and `npm run generate:api-types` here.
+2. Refresh the snapshot with `npm run contract:update` (live backend) or `npm run contract:diff` (sibling export), then run `npm run generate:api-types`. Generation always reads the committed consumer snapshot, so an older sibling export cannot silently replace the selected contract.
 3. Update [electron/apiService.ts](../../electron/apiService.ts) and [electron/apiTypes.ts](../../electron/apiTypes.ts) for new/changed endpoints.
 4. Run `npx tsc -p electron/tsconfig.json --noEmit` and relevant tests.
 

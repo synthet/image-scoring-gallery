@@ -1,0 +1,64 @@
+export type AgentCullCandidateStatus =
+    | 'none'
+    | 'proposed'
+    | 'agent_remove_candidate'
+    | 'pick_quality_advisory'
+    | 'operator_approved'
+    | 'operator_rejected'
+    | 'operator_deleted'
+    | 'rolled_back';
+
+export type AgentCullGroupStatus =
+    | 'discovered'
+    | 'payload_built'
+    | 'agent_pending'
+    | 'agent_done'
+    | 'validated'
+    | 'proposed'
+    | 'applied'
+    | 'failed'
+    | 'rolled_back';
+
+export interface AgentCullRecommendation {
+    id: number;
+    review_group_id: number;
+    image_id: number;
+    // 'advisory' marks a picked-image quality advisory; it never appears in
+    // final_decision (advisories always resolve to 'keep').
+    agent_decision: 'remove' | 'keep' | 'uncertain' | 'advisory';
+    final_decision: 'remove' | 'keep' | 'uncertain';
+    confidence?: number | null;
+    reason?: string | null;
+    better_alternatives?: number[] | null;
+    risk_flags?: string[] | null;
+    safety_overrides?: Array<{ gate: string; scope: string; image_id?: number }> | null;
+    candidate_status: AgentCullCandidateStatus;
+}
+
+export interface AgentCullReviewGroupSummary {
+    id: number;
+    stack_id: number;
+    sub_stack_id?: number | null;
+    review_unit_key: string;
+    status: AgentCullGroupStatus;
+    dry_run?: boolean;
+    agent_name?: string | null;
+    agent_model?: string | null;
+    agent_version?: string | null;
+    group_decision?: string | null;
+    group_confidence?: number | null;
+    summary?: string | null;
+    safety_overrides?: Array<{ gate: string; scope: string }> | null;
+    error_code?: string | null;
+    error_message?: string | null;
+}
+
+export interface AgentCullReviewGroupDetail extends AgentCullReviewGroupSummary {
+    recommendations?: AgentCullRecommendation[];
+    request_json?: Record<string, unknown> | null;
+    response_validated?: Record<string, unknown> | null;
+}
+
+export interface AgentCullGroupsListResponse {
+    groups: AgentCullReviewGroupSummary[];
+}

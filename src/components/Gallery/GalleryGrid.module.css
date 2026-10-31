@@ -2,14 +2,16 @@
 .listContainer {
   display: flex;
   flex-wrap: wrap;
+  gap: 10px;
+  box-sizing: border-box;
 }
 
-/* ItemWrapper (card shell) — padding replaces gap so Virtuoso measurements stay accurate */
+/* ItemWrapper (card shell) — flex gap replaces margin so Virtuoso measurements stay accurate */
 .cardWrapper {
   flex: 0 0 auto;
   width: 180px;
   height: 240px;
-  margin: 0 10px 10px 0;
+  margin: 0;
   background-color: var(--card-bg);
   border-radius: 6px;
   overflow: hidden;

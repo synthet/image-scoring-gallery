@@ -10,11 +10,14 @@ export type ApplicationMenuDeps = {
     getDialogWindow: () => BrowserWindow | null;
     showMessageBox: (options: Electron.MessageBoxOptions) => Promise<Electron.MessageBoxReturnValue>;
     getGalleryMode: () => 'db' | 'folder';
+    getIsSingleImageViewOpen: () => boolean;
     setGalleryMode: (mode: 'db' | 'folder') => void;
     getShowBoundingBox: () => boolean;
     setShowBoundingBox: (show: boolean) => void;
     getShowEyes: () => boolean;
     setShowEyes: (show: boolean) => void;
+    getShowFocusPoint: () => boolean;
+    setShowFocusPoint: (show: boolean) => void;
     syncGuards: SyncGuards;
     getIsBackupRunning: () => boolean;
     getExportContext: () => ExportImageContext | null;
@@ -184,6 +187,14 @@ export function createApplicationMenu(deps: ApplicationMenuDeps): { rebuildAppli
                 ],
             },
             { role: 'editMenu' },
+            ...(deps.getIsSingleImageViewOpen() ? [{
+                label: 'Image',
+                submenu: [{
+                    label: 'Find Similar Images',
+                    enabled: !folderMode,
+                    click: () => mainWindow?.webContents.send('find-similar-images'),
+                }],
+            }] : []),
             {
                 label: 'View',
                 submenu: [
@@ -208,6 +219,12 @@ export function createApplicationMenu(deps: ApplicationMenuDeps): { rebuildAppli
                         type: 'checkbox',
                         checked: deps.getShowEyes(),
                         click: (item) => deps.setShowEyes(item.checked),
+                    },
+                    {
+                        label: 'Focus Point',
+                        type: 'checkbox',
+                        checked: deps.getShowFocusPoint(),
+                        click: (item) => deps.setShowFocusPoint(item.checked),
                     },
                     { type: 'separator' },
                     {

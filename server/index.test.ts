@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Server } from 'http';
+import { createServer } from 'http';
 import * as db from '../electron/db';
 import type { ApiService } from '../electron/apiService';
 import { createServerApp } from './index';
@@ -48,6 +49,29 @@ function asApiService(mock: ReturnType<typeof createApiServiceMock>): ApiService
 describe('server /gallery-api contract envelope', () => {
   let server: Server | undefined;
   let baseUrl = '';
+
+  it('proxies binary artifacts without text decoding', async () => {
+    const bytes = Buffer.from([137, 80, 78, 71, 0, 255, 128, 13, 10]);
+    const upstream = createServer((_req, response) => {
+      response.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'private, immutable' });
+      response.end(bytes);
+    });
+    await new Promise<void>(resolve => upstream.listen(0, '127.0.0.1', resolve));
+    const address = upstream.address();
+    if (!address || typeof address === 'string') throw new Error('Invalid upstream address');
+    const app = createServerApp({ dbModule: asDbModule(createDbMock()), apiService: asApiService(createApiServiceMock()),
+      appConfig: {}, configPath: '/tmp/nope.json', backendBaseUrl: `http://127.0.0.1:${address.port}` });
+    const proxy = await new Promise<Server>(resolve => { const value = app.listen(0, '127.0.0.1', () => resolve(value)); });
+    try {
+      const target = proxy.address();
+      if (!target || typeof target === 'string') throw new Error('Invalid proxy address');
+      const response = await fetch(`http://127.0.0.1:${target.port}/gallery-api/backend/images/1/evidence/artifacts/test.png`);
+      expect(response.headers.get('content-type')).toContain('image/png');
+      expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
+    } finally {
+      await Promise.all([new Promise<void>(resolve => proxy.close(() => resolve())), new Promise<void>(resolve => upstream.close(() => resolve()))]);
+    }
+  });
 
   beforeEach(async () => {
     const dbMock = createDbMock();

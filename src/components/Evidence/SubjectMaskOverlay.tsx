@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { EvidenceMaskRle } from '../../types/imageEvidence';
 import { decodeMaskRleInWorker } from '../../workers/evidenceMaskWorker';
 

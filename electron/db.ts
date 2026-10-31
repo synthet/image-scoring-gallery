@@ -540,6 +540,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.thumbnail_path,
             i.thumbnail_path_win,
             ${await protectedBirdBboxSelect(config.localization?.read_normalized_first === true, query)},
+            ex.af_metadata as af_metadata,
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -1762,6 +1763,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.thumbnail_path,
                 i.thumbnail_path_win,
                 ${bboxSelect},
+                ex.af_metadata as af_metadata,
                 ${CAPTURE_TS} as capture_date,
                 ${CAPTURE_FALLBACK} as is_capture_date_fallback${nonStackSelectExtra}
             FROM stack_cache sc
@@ -1797,6 +1799,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.thumbnail_path,
                 i.thumbnail_path_win,
                 ${bboxSelect},
+                ex.af_metadata as af_metadata,
                 ${CAPTURE_TS} as capture_date,
                 ${CAPTURE_FALLBACK} as is_capture_date_fallback${nonStackSelectExtra}
             FROM images i
@@ -1880,6 +1883,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             ${subStackIdSelect(includeSubStackId, 'i')},
             ${imagePickStatusSelect(includePickStatus, 'i')},
             ${bboxSelect},
+            ex.af_metadata as af_metadata,
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -2234,6 +2238,7 @@ export async function getImagesBySubStack(subStackId: number, options: ImageQuer
             i.sub_stack_id,
             ${imagePickStatusSelect(includePickStatus, 'i')},
             ${bboxSelect},
+            ex.af_metadata as af_metadata,
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -2304,6 +2309,7 @@ export async function getImagesByStackUngrouped(stackId: number, options: ImageQ
             i.sub_stack_id,
             ${imagePickStatusSelect(includePickStatus, 'i')},
             ${bboxSelect},
+            ex.af_metadata as af_metadata,
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i

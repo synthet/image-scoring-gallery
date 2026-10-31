@@ -14,10 +14,9 @@ vi.mock('../bridge', () => ({
 
 describe('NefViewer', () => {
   let nefViewer: NefViewer;
-  type WindowWithOptionalElectron = Window & { electron?: object };
 
   function setElectron(value: object | undefined) {
-    (window as WindowWithOptionalElectron).electron = value;
+    vi.stubGlobal('electron', value);
   }
 
   beforeEach(() => {

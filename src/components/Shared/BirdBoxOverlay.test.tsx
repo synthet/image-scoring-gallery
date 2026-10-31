@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { LABEL_COLORS } from '@synthet/image-scoring-design';
 import { BirdBoxOverlay } from './BirdBoxOverlay';
 import { birdBboxBorderCss } from './birdBboxStyle';
+import styles from './ImageOverlays.module.css';
 
 function parseRgba(css: string): { r: number; g: number; b: number; a: number } {
     const m = css.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/);
@@ -67,10 +68,11 @@ describe('birdBboxBorderCss', () => {
     });
 });
 
-describe('BirdBoxOverlay confidence border', () => {
-    it('applies an rgba border from conf', () => {
+describe('BirdBoxOverlay subject frame', () => {
+    it('uses a distinct subject frame with correct image coordinates and confidence label', () => {
         render(
             <BirdBoxOverlay
+                showDetails
                 bbox={{
                     x1: 10,
                     y1: 20,
@@ -83,7 +85,12 @@ describe('BirdBoxOverlay confidence border', () => {
             />,
         );
         const overlay = screen.getByTestId('bird-bbox-overlay');
-        expect(overlay.style.border).toContain('rgba(');
-        expect(overlay.style.border).toBe(`2px solid ${birdBboxBorderCss(0.9)}`);
+        expect(overlay.classList.contains(styles.subject)).toBe(true);
+        expect(overlay.classList.contains(styles.focus)).toBe(false);
+        expect(overlay.style.left).toBe('5%');
+        expect(overlay.style.top).toBe('10%');
+        expect(overlay.style.width).toBe('50%');
+        expect(overlay.style.height).toBe('50%');
+        expect(screen.getByText('Subject · 90%')).toBeTruthy();
     });
 });

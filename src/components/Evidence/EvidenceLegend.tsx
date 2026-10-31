@@ -1,4 +1,3 @@
-import React from 'react';
 import { HEATMAP_RAMP_RGBA, LIMITATION_LABEL } from '@synthet/image-scoring-design';
 import type { ImageEvidencePayload } from '../../types/imageEvidence';
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { HEATMAP_RAMP_RGBA, NOISE_RAMP_RGBA } from '@synthet/image-scoring-design';
 import type { EvidenceGrid } from '../../types/imageEvidence';
 

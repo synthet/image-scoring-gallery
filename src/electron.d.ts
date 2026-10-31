@@ -47,6 +47,7 @@ import type {
     ImageUpdates,
     KeywordCloudEntry,
     SubStackRow,
+    StackRow,
 
     SyncCandidate,
     SyncPreviewResult,
@@ -115,7 +116,7 @@ declare global {
             cancelTextSearch: () => Promise<void>;
             getSearchExampleQueries: (options?: { limit?: number; folder_path?: string }) => Promise<ExampleQueriesResponse>;
             findOutliers: (options: { folderPath: string; zThreshold?: number; k?: number; limit?: number }) => Promise<OutlierSearchResult>;
-            getStacks: (options?: ImageQueryOptions) => Promise<ImageRow[]>;
+            getStacks: (options?: ImageQueryOptions) => Promise<StackRow[]>;
             getImagesByStack: (stackId: number | null, options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getImagesByStackUngrouped: (stackId: number, options?: ImageQueryOptions) => Promise<ImageRow[]>;
             getSubstacksForStack: (stackId: number, options?: ImageQueryOptions) => Promise<SubStackRow[]>;
@@ -152,11 +153,21 @@ declare global {
             onAppModeChanged: (callback: (mode: 'db' | 'folder') => void) => () => void;
             setSingleImageViewOpen: (open: boolean) => Promise<boolean>;
             getShowBoundingBox: () => Promise<boolean>;
+            setShowBoundingBox: (show: boolean) => Promise<boolean>;
             onShowBoundingBoxChanged: (callback: (show: boolean) => void) => () => void;
             getShowEyes: () => Promise<boolean>;
+            setShowEyes: (show: boolean) => Promise<boolean>;
             onShowEyesChanged: (callback: (show: boolean) => void) => () => void;
+            getShowFocusPoint: () => Promise<boolean>;
+            setShowFocusPoint: (show: boolean) => Promise<boolean>;
+            onFindSimilarImages: (callback: () => void) => () => void;
+            onShowFocusPointChanged: (callback: (show: boolean) => void) => () => void;
             getEyeKeypoints: (ids: number[]) => Promise<Record<number, ImageEyeKeypoints>>;
-            getImageEvidence: (imageId: number) => Promise<Record<string, unknown>>;
+            getImageEvidence: (imageId: number) => Promise<import('../electron/imageEvidenceTypes').ImageEvidencePayload | null>;
+            getDiagnosticManifest: (imageId: number) => Promise<import('../electron/diagnosticTypes').DiagnosticManifest>;
+            requestDiagnostics: (imageId: number, layers: import('../electron/diagnosticTypes').DiagnosticLayer[], refresh?: boolean) => Promise<import('../electron/diagnosticTypes').DiagnosticManifest>;
+            cancelDiagnostics: (imageId: number, requestId: string) => Promise<void>;
+            getDiagnosticArtifact: (imageId: number, artifactId: string) => Promise<string>;
             exportEvidencePack: (imageId: number, destPath: string) => Promise<{ path: string }>;
             selectDirectory: () => Promise<string | null>;
             openExternalUrl: (url: string) => Promise<void>;
@@ -211,47 +222,48 @@ declare global {
                 isAvailable: () => Promise<boolean>;
                 getStatus: () => Promise<BackendStatusResponse>;
                 getStats: () => Promise<BackendDatabaseStats>;
-                getScoringSortOptions: () => Promise<Array<{ value: string; label: string; group: string }>>;
+                getScoringSortOptions: () => Promise<import('../electron/scoringSortOptions').SortOption[]>;
+                getCullingAnalytics?: (params?: { folderPath?: string; folderId?: number; perStackLimit?: number }) => Promise<Record<string, unknown>>;
                 getStackAnalytics: (stackId: number) => Promise<Record<string, unknown>>;
-                getAgentCullGroups: (params?: {
+                getAgentCullGroups?: (params?: {
                     stackId?: number;
                     subStackId?: number;
                     status?: string;
                     limit?: number;
                     offset?: number;
-                }) => Promise<{ groups: Record<string, unknown>[] }>;
-                getAgentCullGroup: (groupId: number) => Promise<Record<string, unknown>>;
-                runAgentCullReview: (body: {
+                }) => Promise<import('../electron/agentCullTypes').AgentCullGroupsListResponse>;
+                getAgentCullGroup?: (groupId: number) => Promise<import('../electron/agentCullTypes').AgentCullReviewGroupDetail>;
+                runAgentCullReview?: (body: {
                     stackId: number;
                     subStackId?: number | null;
                     dryRun?: boolean;
                     force?: boolean;
                     agent?: string;
                 }) => Promise<Record<string, unknown>>;
-                applyAgentCullCandidates: (groupId: number, body?: {
+                applyAgentCullCandidates?: (groupId: number, body?: {
                     recommendationIds?: number[];
                     actor?: string;
                     note?: string;
                 }) => Promise<Record<string, unknown>>;
-                deleteApprovedAgentCullCandidates: (groupId: number, body: {
+                deleteApprovedAgentCullCandidates?: (groupId: number, body: {
                     confirm: boolean;
                     actor?: string;
                 }) => Promise<Record<string, unknown>>;
-                approveAgentCullGroup: (groupId: number, body?: {
+                approveAgentCullGroup?: (groupId: number, body?: {
                     recommendationIds?: number[];
                     actor?: string;
                     note?: string;
                 }) => Promise<Record<string, unknown>>;
-                rejectAgentCullGroup: (groupId: number, body?: {
+                rejectAgentCullGroup?: (groupId: number, body?: {
                     recommendationIds?: number[];
                     actor?: string;
                     note?: string;
                 }) => Promise<Record<string, unknown>>;
-                rollbackAgentCullRecommendation: (recommendationId: number, body?: {
+                rollbackAgentCullRecommendation?: (recommendationId: number, body?: {
                     actor?: string;
                     note?: string;
                 }) => Promise<Record<string, unknown>>;
-                updateImagePickStatus: (imageId: number, pickStatus: -1 | 0 | 1) => Promise<Record<string, unknown>>;
+                updateImagePickStatus?: (imageId: number, pickStatus: -1 | 0 | 1) => Promise<Record<string, unknown>>;
 
                 // Scoring
                 startScoring: (opts: BackendScoringStartRequest) => Promise<BackendApiResponse>;
