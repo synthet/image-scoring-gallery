@@ -17,7 +17,7 @@ Catalog: [`mcp-server/tool_catalog.json`](../../../mcp-server/tool_catalog.json)
 | **`is-ui-live`** | `cdp_*`, `gallery_window_status` |
 | **`is-be-mcp`** (sibling backend) | **`search`**, **`dispatch`** — preferred for pipeline/DB triage |
 
-Do not use `imgscore-el-*`, `image-scoring-gallery-*`, `image-scoring-backend-*`.
+Do not use `imgscore-el-*`, `image-scoring-gallery-*`, `image-scoring-pipeline-*`.
 
 ## Workflows
 
@@ -35,4 +35,4 @@ Do not use `imgscore-el-*`, `image-scoring-gallery-*`, `image-scoring-backend-*`
 
 Backend only: **`is-be-live`** + `ENABLE_MCP_EXECUTE_CODE=1` (and usually `MCP_SSE_PROFILE=full`).
 
-Backend compact contract: [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/MCP_SEARCH_DISPATCH.md).
+Backend compact contract: [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/MCP_SEARCH_DISPATCH.md).

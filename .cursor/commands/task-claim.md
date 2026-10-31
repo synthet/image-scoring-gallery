@@ -13,19 +13,19 @@ If `--repo` is omitted, default to `gallery` (this repo).
 
 ## Compiled bootloader (do this first)
 
-Harness lives in the sibling **image-scoring-backend** repo:
+Harness lives in the sibling **image-scoring-pipeline** repo:
 
 ```powershell
-python ../image-scoring-backend/scripts/agent_skills/backlog_stage.py claim <N> --repo gallery
-python ../image-scoring-backend/scripts/agent_skills/backlog_stage.py claim <N> --repo backend
+python ../image-scoring-pipeline/scripts/agent_skills/backlog_stage.py claim <N> --repo gallery
+python ../image-scoring-pipeline/scripts/agent_skills/backlog_stage.py claim <N> --repo backend
 ```
 
 Later Stage flips:
 
 ```powershell
-python ../image-scoring-backend/scripts/agent_skills/backlog_stage.py set-stage <N> --repo gallery --stage in_progress
-python ../image-scoring-backend/scripts/agent_skills/backlog_stage.py set-stage <N> --repo gallery --stage blocked --comment "Blocked: <reason + unblock>"
-python ../image-scoring-backend/scripts/agent_skills/backlog_stage.py set-stage <N> --repo gallery --stage review
+python ../image-scoring-pipeline/scripts/agent_skills/backlog_stage.py set-stage <N> --repo gallery --stage in_progress
+python ../image-scoring-pipeline/scripts/agent_skills/backlog_stage.py set-stage <N> --repo gallery --stage blocked --comment "Blocked: <reason + unblock>"
+python ../image-scoring-pipeline/scripts/agent_skills/backlog_stage.py set-stage <N> --repo gallery --stage review
 ```
 
 Do **not** re-type project/Stage IDs — the harness owns them.

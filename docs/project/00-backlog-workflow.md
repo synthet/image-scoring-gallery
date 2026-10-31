@@ -15,7 +15,7 @@ The canonical task queue is the **GitHub Project board**:
 
 It surfaces issues from both repos:
 - `synthet/image-scoring-gallery` (this repo) — Electron / React UI
-- `synthet/image-scoring-backend` — backend, FastAPI, DB schema
+- `synthet/image-scoring-pipeline` — backend, FastAPI, DB schema
 
 This document is the **operating contract** every agent (human or AI) must follow
 when picking and tracking work. The backend repo has the same doc — both must stay
@@ -44,7 +44,7 @@ Labels are facets:
 
 **Epics:** `type:epic` parents with GitHub sub-issues (same repo). Cross-repo epics are paired issues with URLs in the body.
 
-**Obsolete:** Close + `wontfix` when work is dead; use `status:obsolete` when superseded but kept for history. Inventory: [backend backlog-inventory-2026-05.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/project/backlog-inventory-2026-05.md).
+**Obsolete:** Close + `wontfix` when work is dead; use `status:obsolete` when superseded but kept for history. Inventory: [backend backlog-inventory-2026-05.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/project/backlog-inventory-2026-05.md).
 
 **Rule:** Edit issues, not files. The repo `TODO.md` is a pointer only.
 
@@ -71,7 +71,7 @@ Either run the slash command (Claude Code):
 Or run the equivalent `gh` commands manually:
 
 ```bash
-# Replace <N> with the issue number, <repo> with image-scoring-gallery or image-scoring-backend
+# Replace <N> with the issue number, <repo> with image-scoring-gallery or image-scoring-pipeline
 gh issue edit <N> --repo synthet/<repo> --add-assignee @me
 
 # Move the card to Claimed
@@ -138,7 +138,7 @@ When work touches both repos:
 4. The Project board shows both — group/filter by `cross-repo` to see the pair.
 
 The backend repo holds the canonical cross-repo coordination doc:
-[`docs/technical/AGENT_COORDINATION.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md).
+[`docs/technical/AGENT_COORDINATION.md`](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/AGENT_COORDINATION.md).
 
 ---
 
@@ -147,10 +147,10 @@ The backend repo holds the canonical cross-repo coordination doc:
 | Role | Location |
 |------|----------|
 | **Canonical queue** | [Project board](https://github.com/users/synthet/projects/1) |
-| **Issue trackers** | [gallery issues](https://github.com/synthet/image-scoring-gallery/issues), [backend issues](https://github.com/synthet/image-scoring-backend/issues) |
+| **Issue trackers** | [gallery issues](https://github.com/synthet/image-scoring-gallery/issues), [backend issues](https://github.com/synthet/image-scoring-pipeline/issues) |
 | **Pointer (this repo)** | [`TODO.md`](../../TODO.md) |
-| **Pointer (backend)** | [backend `TODO.md`](https://github.com/synthet/image-scoring-backend/blob/main/TODO.md) |
-| **This contract** | here, plus [backend sibling](https://github.com/synthet/image-scoring-backend/blob/main/docs/project/00-backlog-workflow.md) |
+| **Pointer (backend)** | [backend `TODO.md`](https://github.com/synthet/image-scoring-pipeline/blob/main/TODO.md) |
+| **This contract** | here, plus [backend sibling](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/project/00-backlog-workflow.md) |
 
 ---
 
@@ -173,5 +173,5 @@ For automation/scripts:
 | `Done` option | `73062c96` |
 
 The original label and issue bootstrap scripts live in the backend repo:
-[`scripts/bootstrap_labels.sh`](https://github.com/synthet/image-scoring-backend/blob/main/scripts/bootstrap_labels.sh) ·
-[`scripts/bootstrap_issues.py`](https://github.com/synthet/image-scoring-backend/blob/main/scripts/bootstrap_issues.py).
+[`scripts/bootstrap_labels.sh`](https://github.com/synthet/image-scoring-pipeline/blob/main/scripts/bootstrap_labels.sh) ·
+[`scripts/bootstrap_issues.py`](https://github.com/synthet/image-scoring-pipeline/blob/main/scripts/bootstrap_issues.py).

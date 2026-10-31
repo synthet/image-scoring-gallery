@@ -17,12 +17,12 @@ export function collapseMalformedThumbnailSegments(input: string): string {
 }
 
 /**
- * Strip paths stored relative to the gallery repo (../image-scoring-backend/thumbnails/...)
+ * Strip paths stored relative to the gallery repo (../image-scoring-pipeline/thumbnails/...)
  * before joining against thumbnail_base_dir / sibling thumbnails folder.
  */
 export function stripThumbnailRepoRelativePrefix(restForwardSlashes: string): string {
     return restForwardSlashes.replace(
-        /^(?:\.\.\/)+(?:image-scoring-backend|image-scoring)\/thumbnails\//i,
+        /^(?:\.\.\/)+(?:image-scoring-pipeline|image-scoring-backend|image-scoring)\/thumbnails\//i,
         '',
     );
 }
@@ -51,7 +51,7 @@ export function extractThumbnailTail(input: string): string | null {
 /**
  * Resolve a DB thumbnail string to an absolute filesystem path.
  * Relative / repo-relative values are joined to `thumbnailBaseDir` or, by default,
- * `../image-scoring-backend/thumbnails` next to the gallery repo (no exists check — missing
+ * `../image-scoring-pipeline/thumbnails` next to the gallery repo (no exists check — missing
  * sibling would otherwise leak `../..` paths into `media://`, which Chromium mis-parses).
  */
 export function absolutizeThumbnailPath(
@@ -72,14 +72,14 @@ export function absolutizeThumbnailPath(
     }
 
     // Anchor a *relative* thumbnail_base_dir to the gallery app root (config.example.json
-    // uses ../image-scoring-backend/thumbnails). Leaving it relative made path.join() keep
+    // uses ../image-scoring-pipeline/thumbnails). Leaving it relative made path.join() keep
     // .. segments → broken media:// URLs. Absolute bases (D:\..., /var/...) stay as-is.
     let base: string;
     if (thumbnailBaseDir?.trim()) {
         const raw = thumbnailBaseDir.trim();
         base = path.isAbsolute(raw) ? path.normalize(raw) : path.resolve(projectRoot, raw);
     } else {
-        base = path.resolve(projectRoot, '../image-scoring-backend/thumbnails');
+        base = path.resolve(projectRoot, '../image-scoring-pipeline/thumbnails');
     }
 
     let rest = stripThumbnailRepoRelativePrefix(flat.replace(/^\/+/, ''));

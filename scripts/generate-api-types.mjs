@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SIBLING_OPENAPI_PATH = resolve(__dirname, '..', '..', 'image-scoring-backend', 'openapi.json');
+const SIBLING_OPENAPI_PATH = resolve(__dirname, '..', '..', 'image-scoring-pipeline', 'openapi.json');
 const OUTPUT_PATH = resolve(__dirname, '..', 'electron', 'api.generated.ts');
 
 function ensureSiblingOpenApiExists() {
@@ -14,7 +14,7 @@ function ensureSiblingOpenApiExists() {
 
     console.error('[generate:api-types] Missing sibling backend OpenAPI file.');
     console.error(`Expected: ${SIBLING_OPENAPI_PATH}`);
-    console.error('Action: clone/open the backend repo as ../image-scoring-backend and generate openapi.json, then re-run `npm run generate:api-types`.');
+    console.error('Action: clone/open the backend repo as ../image-scoring-pipeline and generate openapi.json, then re-run `npm run generate:api-types`.');
     process.exit(1);
 }
 

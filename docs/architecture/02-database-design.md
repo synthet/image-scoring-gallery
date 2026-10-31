@@ -13,9 +13,9 @@ PostgreSQL + pgvector is the primary database architecture. The backend owns sch
 
 ## Authority
 
-- Backend schema authority: [image-scoring-backend DB_SCHEMA.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/DB_SCHEMA.md).
-- Backend database hub: [image-scoring-backend DATABASE.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DATABASE.md).
-- Cross-repo protocol: [image-scoring-backend AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md).
+- Backend schema authority: [image-scoring-pipeline DB_SCHEMA.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/DB_SCHEMA.md).
+- Backend database hub: [image-scoring-pipeline DATABASE.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/DATABASE.md).
+- Cross-repo protocol: [image-scoring-pipeline AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/AGENT_COORDINATION.md).
 
 ## Provider Modes
 
@@ -30,7 +30,7 @@ The renderer never opens database connections directly. Renderer code calls prel
 
 ## API Mode
 
-API mode is useful when the backend should own database connectivity or when direct PostgreSQL access is not available to the desktop app. The connector calls backend HTTP endpoints; exact endpoint behavior is backend-owned and must be checked against [API_CONTRACT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/API_CONTRACT.md) and [openapi.yaml](https://github.com/synthet/image-scoring-backend/blob/main/docs/reference/api/openapi.yaml).
+API mode is useful when the backend should own database connectivity or when direct PostgreSQL access is not available to the desktop app. The connector calls backend HTTP endpoints; exact endpoint behavior is backend-owned and must be checked against [API_CONTRACT.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/API_CONTRACT.md) and [openapi.yaml](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reference/api/openapi.yaml).
 
 ## Legacy Firebird
 
@@ -39,7 +39,7 @@ Firebird is historical for this gallery. Existing config normalization may handl
 Historical context:
 
 - [planning/02-firebird-postgresql-migration.md](../planning/02-firebird-postgresql-migration.md)
-- Backend [FIREBIRD_POSTGRES_MIGRATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/planning/database/FIREBIRD_POSTGRES_MIGRATION.md)
+- Backend [FIREBIRD_POSTGRES_MIGRATION.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/planning/database/FIREBIRD_POSTGRES_MIGRATION.md)
 
 ## Change Discipline
 

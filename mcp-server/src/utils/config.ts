@@ -69,6 +69,7 @@ async function getMergedMtime(): Promise<number> {
 function resolveImageScoringRoot(): string {
     const gallerySibling = path.resolve(PROJECT_ROOT, "..");
     const candidates = [
+        path.join(gallerySibling, "image-scoring-pipeline"),
         path.join(gallerySibling, "image-scoring-backend"),
         path.join(gallerySibling, "image-scoring"),
     ];

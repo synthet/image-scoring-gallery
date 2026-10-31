@@ -11,7 +11,7 @@ timestamp: 2026-06-16T00:00:00Z
 
 End-to-end behavior of **File → Sync** in Driftara Gallery: filesystem scan, optional copy into the configured photo tree, direct PostgreSQL registration, and backend pipeline submission. Use this page when debugging progress UI, IPC, or “why counts don’t match.”
 
-**Backend vocabulary and DB truth for pipeline phases:** [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) and [ELECTRON_SYNC_IMPORT_AND_PHASES.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/ELECTRON_SYNC_IMPORT_AND_PHASES.md) (sibling repo).
+**Backend vocabulary and DB truth for pipeline phases:** [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) and [ELECTRON_SYNC_IMPORT_AND_PHASES.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/ELECTRON_SYNC_IMPORT_AND_PHASES.md) (sibling repo).
 
 ## Entry and guards
 

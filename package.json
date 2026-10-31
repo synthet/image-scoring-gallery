@@ -1,7 +1,7 @@
 {
   "name": "electron-gallery",
   "private": true,
-  "version": "7.29.0",
+  "version": "7.30.0",
   "description": "Driftara Gallery — desktop app for Vexlum Scoring libraries",
   "author": "Driftara Gallery",
   "main": "dist-electron/main.js",
@@ -16,7 +16,7 @@
     "test": "cross-env VITEST=1 vitest",
     "test:run": "cross-env VITEST=1 vitest run",
     "test:coverage": "cross-env VITEST=1 vitest run --coverage",
-    "test:db": "cd ../image-scoring-backend && python scripts/setup_test_db.py",
+    "test:db": "cd ../image-scoring-pipeline && python scripts/setup_test_db.py",
     "generate:api-types": "node scripts/generate-api-types.mjs",
     "prebuild-backup-manifest": "node scripts/prebuild-backup-manifest.mjs",
     "contract:update": "node scripts/sync-api-contract.mjs --update",
@@ -50,7 +50,7 @@
     ]
   },
   "dependencies": {
-    "@synthet/image-scoring-design": "github:synthet/image-scoring-ui#v1.2.0",
+    "@synthet/image-scoring-design": "github:synthet/image-scoring-ui#v1.3.0",
     "@types/express": "^5.0.6",
     "electron-is-dev": "^3.0.1",
     "exiftool-vendored": "^35.11.0",

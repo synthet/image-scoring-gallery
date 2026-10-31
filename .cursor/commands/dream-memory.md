@@ -8,14 +8,14 @@ disable-model-invocation: true
 
 Merge recent session logs with current `memory.md` into a **proposal only**.
 
-Scripts: sibling **image-scoring-backend** `scripts/agent-memory/`.
+Scripts: sibling **image-scoring-pipeline** `scripts/agent-memory/`.
 
 ## Steps
 
 1. Run from gallery root:
 
 ```powershell
-python ../image-scoring-backend/scripts/agent-memory/dream.py
+python ../image-scoring-pipeline/scripts/agent-memory/dream.py
 ```
 
 2. Open the printed `dreams/YYYY-MM-DD-HHMM.md` and matching `*-changelog.md` under backend `.agent-memory/dreams/`.

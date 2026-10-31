@@ -10,7 +10,7 @@ timestamp: 2026-06-30T00:00:00Z
 # Culling stack analytics (Driftara Gallery)
 
 **Status:** Implemented (MVP)  
-**Backend:** [image-scoring-backend `CULLING_ANALYTICS.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/CULLING_ANALYTICS.md)
+**Backend:** [image-scoring-pipeline `CULLING_ANALYTICS.md`](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/CULLING_ANALYTICS.md)
 
 ## Summary
 

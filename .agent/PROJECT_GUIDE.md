@@ -8,7 +8,7 @@ The canonical task queue is the **GitHub Project board** — not `TODO.md`:
 
 **→ https://github.com/users/synthet/projects/1**
 
-It spans `image-scoring-gallery` and `image-scoring-backend`. Every agent must follow the **five-step contract** in [`.cursor/skills/backlog-queue/SKILL.md`](../.cursor/skills/backlog-queue/SKILL.md): pick from `Stage = Ready` → `/task-claim <N>` → `In Progress` on first commit → `Blocked` (with comment) if stuck → PR with `Closes #<N>` → `Review` → `Done`.
+It spans `image-scoring-gallery` and `image-scoring-pipeline`. Every agent must follow the **five-step contract** in [`.cursor/skills/backlog-queue/SKILL.md`](../.cursor/skills/backlog-queue/SKILL.md): pick from `Stage = Ready` → `/task-claim <N>` → `In Progress` on first commit → `Blocked` (with comment) if stuck → PR with `Closes #<N>` → `Review` → `Done`.
 
 `TODO.md` is a pointer only — never add tasks there.
 
@@ -19,7 +19,7 @@ Before changing IPC contracts, stage labels, or backend integration: read **[`do
 **Agent infra:** **[`AGENT_INFRA_INVENTORY.md`](AGENT_INFRA_INVENTORY.md)**, **[`COMMANDS.md`](COMMANDS.md)**, **[`SAFETY.md`](SAFETY.md)**, **[`subagents/README.md`](subagents/README.md)**, **[`workflows/`](workflows/)**, **[`AGENT_INFRA_STATUS.json`](AGENT_INFRA_STATUS.json)**.
 
 ## Project Context
-**Driftara Gallery** (`image-scoring-gallery`) is the desktop viewer for libraries managed by **Vexlum Scoring** (`image-scoring-backend`). It is built with Electron and React and connects to PostgreSQL (with pgvector) and/or the backend API.
+**Driftara Gallery** (`image-scoring-gallery`) is the desktop viewer for libraries managed by **Vexlum Scoring** (`image-scoring-pipeline`). It is built with Electron and React and connects to PostgreSQL (with pgvector) and/or the backend API.
 
 ## Core Agentic Skills (Commands)
 

@@ -9,7 +9,7 @@ export type PathsConfigSlice = {
     thumbnail_base_dir?: string;
 };
 
-/** After repo rename image-scoring → image-scoring-backend; optional user remaps from config */
+/** After repo renames image-scoring / image-scoring-backend → image-scoring-pipeline; optional user remaps from config */
 export function applyThumbnailPathRemaps(p: string, pathsCfg: PathsConfigSlice): string {
     let out = p;
     for (const pair of pathsCfg.thumbnail_path_remap || []) {
@@ -20,7 +20,7 @@ export function applyThumbnailPathRemaps(p: string, pathsCfg: PathsConfigSlice):
         }
     }
     if (pathsCfg.remap_legacy_image_scoring_thumbnails !== false) {
-        out = out.replace(/([/\\])image-scoring([/\\]thumbnails[/\\])/gi, '$1image-scoring-backend$2');
+        out = out.replace(/([/\\])image-scoring(?:-backend)?([/\\]thumbnails[/\\])/gi, '$1image-scoring-pipeline$2');
     }
     return out;
 }

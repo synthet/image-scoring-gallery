@@ -1,7 +1,7 @@
 /**
  * Lens segment names for File → Sync under `destinationRoot / camera / lens / year / date`.
  *
- * **Keep in sync with** `image-scoring-backend/modules/lens_folder_name.py`
+ * **Keep in sync with** `image-scoring-pipeline/modules/lens_folder_name.py`
  * (same rules; mirror test cases in `lensFolderName.test.ts` / `test_lens_folder_name.py`).
  *
  * If Sync previously created duplicate folders (full marketing names vs `180-600mm`,

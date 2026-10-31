@@ -1,9 +1,9 @@
 # Claude Code hooks — Jev agent harness
 
 `.claude/settings.json` (tracked) wires four hooks to the **sibling backend** harness,
-`../image-scoring-backend/scripts/agent_harness/hook.py`, with `--repo "$CLAUDE_PROJECT_DIR"` so it
+`../image-scoring-pipeline/scripts/agent_harness/hook.py`, with `--repo "$CLAUDE_PROJECT_DIR"` so it
 reads this repo's rules and `.agent/jev_harness.json`. Design:
-[JEV_AGENT_HARNESS.md](https://github.com/synthet/image-scoring-backend/blob/master/docs/technical/JEV_AGENT_HARNESS.md).
+[JEV_AGENT_HARNESS.md](https://github.com/synthet/image-scoring-pipeline/blob/master/docs/technical/JEV_AGENT_HARNESS.md).
 
 | Event | Matcher | Argument | Effect |
 |-------|---------|----------|--------|

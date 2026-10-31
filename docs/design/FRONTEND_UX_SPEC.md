@@ -17,13 +17,13 @@ This document outlines the visual design, user experience, and UI specifications
 
 ### Stack differences (gallery vs backend `/ui/`)
 
-| Aspect | Backend `/ui/` (`image-scoring-backend/frontend`) | Gallery (this repo) |
+| Aspect | Backend `/ui/` (`image-scoring-pipeline/frontend`) | Gallery (this repo) |
 |--------|-----------------------------------------------------|---------------------|
 | Framework utilities | Tailwind v4 (`@theme` from package `tailwind-theme.css`) | Vanilla CSS + **CSS Modules** (`.module.css`) |
 | Token consumption | Theme utilities (`bg-bg-primary`, `text-text-secondary`, …) | `var(--color-…)` from `src/styles/tokens.css` |
 | Design package CSS | `dist/tailwind-theme.css` | `dist/tokens.css` (imported into `tokens.css`) |
 | Stage labels | `frontend/src/types/api.ts` (`STAGE_DISPLAY`) | `src/constants/pipelineLabels.ts` |
-| `phase_code` authority | [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) (backend) | Same doc; gallery mirrors labels only |
+| `phase_code` authority | [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) (backend) | Same doc; gallery mirrors labels only |
 
 Other surfaces: Gradio operator UI at `/app` (backend) uses `gradio-snippet.css` from the same package — not used in the Electron app.
 

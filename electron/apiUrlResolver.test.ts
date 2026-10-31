@@ -40,16 +40,16 @@ describe('resolveBaseUrl', () => {
     expect(mockFs.readFileSync).toHaveBeenCalled();
   });
 
-  it('prefers image-scoring-backend lock files over legacy image-scoring lock files', () => {
+  it('prefers image-scoring-pipeline lock files over legacy image-scoring lock files', () => {
     const config: AppConfig = {};
     mockFs.existsSync.mockImplementation((filePath: string) => {
       return (
-        filePath.endsWith(path.join('image-scoring-backend', 'webui.lock')) ||
+        filePath.endsWith(path.join('image-scoring-pipeline', 'webui.lock')) ||
         filePath.endsWith(path.join('image-scoring', 'webui.lock'))
       );
     });
     mockFs.readFileSync.mockImplementation((filePath: string) => {
-      if (filePath.endsWith(path.join('image-scoring-backend', 'webui.lock'))) {
+      if (filePath.endsWith(path.join('image-scoring-pipeline', 'webui.lock'))) {
         return JSON.stringify({ port: 8100 });
       }
       if (filePath.endsWith(path.join('image-scoring', 'webui.lock'))) {
@@ -67,7 +67,7 @@ describe('resolveBaseUrl', () => {
     expect(result).toBe('http://127.0.0.1:8100');
   });
 
-  it('uses legacy image-scoring lock files when image-scoring-backend lock files are absent', () => {
+  it('uses legacy image-scoring lock files when image-scoring-pipeline lock files are absent', () => {
     const config: AppConfig = {};
     mockFs.existsSync.mockImplementation((filePath: string) => {
       return filePath.endsWith(path.join('image-scoring', 'webui-debug.lock'));

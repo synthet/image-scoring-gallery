@@ -18,7 +18,7 @@ timestamp: 2026-06-16T00:00:00Z
 
 ## Executive Summary
 
-This document provides a comprehensive technical review of the **image-scoring-gallery** (**Driftara Gallery**) repository, which serves as the frontend client for **Vexlum Scoring** (`image-scoring-backend`). While the application establishes a solid foundation leveraging Electron, React, and Vite, it currently suffers from significant technical debt related to database connection management, memory scalability, and test coverage.
+This document provides a comprehensive technical review of the **image-scoring-gallery** (**Driftara Gallery**) repository, which serves as the frontend client for **Vexlum Scoring** (`image-scoring-pipeline`). While the application establishes a solid foundation leveraging Electron, React, and Vite, it currently suffers from significant technical debt related to database connection management, memory scalability, and test coverage.
 
 Addressing the critical architectural bottlenecks—particularly the lack of database connection pooling and unbounded memory growth—is essential before adding new features. These improvements should be paired with the security and thread-safety resolutions required on the backend Python pipeline.
 

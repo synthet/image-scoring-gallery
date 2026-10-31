@@ -5,9 +5,9 @@ An AI-powered desktop image gallery built with Electron, React, and Vite. (Repos
 ### Documentation
 For detailed technical info, architecture, and feature plans, see the **[Documentation Index](./docs/README.md)**, **[Shipped feature catalog](./docs/features/implemented/INDEX.md)**, and **[docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md)** (includes `npm run doctor`).
 
-**Sibling backend** ([image-scoring-backend](https://github.com/synthet/image-scoring-backend)): infra hubs such as [docs/DEVELOPMENT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DEVELOPMENT.md), [docs/DIAGNOSTICS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DIAGNOSTICS.md), and `python scripts/doctor.py` for config/DB/pgvector checks.
+**Sibling backend** ([image-scoring-pipeline](https://github.com/synthet/image-scoring-pipeline)): infra hubs such as [docs/DEVELOPMENT.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/DEVELOPMENT.md), [docs/DIAGNOSTICS.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/DIAGNOSTICS.md), and `python scripts/doctor.py` for config/DB/pgvector checks.
 
-This application provides a high-performance interface for browsing and filtering libraries processed by **[Vexlum Scoring](https://github.com/synthet/image-scoring-backend)** (`image-scoring-backend`).
+This application provides a high-performance interface for browsing and filtering libraries processed by **[Vexlum Scoring](https://github.com/synthet/image-scoring-pipeline)** (`image-scoring-pipeline`).
 
 ## Features
 
@@ -15,13 +15,13 @@ This application provides a high-performance interface for browsing and filterin
 - 📂 **Folder Tree**: Intuitive navigation of your image library.
 - 🔍 **Advanced Filtering**: Filter by quality scores (MUSIQ, LIQE), keywords, and more.
 - 📸 **RAW Support**: Integrated NEF/RAW viewing capability.
-- 🗄️ **Database**: Connects to PostgreSQL locally and/or SQL via the **image-scoring-backend** API (`database.engine` in `config.json`).
+- 🗄️ **Database**: Connects to PostgreSQL locally and/or SQL via the **image-scoring-pipeline** API (`database.engine` in `config.json`).
 
 ## Prerequisites
 
 - **Node.js**: (v18 or higher recommended)
 - **Database**: Production uses PostgreSQL and/or backend API SQL mode (see `docs/architecture/02-database-design.md`).
-- **Project layout**: For automatic API port discovery, keep **image-scoring-backend** and **image-scoring-gallery** as sibling directories. Override via `config.json` (`api.url` or `api.port`) if your layout differs.
+- **Project layout**: For automatic API port discovery, keep **image-scoring-pipeline** and **image-scoring-gallery** as sibling directories. Override via `config.json` (`api.url` or `api.port`) if your layout differs.
 - **Environment overrides:** Copy `environment.example.json` to `environment.json` (gitignored) for machine-specific paths, ports, and URLs; `environment.json` overrides overlapping keys in `config.json`.
 - **Migration note:** Legacy Firebird keys (for example `database.host`, `database.path`, and `firebird.path`) are historical compatibility artifacts and are no longer first-class config fields; use `database.engine` (`postgres` or `api`) plus `database.postgres.*` / `database.api.*` instead.
 
