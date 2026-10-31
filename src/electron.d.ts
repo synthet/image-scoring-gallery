@@ -57,6 +57,7 @@ import type {
     OutlierSearchResult,
     TextSearchResponse,
 } from '../electron/apiTypes';
+import type { RepresentativePreviewLoad } from '../electron/representativePreview';
 
 export type {
     AppConfig,
@@ -157,6 +158,8 @@ declare global {
             onShowEyesChanged: (callback: (show: boolean) => void) => () => void;
             getEyeKeypoints: (ids: number[]) => Promise<Record<number, ImageEyeKeypoints>>;
             selectDirectory: () => Promise<string | null>;
+            /** Opt-in representative browsing view: pick a study manifest for this folder (read-only). */
+            loadRepresentativePreview: (folderId: number) => Promise<RepresentativePreviewLoad>;
             openExternalUrl: (url: string) => Promise<void>;
             getDiagnostics: () => Promise<DiagnosticsReport>;
             getProcessMemoryInfo: () => Promise<ProcessMemorySnapshot | null>;
