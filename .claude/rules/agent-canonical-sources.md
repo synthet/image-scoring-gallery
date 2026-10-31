@@ -6,7 +6,7 @@ description: Canonical sources and gallery agent boundaries (Driftara Gallery)
 
 ## Backend authority
 
-Do **not** invent REST paths, response fields, SQL column names, `phase_code` values, or config keys. Use [docs/CANONICAL_SOURCES.md](../../docs/CANONICAL_SOURCES.md) and full GitHub URLs to **image-scoring-backend** technical docs (`API_CONTRACT.md`, `openapi.yaml`, `DB_SCHEMA.md`, `PIPELINE_TERMINOLOGY.md`, `AGENT_COORDINATION.md`).
+Do **not** invent REST paths, response fields, SQL column names, `phase_code` values, or config keys. Use [docs/CANONICAL_SOURCES.md](../../docs/CANONICAL_SOURCES.md) and full GitHub URLs to **image-scoring-pipeline** technical docs (`API_CONTRACT.md`, `openapi.yaml`, `DB_SCHEMA.md`, `PIPELINE_TERMINOLOGY.md`, `AGENT_COORDINATION.md`).
 
 ## Electron and IPC
 

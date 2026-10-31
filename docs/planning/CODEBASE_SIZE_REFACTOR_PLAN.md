@@ -14,11 +14,11 @@ Phased checklist to reduce files ≥1000 LoC and functions/methods ≥150 LoC in
 
 **Last audit:** 2026-07-01  
 **Thresholds:** files ≥1000 LoC, functions/methods ≥150 LoC  
-**Sibling plan:** [image-scoring-backend CODEBASE_SIZE_REFACTOR_PLAN.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/planning/refactoring/CODEBASE_SIZE_REFACTOR_PLAN.md)  
-**Re-run audit:** [backend `.cursor/skills/codebase-size-audit/SKILL.md`](https://github.com/synthet/image-scoring-backend/blob/main/.cursor/skills/codebase-size-audit/SKILL.md)
+**Sibling plan:** [image-scoring-pipeline CODEBASE_SIZE_REFACTOR_PLAN.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/planning/refactoring/CODEBASE_SIZE_REFACTOR_PLAN.md)  
+**Re-run audit:** [backend `.cursor/skills/codebase-size-audit/SKILL.md`](https://github.com/synthet/image-scoring-pipeline/blob/main/.cursor/skills/codebase-size-audit/SKILL.md)
 
 ```bash
-# From image-scoring-backend root (gallery path adjustable)
+# From image-scoring-pipeline root (gallery path adjustable)
 python scripts/audit/codebase_size_audit.py --root ../image-scoring-gallery
 python scripts/audit/codebase_size_audit.py --root ../image-scoring-gallery --format json -o .agent/scratch/audit-gallery.json
 ```
@@ -77,7 +77,7 @@ Remaining extractions (**Safe** if channel names unchanged) — **done** (Closes
 
 ## Phase 2 — `electron/db.ts` domain decomposition
 
-**Risk: High** — IPC result shapes consumed by renderer; mirror backend [db-refactor-decomposition](https://github.com/synthet/image-scoring-backend/blob/main/docs/planning/db-refactor-decomposition.md).
+**Risk: High** — IPC result shapes consumed by renderer; mirror backend [db-refactor-decomposition](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/planning/db-refactor-decomposition.md).
 
 | Target | LoC |
 |--------|----:|
@@ -207,5 +207,5 @@ Domain groups (from exports):
 ## Related documents
 
 - [db_abstraction_layer.md](db_abstraction_layer.md) — provider refactor notes
-- [Backend codebase size plan](https://github.com/synthet/image-scoring-backend/blob/main/docs/planning/refactoring/CODEBASE_SIZE_REFACTOR_PLAN.md)
-- [Backend db-refactor-decomposition](https://github.com/synthet/image-scoring-backend/blob/main/docs/planning/db-refactor-decomposition.md)
+- [Backend codebase size plan](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/planning/refactoring/CODEBASE_SIZE_REFACTOR_PLAN.md)
+- [Backend db-refactor-decomposition](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/planning/db-refactor-decomposition.md)

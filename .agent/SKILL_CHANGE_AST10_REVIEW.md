@@ -20,7 +20,7 @@ Many upstream checks assume **untrusted registry skills** (signing, SBOM, contai
 
 - [ ] **Scope:** Instructions stay within the skill's stated purpose (gallery renderer vs main process vs IPC vs docs); no broad "read all secrets" unless justified and called out.
 - [ ] **Shell / network / MCP:** New `curl`, download, or credential paths are justified; copy-paste commands use known project hosts/paths only.
-- [ ] **Cross-repo:** Instructions that reach into `../image-scoring-backend` are read-only unless the ticket says otherwise.
+- [ ] **Cross-repo:** Instructions that reach into `../image-scoring-pipeline` are read-only unless the ticket says otherwise.
 
 ## Platform and repo safety (AST05, AST06 — applicable subset)
 

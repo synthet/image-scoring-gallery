@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { cameraFolderFromExifModel } from './cameraFolderName';
 
-/** Keep cases aligned with image-scoring-backend/tests/test_camera_folder_name.py */
+/** Keep cases aligned with image-scoring-pipeline/tests/test_camera_folder_name.py */
 describe('cameraFolderFromExifModel', () => {
     const cases: [string | null | undefined, string][] = [
         [undefined, 'unknown'],

@@ -15,7 +15,7 @@ After human review of a dream proposal, promote it to `.agent-memory/memory.md` 
 ## Steps
 
 ```powershell
-python ../image-scoring-backend/scripts/agent-memory/promote_dream.py --dream ../image-scoring-backend/.agent-memory/dreams/<timestamp>.md
+python ../image-scoring-pipeline/scripts/agent-memory/promote_dream.py --dream ../image-scoring-pipeline/.agent-memory/dreams/<timestamp>.md
 ```
 
 Requires matching `*-changelog.md` unless user confirms `--force`.

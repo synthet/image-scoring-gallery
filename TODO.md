@@ -5,7 +5,7 @@
 > **→ https://github.com/users/synthet/projects/1**
 
 This file is preserved as a pointer only. **Do not add tasks here** — open an issue
-in this repo (or in [`image-scoring-backend`](https://github.com/synthet/image-scoring-backend)
+in this repo (or in [`image-scoring-pipeline`](https://github.com/synthet/image-scoring-pipeline)
 for backend-only work) and let the Project automation pick it up.
 
 ## How to use the queue
@@ -31,5 +31,5 @@ Plus labels: `area:python | area:db | area:gradio | area:electron | area:docs`,
 ## Cross-repo work
 
 The Project board surfaces issues from both this repo and
-[`image-scoring-backend`](https://github.com/synthet/image-scoring-backend).
+[`image-scoring-pipeline`](https://github.com/synthet/image-scoring-pipeline).
 Coordinated changes carry the `cross-repo` label on both sides.

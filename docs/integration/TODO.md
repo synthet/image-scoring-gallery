@@ -13,20 +13,20 @@ This backlog separates backend-owned contract work from gallery implementation w
 
 ## Backend-Owned Contract Changes
 
-These must start in **image-scoring-backend**:
+These must start in **image-scoring-pipeline**:
 
 - REST endpoint additions, removals, request fields, response fields, or status semantics.
-- OpenAPI changes in backend [openapi.yaml](https://github.com/synthet/image-scoring-backend/blob/main/docs/reference/api/openapi.yaml).
+- OpenAPI changes in backend [openapi.yaml](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reference/api/openapi.yaml).
 - Database table/column/index/vector-space changes.
 - Pipeline phase codes, operation tokens, or user-facing terminology changes.
 - WebSocket event shape changes.
 
 Required backend docs:
 
-- [API_CONTRACT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/API_CONTRACT.md)
-- [DB_SCHEMA.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/DB_SCHEMA.md)
-- [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md)
-- [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md)
+- [API_CONTRACT.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/API_CONTRACT.md)
+- [DB_SCHEMA.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/DB_SCHEMA.md)
+- [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md)
+- [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/AGENT_COORDINATION.md)
 
 ## Gallery Implementation Tasks
 
@@ -42,7 +42,7 @@ These are gallery-side follow-ups after backend contracts are confirmed:
 
 ## WebSocket Integration Backlog
 
-- Confirm event shapes against backend [API_CONTRACT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/API_CONTRACT.md) before changing [src/services/WebSocketService.ts](../../src/services/WebSocketService.ts).
+- Confirm event shapes against backend [API_CONTRACT.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/API_CONTRACT.md) before changing [src/services/WebSocketService.ts](../../src/services/WebSocketService.ts).
 - Keep WebSocket client behavior server-to-client unless backend docs confirm bidirectional commands.
 - Add tests for reconnection, event parsing, and store updates when changing WebSocket behavior.
 

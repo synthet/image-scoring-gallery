@@ -1,7 +1,7 @@
 /**
  * Canonical camera model → backup/sync folder name.
  *
- * Keep in sync with `image-scoring-backend/modules/camera_folder_name.py`
+ * Keep in sync with `image-scoring-pipeline/modules/camera_folder_name.py`
  * (same rules; mirror test cases in `cameraFolderName.test.ts` / `test_camera_folder_name.py`).
  */
 

@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import type { IpcMain } from 'electron';
 import type { ApiService } from '../apiService';
 import type { TextSearchParams } from '../apiTypes';
@@ -40,6 +41,24 @@ export function registerDbHandlers(deps: DbHandlersDeps): void {
       ipcMain.handle('db:get-eye-keypoints', wrapIpcHandler(async (_, ids: unknown) => {
           if (!Array.isArray(ids)) throw new Error('ids must be an array of image ids');
           return await db.getEyeKeypointsBatch(ids.map(Number));
+      }));
+
+      ipcMain.handle('api:evidence:get-image', wrapIpcHandler(async (_, imageId: unknown) => {
+          const id = Number(imageId);
+          if (!Number.isFinite(id)) throw new Error('imageId must be a number');
+          return await apiService.getImageEvidence(id);
+      }));
+
+      ipcMain.handle('api:evidence:export-pack', wrapIpcHandler(async (_, body: unknown) => {
+          const { imageId, destPath } = body as { imageId: number; destPath: string };
+          if (!destPath) throw new Error('destPath is required');
+          const payload = await apiService.getImageEvidence(Number(imageId));
+          const outPath = path.extname(destPath).toLowerCase() === '.json'
+              ? destPath
+              : path.join(destPath, `evidence_${imageId}.json`);
+          await fs.promises.mkdir(path.dirname(outPath), { recursive: true });
+          await fs.promises.writeFile(outPath, JSON.stringify(payload, null, 2), 'utf8');
+          return { path: outPath };
       }));
 
       ipcMain.handle('db:get-image-phase-statuses', wrapIpcHandler(async (_, id) => {

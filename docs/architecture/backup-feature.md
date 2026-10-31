@@ -11,6 +11,8 @@ timestamp: 2026-08-29T00:00:00Z
 
 Canonical specification for the **Backup** feature in **image-scoring-gallery** (Electron main process, DB layer, preload, `BackupModal`). File references are repo-relative.
 
+> **Planned changes:** destination collision and sidecar safety gaps are tracked in [backup copy identity](../features/planned/backup-copy-identity.md); a picks-only scoped run in [archive picks](../features/planned/archive-picks.md).
+
 ## Overview
 
 Backup exports high-quality originals from the indexed gallery database to a user-chosen folder (often an external drive). It applies **score filtering**, **stack pre-filter**, **embedding similarity dedup** with **MMR multi-keep** per cluster, optional **cross-day dedup**, and **MMR-aware disk budgeting**. Selection runs **entirely locally in Electron** — it is the single source of truth (the former backend `/api/backup/plan` endpoint was removed to avoid two implementations drifting).
@@ -239,7 +241,7 @@ Backup and Sync layout uses **`camera / lens / year / date / filename`**. The **
 | `35 35 1.8 1.8` (Nikon D-era numeric quad) | `35mm` |
 | `28 105 3.5 4.5` | `28-105mm` |
 
-Parsed by [`electron/lensFolderName.ts`](../../electron/lensFolderName.ts) (`normalizeLensFolderName`). Python parity: [`modules/lens_folder_name.py`](https://github.com/synthet/image-scoring-backend/blob/main/modules/lens_folder_name.py).
+Parsed by [`electron/lensFolderName.ts`](../../electron/lensFolderName.ts) (`normalizeLensFolderName`). Python parity: [`modules/lens_folder_name.py`](https://github.com/synthet/image-scoring-pipeline/blob/main/modules/lens_folder_name.py).
 
 Aperture is **not** part of the folder name — two 50mm primes (`f/1.4` and `f/1.8`) both use `50mm`.
 

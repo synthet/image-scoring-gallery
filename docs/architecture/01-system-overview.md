@@ -18,7 +18,7 @@ Driftara Gallery is an **Electron + React + TypeScript + Vite** desktop app for 
 | Electron main process | Owns database access, filesystem access, native dialogs, `media://` protocol handling, API calls, RAW/NEF extraction, export writes, sync/import/backup handlers, and IPC registration. |
 | Preload / contextBridge | Exposes a constrained `window.electron` bridge from [electron/preload.ts](../../electron/preload.ts). Renderer code should use this bridge rather than Node/Electron APIs directly. |
 | Renderer | React UI, navigation, filters, gallery grid, viewer, modals, stores, and user interactions under `src/`. |
-| Backend | FastAPI/Gradio service from image-scoring-backend, defaulting to port `7860`, owns API/schema/pipeline terminology. |
+| Backend | FastAPI/Gradio service from image-scoring-pipeline, defaulting to port `7860`, owns API/schema/pipeline terminology. |
 
 Do not put direct database or filesystem access in the renderer process.
 
@@ -39,7 +39,7 @@ Main-process responsibilities include:
 
 Renderer code lives under [src/](../../src/). It owns UI state, React components, hooks, stores, and display logic.
 
-Renderer stage labels come from [src/constants/pipelineLabels.ts](../../src/constants/pipelineLabels.ts) and must stay aligned with backend [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md).
+Renderer stage labels come from [src/constants/pipelineLabels.ts](../../src/constants/pipelineLabels.ts) and must stay aligned with backend [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md).
 
 ## API Mode Vs PostgreSQL Mode
 
@@ -71,4 +71,4 @@ Do not change NEF preview behavior or export orientation handling without tests.
 
 - [../features/implemented/01-nef-raw-fallback.md](../features/implemented/01-nef-raw-fallback.md)
 - [../features/implemented/05-jpeg-export-exif-orientation.md](../features/implemented/05-jpeg-export-exif-orientation.md)
-- Backend [RAW/NEF docs](https://github.com/synthet/image-scoring-backend/blob/main/docs/IMAGE_PIPELINE.md)
+- Backend [RAW/NEF docs](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/IMAGE_PIPELINE.md)

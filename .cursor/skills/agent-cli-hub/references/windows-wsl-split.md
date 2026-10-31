@@ -15,7 +15,7 @@ Use for:
 
 Use for:
 
-- Sibling **image-scoring-backend** (Python, WSL venvs, GPU scripts)
+- Sibling **image-scoring-pipeline** (Python, WSL venvs, GPU scripts)
 - Docker Compose workflows that expect Linux paths
 - MCP servers expecting Unix paths
 - CI-like local test reproduction (backend pytest, WSL markers)
@@ -23,7 +23,7 @@ Use for:
 
 ## Gallery workspace layout
 
-Keep **image-scoring-gallery** and **image-scoring-backend** as sibling directories (e.g. `D:\Projects\` on Windows, `/mnt/d/Projects/` in WSL when needed).
+Keep **image-scoring-gallery** and **image-scoring-pipeline** as sibling directories (e.g. `D:\Projects\` on Windows, `/mnt/d/Projects/` in WSL when needed).
 
 | Task | Prefer |
 |------|--------|

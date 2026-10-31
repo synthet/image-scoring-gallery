@@ -18,7 +18,7 @@ These conventions apply when creating, updating, or reorganizing pages in `docs/
 
 - Every page starts with YAML frontmatter, followed by a blank line and then a `# Title` header.
 - Required frontmatter fields for `docs/**/*.md`: `type`, `title`, `description`, `resource`, `tags`, `timestamp`; recommend `okf_version: 0.1`.
-- Profile authority: [backend OKF_ADOPTION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/OKF_ADOPTION.md).
+- Profile authority: [backend OKF_ADOPTION.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/OKF_ADOPTION.md).
 - `resource` must be the repository-relative Markdown path and must change when a page moves.
 - `title` should match the page H1 unless there is a specific reason to expose a shorter machine-readable title.
 - `description` should be a concise one-sentence summary suitable for search results and agent routing.
@@ -32,7 +32,7 @@ These conventions apply when creating, updating, or reorganizing pages in `docs/
 - Link related pages **bidirectionally**. When you add a link from page A → B, check whether B should also link back to A.
 - Use relative paths from the linking file (e.g., `../architecture/02-database-design.md`).
 - Use anchors for long pages (e.g., `02-database-design.md#connection-logic`).
-- Cross-repo links to **image-scoring-backend** use full GitHub URLs (existing convention).
+- Cross-repo links to **image-scoring-pipeline** use full GitHub URLs (existing convention).
 
 ## Index maintenance
 

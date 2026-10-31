@@ -20,7 +20,7 @@ Maintain **gallery** `docs/` as an OKF-style Markdown concept bundle with correc
 ## Safe process
 
 1. Prefer **relative** links inside this repo.
-2. Use **full GitHub URLs** to **image-scoring-backend** for API, DB, and pipeline authority.
+2. Use **full GitHub URLs** to **image-scoring-pipeline** for API, DB, and pipeline authority.
 3. Preserve or add OKF frontmatter on every touched `docs/**/*.md` page (`type`, `title`, `description`, `resource`, `tags`, `timestamp`).
 4. Keep `resource` equal to the repository-relative Markdown path.
 5. Update [docs/README.md](../../docs/README.md) / indexes when adding navigable pages.

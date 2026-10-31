@@ -1,20 +1,20 @@
 ---
 type: "Planned Feature"
 title: "Human culling labelling mode — blind pick/keep/reject with best frame and flip-compare loupe"
-description: "Status: Planned (proposal, clean-room). In-app version of the local labelling tool behind the backend's human culling label set (#415)."
+description: "Status: Planned (proposal). In-app version of the local labelling tool behind the backend's human culling label set (#415)."
 resource: "docs/features/planned/human-culling-labelling-mode.md"
-tags: ["features", "gallery-docs", "planned", "culling", "labels", "evaluation", "clean-room"]
+tags: ["features", "gallery-docs", "planned", "culling", "labels", "evaluation"]
 timestamp: 2026-09-25T00:00:00Z
 ---
 
 # Human culling labelling mode
 
 *Status: **Planned (proposal)** · Owner: TBD · Backend protocol:
-[human culling label set](https://github.com/synthet/image-scoring-backend/blob/master/docs/planning/human-culling-labels.md)
+[human culling label set](https://github.com/synthet/image-scoring-pipeline/blob/master/docs/planning/human-culling-labels.md)
 (#415) · Motivation:
-[reference culling shadow scores](https://github.com/synthet/image-scoring-backend/blob/master/docs/reports/reference-culling-shadow-scores-2026-09-25.md).*
+[reference culling shadow scores](https://github.com/synthet/image-scoring-pipeline/blob/master/docs/reports/reference-culling-shadow-scores-2026-09-25.md).*
 
-## Provenance (clean-room)
+## Provenance
 
 Derived from competitive analysis of a commercial application's observable behaviour and documentation;
 contains no code, identifiers, fitted constants or model artefacts from it. The labels are the owner's
@@ -52,7 +52,7 @@ no longer an independent label.
 **Loupe.** Opens the full-resolution image (the RAW's embedded JPEG). A click zooms to 100 % at the
 clicked point; drag pans. **Flip compare:** `←`/`→` inside the loupe switches frame while keeping the same
 zoom and position, so eye sharpness can be compared at the same spot across the burst. Grading keys work
-inside the loupe.
+inside the loupe. Optional pixel-only subject tracking: [loupe subject tracking](loupe-subject-tracking.md#labelling-mode-caveat).
 
 **Validation on save.** Every frame graded; at most one best frame; the best frame must be a pick; a group
 may have no best frame only if every frame is rejected. Skipped groups need no grades.

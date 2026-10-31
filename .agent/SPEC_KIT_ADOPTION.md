@@ -39,4 +39,4 @@ This project does not vendor GitHub Spec Kit, but it adopts the parts that fit t
 
 ## Upstream
 
-Cherry-picked from [synthet-code-framework](https://github.com/synthet/synthet-code-framework) (Cursor-first fork). See sibling backend [framework-adoption-port-manifest](https://github.com/synthet/image-scoring-backend/blob/main/docs/raw/framework-adoption-port-manifest.md).
+Cherry-picked from [synthet-code-framework](https://github.com/synthet/synthet-code-framework) (Cursor-first fork). See sibling backend [framework-adoption-port-manifest](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/raw/framework-adoption-port-manifest.md).
