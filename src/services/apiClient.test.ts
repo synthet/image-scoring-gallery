@@ -16,11 +16,6 @@ interface ApiClientInternals {
   off: (type: string, cb: (data: unknown) => void) => void;
 }
 
-type TestWindow = Window & typeof globalThis & {
-  electron?: {
-    getApiPort: ReturnType<typeof vi.fn>;
-  };
-};
 
 let mockWs: {
   url: string;
@@ -68,19 +63,18 @@ describe('ApiClient', () => {
 
     vi.stubGlobal('WebSocket', MockWebSocket);
 
-    (globalThis.window as TestWindow).electron = {
+    vi.stubGlobal('electron', {
       getApiPort: vi.fn().mockResolvedValue(7860),
-    };
+    });
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    (globalThis.window as TestWindow).electron = undefined;
     vi.useRealTimers();
   });
 
   it('connects to the default port when no electron api', async () => {
-    (globalThis.window as TestWindow).electron = undefined;
+    vi.stubGlobal('electron', undefined);
     const client = new ApiClient();
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(mockWs.url).toBe('ws://127.0.0.1:7860/ws/updates');
@@ -88,7 +82,7 @@ describe('ApiClient', () => {
   });
 
   it('uses the port returned by getApiPort', async () => {
-    const win = globalThis.window as TestWindow;
+    const win = globalThis.window;
     if (win.electron) {
       win.electron.getApiPort = vi.fn().mockResolvedValue(9000);
     }
@@ -99,7 +93,7 @@ describe('ApiClient', () => {
   });
 
   it('falls back to default port when getApiPort rejects', async () => {
-    const win = globalThis.window as TestWindow;
+    const win = globalThis.window;
     if (win.electron) {
       win.electron.getApiPort = vi.fn().mockRejectedValue(new Error('fail'));
     }

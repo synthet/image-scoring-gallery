@@ -4,7 +4,7 @@ import { StackAnalyticsBanner } from './StackAnalyticsBanner';
 
 describe('StackAnalyticsBanner', () => {
     beforeEach(() => {
-        (window as Window & { electron?: { api: { getStackAnalytics: ReturnType<typeof vi.fn> } } }).electron = {
+        vi.stubGlobal('electron', {
             api: {
                 getStackAnalytics: vi.fn().mockResolvedValue({
                     scope: 'stack',
@@ -15,11 +15,11 @@ describe('StackAnalyticsBanner', () => {
                     scores: { score_gap_top_two: 0 },
                 }),
             },
-        };
+        });
     });
 
     afterEach(() => {
-        delete (window as Window & { electron?: unknown }).electron;
+        vi.unstubAllGlobals();
         vi.clearAllMocks();
     });
 
@@ -34,9 +34,7 @@ describe('StackAnalyticsBanner', () => {
     });
 
     it('renders friendly warning labels with shared chip styling', async () => {
-        const api = (window as Window & { electron?: { api: { getStackAnalytics: ReturnType<typeof vi.fn> } } })
-            .electron!.api;
-        api.getStackAnalytics.mockResolvedValue({
+        vi.mocked(window.electron.api.getStackAnalytics).mockResolvedValue({
             scope: 'stack',
             stack_id: 28680,
             warnings: ['mixed_color_labels', 'visually_mixed_stack'],

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { RepresentativePreviewLoad } from './representativePreview';
+import type { DiagnosticLayer, DiagnosticManifest } from './diagnosticTypes';
 import type {
     ImageQueryOptions,
     ImageRow,
@@ -20,6 +21,7 @@ import type {
     SyncCandidate,
     ImagePhaseStatus,
     SubStackRow,
+    StackRow,
 } from './types';
 import type {
     ApiResponse as BackendApiResponse,
@@ -78,6 +80,18 @@ contextBridge.exposeInMainWorld('electron', {
     getEyeKeypoints: async (ids: number[]) => {
         const response = await ipcRenderer.invoke('db:get-eye-keypoints', ids);
         return unwrapEnvelope<Record<number, ImageEyeKeypoints>>(response);
+    },
+    getImageEvidence: async (imageId: number) => {
+        const response = await ipcRenderer.invoke('api:evidence:get-image', imageId);
+        return unwrapEnvelope<import('./imageEvidenceTypes').ImageEvidencePayload | null>(response);
+    },
+    getDiagnosticManifest: async (imageId: number) => unwrapEnvelope<DiagnosticManifest>(await ipcRenderer.invoke('api:evidence:manifest', imageId)),
+    requestDiagnostics: async (imageId: number, layers: DiagnosticLayer[], refresh = false) => unwrapEnvelope<DiagnosticManifest>(await ipcRenderer.invoke('api:evidence:request', imageId, layers, refresh)),
+    cancelDiagnostics: async (imageId: number, requestId: string) => unwrapEnvelope<void>(await ipcRenderer.invoke('api:evidence:cancel', imageId, requestId)),
+    getDiagnosticArtifact: async (imageId: number, artifactId: string) => unwrapEnvelope<string>(await ipcRenderer.invoke('api:evidence:artifact', imageId, artifactId)),
+    exportEvidencePack: async (imageId: number, destPath: string) => {
+        const response = await ipcRenderer.invoke('api:evidence:export-pack', { imageId, destPath });
+        return unwrapEnvelope<{ path: string }>(response);
     },
     getImagePhaseStatuses: async (id: number) => {
         const response = await ipcRenderer.invoke('db:get-image-phase-statuses', id);
@@ -146,7 +160,7 @@ contextBridge.exposeInMainWorld('electron', {
     },
     getStacks: async (options?: ImageQueryOptions) => {
         const response = await ipcRenderer.invoke('db:get-stacks', options);
-        return unwrapEnvelope<ImageRow[]>(response);
+        return unwrapEnvelope<StackRow[]>(response);
     },
     getImagesByStack: async (stackId: number | null, options?: ImageQueryOptions) => {
         const response = await ipcRenderer.invoke('db:get-images-by-stack', { stackId, options });
@@ -259,11 +273,12 @@ contextBridge.exposeInMainWorld('electron', {
         };
     },
     setSingleImageViewOpen: async (open: boolean) => {
-        return ipcRenderer.invoke('app:set-viewer-open', open) as Promise<boolean>;
+        return unwrapEnvelope<boolean>(await ipcRenderer.invoke('app:set-viewer-open', open));
     },
     getShowBoundingBox: async () => {
         return ipcRenderer.invoke('app:get-show-bounding-box') as Promise<boolean>;
     },
+    setShowBoundingBox: async (show: boolean) => unwrapEnvelope<boolean>(await ipcRenderer.invoke('app:set-show-bounding-box', show)),
     onShowBoundingBoxChanged: (callback: (show: boolean) => void) => {
         const handler = (_: unknown, show: boolean) => callback(show);
         ipcRenderer.on('show-bounding-box-changed', handler);
@@ -274,11 +289,28 @@ contextBridge.exposeInMainWorld('electron', {
     getShowEyes: async () => {
         return ipcRenderer.invoke('app:get-show-eyes') as Promise<boolean>;
     },
+    setShowEyes: async (show: boolean) => unwrapEnvelope<boolean>(await ipcRenderer.invoke('app:set-show-eyes', show)),
     onShowEyesChanged: (callback: (show: boolean) => void) => {
         const handler = (_: unknown, show: boolean) => callback(show);
         ipcRenderer.on('show-eyes-changed', handler);
         return () => {
             ipcRenderer.removeListener('show-eyes-changed', handler);
+        };
+    },
+    getShowFocusPoint: async () => {
+        return ipcRenderer.invoke('app:get-show-focus-point') as Promise<boolean>;
+    },
+    setShowFocusPoint: async (show: boolean) => unwrapEnvelope<boolean>(await ipcRenderer.invoke('app:set-show-focus-point', show)),
+    onFindSimilarImages: (callback: () => void) => {
+        const handler = () => callback();
+        ipcRenderer.on('find-similar-images', handler);
+        return () => ipcRenderer.removeListener('find-similar-images', handler);
+    },
+    onShowFocusPointChanged: (callback: (show: boolean) => void) => {
+        const handler = (_: unknown, show: boolean) => callback(show);
+        ipcRenderer.on('show-focus-point-changed', handler);
+        return () => {
+            ipcRenderer.removeListener('show-focus-point-changed', handler);
         };
     },
     selectDirectory: async () => {
@@ -468,7 +500,7 @@ contextBridge.exposeInMainWorld('electron', {
         },
         getScoringSortOptions: async () => {
             const r = await ipcRenderer.invoke('api:get-scoring-sort-options');
-            return unwrapEnvelope<Array<{ value: string; label: string; group: string }>>(r);
+            return unwrapEnvelope<import('./scoringSortOptions').SortOption[]>(r);
         },
         getStackAnalytics: async (stackId: number) => {
             const r = await ipcRenderer.invoke('api:get-stack-analytics', stackId);
@@ -482,11 +514,11 @@ contextBridge.exposeInMainWorld('electron', {
             offset?: number;
         }) => {
             const r = await ipcRenderer.invoke('api:get-agent-cull-groups', params);
-            return unwrapEnvelope<{ groups: Record<string, unknown>[] }>(r);
+            return unwrapEnvelope<import('./agentCullTypes').AgentCullGroupsListResponse>(r);
         },
         getAgentCullGroup: async (groupId: number) => {
             const r = await ipcRenderer.invoke('api:get-agent-cull-group', groupId);
-            return unwrapEnvelope<Record<string, unknown>>(r);
+            return unwrapEnvelope<import('./agentCullTypes').AgentCullReviewGroupDetail>(r);
         },
         runAgentCullReview: async (body: {
             stackId: number;

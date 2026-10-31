@@ -12,7 +12,7 @@ okf_version: 0.1
 
 The **Agent cull review** banner appears when viewing a stack or substack with the Stacks toggle on. It calls the backend `POST /api/culling/agent-review/run` (dry-run by default). The review itself is metadata-only — it proposes removal **candidates**; no files are deleted or moved during dry-run, live run, approve, or mark-candidates. The **only** step that touches the filesystem is the explicit, confirmation-gated **Delete approved** action (step 6 below), which permanently deletes files + DB records.
 
-**Backend setup (authoritative):** [image-scoring-backend — Agent cull review Gemini CLI setup](https://github.com/synthet/image-scoring-backend/blob/main/docs/guides/setup/agent-cull-review-gemini-cli.md)
+**Backend setup (authoritative):** [image-scoring-pipeline — Agent cull review Gemini CLI setup](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/guides/setup/agent-cull-review-gemini-cli.md)
 
 ## UI components
 
@@ -78,7 +78,7 @@ persist as `candidate_status: pick_quality_advisory` / `agent_decision: advisory
 Backend must use the **strict_v2** picked audit snippet (production default since 2026-06-21) or
 equivalent study mode for advisories to appear on misfocus-prone stacks. Research and operator
 verification: [reports/08-picked-advisory-gap-2026-06-21.md](../reports/08-picked-advisory-gap-2026-06-21.md)
-(backend detail: [PICKED_ADVISORY_GAP_195193_2026-06-21.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/PICKED_ADVISORY_GAP_195193_2026-06-21.md)).
+(backend detail: [PICKED_ADVISORY_GAP_195193_2026-06-21.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reports/PICKED_ADVISORY_GAP_195193_2026-06-21.md)).
 
 ## “Gemini CLI was not found” (fixed setup)
 
@@ -103,4 +103,4 @@ After backend fix, restart the WebUI container and retry **Run dry-run review** 
 - [Grid delete state sync](../features/implemented/07-grid-delete-state-sync.md) — ImageViewer delete grid pruning (agent batch delete follow-up noted there)
 - [Picked advisory gap (2026-06-21)](../reports/08-picked-advisory-gap-2026-06-21.md) — backend research cross-ref + gallery verification
 - [Agent-assisted cull review worklog](../specs/agent-assisted-cull-review/worklog.md)
-- Backend spec: [agent-assisted-cull-review](https://github.com/synthet/image-scoring-backend/tree/main/docs/specs/agent-assisted-cull-review)
+- Backend spec: [agent-assisted-cull-review](https://github.com/synthet/image-scoring-pipeline/tree/main/docs/specs/agent-assisted-cull-review)

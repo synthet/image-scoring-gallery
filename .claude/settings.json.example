@@ -21,7 +21,7 @@
       "Bash(python scripts/sync_assistant_trees.py --check)",
       "Bash(python scripts/ci/check_agent_frontmatter.py)",
       "Bash(python scripts/ci/check_secrets.py)",
-      "Bash(python ../image-scoring-backend/scripts/agent_harness/cli.py:*)",
+      "Bash(python ../image-scoring-pipeline/scripts/agent_harness/cli.py:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:localhost)",
       "WebFetch(domain:127.0.0.1)"
@@ -43,7 +43,7 @@
       "Bash(git config extensions.worktreeConfig:*)"
     ],
     "additionalDirectories": [
-      "../image-scoring-backend"
+      "../image-scoring-pipeline"
     ]
   },
   "hooks": {
@@ -52,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "test -f \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" && python \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" user-prompt --repo \"$CLAUDE_PROJECT_DIR\" || true",
+            "command": "test -f \"$CLAUDE_PROJECT_DIR/../image-scoring-pipeline/scripts/agent_harness/hook.py\" && python \"$CLAUDE_PROJECT_DIR/../image-scoring-pipeline/scripts/agent_harness/hook.py\" user-prompt --repo \"$CLAUDE_PROJECT_DIR\" || true",
             "timeout": 15
           }
         ]
@@ -64,7 +64,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "test -f \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" && python \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" session-compact --repo \"$CLAUDE_PROJECT_DIR\" || true",
+            "command": "test -f \"$CLAUDE_PROJECT_DIR/../image-scoring-pipeline/scripts/agent_harness/hook.py\" && python \"$CLAUDE_PROJECT_DIR/../image-scoring-pipeline/scripts/agent_harness/hook.py\" session-compact --repo \"$CLAUDE_PROJECT_DIR\" || true",
             "timeout": 10
           }
         ]
@@ -76,7 +76,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "test -f \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" && python \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" pre-bash --repo \"$CLAUDE_PROJECT_DIR\" || true",
+            "command": "test -f \"$CLAUDE_PROJECT_DIR/../image-scoring-pipeline/scripts/agent_harness/hook.py\" && python \"$CLAUDE_PROJECT_DIR/../image-scoring-pipeline/scripts/agent_harness/hook.py\" pre-bash --repo \"$CLAUDE_PROJECT_DIR\" || true",
             "timeout": 15
           }
         ]
@@ -86,7 +86,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "test -f \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" && python \"$CLAUDE_PROJECT_DIR/../image-scoring-backend/scripts/agent_harness/hook.py\" pre-review --repo \"$CLAUDE_PROJECT_DIR\" || true",
+            "command": "test -f \"$CLAUDE_PROJECT_DIR/../image-scoring-pipeline/scripts/agent_harness/hook.py\" && python \"$CLAUDE_PROJECT_DIR/../image-scoring-pipeline/scripts/agent_harness/hook.py\" pre-review --repo \"$CLAUDE_PROJECT_DIR\" || true",
             "timeout": 15
           }
         ]

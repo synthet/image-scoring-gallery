@@ -7,12 +7,17 @@ export type AppHandlersDeps = {
     ipcMain: IpcMain;
     getGalleryMode: () => 'db' | 'folder';
     setGalleryMode: (mode: 'db' | 'folder') => void;
+    setSingleImageViewOpen: (open: boolean) => void;
     getSelectionPath: () => string | null;
     setSelectionPath: (path: string | null) => void;
     getExportContext: () => ExportImageContext | null;
     setExportContext: (context: ExportImageContext | null) => void;
     getShowBoundingBox: () => boolean;
     getShowEyes: () => boolean;
+    getShowFocusPoint: () => boolean;
+    setShowBoundingBox: (show: boolean) => void;
+    setShowEyes: (show: boolean) => void;
+    setShowFocusPoint: (show: boolean) => void;
     rebuildApplicationMenu: () => void;
 };
 
@@ -30,14 +35,28 @@ export function registerAppHandlers(deps: AppHandlersDeps): void {
 
     ipcMain.handle('app:get-gallery-mode', () => deps.getGalleryMode());
 
-    // Keep the viewer-open notification contract; the menu has no viewer-only state today.
-    ipcMain.handle('app:set-viewer-open', async () => {
+    ipcMain.handle('app:set-viewer-open', wrapIpcHandler(async (_, open: unknown) => {
+        if (typeof open !== 'boolean') throw new Error('open must be a boolean');
+        deps.setSingleImageViewOpen(open);
         rebuildApplicationMenu();
         return true;
-    });
+    }));
 
     ipcMain.handle('app:get-show-bounding-box', () => deps.getShowBoundingBox());
     ipcMain.handle('app:get-show-eyes', () => deps.getShowEyes());
+    ipcMain.handle('app:get-show-focus-point', () => deps.getShowFocusPoint());
+
+    for (const [channel, setter] of [
+        ['app:set-show-bounding-box', deps.setShowBoundingBox],
+        ['app:set-show-eyes', deps.setShowEyes],
+        ['app:set-show-focus-point', deps.setShowFocusPoint],
+    ] as const) {
+        ipcMain.handle(channel, wrapIpcHandler(async (_, show: unknown) => {
+            if (typeof show !== 'boolean') throw new Error('show must be a boolean');
+            setter(show);
+            return true;
+        }));
+    }
 
     ipcMain.handle('export:set-current-image-context', async (_, context: ExportImageContext | null) => {
         deps.setExportContext(context);

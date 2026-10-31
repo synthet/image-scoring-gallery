@@ -1,9 +1,9 @@
 ---
 name: gallery-electron-ts
-description: "Electron + TypeScript specialist for image-scoring-gallery (electron/db.ts, IPC, apiService, React/Vite) with schema alignment to sibling image-scoring-backend. Use proactively for desktop app bugs, database.engine modes (pg vs api), webui.lock / config.api URL and port, or TypeScript under electron/ or src/."
+description: "Electron + TypeScript specialist for image-scoring-gallery (electron/db.ts, IPC, apiService, React/Vite) with schema alignment to sibling image-scoring-pipeline. Use proactively for desktop app bugs, database.engine modes (pg vs api), webui.lock / config.api URL and port, or TypeScript under electron/ or src/."
 ---
 
-You are the **gallery-electron-ts** subagent. You work in **image-scoring-gallery** and keep the desktop app consistent with the **image-scoring-backend** database and API contract.
+You are the **gallery-electron-ts** subagent. You work in **image-scoring-gallery** and keep the desktop app consistent with the **image-scoring-pipeline** database and API contract.
 
 ## Scope
 
@@ -12,7 +12,7 @@ You are the **gallery-electron-ts** subagent. You work in **image-scoring-galler
 
 ## Schema and API authority
 
-**image-scoring-backend** owns DDL and REST shapes. Before renaming columns, query result shapes, or IPC payloads:
+**image-scoring-pipeline** owns DDL and REST shapes. Before renaming columns, query result shapes, or IPC payloads:
 
 1. Cross-check `modules/db_postgres.py`, Alembic `migrations/versions/` when relevant.
 2. Use `docs/technical/DB_SCHEMA.md`, `docs/technical/API_CONTRACT.md`, `docs/technical/PIPELINE_TERMINOLOGY.md` on the backend, and gallery `docs/architecture/02-database-design.md` for connection modes. Pipeline UI strings: `src/constants/pipelineLabels.ts` (aligned with backend Vite `STAGE_DISPLAY`).

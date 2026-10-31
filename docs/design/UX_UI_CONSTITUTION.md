@@ -55,4 +55,4 @@ npx tsc --noEmit
 
 **Skill:** `.cursor/skills/gallery-ui/SKILL.md`
 
-**See also:** [FRONTEND_UX_SPEC.md](FRONTEND_UX_SPEC.md) · [AGENT_COORDINATION §6](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md)
+**See also:** [FRONTEND_UX_SPEC.md](FRONTEND_UX_SPEC.md) · [AGENT_COORDINATION §6](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/AGENT_COORDINATION.md)

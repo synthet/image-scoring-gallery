@@ -49,10 +49,17 @@ type ElectronMock = {
     searchSimilarImages: ReturnType<typeof vi.fn>;
     setSingleImageViewOpen: ReturnType<typeof vi.fn>;
     getShowBoundingBox: ReturnType<typeof vi.fn>;
+    setShowBoundingBox: ReturnType<typeof vi.fn>;
     onShowBoundingBoxChanged: ReturnType<typeof vi.fn>;
     getShowEyes: ReturnType<typeof vi.fn>;
+    setShowEyes: ReturnType<typeof vi.fn>;
     onShowEyesChanged: ReturnType<typeof vi.fn>;
+    getShowFocusPoint: ReturnType<typeof vi.fn>;
+    setShowFocusPoint: ReturnType<typeof vi.fn>;
+    onFindSimilarImages: ReturnType<typeof vi.fn>;
+    onShowFocusPointChanged: ReturnType<typeof vi.fn>;
     getEyeKeypoints: ReturnType<typeof vi.fn>;
+    getImageEvidence: ReturnType<typeof vi.fn>;
     api: {
         propagateTags: ReturnType<typeof vi.fn>;
         fixImageMetadata: ReturnType<typeof vi.fn>;
@@ -96,10 +103,17 @@ function makeElectronMock(overrides: Partial<ElectronMock> = {}): ElectronMock {
         }),
         setSingleImageViewOpen: vi.fn().mockResolvedValue(true),
         getShowBoundingBox: vi.fn().mockResolvedValue(false),
+        setShowBoundingBox: vi.fn().mockResolvedValue(true),
         onShowBoundingBoxChanged: vi.fn().mockReturnValue(() => {}),
         getShowEyes: vi.fn().mockResolvedValue(false),
+        setShowEyes: vi.fn().mockResolvedValue(true),
         onShowEyesChanged: vi.fn().mockReturnValue(() => {}),
+        getShowFocusPoint: vi.fn().mockResolvedValue(false),
+        setShowFocusPoint: vi.fn().mockResolvedValue(true),
+        onFindSimilarImages: vi.fn().mockReturnValue(() => {}),
+        onShowFocusPointChanged: vi.fn().mockReturnValue(() => {}),
         getEyeKeypoints: vi.fn().mockResolvedValue({}),
+        getImageEvidence: vi.fn().mockResolvedValue(null),
         api: {
             propagateTags: vi.fn().mockResolvedValue({
                 success: true,
@@ -146,6 +160,38 @@ describe('ImageViewer tag propagation suggestions', () => {
         (window as unknown as { electron?: ElectronMock }).electron = undefined;
         vi.unstubAllGlobals();
         vi.restoreAllMocks();
+    });
+
+    it('routes sidebar overlay controls through shared menu state and follows menu changes', async () => {
+        renderViewer();
+        for (const [name, setter, listener] of [
+            ['Bounding Box', electron.setShowBoundingBox, electron.onShowBoundingBoxChanged],
+            ['Eyes', electron.setShowEyes, electron.onShowEyesChanged],
+            ['Focus Point', electron.setShowFocusPoint, electron.onShowFocusPointChanged],
+        ] as const) {
+            const button = screen.getByRole('button', { name });
+            expect(button.closest('[aria-label="Image overlays"]')).not.toBeNull();
+            await waitFor(() => expect(button.getAttribute('aria-pressed')).toBe('false'));
+            fireEvent.click(button);
+            expect(setter).toHaveBeenCalledWith(true);
+            act(() => listener.mock.calls[0][0](true));
+            expect(button.getAttribute('aria-pressed')).toBe('true');
+            fireEvent.click(button);
+            expect(setter).toHaveBeenLastCalledWith(false);
+        }
+    });
+
+    it('opens similarity search from the Image menu event and unsubscribes on close', async () => {
+        const unsubscribe = vi.fn();
+        electron.onFindSimilarImages.mockReturnValue(unsubscribe);
+        const { unmount } = render(<ImageViewer image={baseImage} onClose={vi.fn()} />);
+        expect(screen.queryByRole('button', { name: 'Find Similar Images' })).toBeNull();
+        expect(electron.onFindSimilarImages).toHaveBeenCalledOnce();
+        act(() => electron.onFindSimilarImages.mock.calls[0][0]());
+        await waitFor(() => expect(electron.searchSimilarImages).toHaveBeenCalled());
+        unmount();
+        expect(unsubscribe).toHaveBeenCalledOnce();
+        expect(electron.setSingleImageViewOpen).toHaveBeenLastCalledWith(false);
     });
 
     it('loads dry-run suggestions when entering edit mode', async () => {
@@ -256,7 +302,7 @@ describe('ImageViewer similar images', () => {
         vi.restoreAllMocks();
     });
 
-    it('enables Find Similar Images and opens the drawer on click', async () => {
+    it('opens the drawer for the current image from the Image menu', async () => {
         render(
             <ImageViewer
                 image={{ ...baseImage, folder_id: 5 }}
@@ -266,10 +312,7 @@ describe('ImageViewer similar images', () => {
             />
         );
 
-        const findButton = screen.getByRole('button', { name: /find similar images/i }) as HTMLButtonElement;
-        expect(findButton.disabled).toBe(false);
-
-        fireEvent.click(findButton);
+        act(() => electron.onFindSimilarImages.mock.calls[0][0]());
 
         expect(await screen.findByRole('heading', { name: 'Similar Images' })).not.toBeNull();
         await waitFor(() => {
@@ -379,7 +422,7 @@ describe('ImageViewer RAW orientation bake', () => {
         rating: 3,
         label: 'Blue',
         keywords: '',
-        thumbnail_path: '/mnt/d/Projects/image-scoring-backend/thumbnails/ab/abc.jpg',
+        thumbnail_path: '/mnt/d/Projects/image-scoring-pipeline/thumbnails/ab/abc.jpg',
     };
 
     beforeEach(() => {

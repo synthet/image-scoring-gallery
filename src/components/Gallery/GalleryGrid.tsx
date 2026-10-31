@@ -48,6 +48,7 @@ interface Image {
     score_koniq?: number;
     score_paq2piq?: number;
     score_liqe?: number;
+    clip_quality_v0_score?: number;
     model_scores?: Record<string, number>;
     rating: number;
     label: string | null;
@@ -69,6 +70,7 @@ interface Image {
     is_sub_stack_card?: boolean;
     is_ungrouped_sub_stack?: boolean;
     bird_bbox?: BirdBoundingBox | null;
+    af_metadata?: AFMetadata | null;
 }
 
 import type { Folder } from '../Tree/treeUtils';
@@ -80,7 +82,9 @@ import { isDrawableBirdBbox } from '../Shared/birdBboxStyle';
 import { EyeKeypointsOverlay } from '../Shared/EyeKeypointsOverlay';
 import { hasDrawableEyes } from '../Shared/eyeKeypoints';
 import { useEyeKeypoints, useShowEyes } from '../../hooks/useEyeKeypoints';
-import type { BirdBoundingBox } from '../../../electron/types';
+import { useShowFocusPoint } from '../../hooks/useShowFocusPoint';
+import { AFReticleOverlay } from '../Shared/AFReticleOverlay';
+import type { AFMetadata, BirdBoundingBox } from '../../../electron/types';
 
 interface GalleryGridProps {
     images: Image[];
@@ -212,6 +216,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, image: Image } | null>(null);
     const [showBoundingBox, setShowBoundingBox] = useState(false);
     const showEyes = useShowEyes();
+    const showFocusPoint = useShowFocusPoint();
     const imageIds = useMemo(() => images.map((img) => img.id), [images]);
     const eyeKeypoints = useEyeKeypoints(imageIds, showEyes);
 
@@ -286,7 +291,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
             const modelName = sortKey.slice('model:'.length);
             const fromOverlay = img.model_scores?.[modelName];
             const flatKey = modelName === 'clip_quality_v0' ? 'clip_quality_v0_score' : `score_${modelName}`;
-            const legacyCol = (img as Record<string, unknown>)[flatKey];
+            const legacyCol: unknown = Reflect.get(img, flatKey);
             const value = fromOverlay ?? (typeof legacyCol === 'number' ? legacyCol : undefined);
             return value != null && value > 0 ? `${Math.round(value * 100)}%` : '-';
         }
@@ -317,8 +322,8 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
             case 'score_liqe':
                 return img.score_liqe ? `${Math.round(img.score_liqe * 100)}%` : '-';
             case 'clip_quality_v0_score':
-                return (img as Record<string, unknown>).clip_quality_v0_score
-                    ? `${Math.round(Number((img as Record<string, unknown>).clip_quality_v0_score) * 100)}%`
+                return img.clip_quality_v0_score
+                    ? `${Math.round(img.clip_quality_v0_score * 100)}%`
                     : '-';
             default:
                 return img.score_general > 0 ? `${Math.round(img.score_general * 100)}%` : '-';
@@ -379,18 +384,26 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         const bbox = showBoundingBox && isDrawableBirdBbox(img.bird_bbox) ? img.bird_bbox : null;
         const eyes = showEyes ? eyeKeypoints.get(img.id) : undefined;
         const drawEyes = hasDrawableEyes(eyes);
-        if (!bbox && !drawEyes) return thumb;
-        const aspectRatio = bbox ? `${bbox.img_w} / ${bbox.img_h}` : `${eyes!.display_width} / ${eyes!.display_height}`;
+        const af = showFocusPoint && img.af_metadata ? img.af_metadata : null;
+        if (!bbox && !drawEyes && !af) return thumb;
+        const aspectRatio = bbox
+            ? `${bbox.img_w} / ${bbox.img_h}`
+            : drawEyes
+                ? `${eyes!.display_width} / ${eyes!.display_height}`
+                : af && af.af_image_w && af.af_image_h
+                    ? `${af.af_image_w} / ${af.af_image_h}`
+                    : '3 / 2';
         return (
             <div className={styles.thumbFit}>
                 <div className={styles.thumbContent} style={{ aspectRatio }}>
                     {thumb}
                     {bbox && <BirdBoxOverlay bbox={bbox} />}
                     {drawEyes && <EyeKeypointsOverlay eyes={eyes!} size={10} />}
+                    {af && <AFReticleOverlay af={af} showDetails={false} />}
                 </div>
             </div>
         );
-    }, [useGalleryThumbnail, showBoundingBox, showEyes, eyeKeypoints]);
+    }, [useGalleryThumbnail, showBoundingBox, showEyes, showFocusPoint, eyeKeypoints]);
 
     const renderImageCard = useCallback((img: Image, onClick: () => void, showPickRejectStatus = false) => {
         const labelColor = getLabelColor(img.label);
@@ -549,13 +562,8 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         }
     }, [activeStackId, displayData, isStacksView, isSubStacksView, renderStackCard, renderImageCard, onSelectStack, onSelectSubStack, onSelect, representativeMode, onSelectRepresentative]);
 
-    const endReachedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const handleEndReached = useCallback(() => {
-        if (endReachedTimer.current) return;
         endReachedHandler?.();
-        endReachedTimer.current = setTimeout(() => {
-            endReachedTimer.current = null;
-        }, 200);
     }, [endReachedHandler]);
 
 
@@ -611,9 +619,14 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 ref={virtuosoRef}
                 style={{ height: '100%' }}
                 totalCount={displayData.length}
-                overscan={200}
+                overscan={800}
+                increaseViewportBy={{ top: 200, bottom: 800 }}
                 endReached={handleEndReached}
-                atBottomStateChange={() => { }}
+                atBottomStateChange={(atBottom) => {
+                    if (atBottom) {
+                        handleEndReached();
+                    }
+                }}
                 components={gridComponents}
                 computeItemKey={(index) => displayData[index]?.id ?? index}
                 itemContent={itemContent}

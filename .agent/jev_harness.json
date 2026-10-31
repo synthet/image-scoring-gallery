@@ -1,5 +1,5 @@
 {
-  "_comment": "Jev agent harness config for image-scoring-gallery (no secrets). Hooks run the sibling backend harness: ../image-scoring-backend/scripts/agent_harness. Modes per decision: off | shadow | on; JEV_HARNESS_MODE env overrides all. Docs: https://github.com/synthet/image-scoring-backend/blob/master/docs/technical/JEV_AGENT_HARNESS.md",
+  "_comment": "Jev agent harness config for image-scoring-gallery (no secrets). Hooks run the sibling backend harness: ../image-scoring-pipeline/scripts/agent_harness. Modes per decision: off | shadow | on; JEV_HARNESS_MODE env overrides all. Docs: https://github.com/synthet/image-scoring-pipeline/blob/master/docs/technical/JEV_AGENT_HARNESS.md",
   "model": "jev-1.13.0",
   "timeout_seconds": 4,
   "max_calls_per_session": 150,

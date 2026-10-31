@@ -1,9 +1,9 @@
 ---
 type: "Plan"
 title: "Evidence-led review workflow improvement candidates"
-description: "Clean-room product and engineering ideas for faster, safer, and more explainable photo review in Driftara Gallery."
+description: "Product and engineering ideas for faster, safer, and more explainable photo review in Driftara Gallery."
 resource: "docs/planning/reference-workflow-improvement-candidates.md"
-tags: ["gallery-docs", "planning", "culling", "evidence", "review", "clean-room"]
+tags: ["gallery-docs", "planning", "culling", "evidence", "review"]
 timestamp: 2026-09-25T18:00:00Z
 okf_version: 0.1
 status: "proposed"
@@ -13,11 +13,11 @@ status: "proposed"
 
 > **Status:** proposal inventory, not a backlog commitment. Accepted slices should enter the project board through the [backlog workflow](../project/00-backlog-workflow.md).
 
-## Provenance and clean-room boundary
+## Provenance
 
 > derived from competitive analysis of a commercial application's observable behaviour and documentation; contains no code, identifiers, fitted constants or model artefacts from it.
 
-This page specifies user-visible outcomes and clean-room engineering practices. It contains no copied layouts, text, algorithms, private assets, recovered constants, or model dependencies. Any numeric value selected during product work is a starting point to be re-fitted or usability-tested with project-owned data.
+This page specifies user-visible outcomes and engineering practices. It contains no copied layouts, text, algorithms, private assets, recovered constants, or model dependencies. Any numeric value selected during product work is a starting point to be re-fitted or usability-tested with project-owned data.
 
 ## Relationship to existing work
 
@@ -26,7 +26,7 @@ This proposal complements:
 - [Burst culling explainability](../features/planned/burst-culling-explainability.md), the detailed evidence UI proposal;
 - [Gallery improvement audit](../reports/10-gallery-improvement-audit-2026-09.md), the broader security, quality, and product audit;
 - [UX/UI constitution](../design/UX_UI_CONSTITUTION.md); and
-- the backend's [subject-aware evidence plan](https://github.com/synthet/image-scoring-backend/blob/main/docs/planning/subject-aware-culling-evidence.md).
+- the backend's [subject-aware evidence plan](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/planning/subject-aware-culling-evidence.md).
 
 The ideas below focus on workflow coherence and safe behaviour once backend evidence becomes available.
 

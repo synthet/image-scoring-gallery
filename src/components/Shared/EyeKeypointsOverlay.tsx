@@ -1,32 +1,28 @@
 import type { ImageEyeKeypoints } from '../../../electron/types';
-import { birdBboxBorderCss } from './birdBboxStyle';
+import styles from './ImageOverlays.module.css';
 
 /**
  * Eye markers from the backend's shadow keypoints (#426), positioned as fractions of the display
- * frame so they stay aligned at any preview size. Ring colour tracks point confidence with the same
- * red→yellow→green ramp as the bird box.
+ * frame so they stay aligned at any preview size. Violet rings distinguish eyes from AF targets.
  */
-export function EyeKeypointsOverlay({ eyes, size = 14 }: { eyes: ImageEyeKeypoints; size?: number }) {
+export function EyeKeypointsOverlay({ eyes, size = 14, showDetails = false }: { eyes: ImageEyeKeypoints; size?: number; showDetails?: boolean }) {
     return (
         <>
             {eyes.points.map((p) => (
                 <div
                     key={p.name}
                     data-testid="eye-keypoint-marker"
+                    className={`${styles.frame} ${styles.eye}`}
                     title={`${p.name.replace('_', ' ')}${p.confidence == null ? '' : ` ${Math.round(p.confidence * 100)}%`}`}
                     style={{
-                        position: 'absolute',
-                        pointerEvents: 'none',
                         left: `${p.x * 100}%`,
                         top: `${p.y * 100}%`,
                         width: size,
                         height: size,
-                        transform: 'translate(-50%, -50%)',
-                        borderRadius: '50%',
-                        border: `2px solid ${birdBboxBorderCss(p.confidence ?? 0)}`,
-                        boxShadow: '0 0 0 1px rgba(0,0,0,0.6)',
                     }}
-                />
+                >
+                    {showDetails && <span className={styles.badge}>Eye{p.confidence == null ? '' : ` · ${Math.round(p.confidence * 100)}%`}</span>}
+                </div>
             ))}
         </>
     );

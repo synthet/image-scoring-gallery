@@ -39,13 +39,13 @@ Required fields:
 | `resource` | Repository-relative path to the Markdown file; update it when moving/renaming pages. |
 | `tags` | Inline list containing `gallery-docs` plus useful folder/topic tags. |
 | `timestamp` | UTC ISO-8601 timestamp refreshed when metadata, meaning, or structure changes materially. |
-| `okf_version` | Recommended: `0.1` per [backend OKF_ADOPTION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/OKF_ADOPTION.md). |
+| `okf_version` | Recommended: `0.1` per [backend OKF_ADOPTION.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/OKF_ADOPTION.md). |
 
 When creating or moving pages, update frontmatter before index/log work. When only fixing links or typos, refresh `timestamp` only if the page meaning or metadata changed.
 
 ## Automated lint
 
-From sibling **image-scoring-backend** clone:
+From sibling **image-scoring-pipeline** clone:
 
 ```bash
 python scripts/okf_lint.py ../image-scoring-gallery/docs --profile vexlum --bundle-name docs
@@ -87,7 +87,7 @@ Follow the existing format exactly:
 1. **Bidirectional** — When A links to B, B should link back to A (where meaningful).
 2. **Relative paths** — From the referencing file, e.g., `../architecture/02-database-design.md`.
 3. **Anchors** — Use section anchors for long pages: `file.md#section-name`.
-4. **Backend cross-repo** — Full GitHub URLs: `https://github.com/synthet/image-scoring-backend/blob/main/docs/...`.
+4. **Backend cross-repo** — Full GitHub URLs: `https://github.com/synthet/image-scoring-pipeline/blob/main/docs/...`.
 5. **Local stubs** — When a canonical doc lives in the backend repo, the gallery stub notes where the canonical content is and links to it.
 
 ## Page Conventions

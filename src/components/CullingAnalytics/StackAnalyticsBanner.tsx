@@ -114,7 +114,7 @@ export function StackAnalyticsBanner({ stackId }: Props) {
     return (
         <div className={styles.banner} role="status" aria-label="Stack analytics">
             {chips.map((c) => (
-                <span key={c.key} className={analyticsChipClassName(styles, c.warn)}>
+                <span key={c.key} className={analyticsChipClassName({ chip: styles.chip, chipWarn: styles.chipWarn }, c.warn)}>
                     {c.text}
                 </span>
             ))}

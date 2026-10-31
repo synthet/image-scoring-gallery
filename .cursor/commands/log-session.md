@@ -4,7 +4,7 @@
 
 Record what was done in this session for later consolidation. Does **not** update approved `memory.md`.
 
-Memory scripts live in sibling **image-scoring-backend** (shared engine). From gallery repo root:
+Memory scripts live in sibling **image-scoring-pipeline** (shared engine). From gallery repo root:
 
 ## Steps
 
@@ -13,7 +13,7 @@ Memory scripts live in sibling **image-scoring-backend** (shared engine). From g
 3. Run (adjust drive letter if needed):
 
 ```powershell
-python ../image-scoring-backend/scripts/agent-memory/log_session.py --summary "<one line>" --outcome "<result>" --candidate "..."
+python ../image-scoring-pipeline/scripts/agent-memory/log_session.py --summary "<one line>" --outcome "<result>" --candidate "..."
 ```
 
 Repeat `--file`, `--command`, `--test`, `--decision`, `--error` as needed. Use `--repo gallery` if the script supports tagging the source repo.

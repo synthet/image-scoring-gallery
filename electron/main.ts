@@ -53,6 +53,8 @@ let sessionLogManager: SessionLogManager | null = null;
 let appGalleryMode: 'db' | 'folder' = 'db';
 let appShowBoundingBox = false;
 let appShowEyes = false;
+let appShowFocusPoint = false;
+let isSingleImageViewOpen = false;
 let currentSelectionPath: string | null = null;
 let isBackupRunning = false;
 const syncGuards = createSyncGuards(() => isBackupRunning);
@@ -75,6 +77,7 @@ function showSaveDialog(options: Electron.SaveDialogOptions) {
 
 function resolveBackendWebuiWindowIcon(): string | undefined {
     const candidates = [
+        path.join(__dirname, '..', 'image-scoring-pipeline', 'static', 'favicon.ico'),
         path.join(__dirname, '..', 'image-scoring-backend', 'static', 'favicon.ico'),
         path.join(__dirname, '..', 'image-scoring', 'static', 'favicon.ico'),
     ];
@@ -116,17 +119,28 @@ function setShowEyesAndNotify(show: boolean) {
     }
 }
 
+function setShowFocusPointAndNotify(show: boolean) {
+    appShowFocusPoint = show;
+    rebuildApplicationMenu();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('show-focus-point-changed', show);
+    }
+}
+
 function initApplicationMenu(): void {
     ({ rebuildApplicationMenu } = createApplicationMenu({
         getMainWindow: () => mainWindow,
         getDialogWindow,
         showMessageBox,
         getGalleryMode: () => appGalleryMode,
+        getIsSingleImageViewOpen: () => isSingleImageViewOpen,
         setGalleryMode: setGalleryModeAndNotify,
         getShowBoundingBox: () => appShowBoundingBox,
         setShowBoundingBox: setShowBoundingBoxAndNotify,
         getShowEyes: () => appShowEyes,
         setShowEyes: setShowEyesAndNotify,
+        getShowFocusPoint: () => appShowFocusPoint,
+        setShowFocusPoint: setShowFocusPointAndNotify,
         syncGuards,
         getIsBackupRunning: () => isBackupRunning,
         getExportContext: () => currentExportImageContext,
@@ -169,6 +183,8 @@ async function findActiveWebuiPort(): Promise<number | null> {
         const projectRoot = path.resolve(__dirname, '..');
         const projectsDir = path.resolve(projectRoot, '..');
         const lockFiles = [
+            path.join(projectsDir, 'image-scoring-pipeline', 'webui.lock'),
+            path.join(projectsDir, 'image-scoring-pipeline', 'webui-debug.lock'),
             path.join(projectsDir, 'image-scoring-backend', 'webui.lock'),
             path.join(projectsDir, 'image-scoring-backend', 'webui-debug.lock'),
             path.join(projectsDir, 'image-scoring', 'webui.lock'),
@@ -379,12 +395,17 @@ async function startFullApplication(): Promise<void> {
         ipcMain,
         getGalleryMode: () => appGalleryMode,
         setGalleryMode: (mode) => { appGalleryMode = mode; },
+        setSingleImageViewOpen: (open) => { isSingleImageViewOpen = open; },
         getSelectionPath: () => currentSelectionPath,
         setSelectionPath: (p) => { currentSelectionPath = p; },
         getExportContext: () => currentExportImageContext,
         setExportContext: (ctx) => { currentExportImageContext = ctx; },
         getShowBoundingBox: () => appShowBoundingBox,
         getShowEyes: () => appShowEyes,
+        getShowFocusPoint: () => appShowFocusPoint,
+        setShowBoundingBox: setShowBoundingBoxAndNotify,
+        setShowEyes: setShowEyesAndNotify,
+        setShowFocusPoint: setShowFocusPointAndNotify,
         rebuildApplicationMenu,
     });
 

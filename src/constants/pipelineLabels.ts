@@ -3,7 +3,7 @@ import { UiStageCode, type StageCode } from '../types/pipelineStage';
 
 /**
  * User-facing pipeline stage names — sourced from @synthet/image-scoring-design
- * (aligns with image-scoring-backend `frontend/src/types/api.ts`).
+ * (aligns with image-scoring-pipeline `frontend/src/types/api.ts`).
  */
 export const STAGE_DISPLAY: Pick<typeof SHARED_STAGE_DISPLAY, StageCode> = {
     [UiStageCode.INDEXING]: SHARED_STAGE_DISPLAY.indexing,

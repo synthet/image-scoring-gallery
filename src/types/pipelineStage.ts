@@ -1,6 +1,6 @@
 /**
  * Canonical pipeline stage codes — keep in sync with
- * image-scoring-backend `modules/phases.py` (`UiStageCode`) and
+ * image-scoring-pipeline `modules/phases.py` (`UiStageCode`) and
  * `frontend/src/types/api.ts` (`UiStageCode` / `StageCode`).
  */
 export const UiStageCode = {

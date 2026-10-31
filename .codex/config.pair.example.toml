@@ -3,7 +3,7 @@
 [mcp_servers.is-be-mcp]
 command = "node"
 args = ["mcp-server/dist/compactIndex.js"]
-cwd = "../image-scoring-backend"
+cwd = "../image-scoring-pipeline"
 enabled = true
 enabled_tools = ["search", "dispatch", "sse_status"]
 

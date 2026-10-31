@@ -3,9 +3,9 @@
  * API contract snapshot sync script.
  *
  * Usage:
- *   node scripts/sync-api-contract.mjs --update   # Fetch and save openapi.json (fallback to ../image-scoring-backend/openapi.json)
+ *   node scripts/sync-api-contract.mjs --update   # Fetch and save openapi.json (fallback to ../image-scoring-pipeline/openapi.json)
  *   node scripts/sync-api-contract.mjs --check    # Compare local snapshot with live backend (fallback to sibling backend file)
- *   node scripts/sync-api-contract.mjs --diff     # Copy from ../image-scoring-backend/openapi.json (no backend needed)
+ *   node scripts/sync-api-contract.mjs --diff     # Copy from ../image-scoring-pipeline/openapi.json (no backend needed)
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SNAPSHOT_PATH = resolve(__dirname, '..', 'api-contract', 'openapi.json');
-const SIBLING_PATH = resolve(__dirname, '..', '..', 'image-scoring-backend', 'openapi.json');
+const SIBLING_PATH = resolve(__dirname, '..', '..', 'image-scoring-pipeline', 'openapi.json');
 const BACKEND_URL = process.env.API_URL || 'http://localhost:7860';
 
 const mode = process.argv[2];
@@ -57,7 +57,7 @@ function ensureSiblingOpenApiExists(contextMessage) {
     if (existsSync(SIBLING_PATH)) return;
     console.error(`[contract:${mode?.replace('--', '') ?? 'unknown'}] Missing sibling backend OpenAPI file.`);
     console.error(`Expected: ${SIBLING_PATH}`);
-    console.error(`Action: clone/open the backend repo as ../image-scoring-backend and generate openapi.json, then retry ${contextMessage}.`);
+    console.error(`Action: clone/open the backend repo as ../image-scoring-pipeline and generate openapi.json, then retry ${contextMessage}.`);
     process.exit(1);
 }
 

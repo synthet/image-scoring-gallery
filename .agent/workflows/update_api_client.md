@@ -13,7 +13,7 @@ Keep **HTTP client** and **generated TypeScript** aligned with **backend** OpenA
 ## Canonical docs first
 
 - [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md)
-- Backend: [API_CONTRACT](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/API_CONTRACT.md), [openapi.yaml](https://github.com/synthet/image-scoring-backend/blob/main/docs/reference/api/openapi.yaml)
+- Backend: [API_CONTRACT](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/API_CONTRACT.md), [openapi.yaml](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reference/api/openapi.yaml)
 - `electron/apiService.ts`, `scripts/sync-api-contract.mjs`, `scripts/generate-api-types.mjs`
 
 ## Safe commands (repo root)

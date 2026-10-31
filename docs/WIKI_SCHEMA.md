@@ -1,7 +1,7 @@
 ---
 type: "Documentation"
 title: "Wiki schema — image-scoring-gallery docs/"
-description: "This repo keeps docs/ as a small wiki aligned with image-scoring-backend habits: indexed sections, relative links, and an activity log."
+description: "This repo keeps docs/ as a small wiki aligned with image-scoring-pipeline habits: indexed sections, relative links, and an activity log."
 resource: "docs/WIKI_SCHEMA.md"
 tags: ["gallery-docs", "okf"]
 timestamp: 2026-06-16T00:00:00Z
@@ -10,11 +10,11 @@ okf_version: 0.1
 
 # Wiki schema — image-scoring-gallery `docs/`
 
-This repo keeps `docs/` as a small wiki aligned with **image-scoring-backend** habits: indexed sections, relative links, and an activity log.
+This repo keeps `docs/` as a small wiki aligned with **image-scoring-pipeline** habits: indexed sections, relative links, and an activity log.
 
 The docs tree is also structured as an **Open Knowledge Format (OKF)-style bundle**: every Markdown page is a concept file with lightweight YAML frontmatter, the file path is the stable concept identity, section `README.md`/`INDEX.md` pages provide progressive-disclosure navigation, normal Markdown links express relationships, and `log.md` records chronological change history.
 
-**Cross-repo profile authority:** [image-scoring-backend `docs/OKF_ADOPTION.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/OKF_ADOPTION.md) (official [OKF SPEC v0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md), Vexlum deviations, automated lint). This file documents gallery-specific folder layout and examples.
+**Cross-repo profile authority:** [image-scoring-pipeline `docs/OKF_ADOPTION.md`](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/OKF_ADOPTION.md) (official [OKF SPEC v0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md), Vexlum deviations, automated lint). This file documents gallery-specific folder layout and examples.
 
 ## OKF concept frontmatter
 
@@ -48,10 +48,10 @@ When a page moves, update `resource` and all relative links in the same change. 
 
 ## Automated OKF lint
 
-Lint runs from the sibling **image-scoring-backend** clone (shared script; no duplicate Python in this repo):
+Lint runs from the sibling **image-scoring-pipeline** clone (shared script; no duplicate Python in this repo):
 
 ```bash
-# From image-scoring-backend repo root
+# From image-scoring-pipeline repo root
 python scripts/okf_lint.py ../image-scoring-gallery/docs --profile vexlum --bundle-name docs
 ```
 
@@ -80,7 +80,7 @@ python scripts/okf_lint.py ../image-scoring-gallery/docs --profile vexlum --bund
 ## Links
 
 - **Relative** links between pages under `docs/`.
-- **Backend authority:** use full GitHub URLs to `image-scoring-backend` for API, schema, and coordination (see [CANONICAL_SOURCES.md](CANONICAL_SOURCES.md)).
+- **Backend authority:** use full GitHub URLs to `image-scoring-pipeline` for API, schema, and coordination (see [CANONICAL_SOURCES.md](CANONICAL_SOURCES.md)).
 
 ## Indexes and activity log
 

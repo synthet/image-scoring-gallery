@@ -17,6 +17,8 @@ const {
     onShowBoundingBoxChangedMock,
     getShowEyesMock,
     onShowEyesChangedMock,
+    getShowFocusPointMock,
+    onShowFocusPointChangedMock,
     getEyeKeypointsMock,
 } = vi.hoisted(() => ({
     revealInExplorerMock: vi.fn().mockResolvedValue(true),
@@ -24,6 +26,8 @@ const {
     onShowBoundingBoxChangedMock: vi.fn().mockReturnValue(() => {}),
     getShowEyesMock: vi.fn().mockResolvedValue(false),
     onShowEyesChangedMock: vi.fn().mockReturnValue(() => {}),
+    getShowFocusPointMock: vi.fn().mockResolvedValue(false),
+    onShowFocusPointChangedMock: vi.fn().mockReturnValue(() => {}),
     getEyeKeypointsMock: vi.fn().mockResolvedValue({}),
 }));
 
@@ -34,6 +38,8 @@ vi.mock('../../bridge', () => ({
         onShowBoundingBoxChanged: onShowBoundingBoxChangedMock,
         getShowEyes: getShowEyesMock,
         onShowEyesChanged: onShowEyesChangedMock,
+        getShowFocusPoint: getShowFocusPointMock,
+        onShowFocusPointChanged: onShowFocusPointChangedMock,
         getEyeKeypoints: getEyeKeypointsMock,
     },
 }));
@@ -217,7 +223,7 @@ describe('GalleryGrid NEF thumbnail preview', () => {
             id: 71662,
             file_path: 'D:/Photos/Z8/DSC_0572.NEF',
             file_name: 'DSC_0572.NEF',
-            thumbnail_path: 'D:/Projects/image-scoring-backend/thumbnails/c5/c518f82f329a4c45ad6f18b567114484.jpg',
+            thumbnail_path: 'D:/Projects/image-scoring-pipeline/thumbnails/c5/c518f82f329a4c45ad6f18b567114484.jpg',
             score_general: 0.9878,
             rating: 0,
             label: null,

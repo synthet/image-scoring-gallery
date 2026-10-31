@@ -11,7 +11,7 @@ import { absolutizeThumbnailPath } from './thumbnailPathNormalize';
 import { protectedBirdBboxSelect } from './normalizedBirdBbox';
 import { visibleKeywordsSource } from './speciesVisibility';
 import { applyThumbnailPathRemaps } from './pathsRemap';
-import type { AppConfig, DatabaseConfig, EyeKeypoint, ImageEyeKeypoints, ScoredImageForBackup } from './types';
+import type { AFMetadata, AppConfig, DatabaseConfig, EyeKeypoint, ImageEyeKeypoints, ScoredImageForBackup } from './types';
 import { createDatabaseConnector, IDatabaseConnector, QueryParam, TxQuery } from './db/provider';
 import type { RepresentativeLiveFlags } from './representativePreview';
 
@@ -126,7 +126,7 @@ function imsOverlaySelect(alias: string): string {
 /**
  * ORDER BY suffix after primary score (aliases ``ex`` = image_exif, ``i`` = images).
  * Must stay aligned with Postgres ``quality_tiebreak_order_sql(..., dialect='postgres')``
- * in sibling repo image-scoring-backend ``modules/quality_ranking.py``.
+ * in sibling repo image-scoring-pipeline ``modules/quality_ranking.py``.
  */
 export const QUALITY_TIEBREAK_ORDER_SQL_EX_I = `
 , ex.iso ASC NULLS LAST
@@ -145,14 +145,14 @@ interface PathsConfig {
     /** Explicit from→to replacements for thumbnail_path (applied after win/WSL resolution) */
     thumbnail_path_remap?: Array<{ from: string; to: string }>;
     /**
-     * When true (default), rewrite .../image-scoring/thumbnails/ → .../image-scoring-backend/thumbnails/
+     * When true (default), rewrite .../image-scoring{,-backend}/thumbnails/ → .../image-scoring-pipeline/thumbnails/
      * so a renamed backend repo folder still finds on-disk JPEGs.
      */
     remap_legacy_image_scoring_thumbnails?: boolean;
     /**
      * Absolute folder where JPEG thumbnails live (set in config to your machine’s thumbnails root).
      * Used when the DB stores a repo-relative path like thumbnails\\ab\\hash.jpg.
-     * If unset, uses ../image-scoring-backend/thumbnails next to the gallery repo when that folder exists.
+     * If unset, uses ../image-scoring-pipeline/thumbnails next to the gallery repo when that folder exists.
      */
     thumbnail_base_dir?: string;
 }
@@ -228,6 +228,13 @@ function normalizeImageRowOutput<T extends object>(row: T): T {
             rawRow.bird_bbox = JSON.parse(rawRow.bird_bbox);
         } catch {
             rawRow.bird_bbox = null;
+        }
+    }
+    if (typeof rawRow.af_metadata === 'string') {
+        try {
+            rawRow.af_metadata = JSON.parse(rawRow.af_metadata);
+        } catch {
+            rawRow.af_metadata = null;
         }
     }
 
@@ -534,6 +541,7 @@ export async function getImages(options: ImageQueryOptions = {}): Promise<unknow
             i.thumbnail_path,
             i.thumbnail_path_win,
             ${await protectedBirdBboxSelect(config.localization?.read_normalized_first === true, query)},
+            ex.af_metadata as af_metadata,
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -687,6 +695,7 @@ interface ImageDetailRow {
     exif_focal_length?: string | null;
     exif_model?: string | null;
     exif_lens_model?: string | null;
+    af_metadata?: AFMetadata | null;
 }
 
 let hasWarnedMissingSubStackSchema = false;
@@ -788,7 +797,8 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
             ex.f_number as exif_aperture,
             ex.focal_length as exif_focal_length,
             COALESCE(ex.model, ex.make) as exif_model,
-            ex.lens_model as exif_lens_model
+            ex.lens_model as exif_lens_model,
+            ex.af_metadata as af_metadata
         FROM images i
         LEFT JOIN file_paths fp ON i.id = fp.image_id AND fp.path_type = 'WIN'
             AND POSITION('/thumbnails/' IN fp.path) = 0
@@ -1754,6 +1764,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.thumbnail_path,
                 i.thumbnail_path_win,
                 ${bboxSelect},
+                ex.af_metadata as af_metadata,
                 ${CAPTURE_TS} as capture_date,
                 ${CAPTURE_FALLBACK} as is_capture_date_fallback${nonStackSelectExtra}
             FROM stack_cache sc
@@ -1789,6 +1800,7 @@ export async function getStacks(options: StackQueryOptions = {}): Promise<unknow
                 i.thumbnail_path,
                 i.thumbnail_path_win,
                 ${bboxSelect},
+                ex.af_metadata as af_metadata,
                 ${CAPTURE_TS} as capture_date,
                 ${CAPTURE_FALLBACK} as is_capture_date_fallback${nonStackSelectExtra}
             FROM images i
@@ -1872,6 +1884,7 @@ export async function getImagesByStack(stackId: number | null, options: ImageQue
             ${subStackIdSelect(includeSubStackId, 'i')},
             ${imagePickStatusSelect(includePickStatus, 'i')},
             ${bboxSelect},
+            ex.af_metadata as af_metadata,
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -2247,6 +2260,7 @@ export async function getImagesBySubStack(subStackId: number, options: ImageQuer
             i.sub_stack_id,
             ${imagePickStatusSelect(includePickStatus, 'i')},
             ${bboxSelect},
+            ex.af_metadata as af_metadata,
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i
@@ -2317,6 +2331,7 @@ export async function getImagesByStackUngrouped(stackId: number, options: ImageQ
             i.sub_stack_id,
             ${imagePickStatusSelect(includePickStatus, 'i')},
             ${bboxSelect},
+            ex.af_metadata as af_metadata,
             ${CAPTURE_TS} as capture_date,
             ${CAPTURE_FALLBACK} as is_capture_date_fallback${selectExtra}
         FROM images i

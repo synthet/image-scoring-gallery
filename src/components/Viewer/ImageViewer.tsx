@@ -1,11 +1,18 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Search, FolderOpen, Tag, Loader2, Wrench } from 'lucide-react';
+import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, FolderOpen, Tag, Loader2, Crosshair, Scan, Eye } from 'lucide-react';
+import styles from './ImageViewer.module.css';
+import { AFReticleOverlay } from '../Shared/AFReticleOverlay';
 import { SimilarSearchDrawer } from './SimilarSearchDrawer';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
 import { BirdBoxOverlay } from '../Shared/BirdBoxOverlay';
 import { EyeKeypointsOverlay } from '../Shared/EyeKeypointsOverlay';
 import { hasDrawableEyes } from '../Shared/eyeKeypoints';
 import { useEyeKeypoints, useShowEyes } from '../../hooks/useEyeKeypoints';
+import { useShowFocusPoint } from '../../hooks/useShowFocusPoint';
+import { useDiagnostics } from '../../hooks/useDiagnostics';
+import { diagnosticsTransport } from '../../services/diagnosticsTransport';
+import { DiagnosticControls, DiagnosticLegend } from '../Diagnostics/DiagnosticControls';
+import { DiagnosticOverlays } from '../Diagnostics/DiagnosticOverlays';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { apiBaseUrlForExternalOpen } from '../../utils/apiBaseUrlForBrowser';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
@@ -14,7 +21,7 @@ import { toMediaUrl } from '../../utils/mediaUrl';
 import { formatShutterSpeedDisplay } from '../../utils/formatShutterSpeed';
 import { bridge } from '../../bridge';
 import { STAGE_DISPLAY } from '../../constants/pipelineLabels';
-import type { BirdBoundingBox, ImagePhaseStatus } from '../../../electron/types';
+import type { AFMetadata, BirdBoundingBox, ImagePhaseStatus } from '../../../electron/types';
 import type { TagPropagationRequest } from '../../../electron/apiTypes';
 import { bakeExifOrientationToBlob } from '../../utils/exportImageBake';
 import { pickServerFilesystemPath } from '../../utils/pickServerFilesystemPath';
@@ -54,6 +61,7 @@ interface Image {
     exif_focal_length?: string | null;
     exif_model?: string | null;
     exif_lens_model?: string | null;
+    af_metadata?: AFMetadata | null;
 }
 
 interface ImageViewerProps {
@@ -240,6 +248,7 @@ interface ExifData {
     FocalLength?: string;
     Model?: string;
     LensModel?: string;
+    af_metadata?: AFMetadata | null;
 }
 
 export const ImageViewer: React.FC<ImageViewerProps> = ({
@@ -262,8 +271,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [exifData, setExifData] = React.useState<ExifData | null>(null);
     const [exifLoading, setExifLoading] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-    const [fixMetadataBusy, setFixMetadataBusy] = React.useState(false);
+    const showFocusPoint = useShowFocusPoint();
     const addNotification = useNotificationStore(state => state.addNotification);
+    const lazyMetadataFetchedIdRef = useRef<number | null>(null);
+    const activeAfMetadata = exifData?.af_metadata || image.af_metadata;
 
     const serverFsPath = React.useMemo(
         () => pickServerFilesystemPath(image.file_path, image.win_path),
@@ -272,36 +283,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
     const openFolderId = image.folder_id ?? fallbackFolderId;
 
-    const handleFixImageMetadata = useCallback(async () => {
-        setFixMetadataBusy(true);
-        try {
-            // List/grid rows may expose Windows file_paths (COALESCE win alias); server keys on images.file_path.
-            const detailsForPath = await bridge.getImageDetails(image.id);
-            const path =
-                detailsForPath?.file_path?.trim() ||
-                image.file_path?.trim();
-            if (!path) {
-                addNotification('No database file path for this image', 'error');
-                return;
-            }
-            const result = await bridge.api.fixImageMetadata(path);
-            if (result?.success) {
-                addNotification(result.message || 'Metadata synced from file on server', 'success');
-                const details = await bridge.getImageDetails(image.id);
-                if (details) {
-                    setImage(details);
-                }
-            } else {
-                addNotification(result?.message || 'Server did not update metadata', 'warning');
-            }
-        } catch (e) {
-            console.error('[ImageViewer] fixImageMetadata failed', e);
-            addNotification('Fix metadata request failed', 'error');
-        } finally {
-            setFixMetadataBusy(false);
-        }
-    }, [addNotification, image.file_path, image.id]);
-    
     const handleOpenBackend = useCallback(async () => {
         try {
             const config = await bridge.getApiConfig();
@@ -313,7 +294,29 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         }
     }, [image.id, addNotification]);
 
+    const showEyes = useShowEyes();
+    const enableEyes = useCallback(() => { void bridge.setShowEyes(true); }, []);
+    const diagnostics = useDiagnostics(readOnlyFilesystemMode ? 0 : image.id, diagnosticsTransport, showEyes, enableEyes);
+    const { cyclePeaking, quickTogglePeaking, setOpen: setDiagnosticsOpen, toggle: toggleDiagnostic } = diagnostics;
+    const [loadedDiagnosticPreview, setLoadedDiagnosticPreview] = useState<string | null>(null);
+    const exportEvidence = useCallback(() => {
+        void (async () => {
+            try {
+                const directory = await bridge.selectDirectory();
+                if (!directory) return;
+                const result = await bridge.exportEvidencePack(image.id, directory);
+                addNotification(`Evidence pack saved: ${result.path}`, 'success');
+            } catch { addNotification('Could not export evidence pack', 'error'); }
+        })();
+    }, [image.id, addNotification]);
+
     useKeyboardLayer('drawer', useCallback((e: KeyboardEvent) => {
+        const target = e.target as HTMLElement | null;
+        if (target?.closest('input, textarea, select, [contenteditable="true"]')) return false;
+        if ((e.key === 'p' || e.key === 'P') && !readOnlyFilesystemMode && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            if (e.shiftKey) quickTogglePeaking(); else cyclePeaking();
+            return true;
+        }
         if (e.key === 'Escape') {
             onClose();
             return true;
@@ -323,9 +326,20 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         } else if (e.key === 'ArrowRight' && onNavigate && allImages && currentIndex < allImages.length - 1) {
             onNavigate(currentIndex + 1);
             return true;
+        } else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            void bridge.setShowFocusPoint(!showFocusPoint);
+            return true;
+        } else if ((e.key === 'e' || e.key === 'E') && !e.ctrlKey && !e.altKey && !e.metaKey && !readOnlyFilesystemMode) {
+            setDiagnosticsOpen(value => !value);
+            return true;
+        } else if (!readOnlyFilesystemMode && !e.ctrlKey && !e.altKey && !e.metaKey && e.key >= '1' && e.key <= '5') {
+            if (e.key === '1') void bridge.getShowBoundingBox().then(value => bridge.setShowBoundingBox(!value));
+            else if (e.key === '3') void bridge.setShowEyes(!showEyes);
+            else toggleDiagnostic(e.key === '2' ? 'mask' : e.key === '4' ? 'sharpness' : 'noise');
+            return true;
         }
         return false;
-    }, [onClose, onNavigate, currentIndex, allImages]), !isDeleteDialogOpen);
+    }, [onClose, onNavigate, currentIndex, allImages, cyclePeaking, quickTogglePeaking, setDiagnosticsOpen, toggleDiagnostic, readOnlyFilesystemMode, showFocusPoint, showEyes]), !isDeleteDialogOpen);
 
     const currentIdRef = useRef(initialImage.id);
 
@@ -406,8 +420,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         }
         void (async () => {
             try {
-                const meta = await bridge.readImageMetadata(pathSchema);
-                if (!active) return;
+                const meta = typeof bridge.readImageMetadata === 'function' ? await bridge.readImageMetadata(pathSchema) : null;
+                if (!active || !meta) return;
                 const d = meta.detail;
                 setImage((prev) => ({
                     ...prev,
@@ -422,6 +436,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     exif_focal_length: d.exif_focal_length ?? prev.exif_focal_length,
                     exif_model: d.exif_model ?? prev.exif_model,
                     exif_lens_model: d.exif_lens_model ?? prev.exif_lens_model,
+                    af_metadata: d.af_metadata ?? prev.af_metadata,
                 }));
                 setExifData({
                     ISO: d.exif_iso ?? undefined,
@@ -430,6 +445,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     FocalLength: d.exif_focal_length ?? undefined,
                     Model: d.exif_model ?? undefined,
                     LensModel: d.exif_lens_model ?? undefined,
+                    af_metadata: d.af_metadata ?? undefined,
                 });
             } catch (e) {
                 console.error('[ImageViewer] readImageMetadata failed', e);
@@ -446,10 +462,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             return;
         }
         let active = true;
-        console.log('[ImageViewer] EXIF effect triggered', { 
-            id: image.id, 
-            hasDbExif: !!(image.exif_iso || image.exif_shutter || image.exif_aperture) 
-        });
         setExifData(null);
         setExifLoading(false);
 
@@ -458,50 +470,70 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             image.exif_iso || image.exif_shutter || image.exif_aperture ||
             image.exif_focal_length || image.exif_model || image.exif_lens_model
         ) {
-            console.log('[ImageViewer] Using DB EXIF data', image.id);
             setExifData({
                 ISO: image.exif_iso || undefined,
                 ShutterSpeed: image.exif_shutter || undefined,
                 Aperture: image.exif_aperture ? Number(image.exif_aperture) : undefined,
                 FocalLength: image.exif_focal_length || undefined,
                 Model: image.exif_model || undefined,
-                LensModel: image.exif_lens_model || undefined
+                LensModel: image.exif_lens_model || undefined,
+                af_metadata: image.af_metadata || undefined,
             });
             setExifLoading(false);
+            if (!image.af_metadata && serverFsPath && typeof bridge.readImageMetadata === 'function') {
+                if (lazyMetadataFetchedIdRef.current !== image.id) {
+                    lazyMetadataFetchedIdRef.current = image.id;
+                    void bridge.readImageMetadata(serverFsPath).then((meta) => {
+                        if (!active || !meta.detail?.af_metadata) return;
+                        setExifData((prev) => prev ? { ...prev, af_metadata: meta.detail.af_metadata ?? undefined } : { af_metadata: meta.detail.af_metadata ?? undefined });
+                    }).catch(() => { /* ignore fallback error */ });
+                }
+            }
             return;
         }
 
         const fetchExif = async () => {
             const pathSchema = serverFsPath;
             if (!pathSchema) {
-                console.warn('[ImageViewer] No path for EXIF fetch', image.id);
                 return;
             }
 
-            console.log('[ImageViewer] Fetching lazy EXIF for', pathSchema);
+            if (lazyMetadataFetchedIdRef.current === image.id) {
+                return;
+            }
+            lazyMetadataFetchedIdRef.current = image.id;
+
             setExifLoading(true);
             try {
-                const exif = await bridge.readExif(pathSchema);
-                console.log('[ImageViewer] Lazy EXIF result:', { 
-                    id: image.id, 
-                    success: !!exif,
-                    active 
-                });
-                if (active && exif) {
+                const meta = typeof bridge.readImageMetadata === 'function' ? await bridge.readImageMetadata(pathSchema) : null;
+                if (active && meta?.detail) {
+                    const d = meta.detail;
                     setExifData({
-                        ISO: exif.ISO as number | undefined,
-                        ShutterSpeed: exif.ShutterSpeed as string | undefined,
-                        Aperture: exif.Aperture as number | undefined,
-                        FocalLength: exif.FocalLength as string | undefined,
-                        Model: exif.Model as string | undefined,
-                        LensModel: exif.LensModel as string | undefined
+                        ISO: d.exif_iso ?? undefined,
+                        ShutterSpeed: d.exif_shutter ?? undefined,
+                        Aperture: d.exif_aperture ? Number(d.exif_aperture) : undefined,
+                        FocalLength: d.exif_focal_length ?? undefined,
+                        Model: d.exif_model ?? undefined,
+                        LensModel: d.exif_lens_model ?? undefined,
+                        af_metadata: d.af_metadata ?? undefined,
                     });
+                } else {
+                    const exif = await bridge.readExif(pathSchema);
+                    if (active && exif) {
+                        setExifData({
+                            ISO: exif.ISO as number | undefined,
+                            ShutterSpeed: exif.ShutterSpeed as string | undefined,
+                            Aperture: exif.Aperture as number | undefined,
+                            FocalLength: exif.FocalLength as string | undefined,
+                            Model: exif.Model as string | undefined,
+                            LensModel: exif.LensModel as string | undefined
+                        });
+                    }
                 }
             } catch (e) {
                 console.error('Failed to parse lazy EXIF', e);
             } finally {
                 if (active) {
-                    console.log('[ImageViewer] Setting exifLoading to false after fetch', image.id);
                     setExifLoading(false);
                 }
             }
@@ -523,6 +555,14 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [suggestionsLoadError, setSuggestionsLoadError] = useState<string | null>(null);
     const [isSimilarDrawerOpen, setIsSimilarDrawerOpen] = useState(false);
     const [similarSearchImageId, setSimilarSearchImageId] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (readOnlyFilesystemMode || !SIMILAR_SEARCH_ENABLED) return;
+        return bridge.onFindSimilarImages(() => {
+            setSimilarSearchImageId(image.id);
+            setIsSimilarDrawerOpen(true);
+        });
+    }, [image.id, readOnlyFilesystemMode]);
     const editKeywordsRef = useRef('');
     const [editForm, setEditForm] = useState({
         title: '',
@@ -720,7 +760,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 keywords: image.keywords || ''
             });
         }
-    }, [isEditing, image]);
+    }, [isEditing, image.title, image.description, image.rating, image.label, image.keywords]);
 
     useEffect(() => {
         if (!isEditing || readOnlyFilesystemMode) {
@@ -832,7 +872,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [error, setError] = React.useState<string | null>(null);
     const [phaseStatuses, setPhaseStatuses] = React.useState<ImagePhaseStatus[] | null>(null);
     const [showBoundingBox, setShowBoundingBox] = React.useState(false);
-    const showEyes = useShowEyes();
     const viewerImageIds = React.useMemo(() => [image.id], [image.id]);
     const eyes = useEyeKeypoints(viewerImageIds, showEyes).get(image.id);
 
@@ -934,7 +973,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             active = false;
             if (objectUrl) URL.revokeObjectURL(objectUrl);
         };
-    }, [image, serverFsPath]);
+    }, [image.id, image.file_name, image.thumbnail_path, serverFsPath]);
 
     const src = previewSrc;
 
@@ -1102,12 +1141,18 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 ) : src ? (
                     <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '95%', maxHeight: '95vh', minWidth: 0, minHeight: 0 }}>
                         <img
-                            src={src}
+                            src={diagnostics.preview || src}
+                            onLoad={event => setLoadedDiagnosticPreview(event.currentTarget.getAttribute('src'))}
                             alt={image.file_name}
                             style={{ maxWidth: '100%', maxHeight: '95vh', width: 'auto', height: 'auto', objectFit: 'contain', boxShadow: '0 0 20px rgba(0,0,0,0.5)' }}
                         />
-                        {showBoundingBox && image.bird_bbox && <BirdBoxOverlay bbox={image.bird_bbox} />}
-                        {showEyes && hasDrawableEyes(eyes) && <EyeKeypointsOverlay eyes={eyes} size={22} />}
+                        {showBoundingBox && image.bird_bbox && <BirdBoxOverlay bbox={image.bird_bbox} showDetails />}
+                        {showEyes && hasDrawableEyes(eyes) && <EyeKeypointsOverlay eyes={eyes} size={22} showDetails />}
+
+                        {showFocusPoint && activeAfMetadata && (
+                            <AFReticleOverlay af={activeAfMetadata} />
+                        )}
+                        <DiagnosticOverlays controller={diagnostics} ready={loadedDiagnosticPreview === diagnostics.preview} />
                     </div>
                 ) : (
                     <div style={{ color: '#666' }}>{error || 'Image not found'}</div>
@@ -1125,6 +1170,40 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 gap: 20,
                 overflowY: 'auto'
             }}>
+                {!window.electron && !readOnlyFilesystemMode && SIMILAR_SEARCH_ENABLED && (
+                    <details className={styles.browserImageMenu}>
+                        <summary>Image</summary>
+                        <button type="button" onClick={() => {
+                            setSimilarSearchImageId(image.id);
+                            setIsSimilarDrawerOpen(true);
+                        }}>Find Similar Images</button>
+                    </details>
+                )}
+                <div role="group" aria-label="Image overlays" className={styles.overlayControls}>
+                    <div className={styles.overlayButtons}>
+                        <button type="button" aria-label="Bounding Box" aria-pressed={showBoundingBox}
+                            className={`${styles.overlayButton} ${styles.subjectControl}`}
+                            onClick={() => void bridge.setShowBoundingBox(!showBoundingBox)}
+                            title="Bounding Box: subject detection (blue dashed frames)">
+                            <Scan size={18} aria-hidden="true" />
+                        </button>
+                        <button type="button" aria-label="Eyes" aria-pressed={showEyes}
+                            className={`${styles.overlayButton} ${styles.eyesControl}`}
+                            onClick={() => void bridge.setShowEyes(!showEyes)}
+                            title="Eyes: detected eyes (violet rings)">
+                            <Eye size={18} aria-hidden="true" />
+                        </button>
+                        <button type="button" aria-label="Focus Point" aria-pressed={showFocusPoint}
+                            className={`${styles.overlayButton} ${styles.focusControl}`}
+                            onClick={() => void bridge.setShowFocusPoint(!showFocusPoint)}
+                            title="Focus Point: camera autofocus target [F]">
+                            <Crosshair size={18} aria-hidden="true" />
+                        </button>
+                        {!readOnlyFilesystemMode && <DiagnosticControls controller={diagnostics} onExport={window.electron ? exportEvidence : undefined} />}
+                    </div>
+                </div>
+                {!readOnlyFilesystemMode && <DiagnosticLegend controller={diagnostics} />}
+
                 <div>
                     <h2 style={{ fontSize: '1.2em', margin: '0 0 10px 0', wordBreak: 'break-all' }}>{image.file_name}</h2>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#aaa', fontSize: '0.9em' }}>
@@ -1626,6 +1705,38 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                             <span style={{ color: '#ccc', fontSize: '0.9em' }}>{exifData.LensModel}</span>
                                         </div>
                                     )}
+                                    {activeAfMetadata && (() => {
+                                        const af = activeAfMetadata;
+                                        if (!af) return null;
+                                        const inFocus = Boolean(af.in_focus);
+                                        return (
+                                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #2a2a2a', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ color: '#888' }}>Autofocus:</span>
+                                                    <span style={{
+                                                        padding: '1px 6px',
+                                                        borderRadius: 3,
+                                                        fontSize: '0.9em',
+                                                        backgroundColor: inFocus ? 'rgba(0, 230, 118, 0.15)' : 'rgba(255, 145, 0, 0.15)',
+                                                        color: inFocus ? '#00e676' : '#ff9100',
+                                                        fontWeight: 600,
+                                                    }}>
+                                                        {inFocus ? 'Locked' : 'Unconfirmed'}
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#888' }}>AF Mode:</span>
+                                                    <span style={{ color: '#ccc' }}>{af.mode || 'Unknown'}</span>
+                                                </div>
+                                                {af.focus_distance_m != null && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#888' }}>Focus Distance:</span>
+                                                        <span style={{ color: '#ccc' }}>{af.focus_distance_m.toFixed(2)} m</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             ) : (
                                 <div style={{ fontSize: '0.8em', color: '#666' }}>No EXIF data found</div>
@@ -1637,40 +1748,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 10, color: '#ddd' }}>Phases</div>
                                 <div style={{ fontSize: '0.85em', display: 'flex', flexDirection: 'column', gap: 6 }}>
                                     {renderPhaseRows(phaseStatuses, exifData, image)}
-                                    {image.file_path && (
-                                        <div style={{ marginTop: 12 }}>
-                                            <p style={{ margin: '0 0 8px', fontSize: '0.8em', color: '#888', lineHeight: 1.4 }}>
-                                                Re-read EXIF/XMP and refresh DB fields for this file on the Python backend (no full AI re-score).
-                                            </p>
-                                            <button
-                                                type="button"
-                                                disabled={fixMetadataBusy}
-                                                onClick={() => { void handleFixImageMetadata(); }}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '8px',
-                                                    background: '#2a4a2a',
-                                                    color: '#e8f5e9',
-                                                    border: '1px solid #3d6b3d',
-                                                    borderRadius: 4,
-                                                    cursor: fixMetadataBusy ? 'wait' : 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: 8,
-                                                    fontWeight: 500,
-                                                    opacity: fixMetadataBusy ? 0.7 : 1,
-                                                }}
-                                            >
-                                                {fixMetadataBusy ? (
-                                                    <Loader2 size={16} className="animate-spin" />
-                                                ) : (
-                                                    <Wrench size={16} />
-                                                )}
-                                                Fix metadata on server
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         )}
@@ -1702,37 +1779,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     <FolderOpen size={16} /> Open Folder
                                 </button>
                             )}
-
-                            <button
-                                type="button"
-                                disabled={!SIMILAR_SEARCH_ENABLED}
-                                onClick={() => {
-                                    if (!SIMILAR_SEARCH_ENABLED) {
-                                        return;
-                                    }
-                                    setSimilarSearchImageId(image.id);
-                                    setIsSimilarDrawerOpen(true);
-                                }}
-                                title="Find visually similar images in the library"
-                                style={{
-                                    width: '100%',
-                                    padding: '8px',
-                                    background: '#3a3d41',
-                                    color: '#e6e6e6',
-                                    border: '1px solid #444',
-                                    borderRadius: 4,
-                                    cursor: SIMILAR_SEARCH_ENABLED ? 'pointer' : 'not-allowed',
-                                    opacity: SIMILAR_SEARCH_ENABLED ? 1 : 0.6,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 8,
-                                    fontWeight: 500,
-                                }}
-                            >
-                                <Search size={16} /> Find Similar Images
-                            </button>
-
                         </>
                     )}
                 </div>

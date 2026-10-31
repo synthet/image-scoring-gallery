@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { bridge } from '../bridge';
-import { FALLBACK_MODEL_SORT_OPTIONS, type SortOption } from '../../electron/scoringModels';
+import { FALLBACK_MODEL_SORT_OPTIONS, type SortOption } from '../../electron/scoringSortOptions';
 
 export type { SortOption };
 

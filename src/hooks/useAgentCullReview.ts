@@ -59,10 +59,10 @@ async function loadReviewData(stackId: number, subStackId: number | null | undef
         subStackId: subStackId ?? undefined,
         limit: 5,
     });
-    const items = (list?.groups ?? []) as AgentCullReviewGroupSummary[];
+    const items = list?.groups ?? [];
     if (items.length > 0 && api.getAgentCullGroup) {
         const full = await api.getAgentCullGroup(items[0].id);
-        return { groups: items, detail: full as AgentCullReviewGroupDetail };
+        return { groups: items, detail: full };
     }
     return { groups: items, detail: null };
 }

@@ -10,7 +10,7 @@
 
 ## Backend authority
 
-- Do not invent REST endpoints, response fields, SQL columns, or phase names. Link to [image-scoring-backend API_CONTRACT](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/API_CONTRACT.md) and related canonical docs.
+- Do not invent REST endpoints, response fields, SQL columns, or phase names. Link to [image-scoring-pipeline API_CONTRACT](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/API_CONTRACT.md) and related canonical docs.
 
 ## RAW / NEF / EXIF / export
 
@@ -42,5 +42,5 @@
 
 ## Docs
 
-- Use relative links inside this repo; use **full GitHub URLs** to **image-scoring-backend** for schema/API authority.
+- Use relative links inside this repo; use **full GitHub URLs** to **image-scoring-pipeline** for schema/API authority.
 - After wiki changes: update indexes per [docs/WIKI_SCHEMA.md](../docs/WIKI_SCHEMA.md) and append [docs/log.md](../docs/log.md).

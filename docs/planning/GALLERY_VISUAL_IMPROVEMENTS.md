@@ -28,5 +28,5 @@ timestamp: 2026-06-16T00:00:00Z
 
 ## Backend `/ui`
 
-- [GalleryPage.tsx](https://github.com/synthet/image-scoring-backend/blob/main/frontend/src/pages/GalleryPage.tsx) filter chips → CSS variables
-- [GeoMapPage.tsx](https://github.com/synthet/image-scoring-backend/blob/main/frontend/src/pages/GeoMapPage.tsx) search button → `--color-text-on-accent`
+- [GalleryPage.tsx](https://github.com/synthet/image-scoring-pipeline/blob/main/frontend/src/pages/GalleryPage.tsx) filter chips → CSS variables
+- [GeoMapPage.tsx](https://github.com/synthet/image-scoring-pipeline/blob/main/frontend/src/pages/GeoMapPage.tsx) search button → `--color-text-on-accent`

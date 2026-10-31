@@ -16,7 +16,7 @@ bit us" narrative; promote anything durable into the canonical reference and lin
 back.
 
 **Authority:** backend schema/API remain in
-[sibling image-scoring-backend](https://github.com/synthet/image-scoring-backend);
+[sibling image-scoring-pipeline](https://github.com/synthet/image-scoring-pipeline);
 this page captures **gallery-specific** traps and workflows only.
 
 ## Sync / import correctness
@@ -119,7 +119,7 @@ See `docs/features/planned/species-conflict-resolution.md`.
 - When the API status indicator stays red, check WebUI reachability and
   `database.engine` (`pg` vs `api`) **before** debugging renderer code.
 - Cross-repo contract changes need coordinated PRs — see backend
-  [`docs/technical/AGENT_COORDINATION.md`](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md).
+  [`docs/technical/AGENT_COORDINATION.md`](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/AGENT_COORDINATION.md).
 
 ## RAW / NEF preview and JPEG export (regression-sensitive)
 
@@ -148,7 +148,7 @@ See `docs/features/planned/species-conflict-resolution.md`.
 ## Cross-repo: pipeline input-size study
 
 Monitor backend epic
-[#260](https://github.com/synthet/image-scoring-backend/issues/260) and gallery
+[#260](https://github.com/synthet/image-scoring-pipeline/issues/260) and gallery
 follow-up [#138](https://github.com/synthet/image-scoring-gallery/issues/138).
 Keep [`reports/07-pipeline-input-size-study-2026-05.md`](reports/07-pipeline-input-size-study-2026-05.md)
 current and the link from

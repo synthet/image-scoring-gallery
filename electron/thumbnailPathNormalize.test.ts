@@ -10,9 +10,9 @@ import {
 describe('collapseMalformedThumbnailSegments', () => {
     it('collapses thumbnails/app/thumbnails to a single thumbnails segment', () => {
         const s =
-            '../../image-scoring-backend/thumbnails/app/thumbnails/2a/abc.jpg';
+            '../../image-scoring-pipeline/thumbnails/app/thumbnails/2a/abc.jpg';
         expect(collapseMalformedThumbnailSegments(s)).toBe(
-            '../../image-scoring-backend/thumbnails/2a/abc.jpg',
+            '../../image-scoring-pipeline/thumbnails/2a/abc.jpg',
         );
     });
 });
@@ -21,7 +21,7 @@ describe('stripThumbnailRepoRelativePrefix', () => {
     it('strips repeated ../ repo-relative prefix', () => {
         expect(
             stripThumbnailRepoRelativePrefix(
-                '../../image-scoring-backend/thumbnails/app/x.jpg',
+                '../../image-scoring-pipeline/thumbnails/app/x.jpg',
             ),
         ).toBe('app/x.jpg');
     });
@@ -42,10 +42,10 @@ describe('absolutizeThumbnailPath', () => {
                 : '/mnt/c/Projects/image-scoring-gallery';
         const expectedBase =
             process.platform === 'win32'
-                ? path.normalize('D:/Projects/image-scoring-backend/thumbnails')
-                : path.normalize('/mnt/c/Projects/image-scoring-backend/thumbnails');
+                ? path.normalize('D:/Projects/image-scoring-pipeline/thumbnails')
+                : path.normalize('/mnt/c/Projects/image-scoring-pipeline/thumbnails');
         const raw =
-            '../../image-scoring-backend/thumbnails/app/thumbnails/2a/abc.jpg';
+            '../../image-scoring-pipeline/thumbnails/app/thumbnails/2a/abc.jpg';
         const out = absolutizeThumbnailPath(raw, projectRoot);
         expect(out).toBe(path.join(expectedBase, '2a', 'abc.jpg'));
     });
@@ -68,12 +68,12 @@ describe('absolutizeThumbnailPath', () => {
         const out = absolutizeThumbnailPath(
             'aa/h.jpg',
             galleryRoot,
-            '../image-scoring-backend/thumbnails',
+            '../image-scoring-pipeline/thumbnails',
         );
         const expectedBase =
             process.platform === 'win32'
-                ? path.normalize('D:/Projects/image-scoring-backend/thumbnails')
-                : path.normalize('/mnt/c/Projects/image-scoring-backend/thumbnails');
+                ? path.normalize('D:/Projects/image-scoring-pipeline/thumbnails')
+                : path.normalize('/mnt/c/Projects/image-scoring-pipeline/thumbnails');
         expect(out).toBe(path.join(expectedBase, 'aa', 'h.jpg'));
     });
 
@@ -89,7 +89,7 @@ describe('absolutizeThumbnailPath', () => {
     });
 
     it('passes through /mnt/... paths', () => {
-        const p = '/mnt/d/Projects/image-scoring-backend/thumbnails/aa/h.jpg';
+        const p = '/mnt/d/Projects/image-scoring-pipeline/thumbnails/aa/h.jpg';
         const galleryRoot =
             process.platform === 'win32'
                 ? 'D:/Projects/image-scoring-gallery'
@@ -104,8 +104,8 @@ describe('absolutizeThumbnailPath', () => {
                 : '/mnt/c/Projects/image-scoring-gallery';
         const expectedBase =
             process.platform === 'win32'
-                ? path.normalize('D:/Projects/image-scoring-backend/thumbnails')
-                : path.normalize('/mnt/c/Projects/image-scoring-backend/thumbnails');
+                ? path.normalize('D:/Projects/image-scoring-pipeline/thumbnails')
+                : path.normalize('/mnt/c/Projects/image-scoring-pipeline/thumbnails');
         const hashFile = '0e7367b97feead9686cf003b8c0adc9d.jpg';
         expect(absolutizeThumbnailPath(`/app/thumbnails/${hashFile}`, galleryRoot)).toBe(
             path.join(expectedBase, hashFile),

@@ -12,14 +12,14 @@ Change **API**, **schema**, or **pipeline terminology** without breaking **Vexlu
 
 ## Canonical docs (read first)
 
-- Backend: [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md), [CANONICAL_SOURCES.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/CANONICAL_SOURCES.md)
+- Backend: [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/AGENT_COORDINATION.md), [CANONICAL_SOURCES.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/CANONICAL_SOURCES.md)
 - Gallery: [docs/CANONICAL_SOURCES.md](../../docs/CANONICAL_SOURCES.md), [docs/integration/TODO.md](../../docs/integration/TODO.md)
 
 ## Steps (strict order)
 
 1. **Backend canonical contract** — `API_CONTRACT.md`, `openapi.yaml`, `DB_SCHEMA.md`, `PIPELINE_TERMINOLOGY.md` as applicable.
 2. **Backend implementation** — `modules/api.py`, `modules/db_postgres.py`, migrations, phases.
-3. **Backend tests** — pytest per backend [TESTING.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/TESTING.md).
+3. **Backend tests** — pytest per backend [TESTING.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/TESTING.md).
 4. **Backend docs pass** — `AGENT_COORDINATION.md` if needed; append backend `docs/log.md`.
 5. **Gallery integration (this repo)** — `electron/apiService.ts`, IPC/preload types, `src/constants/pipelineLabels.ts`, [docs/integration/TODO.md](../../docs/integration/TODO.md) if work remains.
 6. **Backend checks** — doctor + pytest (sibling clone).
@@ -30,4 +30,4 @@ Change **API**, **schema**, or **pipeline terminology** without breaking **Vexlu
 
 - Do not implement gallery-first breaking changes to backend-owned contracts.
 
-**Repo:** This file lives in **image-scoring-gallery** — mirror copy exists in **image-scoring-backend** `.agent/workflows/`.
+**Repo:** This file lives in **image-scoring-gallery** — mirror copy exists in **image-scoring-pipeline** `.agent/workflows/`.

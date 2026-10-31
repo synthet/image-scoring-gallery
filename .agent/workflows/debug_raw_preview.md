@@ -14,7 +14,7 @@ Guide investigation of **in-browser RAW**, **NEF extraction**, and **orientation
 
 - [docs/CANONICAL_SOURCES.md](../../docs/CANONICAL_SOURCES.md) — RAW rows (link to **backend** technical RAW docs via GitHub)
 - [features/implemented/05-jpeg-export-exif-orientation.md](../../docs/features/implemented/05-jpeg-export-exif-orientation.md)
-- Backend: [RAW_PROCESSING_GUIDE](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/RAW_PROCESSING_GUIDE.md), [NEF_IMPLEMENTATION_REVIEW](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/NEF_IMPLEMENTATION_REVIEW.md)
+- Backend: [RAW_PROCESSING_GUIDE](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/RAW_PROCESSING_GUIDE.md), [NEF_IMPLEMENTATION_REVIEW](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/NEF_IMPLEMENTATION_REVIEW.md)
 
 ## Safe process
 

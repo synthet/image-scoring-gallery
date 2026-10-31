@@ -43,7 +43,7 @@ rg "pattern" . --glob '!node_modules'
 ### WSL2 (backend default)
 
 ```bash
-cd /mnt/d/Projects/image-scoring-backend
+cd /mnt/d/Projects/image-scoring-pipeline
 source ~/.venvs/tf/bin/activate
 python scripts/doctor.py --no-gpu
 ```
@@ -61,7 +61,7 @@ See [windows-wsl-split.md](../agent-cli-hub/references/windows-wsl-split.md) for
 
 ## When WSL2 is better
 
-- **image-scoring-backend** scripts importing `modules.*`
+- **image-scoring-pipeline** scripts importing `modules.*`
 - Pytest with `wsl` marker (`~/.venvs/image-scoring-tests`)
 - Docker Compose workflows mirroring CI
 - MCP servers expecting Linux paths

@@ -1,3 +1,6 @@
+import { FALLBACK_MODEL_SORT_OPTIONS, STATIC_SORT_OPTIONS, type SortOption } from './scoringSortOptions';
+export { FALLBACK_MODEL_SORT_OPTIONS } from './scoringSortOptions';
+export type { SortOption } from './scoringSortOptions';
 import fs from 'fs';
 import path from 'path';
 import type { ApiService } from './apiService';
@@ -22,12 +25,6 @@ export interface ScoringModelInfo {
     sortKey: string;
     source: 'legacy' | 'model_scores';
     isShadow: boolean;
-}
-
-export interface SortOption {
-    value: string;
-    label: string;
-    group: 'composite' | 'meta' | 'model';
 }
 
 /** Not registered in the live backend pipeline; never show in the sort dropdown. */
@@ -68,22 +65,6 @@ const SCORE_LABELS: Record<string, string> = {
     technical: 'Technical Score',
     aesthetic: 'Aesthetic Score',
 };
-
-const STATIC_SORT_OPTIONS: SortOption[] = [
-    { value: 'score_general', label: 'General Score', group: 'composite' },
-    { value: 'score_technical', label: 'Technical Score', group: 'composite' },
-    { value: 'score_aesthetic', label: 'Aesthetic Score', group: 'composite' },
-    { value: 'capture_date', label: 'Capture Date', group: 'meta' },
-    { value: 'id', label: 'ID', group: 'meta' },
-];
-
-/** Fallback when API and config are unavailable. */
-export const FALLBACK_MODEL_SORT_OPTIONS: SortOption[] = [
-    ...STATIC_SORT_OPTIONS,
-    { value: modelSortKey('spaq'), label: 'SPAQ', group: 'model' },
-    { value: modelSortKey('ava'), label: 'AVA', group: 'model' },
-    { value: modelSortKey('liqe'), label: 'LIQE', group: 'model' },
-];
 
 type ModelMembership = { enabled?: boolean; shadow?: boolean };
 
@@ -177,7 +158,7 @@ export function mergeProductionModelInfos(
 
 export function readBackendConfigScoringModels(projectRoot: string): Record<string, ModelMembership> | null {
     try {
-        const configPath = path.resolve(projectRoot, '..', 'image-scoring-backend', 'config.json');
+        const configPath = path.resolve(projectRoot, '..', 'image-scoring-pipeline', 'config.json');
         if (!fs.existsSync(configPath)) return null;
         const raw = JSON.parse(fs.readFileSync(configPath, 'utf8')) as {
             scoring?: { models?: Record<string, ModelMembership> };

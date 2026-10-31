@@ -1,20 +1,20 @@
 ---
 type: "Planned Feature"
 title: "Burst culling explainability — best frame, nearly tied, score breakdown, Adjust scoring, overlays"
-description: "Status: Planned (proposal, clean-room). Gallery side of the backend subject-aware culling evidence plan."
+description: "Status: Planned (proposal). Gallery side of the backend subject-aware culling evidence plan."
 resource: "docs/features/planned/burst-culling-explainability.md"
-tags: ["features", "gallery-docs", "planned", "culling", "explainability", "clean-room"]
+tags: ["features", "gallery-docs", "planned", "culling", "explainability"]
 timestamp: 2026-09-24T00:00:00Z
 ---
 
 # Burst culling explainability
 
 *Status: **Planned (proposal)** · Owner: TBD · Backend dependency:
-[subject-aware culling evidence](https://github.com/synthet/image-scoring-backend/blob/master/docs/planning/subject-aware-culling-evidence.md),
+[subject-aware culling evidence](https://github.com/synthet/image-scoring-pipeline/blob/master/docs/planning/subject-aware-culling-evidence.md),
 scheduled inside the
-[localization rollout](https://github.com/synthet/image-scoring-backend/blob/master/docs/architecture/pipeline/localization-rollout.md) Stage 6.*
+[localization rollout](https://github.com/synthet/image-scoring-pipeline/blob/master/docs/architecture/pipeline/localization-rollout.md) Stage 6.*
 
-## Provenance (clean-room)
+## Provenance
 
 These are UX ideas from a competitive analysis of a commercial wildlife burst-culling application's
 user-visible behaviour and documentation. This page describes behaviour only: no code, assets, copy
@@ -106,7 +106,7 @@ Heatmap and band colours come from new tokens in `@synthet/image-scoring-design`
 - **Zoom to eye/subject:** one key jumps to 100% centred on the primary eye keypoint, or on the
   region centre, in every compared frame. For hand-held bursts where the subject drifts, re-centre
   each frame by a small template match around the previous frame's point, within a bounded search
-  window.
+  window. Full behaviour: [loupe subject tracking](loupe-subject-tracking.md).
 - Optional **focus peaking** overlay computed in a Web Worker on the displayed rendition.
 
 ### 6. Species suggestions popover

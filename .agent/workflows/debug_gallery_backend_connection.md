@@ -15,7 +15,7 @@ When the app shows connection errors or empty data: verify **backend URL**, **lo
 - [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md)
 - [docs/architecture/02-database-design.md](../../docs/architecture/02-database-design.md)
 - [.cursor/agents/gallery-mcp-debug.md](../../.cursor/agents/gallery-mcp-debug.md)
-- Backend: [docs/DIAGNOSTICS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DIAGNOSTICS.md)
+- Backend: [docs/DIAGNOSTICS.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/DIAGNOSTICS.md)
 
 ## Safe checks
 

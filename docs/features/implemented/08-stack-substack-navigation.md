@@ -92,4 +92,4 @@ npm run test:run -- src/hooks/useStacksMode.test.tsx
 - [06-culling-stack-analytics.md](06-culling-stack-analytics.md) — stack/sub-stack analytics banner and agent cull panel on drill-down views
 - [07-grid-delete-state-sync.md](07-grid-delete-state-sync.md) — optimistic grid removal inside stack/sub-stack detail
 - [guides/04-agent-cull-review.md](../../guides/04-agent-cull-review.md) — agent review at stack or sub-stack leaf
-- Backend two-level culling: [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) (culling phase)
+- Backend two-level culling: [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) (culling phase)

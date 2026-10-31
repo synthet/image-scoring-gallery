@@ -41,6 +41,7 @@ import type {
     ScoringModelsApiResponse,
 } from './apiTypes';
 import type { AppConfig } from './types';
+import type { DiagnosticLayer, DiagnosticManifest } from './diagnosticTypes';
 
 const DEFAULT_TIMEOUT = 10_000;   // 10s for quick operations
 const LONG_TIMEOUT = 120_000;     // 2min for batch job starts
@@ -91,13 +92,14 @@ export class ApiService {
     // ── Generic HTTP ────────────────────────────────────────────────────────
 
     private async request<T>(
-        method: 'GET' | 'POST' | 'PATCH',
+        method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
         apiPath: string,
         options?: {
             body?: unknown;
             params?: Record<string, string | number | boolean | undefined | Array<string | number>>;
             timeout?: number;
             externalSignal?: AbortSignal;
+            responseType?: 'json' | 'image';
         },
     ): Promise<T> {
         const base = this.resolveBaseUrl();
@@ -143,6 +145,33 @@ export class ApiService {
                 );
             }
 
+            if (response.status === 204) return undefined as T;
+            if (options?.responseType === 'image') {
+                const mime = response.headers.get('content-type')?.split(';')[0];
+                if (mime !== 'image/png' && mime !== 'image/jpeg') throw new Error('Diagnostic artifact must be a PNG or JPEG');
+                const limit = 64 * 1024 * 1024;
+                if (Number(response.headers.get('content-length')) > limit) throw new Error('Diagnostic artifact exceeds the size limit');
+                const reader = response.body?.getReader();
+                if (!reader) throw new Error('Diagnostic artifact has no body');
+                const chunks: Uint8Array[] = [];
+                let bytes = 0;
+                try {
+                    for (;;) {
+                        const chunk = await reader.read();
+                        if (chunk.done) break;
+                        bytes += chunk.value.byteLength;
+                        if (bytes > limit) { await reader.cancel(); throw new Error('Diagnostic artifact exceeds the size limit'); }
+                        chunks.push(chunk.value);
+                    }
+                } finally { reader.releaseLock(); }
+                const binary: string[] = [];
+                for (const chunk of chunks) {
+                    for (let offset = 0; offset < chunk.length; offset += 8192) {
+                        binary.push(String.fromCharCode(...chunk.subarray(offset, offset + 8192)));
+                    }
+                }
+                return `data:${mime};base64,${btoa(binary.join(''))}` as T;
+            }
             return (await response.json()) as T;
         } catch (err: unknown) {
             if (err instanceof Error && err.name === 'AbortError') {
@@ -537,5 +566,32 @@ export class ApiService {
 
     getScopeTree() {
         return this.get<ScopeTreeResponse>('/api/scope/tree', { include_phase_status: false }, LONG_TIMEOUT);
+    }
+
+    getImageEvidence(imageId: number) {
+        return this.get<Record<string, unknown>>(`/api/images/${imageId}/evidence`, undefined, LONG_TIMEOUT);
+    }
+
+    private diagnosticPath(imageId: number) {
+        if (!Number.isInteger(imageId) || imageId <= 0) throw new Error('imageId must be a positive integer');
+        return `/api/images/${imageId}/evidence`;
+    }
+
+    getDiagnosticManifest(imageId: number) {
+        return this.get<DiagnosticManifest>(this.diagnosticPath(imageId), { schema_version: 2 });
+    }
+
+    requestDiagnostics(imageId: number, layers: DiagnosticLayer[], refresh = false) {
+        return this.post<DiagnosticManifest>(`${this.diagnosticPath(imageId)}/requests`, { layers, refresh });
+    }
+
+    async cancelDiagnostics(imageId: number, requestId: string) {
+        if (!/^[a-f0-9]{32}$/.test(requestId)) throw new Error('Invalid diagnostic request id');
+        return this.request<void>('DELETE', `${this.diagnosticPath(imageId)}/requests/${requestId}`);
+    }
+
+    async getDiagnosticArtifact(imageId: number, artifactId: string) {
+        if (!/^[a-f0-9]{64}_[a-f0-9]{64}\.(png|jpg)$/.test(artifactId)) throw new Error('Invalid diagnostic artifact id');
+        return this.request<string>('GET', `${this.diagnosticPath(imageId)}/artifacts/${artifactId}`, { responseType: 'image', timeout: LONG_TIMEOUT });
     }
 }

@@ -25,7 +25,7 @@ Run the correct project commands instead of inventing ad hoc toolchains. Primary
 
 - **Gallery (primary):** `node`, npm, project devDependencies (ESLint, TypeScript, Vitest)
 - **Optional cross-repo:** `docker`, `docker compose` (backend Postgres)
-- **Optional backend sibling:** `uv`, `ruff`, `pyright` — only when touching **image-scoring-backend**
+- **Optional backend sibling:** `uv`, `ruff`, `pyright` — only when touching **image-scoring-pipeline**
 
 Install baseline: [agent-cli-hub/references/install-blocks.md](../agent-cli-hub/references/install-blocks.md)
 
@@ -67,7 +67,7 @@ cd mcp-server && npm install && npm run build:registry
 
 ### Optional: sibling backend (WSL)
 
-When the task explicitly involves **image-scoring-backend**:
+When the task explicitly involves **image-scoring-pipeline**:
 
 ```bash
 # WSL + ~/.venvs/tf — see backend python-wsl-webapp-env rule

@@ -1,6 +1,6 @@
 /**
  * Loopback + private/Docker/WSL hosts allowed for gallery MCP HTTP probes.
- * Mirrors image-scoring-backend modules/mcp_server.py client allowlist.
+ * Mirrors image-scoring-pipeline modules/mcp_server.py client allowlist.
  */
 export function isAllowedLocalHost(hostname: string): boolean {
     const host = hostname.trim().toLowerCase();

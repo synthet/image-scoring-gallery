@@ -15,6 +15,6 @@ timestamp: 2026-06-16T00:00:00Z
 
 **Primary code paths:** `electron/main.ts` (NEF handlers, `exiftool` / `nefExtractor`), `electron/apiService.ts` (`getRawPreview`, `getSourceImage`), viewer components under `src/components/Viewer/`.
 
-**Related docs:** Backend [INBROWSER_RAW_PREVIEW.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/INBROWSER_RAW_PREVIEW.md) · [RAW_PROCESSING_GUIDE.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/RAW_PROCESSING_GUIDE.md) · [import-discovery-alignment.md](../../architecture/import-discovery-alignment.md) (how gallery Import relates to backend Discovery)
+**Related docs:** Backend [INBROWSER_RAW_PREVIEW.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/INBROWSER_RAW_PREVIEW.md) · [RAW_PROCESSING_GUIDE.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/RAW_PROCESSING_GUIDE.md) · [import-discovery-alignment.md](../../architecture/import-discovery-alignment.md) (how gallery Import relates to backend Discovery)
 
 **See also:** [Implemented features index](INDEX.md)
