@@ -21,6 +21,6 @@ it('keeps dates from the latest filters when an older request finishes last', as
     await act(async () => { finishNew(['2026-09-02']); });
     await act(async () => { finishOld(['2026-09-03']); });
     fireEvent.click(screen.getByText('2026-09-01'));
-    expect(screen.getByRole('button', { name: '2', exact: true }).querySelector('div')).not.toBeNull();
-    expect(screen.getByRole('button', { name: '3', exact: true }).querySelector('div')).toBeNull();
+    expect(screen.getByRole('button', { name: '2' }).querySelector('div')).not.toBeNull();
+    expect(screen.getByRole('button', { name: '3' }).querySelector('div')).toBeNull();
 });

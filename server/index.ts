@@ -379,11 +379,11 @@ export function createServerApp(deps: ServerDeps) {
         const upstream = await fetch(targetUrl.toString(), fetchOptions);
         res.status(upstream.status);
         upstream.headers.forEach((value, name) => {
-            if (!['transfer-encoding', 'connection'].includes(name.toLowerCase())) {
+            if (!['transfer-encoding', 'connection', 'content-length', 'content-encoding'].includes(name.toLowerCase())) {
                 res.setHeader(name, value);
             }
         });
-        const body = await upstream.text();
+        const body = Buffer.from(await upstream.arrayBuffer());
         res.send(body);
     }));
 

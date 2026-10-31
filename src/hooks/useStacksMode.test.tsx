@@ -57,12 +57,12 @@ describe('useStacksMode sub-stack navigation', () => {
       getStackCacheStatus: vi.fn().mockResolvedValue({ cached: 42, expected: 42, stale: false }),
       rebuildStackCache: vi.fn().mockResolvedValue({ success: true, count: 0 }),
     };
-    (window as Window & { electron?: Partial<ElectronApi> }).electron = electronApi;
+    vi.stubGlobal('electron', electronApi);
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    (window as Window & { electron?: Partial<ElectronApi> }).electron = undefined;
+    vi.unstubAllGlobals();
   });
 
   it('auto-opens sub-stack detail when a root stack has one persisted sub-stack', async () => {

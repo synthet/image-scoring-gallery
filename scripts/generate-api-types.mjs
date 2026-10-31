@@ -6,21 +6,21 @@ import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SIBLING_OPENAPI_PATH = resolve(__dirname, '..', '..', 'image-scoring-pipeline', 'openapi.json');
+const SNAPSHOT_PATH = resolve(__dirname, '..', 'api-contract', 'openapi.json');
 const OUTPUT_PATH = resolve(__dirname, '..', 'electron', 'api.generated.ts');
 
-function ensureSiblingOpenApiExists() {
-    if (existsSync(SIBLING_OPENAPI_PATH)) return;
+function ensureSnapshotExists() {
+    if (existsSync(SNAPSHOT_PATH)) return;
 
-    console.error('[generate:api-types] Missing sibling backend OpenAPI file.');
-    console.error(`Expected: ${SIBLING_OPENAPI_PATH}`);
-    console.error('Action: clone/open the backend repo as ../image-scoring-pipeline and generate openapi.json, then re-run `npm run generate:api-types`.');
+    console.error('[generate:api-types] Missing backend OpenAPI snapshot.');
+    console.error(`Expected: ${SNAPSHOT_PATH}`);
+    console.error('Action: run `npm run contract:update`, then re-run `npm run generate:api-types`.');
     process.exit(1);
 }
 
-ensureSiblingOpenApiExists();
+ensureSnapshotExists();
 
-const result = spawnSync('npx', ['openapi-typescript', SIBLING_OPENAPI_PATH, '-o', OUTPUT_PATH], {
+const result = spawnSync('npx', ['openapi-typescript', SNAPSHOT_PATH, '-o', OUTPUT_PATH], {
     stdio: 'inherit',
     shell: process.platform === 'win32',
 });

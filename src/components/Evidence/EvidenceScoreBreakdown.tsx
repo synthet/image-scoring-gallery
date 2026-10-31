@@ -1,4 +1,3 @@
-import React from 'react';
 import { CRITERION_LABEL, resolveBandDisplay } from '@synthet/image-scoring-design';
 import type { CriterionBand, EvidenceLayerId, ImageEvidencePayload } from '../../types/imageEvidence';
 

@@ -1,25 +1,25 @@
 import type { BirdBoundingBox } from '../../../electron/types';
-import { birdBboxBorderCss } from './birdBboxStyle';
+import styles from './ImageOverlays.module.css';
 
 /**
  * Bird detection box, positioned as a fraction of the detector's `img_w`/`img_h` so it stays
  * aligned at whatever size the preview happens to render.
- * Border color/opacity track detection confidence (Color Label red→yellow→green ramp).
+ * A blue dashed frame distinguishes the detected subject from the camera AF target.
  */
-export function BirdBoxOverlay({ bbox }: { bbox: BirdBoundingBox }) {
+export function BirdBoxOverlay({ bbox, showDetails = false }: { bbox: BirdBoundingBox; showDetails?: boolean }) {
     if (!(bbox.img_w > 0) || !(bbox.img_h > 0)) return null;
     return (
         <div
             data-testid="bird-bbox-overlay"
+            className={`${styles.frame} ${styles.subject}`}
             style={{
-                position: 'absolute',
-                pointerEvents: 'none',
                 left: `${(bbox.x1 / bbox.img_w) * 100}%`,
                 top: `${(bbox.y1 / bbox.img_h) * 100}%`,
                 width: `${((bbox.x2 - bbox.x1) / bbox.img_w) * 100}%`,
                 height: `${((bbox.y2 - bbox.y1) / bbox.img_h) * 100}%`,
-                border: `2px solid ${birdBboxBorderCss(bbox.conf)}`,
             }}
-        />
+        >
+            {showDetails && <span className={styles.badge}>Subject · {Math.round(bbox.conf * 100)}%</span>}
+        </div>
     );
 }

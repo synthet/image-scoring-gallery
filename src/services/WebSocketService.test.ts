@@ -1,11 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { webSocketService } from './WebSocketService';
 
-type TestWindow = Window & typeof globalThis & {
-  electron?: {
-    getApiConfig: ReturnType<typeof vi.fn>;
-  };
-};
 
 interface WebSocketServiceInternals {
   reconnectAttempts: number;
@@ -57,9 +52,9 @@ describe('WebSocketService', () => {
     } as unknown as new (url: string) => WebSocket;
     vi.stubGlobal('WebSocket', MockWebSocket as new (url: string) => WebSocket);
 
-    (globalThis.window as TestWindow).electron = {
+    vi.stubGlobal('electron', {
       getApiConfig: vi.fn().mockResolvedValue({ url: 'http://localhost:8000' }),
-    };
+    });
 
     // Reset singleton state
     const service = webSocketService as unknown as WebSocketServiceInternals;
@@ -75,13 +70,12 @@ describe('WebSocketService', () => {
   afterEach(() => {
     webSocketService.disconnect();
     vi.unstubAllGlobals();
-    (globalThis.window as TestWindow).electron = undefined;
   });
 
   it('calls getApiConfig and creates WebSocket with correct URL on connect', async () => {
     await webSocketService.connect();
 
-    expect((globalThis.window as TestWindow).electron?.getApiConfig).toHaveBeenCalled();
+    expect((globalThis.window).electron?.getApiConfig).toHaveBeenCalled();
     expect(mockWs.url).toBe('ws://localhost:8000/ws/updates');
   });
 
@@ -208,7 +202,7 @@ describe('WebSocketService', () => {
     });
 
     it('handles connection initialization failure', async () => {
-      const testWindow = globalThis.window as TestWindow;
+      const testWindow = globalThis.window;
       const getApiConfig = testWindow.electron!.getApiConfig;
       testWindow.electron!.getApiConfig = vi.fn().mockRejectedValue(new Error('Config error'));
       
