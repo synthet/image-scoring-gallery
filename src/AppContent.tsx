@@ -23,6 +23,7 @@ import { bridge } from './bridge';
 import { useElectronListeners } from './hooks/useElectronListeners';
 import { useGalleryNavigation } from './hooks/useGalleryNavigation';
 import { useStacksMode } from './hooks/useStacksMode';
+import { useRepresentativeView } from './hooks/useRepresentativeView';
 import { useImageOpener } from './hooks/useImageOpener';
 import { useGalleryWebSocket } from './hooks/useGalleryWebSocket';
 import { isSortOptionValue, useScoringSortOptions } from './hooks/useScoringSortOptions';
@@ -209,6 +210,26 @@ function AppContent() {
     removeStackByImageId,
   } = useStacks(50, selectedFolderId, stackFilters, stacksMode);
 
+  const hasActiveFilters = useMemo(
+    () =>
+      filters.minRating > 0
+      || Boolean(filters.colorLabel)
+      || Boolean(getEffectiveKeyword(filters)?.trim())
+      || Boolean(filters.capturedDate),
+    [filters],
+  );
+
+  // Opt-in representative browsing view from a study manifest; needs the whole unfiltered folder.
+  const representative = useRepresentativeView<(typeof images)[number]>(
+    selectedFolderId,
+    hasActiveFilters || Boolean(subfolderIds),
+  );
+
+  const setRepresentativeMode = (on: boolean) => {
+    if (on && stacksMode) enableStacksMode(false);
+    void representative.setRepresentativeMode(on);
+  };
+
   // Keep refs up to date for WebSocket callbacks and folder navigation handlers
   useEffect(() => {
     stacksModeRef.current = stacksMode;
@@ -350,6 +371,10 @@ function AppContent() {
   };
 
   const handleNavigateToParent = () => {
+    if (representative.activeCard) {
+      representative.closeCard();
+      return;
+    }
     if (activeSubStackId !== null || activeUngroupedSubStack) {
       clearSubStack();
       return;
@@ -362,7 +387,9 @@ function AppContent() {
   };
 
   // Current display list is shared by the grid and viewer opener so card/detail navigation stays aligned.
-  const currentImages = (stacksMode && !activeStackId) ? stacks : (activeStackId ? activeStackDisplayImages : images);
+  const currentImages = representative.enabled
+    ? representative.displayImages
+    : (stacksMode && !activeStackId) ? stacks : (activeStackId ? activeStackDisplayImages : images);
 
   // Single agent-cull-review fetch shared by the panel (cards) and the grid (thumbnail overlays).
   const agentReview = useAgentCullReview(activeStackId ?? 0, activeSubStackId, {
@@ -393,7 +420,9 @@ function AppContent() {
     return () => window.clearTimeout(timer);
   }, [agentHighlightImageId]);
 
+  const { invalidate: invalidateRepresentatives } = representative;
   const removeImageFromActiveGrid = useCallback((id: number) => {
+    invalidateRepresentatives();
     if (stacksMode && activeStackId === null) {
       removeStackByImageId(id);
     } else if (activeStackId !== null) {
@@ -401,7 +430,7 @@ function AppContent() {
     } else {
       removeImage(id);
     }
-  }, [stacksMode, activeStackId, removeStackByImageId, handleImageDeleteFromStack, removeImage]);
+  }, [invalidateRepresentatives, stacksMode, activeStackId, removeStackByImageId, handleImageDeleteFromStack, removeImage]);
 
   const {
     openingImage,
@@ -426,14 +455,18 @@ function AppContent() {
   };
 
   // Current display count
-  const currentTotal = activeSubStackId !== null || activeUngroupedSubStack
+  const currentTotal = representative.enabled
+    ? representative.displayImages.length
+    : activeSubStackId !== null || activeUngroupedSubStack
     ? (activeSubStackInfo?.imageCount || subStackImages.length)
     : hasSubStackCards
       ? subStacks.length
       : (stacksMode && !activeStackId)
         ? stacksTotalCount
         : (activeStackId ? (activeStackInfo?.imageCount || stackImages.length) : totalCount);
-  const currentTotalLabel = hasSubStackCards
+  const currentTotalLabel = representative.enabled
+    ? (representative.activeCard ? 'similar frames' : `representatives (${representative.hiddenCount} hidden)`)
+    : hasSubStackCards
     ? 'sub-stacks'
     : stacksMode && !activeStackId
       ? 'items (grouped)'
@@ -451,15 +484,6 @@ function AppContent() {
         : stacksMode
           ? stacksLoading
           : imagesLoading
-  );
-
-  const hasActiveFilters = useMemo(
-    () =>
-      filters.minRating > 0
-      || Boolean(filters.colorLabel)
-      || Boolean(getEffectiveKeyword(filters)?.trim())
-      || Boolean(filters.capturedDate),
-    [filters],
   );
 
   const headerTitle = toolView === 'search'
@@ -576,8 +600,9 @@ function AppContent() {
     () =>
       isToolViewOpen
         ? true
-        : activeSubStackId !== null || activeUngroupedSubStack || activeStackId !== null || selectedFolderId !== undefined,
-    [isToolViewOpen, activeSubStackId, activeUngroupedSubStack, activeStackId, selectedFolderId],
+        : representative.activeCard !== null || activeSubStackId !== null || activeUngroupedSubStack
+          || activeStackId !== null || selectedFolderId !== undefined,
+    [isToolViewOpen, representative.activeCard, activeSubStackId, activeUngroupedSubStack, activeStackId, selectedFolderId],
   );
 
   return (
@@ -687,10 +712,44 @@ function AppContent() {
                   aria-checked={stacksMode}
                   aria-label="Stacks mode"
                   className={toggleStyles.toggle}
-                  onClick={() => enableStacksMode(!stacksMode)}
+                  onClick={() => {
+                    if (!stacksMode && representative.enabled) void representative.setRepresentativeMode(false);
+                    enableStacksMode(!stacksMode);
+                  }}
                 >
                   <span className={toggleStyles.thumb} />
                 </button>
+              </div>
+              )}
+
+              {!isToolViewOpen && selectedFolderId !== undefined && (
+              <div style={{
+                display: 'flex', flexDirection: 'column', gap: 4,
+                padding: '6px', background: '#333', borderRadius: 4, border: '1px solid #555',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span
+                    style={{ fontSize: '12px', color: '#ccc' }}
+                    title="Open a study manifest to show one card per group of similar frames. Read-only; every frame stays one click away."
+                  >
+                    Representatives
+                  </span>
+                  <button
+                    role="switch"
+                    aria-checked={representative.enabled}
+                    aria-label="Representative view"
+                    className={toggleStyles.toggle}
+                    disabled={representative.loading}
+                    onClick={() => setRepresentativeMode(!representative.enabled)}
+                  >
+                    <span className={toggleStyles.thumb} />
+                  </button>
+                </div>
+                {representative.preview?.status === 'fallback' && representative.preview.reason !== 'cancelled' && (
+                  <span role="status" style={{ fontSize: '11px', color: '#e0b060' }}>
+                    Showing all images: {representative.preview.detail}
+                  </span>
+                )}
               </div>
               )}
 
@@ -861,10 +920,12 @@ function AppContent() {
                   />
                 )}
                 <GalleryGrid
-                  key={`${selectedFolderId ?? 'all'}-${activeStackId ?? 'none'}-${activeSubStackId ?? 'none'}-${activeUngroupedSubStack ? 'ungrouped' : 'grouped'}-${stacksMode ? 'stacks' : 'images'}-${hasSubStackCards ? 'substacks' : 'flat'}`}
+                  key={`${selectedFolderId ?? 'all'}-${activeStackId ?? 'none'}-${activeSubStackId ?? 'none'}-${activeUngroupedSubStack ? 'ungrouped' : 'grouped'}-${stacksMode ? 'stacks' : 'images'}-${hasSubStackCards ? 'substacks' : 'flat'}-${representative.enabled ? `rep-${representative.activeCard?.representativeId ?? 'cards'}` : 'norep'}`}
                   images={currentImages}
                   onSelect={handleImageClick}
-                  onEndReached={activeStackId ? undefined : loadMore}
+                  onEndReached={activeStackId || representative.enabled ? undefined : loadMore}
+                  representativeMode={representative.enabled && !representative.activeCard}
+                  onSelectRepresentative={representative.openCard}
                   onNavigateToParent={handleNavigateToParent}
                   viewerOpen={!!openingImage}
                   subfolders={folders.flatMap(f => {
@@ -899,7 +960,7 @@ function AppContent() {
                     if (action === 'approve') agentReview.approve(rec);
                     else agentReview.reject(rec);
                   }}
-                  highlightImageId={agentHighlightImageId}
+                  highlightImageId={agentHighlightImageId ?? representative.returnToId}
                 />
                 <SimilarSearchDrawer
                   open={isSimilarDrawerOpen}

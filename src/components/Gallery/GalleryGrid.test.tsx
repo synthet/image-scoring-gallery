@@ -390,3 +390,39 @@ describe('GalleryGrid eye keypoints', () => {
         expect(screen.queryByTestId('eye-keypoint-marker')).toBeNull();
     });
 });
+
+describe('GalleryGrid representative cards', () => {
+    const image = (id: number, image_count?: number) => ({
+        id,
+        file_path: `D:/photos/DSC_${id}.NEF`,
+        file_name: `DSC_${id}.NEF`,
+        score_general: 0.5,
+        rating: 2,
+        label: 'Red',
+        image_count,
+    });
+
+    it('opens the group from a representative card and opens single frames in the viewer', () => {
+        const onSelect = vi.fn();
+        const onSelectRepresentative = vi.fn();
+        render(
+            <GalleryGrid
+                images={[image(1, 3), image(2, 1)]}
+                representativeMode
+                onSelect={onSelect}
+                onSelectRepresentative={onSelectRepresentative}
+            />,
+        );
+        expect(screen.getByTitle('DSC_1.NEF (shows 3 similar frames)')).toBeTruthy();
+        fireEvent.click(screen.getByTitle('DSC_1.NEF (shows 3 similar frames)'));
+        expect(onSelectRepresentative).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
+        expect(onSelect).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByText('DSC_2.NEF'));
+        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }));
+    });
+
+    it('renders plain image cards when representative mode is off', () => {
+        render(<GalleryGrid images={[image(1, 3)]} />);
+        expect(screen.queryByTitle('DSC_1.NEF (shows 3 similar frames)')).toBeNull();
+    });
+});

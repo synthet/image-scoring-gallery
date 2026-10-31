@@ -13,6 +13,7 @@ Chronological record of wiki maintenance activities. Newest entries first.
 
 ## 2026-10
 
+- 2026-10-31: created — [Representative preview](features/implemented/10-representative-preview.md): opt-in read-only folder view from a `driftara-representative-preview/1` study manifest; new IPC channel `study:load-representative-preview`; fallbacks and tests documented; indexed in [features/implemented/INDEX.md](features/implemented/INDEX.md) and [README.md](README.md).
 - 2026-10-21: updated — [Normalized bird-box compatibility reads](architecture/02-database-design.md#normalized-bird-box-compatibility-reads): local default-off SQL consumers use backend view 0043 in both provider modes; migration prerequisites and restart rollback are documented. All seven projections are covered; 58 focused tests, both TypeScript projects and scoped lint passed. No runtime flag or schema activation.
 - 2026-10-05: updated — [JPEG export and EXIF orientation](features/implemented/05-jpeg-export-exif-orientation.md): documented Chromium's oriented decode, source TIFF orientation for browser RAW fallbacks, numeric ExifTool preview stamping, thumbnail cache recovery, diagnostic tools, and unchanged image 240203 with real-file verification evidence.
 
