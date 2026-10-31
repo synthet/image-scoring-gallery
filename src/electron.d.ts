@@ -58,6 +58,7 @@ import type {
     OutlierSearchResult,
     TextSearchResponse,
 } from '../electron/apiTypes';
+import type { RepresentativePreviewLoad } from '../electron/representativePreview';
 
 export type {
     AppConfig,
@@ -171,6 +172,8 @@ declare global {
             getDiagnosticArtifact: (imageId: number, artifactId: string) => Promise<string>;
             exportEvidencePack: (imageId: number, destPath: string) => Promise<{ path: string }>;
             selectDirectory: () => Promise<string | null>;
+            /** Opt-in representative browsing view: pick a study manifest for this folder (read-only). */
+            loadRepresentativePreview: (folderId: number) => Promise<RepresentativePreviewLoad>;
             openExternalUrl: (url: string) => Promise<void>;
             getDiagnostics: () => Promise<DiagnosticsReport>;
             getProcessMemoryInfo: () => Promise<ProcessMemorySnapshot | null>;

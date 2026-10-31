@@ -430,6 +430,12 @@ function createHttpBridge(): Window['electron'] {
 
         selectDirectory: () => Promise.resolve(null),
 
+        // Desktop only: the manifest is read by the Electron main process.
+        loadRepresentativePreview: () => Promise.resolve({
+            preview: { status: 'fallback', reason: 'unreadable', detail: 'representative preview needs the desktop app' },
+            images: [],
+        }),
+
         getDiagnostics: async () => {
             const apiCfg = await get<{ url: string }>('/api-config');
             let apiConnected = false;

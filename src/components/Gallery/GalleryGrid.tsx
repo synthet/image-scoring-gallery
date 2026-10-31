@@ -115,6 +115,9 @@ interface GalleryGridProps {
     onAgentAction?: (rec: AgentCullRecommendation, action: AgentGridAction) => void;
     /** Image id to scroll to and briefly highlight (from an agent panel card click). */
     highlightImageId?: number | null;
+    /** Representative preview: cards with `image_count > 1` stand for a group and open it on click. */
+    representativeMode?: boolean;
+    onSelectRepresentative?: (image: Image) => void;
 }
 
 
@@ -206,6 +209,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     activeStackId, activeSubStackId, useGalleryThumbnail = false, onFindSimilar,
     filterEmptyActive = false,
     agentRecommendations, onAgentAction, highlightImageId = null,
+    representativeMode = false, onSelectRepresentative,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const virtuosoRef = useRef<VirtuosoGridHandle>(null);
@@ -468,12 +472,14 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         );
     }, [getScoreDisplay, getLabelColor, renderPickRejectStatus, renderThumb, agentRecommendations, onAgentAction, highlightImageId, handleContextMenu]);
 
-    const renderStackCard = useCallback((stack: Image, onClick: () => void, kind: 'stack' | 'substack' = 'stack') => {
+    const renderStackCard = useCallback((stack: Image, onClick: () => void, kind: 'stack' | 'substack' | 'representative' = 'stack') => {
         const labelColor = getLabelColor(stack.label);
         const count = stack.image_count || 1;
         const title = kind === 'substack'
             ? `${stack.name || (stack.is_ungrouped_sub_stack ? 'Ungrouped' : `Sub-stack #${stack.sub_stack_id ?? stack.id}`)} (${count} photos)`
-            : count > 1 ? `Stack (${count} photos)` : stack.file_name;
+            : kind === 'representative'
+                ? `${stack.file_name} (shows ${count} similar frames)`
+                : count > 1 ? `Stack (${count} photos)` : stack.file_name;
 
         return (
             <div
@@ -548,10 +554,13 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                     onSelectSubStack(item);
                 }
             }, 'substack');
+        } else if (representativeMode && (item.image_count ?? 1) > 1) {
+            // Opening a group never selects or acts on its hidden members.
+            return renderStackCard(item, () => onSelectRepresentative?.(item), 'representative');
         } else {
             return renderImageCard(item, () => onSelect && onSelect(item), activeStackId != null);
         }
-    }, [activeStackId, displayData, isStacksView, isSubStacksView, renderStackCard, renderImageCard, onSelectStack, onSelectSubStack, onSelect]);
+    }, [activeStackId, displayData, isStacksView, isSubStacksView, renderStackCard, renderImageCard, onSelectStack, onSelectSubStack, onSelect, representativeMode, onSelectRepresentative]);
 
     const handleEndReached = useCallback(() => {
         endReachedHandler?.();

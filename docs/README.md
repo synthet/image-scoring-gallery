@@ -62,6 +62,7 @@ See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenan
 - [features/implemented/06-culling-stack-analytics.md](features/implemented/06-culling-stack-analytics.md) - culling insights sidebar and stack analytics banner.
 - [features/implemented/07-grid-delete-state-sync.md](features/implemented/07-grid-delete-state-sync.md) - optimistic grid removal after ImageViewer delete in Stacks mode.
 - [features/implemented/08-stack-substack-navigation.md](features/implemented/08-stack-substack-navigation.md) - stack/sub-stack drill-down and single sub-stack auto-open.
+- [features/implemented/10-representative-preview.md](features/implemented/10-representative-preview.md) - opt-in representative browsing view from a study manifest.
 - [features/implemented/07-grid-delete-state-sync.md](features/implemented/07-grid-delete-state-sync.md) - optimistic grid row removal after ImageViewer delete (Stacks mode fix).
 - [features/planned/README.md](features/planned/README.md) - planned desktop work.
 

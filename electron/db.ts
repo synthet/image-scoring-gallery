@@ -13,6 +13,7 @@ import { visibleKeywordsSource } from './speciesVisibility';
 import { applyThumbnailPathRemaps } from './pathsRemap';
 import type { AFMetadata, AppConfig, DatabaseConfig, EyeKeypoint, ImageEyeKeypoints, ScoredImageForBackup } from './types';
 import { createDatabaseConnector, IDatabaseConnector, QueryParam, TxQuery } from './db/provider';
+import type { RepresentativeLiveFlags } from './representativePreview';
 
 // Load configuration
 function loadConfig(): AppConfig {
@@ -1952,6 +1953,27 @@ function warnMissingPickStatusColumn(error: unknown): void {
     if (hasWarnedMissingPickStatusColumn) return;
     hasWarnedMissingPickStatusColumn = true;
     console.warn('[DB] images.pick_status not available; hiding pick/reject stack badges.', error);
+}
+
+/**
+ * Raw rating, label and stored pick status of every image in a folder, for the representative
+ * preview's changed-since-freeze check. Unlike the grid queries this reads `pick_status` as stored,
+ * not the label-derived display value. Without the column, rows omit `pick_status`.
+ */
+export async function getFolderImageFlags(folderId: number): Promise<RepresentativeLiveFlags[]> {
+    try {
+        return await query<RepresentativeLiveFlags>(
+            'SELECT i.id, i.rating, i.label, i.pick_status FROM images i WHERE i.folder_id = ? ORDER BY i.id',
+            [folderId],
+        );
+    } catch (e) {
+        if (!isMissingPickStatusColumnError(e)) throw e;
+        warnMissingPickStatusColumn(e);
+        return await query<RepresentativeLiveFlags>(
+            'SELECT i.id, i.rating, i.label FROM images i WHERE i.folder_id = ? ORDER BY i.id',
+            [folderId],
+        );
+    }
 }
 
 function imagePickStatusSelect(includePickStatus: boolean, imageAlias = 'i'): string {

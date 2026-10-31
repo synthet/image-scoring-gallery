@@ -23,6 +23,7 @@ import { registerBackupHandlers } from './ipc/registerBackupHandlers';
 import { registerSyncHandlers } from './ipc/registerSyncHandlers';
 import { registerImportHandlers } from './ipc/registerImportHandlers';
 import { registerNefFsHandlers } from './ipc/registerNefFsHandlers';
+import { registerStudyHandlers } from './ipc/registerStudyHandlers';
 import { registerAppHandlers } from './ipc/registerAppHandlers';
 import { registerSystemHandlers } from './ipc/registerSystemHandlers';
 import { registerApiHandlers } from './ipc/registerApiHandlers';
@@ -383,6 +384,11 @@ async function startFullApplication(): Promise<void> {
         exiftool,
         getMainWindow: () => mainWindow,
         electronDirname: __dirname,
+    });
+
+    registerStudyHandlers({
+        ipcMain,
+        getMainWindow: () => mainWindow,
     });
 
     registerAppHandlers({

@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { RepresentativePreviewLoad } from './representativePreview';
 import type { DiagnosticLayer, DiagnosticManifest } from './diagnosticTypes';
 import type {
     ImageQueryOptions,
@@ -315,6 +316,10 @@ contextBridge.exposeInMainWorld('electron', {
     selectDirectory: async () => {
         const response = await ipcRenderer.invoke('fs:select-directory');
         return unwrapEnvelope<string | null>(response);
+    },
+    loadRepresentativePreview: async (folderId: number) => {
+        const response = await ipcRenderer.invoke('study:load-representative-preview', folderId);
+        return unwrapEnvelope<RepresentativePreviewLoad>(response);
     },
     openExternalUrl: async (url: string) => {
         await ipcRenderer.invoke('system:open-external-url', url);
