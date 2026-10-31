@@ -9,7 +9,7 @@ Use for periodic maintenance or when docs feel stale or disorganized. Finds stru
 
 ## Steps
 
-0. **Run automated OKF lint** (from sibling **image-scoring-backend** repo root):
+0. **Run automated OKF lint** (from sibling **image-scoring-pipeline** repo root):
    - `python scripts/okf_lint.py ../image-scoring-gallery/docs --profile vexlum --bundle-name docs`
    Use findings as the starting point for manual review below.
 

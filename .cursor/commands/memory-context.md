@@ -2,12 +2,12 @@
 
 # /memory-context — Print memory for a new session
 
-Output compact approved memory for paste or `@../image-scoring-backend/.agent-memory/memory.md`.
+Output compact approved memory for paste or `@../image-scoring-pipeline/.agent-memory/memory.md`.
 
 ## Steps
 
 ```powershell
-python ../image-scoring-backend/scripts/agent-memory/context.py
+python ../image-scoring-pipeline/scripts/agent-memory/context.py
 ```
 
 Or instruct the user to reference sibling backend `.agent-memory/memory.md` directly.

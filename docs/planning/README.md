@@ -21,7 +21,7 @@ Roadmap, migration plans, and task tracking.
 - [Gallery visual improvements](GALLERY_VISUAL_IMPROVEMENTS.md) - UI polish and layout backlog
 - [DB abstraction layer](db_abstraction_layer.md) - Electron DB provider refactor notes
 - [Codebase size refactor plan](CODEBASE_SIZE_REFACTOR_PLAN.md) - Phased LoC reduction checklist (audit-driven; pairs with backend plan)
-- [Evidence-led review workflow improvement candidates](reference-workflow-improvement-candidates.md) - Clean-room proposal for comparison, progressive evidence, close calls, reversible actions, diagnostics, accessibility, and large-library performance
+- [Evidence-led review workflow improvement candidates](reference-workflow-improvement-candidates.md) - proposal for comparison, progressive evidence, close calls, reversible actions, diagnostics, accessibility, and large-library performance
 
 [← Back to Documentation Index](../README.md)
 

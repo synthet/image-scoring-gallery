@@ -1,7 +1,7 @@
 ---
 type: "Technical Reference"
 title: "OpenAPI Contract (Gallery Consumer)"
-description: "Driftara Gallery does not define its own REST OpenAPI spec. The canonical contract is owned by image-scoring-backend:"
+description: "Driftara Gallery does not define its own REST OpenAPI spec. The canonical contract is owned by image-scoring-pipeline:"
 resource: "docs/technical/OPENAPI_CONTRACT.md"
 tags: ["gallery-docs", "technical"]
 timestamp: 2026-06-16T00:00:00Z
@@ -9,11 +9,11 @@ timestamp: 2026-06-16T00:00:00Z
 
 # OpenAPI Contract (Gallery Consumer)
 
-Driftara Gallery does **not** define its own REST OpenAPI spec. The canonical contract is owned by **image-scoring-backend**:
+Driftara Gallery does **not** define its own REST OpenAPI spec. The canonical contract is owned by **image-scoring-pipeline**:
 
-- [API_CONTRACT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/API_CONTRACT.md)
-- [openapi.yaml](https://github.com/synthet/image-scoring-backend/blob/main/docs/reference/api/openapi.yaml)
-- Cross-project overview: [OPENAPI_CROSS_PROJECT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/OPENAPI_CROSS_PROJECT.md)
+- [API_CONTRACT.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/API_CONTRACT.md)
+- [openapi.yaml](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reference/api/openapi.yaml)
+- Cross-project overview: [OPENAPI_CROSS_PROJECT.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/OPENAPI_CROSS_PROJECT.md)
 
 ## Local synced artifacts
 
@@ -27,7 +27,7 @@ These files are **not** authority — they mirror the backend. When they drift, 
 
 ## Commands
 
-From gallery repo root (expects sibling `../image-scoring-backend`):
+From gallery repo root (expects sibling `../image-scoring-pipeline`):
 
 ```bash
 npm run contract:diff          # copy backend openapi.json → api-contract/

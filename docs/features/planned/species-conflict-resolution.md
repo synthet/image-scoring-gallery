@@ -11,7 +11,7 @@ timestamp: 2026-06-16T00:00:00Z
 
 *Status: **Planned (proposal)***
 
-*Owner: TBD · Work lives almost entirely in **image-scoring-backend**; the gallery needs little to no change.*
+*Owner: TBD · Work lives almost entirely in **image-scoring-pipeline**; the gallery needs little to no change.*
 
 ## Decision
 
@@ -29,11 +29,11 @@ This supersedes the earlier multi-layer "conflict resolution via CLI agents" pro
 
 ## How it works today (already built)
 
-`image-scoring-backend/modules/bird_species.py` runs BioCLIP 2 zero‑shot over `birds`-tagged images and writes the top‑`top_k` species as `species:Name` keywords, each with a confidence stored on `image_keywords.confidence` (`source=bioclip`). `classify()` already returns results **sorted by confidence descending** and sliced to `top_k`. The default `top_k` is **3** at every layer. The backend's own tuning guide already lists "lower `top_k` to 1" as the fix for wrong-species noise (`docs/technical/BIRD_SPECIES_WALKTHROUGH.md:480`).
+`image-scoring-pipeline/modules/bird_species.py` runs BioCLIP 2 zero‑shot over `birds`-tagged images and writes the top‑`top_k` species as `species:Name` keywords, each with a confidence stored on `image_keywords.confidence` (`source=bioclip`). `classify()` already returns results **sorted by confidence descending** and sliced to `top_k`. The default `top_k` is **3** at every layer. The backend's own tuning guide already lists "lower `top_k` to 1" as the fix for wrong-species noise (`docs/technical/BIRD_SPECIES_WALKTHROUGH.md:480`).
 
 So the entire change is: **make `top_k = 1` the default**, plus a one-time backfill.
 
-## Files / areas to touch (image-scoring-backend)
+## Files / areas to touch (image-scoring-pipeline)
 
 Change the default `top_k` from `3` → `1`:
 
@@ -94,7 +94,7 @@ The prior version of this doc proposed a four-layer pipeline (conflict detector 
 
 ## Open questions for the maintainer
 
-1. **File on the board?** Per `CLAUDE.md`, this needs a `Ready` issue on [Project 1](https://github.com/users/synthet/projects/1) before implementation — and most of it lands in **image-scoring-backend**, so the issue likely belongs there.
+1. **File on the board?** Per `CLAUDE.md`, this needs a `Ready` issue on [Project 1](https://github.com/users/synthet/projects/1) before implementation — and most of it lands in **image-scoring-pipeline**, so the issue likely belongs there.
 2. Backfill strategy: SQL max-confidence (cheap, skips null-confidence rows) vs. full re-run (`overwrite=true`, GPU cost) vs. both?
 3. Should the threshold change too? Top‑1 alone reduces noise; raising `threshold` (0.1 → 0.3) would further cut low-confidence single guesses.
 

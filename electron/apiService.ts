@@ -538,4 +538,8 @@ export class ApiService {
     getScopeTree() {
         return this.get<ScopeTreeResponse>('/api/scope/tree', { include_phase_status: false }, LONG_TIMEOUT);
     }
+
+    getImageEvidence(imageId: number) {
+        return this.get<Record<string, unknown>>(`/api/images/${imageId}/evidence`, undefined, LONG_TIMEOUT);
+    }
 }

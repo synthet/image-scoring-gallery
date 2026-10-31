@@ -13,7 +13,7 @@ Physical definitions: [`.cursor/agents/`](../.cursor/agents/), mirrored to [`.cl
 | gallery-ui-agent | `gallery-electron-ts` | React components, `src/` | Existing patterns, design tokens |
 | gallery-docs-agent | [`docs-wiki` skill](../.cursor/skills/docs-wiki/SKILL.md) | `docs/`, log, indexes | [docs/WIKI_SCHEMA.md](../docs/WIKI_SCHEMA.md) |
 | gallery-mcp-debug (triage) | [`gallery-mcp-debug`](../.cursor/agents/gallery-mcp-debug.md) | Reachability, CDP, local status | [AGENTS.md](../AGENTS.md) |
-| cross-repo-integration-agent | `gallery-electron-ts` + backend handoff | Contract order, types sync | [Backend AGENT_COORDINATION](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) |
+| cross-repo-integration-agent | `gallery-electron-ts` + backend handoff | Contract order, types sync | [Backend AGENT_COORDINATION](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/AGENT_COORDINATION.md) |
 | external-review-agent | [`external-cli-reviewer`](../.cursor/agents/external-cli-reviewer.md), [`subagent-review`](../.cursor/skills/subagent-review/SKILL.md) | Review-only Codex/Gemini via MCP | [docs/technical/EXTERNAL_CLI_REVIEWS.md](../docs/technical/EXTERNAL_CLI_REVIEWS.md) |
 
 ## Allowed vs forbidden

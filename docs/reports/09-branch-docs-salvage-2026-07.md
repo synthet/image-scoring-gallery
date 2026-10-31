@@ -12,7 +12,7 @@ okf_version: 0.1
 
 Point-in-time record of **documentation-only** remote branches removed after a branch audit. No open PRs referenced these tips at cleanup time.
 
-**Backend companion:** [image-scoring-backend — BRANCH_DOCS_SALVAGE_2026-07.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/BRANCH_DOCS_SALVAGE_2026-07.md)
+**Backend companion:** [image-scoring-pipeline — BRANCH_DOCS_SALVAGE_2026-07.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reports/BRANCH_DOCS_SALVAGE_2026-07.md)
 
 ## Branches processed
 

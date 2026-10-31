@@ -82,10 +82,10 @@ After adding fff:
 
 ## Optional: log provisioning (sibling backend)
 
-When **image-scoring-backend** is a sibling checkout, log that CLI tools were provisioned:
+When **image-scoring-pipeline** is a sibling checkout, log that CLI tools were provisioned:
 
 ```bash
-python ../image-scoring-backend/scripts/agent-memory/log_session.py \
+python ../image-scoring-pipeline/scripts/agent-memory/log_session.py \
   --summary "CLI tools installed per install-tiers + agent-environment" \
   --outcome "fd, bat, sg, ruff, yq, just on PATH; Cursor restarted" \
   --candidate "After winget CLI installs restart Cursor so agent shells inherit PATH|working_rule|high"

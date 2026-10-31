@@ -21,9 +21,9 @@ if errorlevel 1 (
 )
 
 REM Ensure the backend network exists (usually created by backend's docker compose)
-docker network inspect image-scoring-backend_default >nul 2>&1
+docker network inspect image-scoring-pipeline_default >nul 2>&1
 if errorlevel 1 (
-    echo [WARNING] Network 'image-scoring-backend_default' not found.
+    echo [WARNING] Network 'image-scoring-pipeline_default' not found.
     echo           Please ensure the backend is running - docker_refresh_webui.bat in backend repo.
     echo           If you use a different project name, update docker-compose.yml networks.
     pause

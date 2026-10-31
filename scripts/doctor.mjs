@@ -42,8 +42,9 @@ if (major < 18) {
 }
 
 line('');
-line('Sibling backend (image-scoring-backend)');
+line('Sibling backend (image-scoring-pipeline)');
 const candidates = [
+  join(ROOT, '..', 'image-scoring-pipeline', 'webui.lock'),
   join(ROOT, '..', 'image-scoring-backend', 'webui.lock'),
   join(ROOT, '..', 'image-scoring', 'webui.lock'),
 ];

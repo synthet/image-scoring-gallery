@@ -10,7 +10,7 @@ timestamp: 2026-06-21T18:00:00Z
 # Agent-assisted cull review — gallery worklog
 
 Gallery/Electron side of the agent-assisted cull review feature. Backend spec & worklog:
-`image-scoring-backend/docs/specs/agent-assisted-cull-review/`. Epic: gallery #134
+`image-scoring-pipeline/docs/specs/agent-assisted-cull-review/`. Epic: gallery #134
 (backend #253). Metadata-only — no physical delete/trash in any phase.
 
 ---
@@ -19,13 +19,13 @@ Gallery/Electron side of the agent-assisted cull review feature. Backend spec & 
 
 - Added [reports/08-picked-advisory-gap-2026-06-21.md](../reports/08-picked-advisory-gap-2026-06-21.md): gallery UI surfaces for `pick_quality_advisory`, operator workflow, backend verification link.
 - Updated [guides/04-agent-cull-review.md](../guides/04-agent-cull-review.md) (picked-image quality advisories section), [features/implemented/06-culling-stack-analytics.md](../features/implemented/06-culling-stack-analytics.md), [reports/README.md](../reports/README.md), [README.md](../README.md).
-- Backend authority: [PICKED_ADVISORY_GAP_195193_2026-06-21.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/PICKED_ADVISORY_GAP_195193_2026-06-21.md).
+- Backend authority: [PICKED_ADVISORY_GAP_195193_2026-06-21.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reports/PICKED_ADVISORY_GAP_195193_2026-06-21.md).
 
 ## [2026-06-18] ingest — Gemini CLI not found (Docker operator guide)
 
 - Created [guides/04-agent-cull-review.md](../guides/04-agent-cull-review.md): Gallery operator workflow, `friendlyAgentError` codes, pointer to backend setup.
 - Updated [features/implemented/06-culling-stack-analytics.md](../features/implemented/06-culling-stack-analytics.md) with `AgentCullReviewPanel` cross-ref.
-- Backend companion: [agent-cull-review-gemini-cli.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/guides/setup/agent-cull-review-gemini-cli.md).
+- Backend companion: [agent-cull-review-gemini-cli.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/guides/setup/agent-cull-review-gemini-cli.md).
 
 ## 2026-06-13 — Gallery MVP: panel base + #135 / #136 / #137
 
@@ -80,7 +80,7 @@ electron) was clean.
 
 ### Caveats / follow-ups
 - **Tooling source mismatch (cross-repo):** `npm run generate:api-types` reads the *sibling*
-  `../image-scoring-backend/openapi.json`, which is **stale** (predates agent-review). For the
+  `../image-scoring-pipeline/openapi.json`, which is **stale** (predates agent-review). For the
   canonical flow to match, the **backend must regenerate its committed `openapi.json`**
   (backend cross-repo #137 / AGENT_COORDINATION). This PR generated types from the in-repo
   snapshot to stay self-contained.

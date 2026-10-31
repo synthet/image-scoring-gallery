@@ -1,7 +1,7 @@
 ---
 type: "Report"
 title: "Dead Code Registry (gallery)"
-description: "Chronological record of confirmed orphan/dead code removed from image-scoring-gallery. Backend removals: image-scoring-backend/docs/reports/DEADCODEREGISTRY.md."
+description: "Chronological record of confirmed orphan/dead code removed from image-scoring-gallery. Backend removals: image-scoring-pipeline/docs/reports/DEADCODEREGISTRY.md."
 resource: "docs/reports/DEAD_CODE_REGISTRY.md"
 tags: ["gallery-docs", "reports"]
 timestamp: 2026-06-16T00:00:00Z
@@ -9,9 +9,9 @@ timestamp: 2026-06-16T00:00:00Z
 
 # Dead Code Registry (gallery)
 
-Chronological record of confirmed orphan/dead code removed from **image-scoring-gallery**. Backend removals: [image-scoring-backend/docs/reports/DEAD_CODE_REGISTRY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/DEAD_CODE_REGISTRY.md).
+Chronological record of confirmed orphan/dead code removed from **image-scoring-gallery**. Backend removals: [image-scoring-pipeline/docs/reports/DEAD_CODE_REGISTRY.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reports/DEAD_CODE_REGISTRY.md).
 
-**Cross-repo tracking:** [synthet/image-scoring-backend#252](https://github.com/synthet/image-scoring-backend/issues/252)
+**Cross-repo tracking:** [synthet/image-scoring-pipeline#252](https://github.com/synthet/image-scoring-pipeline/issues/252)
 
 ---
 

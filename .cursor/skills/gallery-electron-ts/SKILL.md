@@ -2,7 +2,7 @@
 name: gallery-electron-ts
 description: >-
   Works in image-scoring-gallery on electron/db.ts contract, IPC, apiService,
-  React/Vite, and alignment with sibling image-scoring-backend schema. Use for
+  React/Vite, and alignment with sibling image-scoring-pipeline schema. Use for
   desktop app bugs, database.engine modes, API URL/port from webui.lock, or
   TypeScript changes under electron/ or src/. Triggers include Electron gallery,
   db.ts, IPC, apiService, config.api, PostgreSQL vs api engine, and Vite renderer.
@@ -28,11 +28,11 @@ description: >-
 
 ## Pipeline UI terminology (gallery + backend)
 
-User-visible stage names match **image-scoring-backend** Gradio/Vite: **Discovery**, **Inspection**, **Quality Analysis**, **Similarity Clustering**, **Tagging** (`docs/technical/PIPELINE_TERMINOLOGY.md` on each repo). In this app, labels live in **`src/constants/pipelineLabels.ts`** — keep them aligned when backend **`frontend/src/types/api.ts`** (`STAGE_DISPLAY`) changes. The renderer prefers **run** in copy while APIs still use **`job_id`**.
+User-visible stage names match **image-scoring-pipeline** Gradio/Vite: **Discovery**, **Inspection**, **Quality Analysis**, **Similarity Clustering**, **Tagging** (`docs/technical/PIPELINE_TERMINOLOGY.md` on each repo). In this app, labels live in **`src/constants/pipelineLabels.ts`** — keep them aligned when backend **`frontend/src/types/api.ts`** (`STAGE_DISPLAY`) changes. The renderer prefers **run** in copy while APIs still use **`job_id`**.
 
 ## Schema and API authority (before renaming columns or response shapes)
 
-The **image-scoring-backend** repo owns the database schema and REST contract.
+The **image-scoring-pipeline** repo owns the database schema and REST contract.
 
 1. Cross-check **`modules/db_postgres.py`** (DDL and table/column names) and
    Alembic migrations under **`migrations/versions/`** when available.
@@ -77,7 +77,7 @@ Keep **sibling clone layout** in mind: backend and gallery as sibling folders so
 
 - Prefer **small, focused diffs**; avoid unrelated refactors.
 - When a change **requires** backend schema or API updates, state that clearly in
-  the summary (and what must change in **image-scoring-backend**).
+  the summary (and what must change in **image-scoring-pipeline**).
 - **Renderer styling** (CSS Modules, design tokens, component layout): use the **`gallery-ui`** skill (`.cursor/skills/gallery-ui/SKILL.md`).
 
 ## View-menu overlays that must work in the grid

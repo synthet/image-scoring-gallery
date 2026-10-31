@@ -78,7 +78,7 @@ export function buildMediaPathCandidates(
     push(absolutized);
 
     const configuredBase = resolveThumbnailBase(projectRoot, pathsCfg);
-    const defaultBase = path.resolve(projectRoot, '../image-scoring-backend/thumbnails');
+    const defaultBase = path.resolve(projectRoot, '../image-scoring-pipeline/thumbnails');
     const dockerBackendBase = '/backend/thumbnails';
 
     for (const source of [rawDecodedPath, remapped]) {

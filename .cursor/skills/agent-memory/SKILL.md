@@ -5,11 +5,11 @@ description: Log agent sessions, consolidate project memory (dream), promote rev
 
 # Agent memory
 
-Local consolidation for **image-scoring-gallery** — scripts and canonical store live in sibling **image-scoring-backend** (no duplicate dream engine in gallery).
+Local consolidation for **image-scoring-gallery** — scripts and canonical store live in sibling **image-scoring-pipeline** (no duplicate dream engine in gallery).
 
 ## When to use
 
-- **Session start:** Read sibling `../image-scoring-backend/.agent-memory/memory.md`; prefer repo evidence on conflict.
+- **Session start:** Read sibling `../image-scoring-pipeline/.agent-memory/memory.md`; prefer repo evidence on conflict.
 - **Session end / milestone:** Log durable learnings with `/log-session`.
 - **Periodic:** Run `/dream-memory`, review changelog, `/promote-memory` after human approval.
 
@@ -32,13 +32,13 @@ Confidence: `low`, `medium`, `high`.
 ## Commands (gallery repo root)
 
 ```powershell
-python ../image-scoring-backend/scripts/agent-memory/log_session.py --summary "..." --outcome "..." --candidate "text|working_rule|high"
-python ../image-scoring-backend/scripts/agent-memory/dream.py
-python ../image-scoring-backend/scripts/agent-memory/promote_dream.py --dream ../image-scoring-backend/.agent-memory/dreams/<timestamp>.md
-python ../image-scoring-backend/scripts/agent-memory/context.py
+python ../image-scoring-pipeline/scripts/agent-memory/log_session.py --summary "..." --outcome "..." --candidate "text|working_rule|high"
+python ../image-scoring-pipeline/scripts/agent-memory/dream.py
+python ../image-scoring-pipeline/scripts/agent-memory/promote_dream.py --dream ../image-scoring-pipeline/.agent-memory/dreams/<timestamp>.md
+python ../image-scoring-pipeline/scripts/agent-memory/context.py
 ```
 
-Transcript import: backend `/import-transcripts` and [AGENT_MEMORY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_MEMORY.md).
+Transcript import: backend `/import-transcripts` and [AGENT_MEMORY.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/AGENT_MEMORY.md).
 
 ## Dream review checklist
 
@@ -56,5 +56,5 @@ Transcript import: backend `/import-transcripts` and [AGENT_MEMORY.md](https://g
 ## Reference
 
 - [`.agent-memory/CURSOR_USAGE.md`](../../.agent-memory/CURSOR_USAGE.md)
-- Backend [`.agent-memory/CURSOR_USAGE.md`](https://github.com/synthet/image-scoring-backend/blob/main/.agent-memory/CURSOR_USAGE.md)
-- Backend [docs/technical/AGENT_MEMORY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_MEMORY.md)
+- Backend [`.agent-memory/CURSOR_USAGE.md`](https://github.com/synthet/image-scoring-pipeline/blob/main/.agent-memory/CURSOR_USAGE.md)
+- Backend [docs/technical/AGENT_MEMORY.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/AGENT_MEMORY.md)

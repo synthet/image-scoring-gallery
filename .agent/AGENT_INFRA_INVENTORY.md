@@ -1,6 +1,6 @@
 # Agent infrastructure inventory — image-scoring-gallery
 
-**Last reviewed:** 2026-07-04. **Backend authority:** [image-scoring-backend docs/CANONICAL_SOURCES.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/CANONICAL_SOURCES.md).
+**Last reviewed:** 2026-07-04. **Backend authority:** [image-scoring-pipeline docs/CANONICAL_SOURCES.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/CANONICAL_SOURCES.md).
 
 | Path | Purpose | Scope | Status | Upstream authority | Recommended action |
 |------|---------|--------|--------|--------------------|--------------------|

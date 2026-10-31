@@ -13,11 +13,20 @@ Documentation for implemented and planned features.
 
 ## Implemented
 
-- [01 - NEF/RAW Fallback](implemented/01-nef-raw-fallback.md) - Multi-tier preview extraction for Nikon RAW files
+Full catalog: [implemented/INDEX.md](implemented/INDEX.md)
+
+Highlights:
+
+- [01 - NEF/RAW Fallback](implemented/01-nef-raw-fallback.md) — Nikon RAW preview tiers
+- [09 - Visual evidence overlays](implemented/09-visual-evidence-overlays.md) — Viewer evidence layers (API-backed)
 
 ## Planned
 
-- [01 - Windows Native Viewer](planned/01-windows-native-viewer.md) - Future native high-performance viewer
-- [Embedding Applications](planned/embeddings/README.md) - AI-powered similarity search and data analysis (8 specs)
+Index: [planned/README.md](planned/README.md)
+
+- [01 - Windows Native Viewer](planned/01-windows-native-viewer.md) — Native high-performance viewer
+- [Embedding Applications](planned/embeddings/README.md) — Similarity, duplicates, propagation (8 specs)
+- [Visual evidence — remaining acceptance](planned/visual-evidence-overlays-spec.md) — Phases after viewer MVP
+- [Visual evidence — integration plan](planned/visual-evidence-overlays-integration.md) — Architecture narrative
 
 [← Back to Documentation Index](../README.md)

@@ -1,11 +1,20 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Search, FolderOpen, Tag, Loader2, Wrench } from 'lucide-react';
+import { X, Star, FileText, Edit2, Trash2, Save, RotateCcw, AlertTriangle, Search, FolderOpen, Tag, Loader2, Wrench, Crosshair } from 'lucide-react';
+import { AFReticleOverlay } from '../Shared/AFReticleOverlay';
 import { SimilarSearchDrawer } from './SimilarSearchDrawer';
 import { ConfirmDialog } from '../Shared/ConfirmDialog';
 import { BirdBoxOverlay } from '../Shared/BirdBoxOverlay';
 import { EyeKeypointsOverlay } from '../Shared/EyeKeypointsOverlay';
 import { hasDrawableEyes } from '../Shared/eyeKeypoints';
 import { useEyeKeypoints, useShowEyes } from '../../hooks/useEyeKeypoints';
+import { useImageEvidence } from '../../hooks/useImageEvidence';
+import { useEvidenceLayers } from '../../hooks/useEvidenceLayers';
+import { EvidenceLayerChips } from '../Evidence/EvidenceLayerChips';
+import { EvidenceLegend } from '../Evidence/EvidenceLegend';
+import { GridHeatmapOverlay } from '../Evidence/GridHeatmapOverlay';
+import { SubjectMaskOverlay } from '../Evidence/SubjectMaskOverlay';
+import { EvidenceScoreBreakdown } from '../Evidence/EvidenceScoreBreakdown';
+import type { EvidenceLayerId } from '../../types/imageEvidence';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { apiBaseUrlForExternalOpen } from '../../utils/apiBaseUrlForBrowser';
 import { useKeyboardLayer } from '../../hooks/useKeyboardLayer';
@@ -14,7 +23,7 @@ import { toMediaUrl } from '../../utils/mediaUrl';
 import { formatShutterSpeedDisplay } from '../../utils/formatShutterSpeed';
 import { bridge } from '../../bridge';
 import { STAGE_DISPLAY } from '../../constants/pipelineLabels';
-import type { BirdBoundingBox, ImagePhaseStatus } from '../../../electron/types';
+import type { AFMetadata, BirdBoundingBox, ImagePhaseStatus } from '../../../electron/types';
 import type { TagPropagationRequest } from '../../../electron/apiTypes';
 import { bakeExifOrientationToBlob } from '../../utils/exportImageBake';
 import { pickServerFilesystemPath } from '../../utils/pickServerFilesystemPath';
@@ -54,6 +63,7 @@ interface Image {
     exif_focal_length?: string | null;
     exif_model?: string | null;
     exif_lens_model?: string | null;
+    af_metadata?: AFMetadata | null;
 }
 
 interface ImageViewerProps {
@@ -240,6 +250,7 @@ interface ExifData {
     FocalLength?: string;
     Model?: string;
     LensModel?: string;
+    af_metadata?: AFMetadata | null;
 }
 
 export const ImageViewer: React.FC<ImageViewerProps> = ({
@@ -263,6 +274,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [exifLoading, setExifLoading] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [fixMetadataBusy, setFixMetadataBusy] = React.useState(false);
+    const [showAfOverlay, setShowAfOverlay] = React.useState(true);
     const addNotification = useNotificationStore(state => state.addNotification);
 
     const serverFsPath = React.useMemo(
@@ -313,6 +325,18 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         }
     }, [image.id, addNotification]);
 
+    const { data: evidence, loading: evidenceLoading } = useImageEvidence(
+        image.id,
+        !readOnlyFilesystemMode,
+    );
+    const {
+        layers: evidenceLayers,
+        toggle: toggleEvidenceLayer,
+        setLayer: setEvidenceLayer,
+        panelOpen: evidencePanelOpen,
+        cyclePanel: cycleEvidencePanel,
+    } = useEvidenceLayers(evidence?.gates);
+
     useKeyboardLayer('drawer', useCallback((e: KeyboardEvent) => {
         if (e.key === 'Escape') {
             onClose();
@@ -323,9 +347,19 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         } else if (e.key === 'ArrowRight' && onNavigate && allImages && currentIndex < allImages.length - 1) {
             onNavigate(currentIndex + 1);
             return true;
+        } else if (e.key === 'f' || e.key === 'F') {
+            setShowAfOverlay(prev => !prev);
+            return true;
+        } else if (e.key === 'e' || e.key === 'E') {
+            cycleEvidencePanel();
+            return true;
+        } else if (e.key >= '1' && e.key <= '5') {
+            const map: EvidenceLayerId[] = ['region', 'mask', 'keypoints', 'sharpness', 'noise'];
+            toggleEvidenceLayer(map[Number(e.key) - 1]);
+            return true;
         }
         return false;
-    }, [onClose, onNavigate, currentIndex, allImages]), !isDeleteDialogOpen);
+    }, [onClose, onNavigate, currentIndex, allImages, cycleEvidencePanel, toggleEvidenceLayer]), !isDeleteDialogOpen);
 
     const currentIdRef = useRef(initialImage.id);
 
@@ -422,6 +456,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     exif_focal_length: d.exif_focal_length ?? prev.exif_focal_length,
                     exif_model: d.exif_model ?? prev.exif_model,
                     exif_lens_model: d.exif_lens_model ?? prev.exif_lens_model,
+                    af_metadata: d.af_metadata ?? prev.af_metadata,
                 }));
                 setExifData({
                     ISO: d.exif_iso ?? undefined,
@@ -430,6 +465,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     FocalLength: d.exif_focal_length ?? undefined,
                     Model: d.exif_model ?? undefined,
                     LensModel: d.exif_lens_model ?? undefined,
+                    af_metadata: d.af_metadata ?? undefined,
                 });
             } catch (e) {
                 console.error('[ImageViewer] readImageMetadata failed', e);
@@ -465,7 +501,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 Aperture: image.exif_aperture ? Number(image.exif_aperture) : undefined,
                 FocalLength: image.exif_focal_length || undefined,
                 Model: image.exif_model || undefined,
-                LensModel: image.exif_lens_model || undefined
+                LensModel: image.exif_lens_model || undefined,
+                af_metadata: image.af_metadata || undefined,
             });
             setExifLoading(false);
             return;
@@ -511,7 +548,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         return () => { active = false; };
     }, [
         image.id, serverFsPath, readOnlyFilesystemMode, image.exif_iso, image.exif_shutter,
-        image.exif_aperture, image.exif_focal_length, image.exif_model, image.exif_lens_model
+        image.exif_aperture, image.exif_focal_length, image.exif_model, image.exif_lens_model, image.af_metadata
     ]);
 
     // Editing & Drawer State
@@ -1080,6 +1117,34 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     <X size={24} />
                 </button>
 
+                {/* Focus Reticle Overlay Toggle */}
+                {(image.af_metadata || exifData?.af_metadata) && (
+                    <button
+                        type="button"
+                        onClick={() => setShowAfOverlay(prev => !prev)}
+                        title="Toggle Autofocus Reticle [F]"
+                        style={{
+                            position: 'absolute',
+                            top: 20,
+                            left: 75,
+                            background: showAfOverlay ? 'rgba(0, 230, 118, 0.2)' : 'rgba(0,0,0,0.6)',
+                            border: `1px solid ${showAfOverlay ? '#00e676' : '#555'}`,
+                            borderRadius: 4,
+                            padding: '6px 12px',
+                            color: showAfOverlay ? '#00e676' : '#aaa',
+                            fontSize: '0.85em',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            zIndex: 10,
+                        }}
+                    >
+                        <Crosshair size={16} />
+                        <span>Focus Point</span>
+                    </button>
+                )}
+
                 {/* Image Position Indicator */}
                 {allImages && allImages.length > 1 && (
                     <div style={{
@@ -1107,7 +1172,37 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                             style={{ maxWidth: '100%', maxHeight: '95vh', width: 'auto', height: 'auto', objectFit: 'contain', boxShadow: '0 0 20px rgba(0,0,0,0.5)' }}
                         />
                         {showBoundingBox && image.bird_bbox && <BirdBoxOverlay bbox={image.bird_bbox} />}
+                        {evidenceLayers.region && image.bird_bbox && <BirdBoxOverlay bbox={image.bird_bbox} />}
                         {showEyes && hasDrawableEyes(eyes) && <EyeKeypointsOverlay eyes={eyes} size={22} />}
+                        {evidenceLayers.keypoints && showEyes && hasDrawableEyes(eyes) && (
+                            <EyeKeypointsOverlay eyes={eyes} size={22} />
+                        )}
+                        {showAfOverlay && (image.af_metadata || exifData?.af_metadata) && (
+                            <AFReticleOverlay af={image.af_metadata || exifData?.af_metadata} />
+                        )}
+                        {evidence?.mask_rle && evidenceLayers.mask && evidence.display_width > 0 && (
+                            <SubjectMaskOverlay
+                                mask={evidence.mask_rle}
+                                displayWidth={evidence.display_width}
+                                displayHeight={evidence.display_height}
+                            />
+                        )}
+                        {evidence?.focus_grid && evidenceLayers.sharpness && (
+                            <GridHeatmapOverlay
+                                grid={evidence.focus_grid}
+                                mode="sharpness"
+                                displayWidth={evidence.display_width}
+                                displayHeight={evidence.display_height}
+                            />
+                        )}
+                        {evidence?.noise_grid && evidenceLayers.noise && (
+                            <GridHeatmapOverlay
+                                grid={evidence.noise_grid}
+                                mode="noise"
+                                displayWidth={evidence.display_width}
+                                displayHeight={evidence.display_height}
+                            />
+                        )}
                     </div>
                 ) : (
                     <div style={{ color: '#666' }}>{error || 'Image not found'}</div>
@@ -1125,6 +1220,46 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 gap: 20,
                 overflowY: 'auto'
             }}>
+                {!readOnlyFilesystemMode && evidencePanelOpen && (
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <span style={{ fontWeight: 600 }}>Evidence</span>
+                            <button
+                                type="button"
+                                style={{ fontSize: '0.75em' }}
+                                disabled={evidenceLoading}
+                                onClick={() => void (async () => {
+                                    try {
+                                        const dir = await bridge.selectDirectory();
+                                        if (!dir) return;
+                                        const { path: out } = await bridge.exportEvidencePack(image.id, dir);
+                                        addNotification(`Evidence pack saved: ${out}`, 'success');
+                                    } catch {
+                                        addNotification('Could not export evidence pack', 'error');
+                                    }
+                                })()}
+                            >
+                                Export pack
+                            </button>
+                        </div>
+                        <EvidenceLayerChips
+                            layers={evidenceLayers}
+                            gates={evidence?.gates}
+                            onToggle={toggleEvidenceLayer}
+                        />
+                        <EvidenceLegend
+                            evidence={evidence}
+                            activeHeatmap={
+                                evidenceLayers.sharpness ? 'sharpness' : evidenceLayers.noise ? 'noise' : null
+                            }
+                        />
+                        <EvidenceScoreBreakdown
+                            evidence={evidence}
+                            onShowLayer={(layer) => setEvidenceLayer(layer, true)}
+                        />
+                    </div>
+                )}
+
                 <div>
                     <h2 style={{ fontSize: '1.2em', margin: '0 0 10px 0', wordBreak: 'break-all' }}>{image.file_name}</h2>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#aaa', fontSize: '0.9em' }}>
@@ -1626,6 +1761,38 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                             <span style={{ color: '#ccc', fontSize: '0.9em' }}>{exifData.LensModel}</span>
                                         </div>
                                     )}
+                                    {(exifData.af_metadata || image.af_metadata) && (() => {
+                                        const af = exifData.af_metadata || image.af_metadata;
+                                        if (!af) return null;
+                                        const inFocus = Boolean(af.in_focus);
+                                        return (
+                                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #2a2a2a', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ color: '#888' }}>Autofocus:</span>
+                                                    <span style={{
+                                                        padding: '1px 6px',
+                                                        borderRadius: 3,
+                                                        fontSize: '0.9em',
+                                                        backgroundColor: inFocus ? 'rgba(0, 230, 118, 0.15)' : 'rgba(255, 145, 0, 0.15)',
+                                                        color: inFocus ? '#00e676' : '#ff9100',
+                                                        fontWeight: 600,
+                                                    }}>
+                                                        {inFocus ? 'Locked' : 'Unconfirmed'}
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: '#888' }}>AF Mode:</span>
+                                                    <span style={{ color: '#ccc' }}>{af.mode || 'Unknown'}</span>
+                                                </div>
+                                                {af.focus_distance_m != null && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#888' }}>Focus Distance:</span>
+                                                        <span style={{ color: '#ccc' }}>{af.focus_distance_m.toFixed(2)} m</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             ) : (
                                 <div style={{ fontSize: '0.8em', color: '#666' }}>No EXIF data found</div>

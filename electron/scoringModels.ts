@@ -177,7 +177,7 @@ export function mergeProductionModelInfos(
 
 export function readBackendConfigScoringModels(projectRoot: string): Record<string, ModelMembership> | null {
     try {
-        const configPath = path.resolve(projectRoot, '..', 'image-scoring-backend', 'config.json');
+        const configPath = path.resolve(projectRoot, '..', 'image-scoring-pipeline', 'config.json');
         if (!fs.existsSync(configPath)) return null;
         const raw = JSON.parse(fs.readFileSync(configPath, 'utf8')) as {
             scoring?: { models?: Record<string, ModelMembership> };

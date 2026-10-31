@@ -29,13 +29,13 @@ See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenan
 
 | Topic | Backend authority |
 |---|---|
-| Backend docs hub | [image-scoring-backend docs/README.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/README.md) |
-| Backend full index | [image-scoring-backend docs/INDEX.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/INDEX.md) |
-| REST API contract | [API_CONTRACT.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/API_CONTRACT.md), [openapi.yaml](https://github.com/synthet/image-scoring-backend/blob/main/docs/reference/api/openapi.yaml) |
-| Database schema | [DB_SCHEMA.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/DB_SCHEMA.md), [DATABASE.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DATABASE.md) |
-| Pipeline terminology | [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) |
-| Cross-repo protocol | [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md) |
-| Diagnostics / doctor | [DIAGNOSTICS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/DIAGNOSTICS.md) |
+| Backend docs hub | [image-scoring-pipeline docs/README.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/README.md) |
+| Backend full index | [image-scoring-pipeline docs/INDEX.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/INDEX.md) |
+| REST API contract | [API_CONTRACT.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/API_CONTRACT.md), [openapi.yaml](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reference/api/openapi.yaml) |
+| Database schema | [DB_SCHEMA.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/DB_SCHEMA.md), [DATABASE.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/DATABASE.md) |
+| Pipeline terminology | [PIPELINE_TERMINOLOGY.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/PIPELINE_TERMINOLOGY.md) |
+| Cross-repo protocol | [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/AGENT_COORDINATION.md) |
+| Diagnostics / doctor | [DIAGNOSTICS.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/DIAGNOSTICS.md) |
 
 ## Architecture
 
@@ -87,7 +87,7 @@ See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenan
 ## Planning
 
 - [planning/README.md](planning/README.md) - planning index.
-- [planning/reference-workflow-improvement-candidates.md](planning/reference-workflow-improvement-candidates.md) - clean-room candidates for an evidence-led, reversible, accessible review workspace.
+- [planning/reference-workflow-improvement-candidates.md](planning/reference-workflow-improvement-candidates.md) - improvement candidates for an evidence-led, reversible, accessible review workspace.
 - [project/INDEX.md](project/INDEX.md) - project/backlog docs.
 - [project/00-backlog-workflow.md](project/00-backlog-workflow.md) - backlog workflow.
 - [../TODO.md](../TODO.md) - canonical repo-root task list.
@@ -99,7 +99,7 @@ See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenan
 - [reports/07-pipeline-input-size-study-2026-05.md](reports/07-pipeline-input-size-study-2026-05.md) - Backend input-size study; gallery impact; backlog [#138](https://github.com/synthet/image-scoring-gallery/issues/138).
 - [reports/08-picked-advisory-gap-2026-06-21.md](reports/08-picked-advisory-gap-2026-06-21.md) - Picked-image quality advisories; gallery UI + backend strict_v2 fix (stack 29157).
 - [reports/09-branch-docs-salvage-2026-07.md](reports/09-branch-docs-salvage-2026-07.md) - Docs-only branch salvage archive (July 2026 cleanup).
-- [reports/10-gallery-improvement-audit-2026-09.md](reports/10-gallery-improvement-audit-2026-09.md) - Clean-room product, UX, accessibility, security, reliability, and maintainability audit.
+- [reports/10-gallery-improvement-audit-2026-09.md](reports/10-gallery-improvement-audit-2026-09.md) - Product, UX, accessibility, security, reliability, and maintainability audit.
 
 ## Activity Log
 

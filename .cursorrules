@@ -7,7 +7,7 @@
 ## What this is
 
 Electron + React + Vite desktop viewer for libraries scored by
-**Vexlum Scoring** (`image-scoring-backend`).
+**Vexlum Scoring** (`image-scoring-pipeline`).
 
 ## Where to look first
 
@@ -29,7 +29,7 @@ Electron + React + Vite desktop viewer for libraries scored by
 ## Backend integration
 
 - Backend HTTP API on `http://localhost:7860`, discovered via `webui.lock` in the sibling repo (see `electron/apiUrlResolver.ts`).
-- Backend owns the REST contract and database schema. The OpenAPI source lives in `image-scoring-backend/docs/reference/api/openapi.yaml`; we mirror types via `npm run generate:api-types`.
+- Backend owns the REST contract and database schema. The OpenAPI source lives in `image-scoring-pipeline/docs/reference/api/openapi.yaml`; we mirror types via `npm run generate:api-types`.
 - For pipeline phase codes / labels: backend `docs/technical/PIPELINE_TERMINOLOGY.md`.
 
 ## Key entry points

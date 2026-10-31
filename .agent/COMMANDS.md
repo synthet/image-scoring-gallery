@@ -6,7 +6,7 @@ From [AGENTS.md](../AGENTS.md), [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md), a
 
 - `npm install`
 - `npm install` and `npm run build` under `mcp-server/` once if using gallery MCP (`is-ui-*`; copy `.cursor/mcp.example.json` → `.cursor/mcp.json`)
-- PostgreSQL: typically via sibling **image-scoring-backend** `docker compose up -d` when using local `pg` mode
+- PostgreSQL: typically via sibling **image-scoring-pipeline** `docker compose up -d` when using local `pg` mode
 
 ## Diagnostics
 
@@ -34,7 +34,7 @@ From [AGENTS.md](../AGENTS.md), [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md), a
 ## Docs / wiki
 
 - [docs/CANONICAL_SOURCES.md](../docs/CANONICAL_SOURCES.md), [docs/WIKI_SCHEMA.md](../docs/WIKI_SCHEMA.md)
-- OKF profile authority: [backend OKF_ADOPTION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/OKF_ADOPTION.md)
+- OKF profile authority: [backend OKF_ADOPTION.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/OKF_ADOPTION.md)
 - OKF lint (sibling backend): `python scripts/okf_lint.py ../image-scoring-gallery/docs --profile vexlum --bundle-name docs`
 - CI: gallery `test-and-contract.yml` runs the same lint via cloned backend
 - Slash commands: `/wiki-ingest`, `/wiki-lint`, `/wiki-query`

@@ -18,7 +18,7 @@ Project-local configuration for Cursor IDE agents. **Authority:** [AGENTS.md](..
 2. Attach **`is-ui-mcp`** (stdio) for **`search`** + **`dispatch`**.
 3. Optional **`is-ui-live`** (SSE) when Electron dev is running.
 
-Backend pipeline triage: sibling **image-scoring-backend** workspace with **`is-be-mcp`**.
+Backend pipeline triage: sibling **image-scoring-pipeline** workspace with **`is-be-mcp`**.
 
 User **`~/.cursor/mcp.json`**: **`github`**, **`subagent-orchestrator`**, etc. — see [`mcp.user.example.json`](mcp.user.example.json). Optional **`fff-gallery`** is **project-level** in `.cursor/mcp.json` — see [AGENTS.md § fff](../AGENTS.md).
 
@@ -26,7 +26,7 @@ User **`~/.cursor/mcp.json`**: **`github`**, **`subagent-orchestrator`**, etc. �
 
 - [`.agent/workflows/`](../.agent/workflows/) — Electron dev, IPC, backend connection runbooks.
 - [docs/ai-workflow/README.md](../docs/ai-workflow/README.md) — SDLC loop and phase gates.
-- Backend AST10 checklist: [../image-scoring-backend/.agent/SKILL_CHANGE_AST10_REVIEW.md](../image-scoring-backend/.agent/SKILL_CHANGE_AST10_REVIEW.md).
+- Backend AST10 checklist: [../image-scoring-pipeline/.agent/SKILL_CHANGE_AST10_REVIEW.md](../image-scoring-pipeline/.agent/SKILL_CHANGE_AST10_REVIEW.md).
 
 ## Slash commands (this repo)
 
@@ -49,5 +49,5 @@ User **`~/.cursor/mcp.json`**: **`github`**, **`subagent-orchestrator`**, etc. �
 ## Drift checklist (maintainers)
 
 1. Skills with Claude mirror stay in sync (see [.agent/SKILL_INVENTORY.md](../.agent/SKILL_INVENTORY.md)).
-2. Cherry-pick generic agent improvements from sibling [image-scoring-backend](../image-scoring-backend) or [synthet-code-framework](https://github.com/synthet/synthet-code-framework); adapt domain paths.
+2. Cherry-pick generic agent improvements from sibling [image-scoring-pipeline](../image-scoring-pipeline) or [synthet-code-framework](https://github.com/synthet/synthet-code-framework); adapt domain paths.
 3. Bump inventory **Last reviewed** dates when skills change.

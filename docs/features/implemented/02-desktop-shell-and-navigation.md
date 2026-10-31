@@ -41,6 +41,6 @@ With the **Stacks** toggle on, folder stack cards drill into root stacks, option
 
 **Primary code paths:** `electron/main.ts` (window, IPC registration, `webuiShellOnlyUrl` branch), `electron/preload` (exposes safe APIs — follow preload for exact channel names), `src/components/` (e.g. `Gallery/`, `Search/`, `Import/`, `Viewer/`).
 
-**Backend coupling:** Semantic search calls the Python API (`GET /api/similarity/text-search`, `GET /api/similarity/example-queries`). Run orchestration and other operator pages remain on **`/ui/`** when the sibling WebUI is running — see [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md).
+**Backend coupling:** Semantic search calls the Python API (`GET /api/similarity/text-search`, `GET /api/similarity/example-queries`). Run orchestration and other operator pages remain on **`/ui/`** when the sibling WebUI is running — see [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/AGENT_COORDINATION.md).
 
 **Related docs:** [01-system-overview.md](../../architecture/01-system-overview.md) · [PIPELINE_TERMINOLOGY.md](../../technical/PIPELINE_TERMINOLOGY.md) · [07-grid-delete-state-sync.md](07-grid-delete-state-sync.md) · [08-stack-substack-navigation.md](08-stack-substack-navigation.md)

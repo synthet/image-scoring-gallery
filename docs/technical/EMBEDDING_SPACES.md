@@ -15,12 +15,12 @@ Gallery-facing map of **which backend embedding spaces exist**, **which the desk
 
 | Topic | Canonical source |
 |-------|------------------|
-| Registry, dimensions, producers | [image-scoring-backend EMBEDDINGS.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/EMBEDDINGS.md) |
-| Space codes and defaults | [modules/embedding_spaces.py](https://github.com/synthet/image-scoring-backend/blob/main/modules/embedding_spaces.py) |
-| Optional culling towers (extractors) | [modules/embedding_extractors.py](https://github.com/synthet/image-scoring-backend/blob/main/modules/embedding_extractors.py) |
-| Culling model spike / verdicts | [CULLING_MODEL_RECOMMENDATION_2026-05-29.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/CULLING_MODEL_RECOMMENDATION_2026-05-29.md) |
-| Input-size / pixel-budget study | [INPUT_SIZE_CULLING_2026-05-29.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/reports/INPUT_SIZE_CULLING_2026-05-29.md); gallery pointer [07-pipeline-input-size-study-2026-05.md](../reports/07-pipeline-input-size-study-2026-05.md) |
-| Two-level culling config | [two-level-culling.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/features/planned/embeddings/two-level-culling.md) |
+| Registry, dimensions, producers | [image-scoring-pipeline EMBEDDINGS.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/EMBEDDINGS.md) |
+| Space codes and defaults | [modules/embedding_spaces.py](https://github.com/synthet/image-scoring-pipeline/blob/main/modules/embedding_spaces.py) |
+| Optional culling towers (extractors) | [modules/embedding_extractors.py](https://github.com/synthet/image-scoring-pipeline/blob/main/modules/embedding_extractors.py) |
+| Culling model spike / verdicts | [CULLING_MODEL_RECOMMENDATION_2026-05-29.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reports/CULLING_MODEL_RECOMMENDATION_2026-05-29.md) |
+| Input-size / pixel-budget study | [INPUT_SIZE_CULLING_2026-05-29.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reports/INPUT_SIZE_CULLING_2026-05-29.md); gallery pointer [07-pipeline-input-size-study-2026-05.md](../reports/07-pipeline-input-size-study-2026-05.md) |
+| Two-level culling config | [two-level-culling.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/features/planned/embeddings/two-level-culling.md) |
 
 Do not invent space codes or dimensions here — link to backend docs when they change.
 
@@ -75,11 +75,11 @@ Planned embedding UI ([features/planned/embeddings/](../features/planned/embeddi
 
 1. Confirm backend API exposes the space (`GET /api/embedding_spaces`, `embedding_space` on similarity/map routes).
 2. Extend [`electron/db.ts`](../../electron/db.ts) or prefer API calls — do not hardcode new space codes in multiple files without a shared constant.
-3. Update this page and [CANONICAL_SOURCES.md](../CANONICAL_SOURCES.md); coordinate via backend [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-backend/blob/main/docs/technical/AGENT_COORDINATION.md).
+3. Update this page and [CANONICAL_SOURCES.md](../CANONICAL_SOURCES.md); coordinate via backend [AGENT_COORDINATION.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/AGENT_COORDINATION.md).
 
 ## Related gallery docs
 
-- [Pipeline input-size study (gallery)](../reports/07-pipeline-input-size-study-2026-05.md) — pixel budget vs stacks/thumbnails; gallery [#138](https://github.com/synthet/image-scoring-gallery/issues/138), backend [#260](https://github.com/synthet/image-scoring-backend/issues/260).
+- [Pipeline input-size study (gallery)](../reports/07-pipeline-input-size-study-2026-05.md) — pixel budget vs stacks/thumbnails; gallery [#138](https://github.com/synthet/image-scoring-gallery/issues/138), backend [#260](https://github.com/synthet/image-scoring-pipeline/issues/260).
 - [Embedding Applications hub](../features/planned/embeddings/README.md) — planned UI features (MobileNet-centric).
 - [Single Bird Species per Image (BioCLIP top‑1)](../features/planned/species-conflict-resolution.md) — the bird-species phase that populates `bioclip_2_image`; planned `top_k=1` change so each bird image gets one `species:*` keyword.
 - [Backup feature](../architecture/backup-feature.md) — MMR dedup uses default-space embeddings.

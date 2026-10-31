@@ -19,9 +19,9 @@ export function toMediaUrl(filePath: string | null | undefined): string {
             const mntAbsolute = normalized.startsWith('/') ? normalized : `/${normalized}`;
             return `media:///?path=${encodeURIComponent(mntAbsolute)}`;
         }
-        // If it's a repo-relative path (e.g. ../../image-scoring-backend) or Docker root (/app/...),
+        // If it's a repo-relative path (e.g. ../../image-scoring-pipeline) or Docker root (/app/...),
         // pass it as a query parameter so Chromium's URL parser doesn't collapse `../` sequences 
-        // into `media:///image-scoring-backend/...`.
+        // into `media:///image-scoring-pipeline/...`.
         return `media:///?path=${encodeURIComponent(normalized)}`;
     }
     return `/media/${encodeURIComponent(filePath)}`;

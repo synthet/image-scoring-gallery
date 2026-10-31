@@ -1,9 +1,9 @@
 ---
 type: Report
 title: Gallery improvement audit (September 2026)
-description: Clean-room product, UX, accessibility, security, reliability, and maintainability audit of the Driftara Gallery desktop application.
+description: Product, UX, accessibility, security, reliability, and maintainability audit of the Driftara Gallery desktop application.
 resource: docs/reports/10-gallery-improvement-audit-2026-09.md
-tags: [gallery-docs, reports, audit, clean-room, ux, security, quality]
+tags: [gallery-docs, reports, audit, ux, security, quality]
 timestamp: 2026-09-25T02:00:00Z
 okf_version: 0.1
 ---
@@ -12,7 +12,7 @@ okf_version: 0.1
 
 This report records a point-in-time review of the Electron, React, and TypeScript gallery on 2026-09-24. It suggests improvements; it does not add commitments to the product backlog. Convert accepted items into issues through the [backlog workflow](../project/00-backlog-workflow.md) and keep API or pipeline changes with the owning backend repository.
 
-## Clean-room provenance
+## Provenance
 
 > Provenance: derived from competitive analysis of a commercial application's observable behaviour and documentation; contains no code, identifiers, fitted constants or model artefacts from it.
 
@@ -22,7 +22,7 @@ The engineering audit was produced independently from the gallery's first-party 
 - local output from the repository's documented typecheck, lint, doctor, design, and test commands; and
 - screenshots already committed to this repository's documentation.
 
-Competitive input is represented only as implementation-independent behaviour. This report contains no proprietary binaries, recovered or minified source, internal identifiers, assets, model files, scoring formulas, fitted constants, private implementation details, copied UI text, or copied layouts. The code-level, security, accessibility, and maintainability findings come from this clean-room repository itself. Any implementation should continue to use only repository-owned code, public standards, documented public APIs, open upstream models under their own licences, and independently developed behaviour.
+Competitive input is represented only as implementation-independent behaviour. This report contains no proprietary binaries, recovered or minified source, internal identifiers, assets, model files, scoring formulas, fitted constants, private implementation details, copied UI text, or copied layouts. The code-level, security, accessibility, and maintainability findings come from this repository itself. Any implementation should continue to use only repository-owned code, public standards, documented public APIs, open upstream models under their own licences, and independently developed behaviour.
 
 ## Executive assessment
 
@@ -105,7 +105,7 @@ The most valuable product addition is a compact workspace for choosing among sim
 - retain keyboard actions for rating, label, pick/reject, and next/previous; and
 - show only score and diagnostic fields already present in documented contracts.
 
-This extends the current viewer and stack workflows without inventing backend fields or moving scoring into the renderer. The existing clean-room [burst culling explainability plan](../features/planned/burst-culling-explainability.md) contains additional first-party requirements for evidence and comparison. Treat those as later slices gated by the backend contract, rather than blocking the basic compare experience.
+This extends the current viewer and stack workflows without inventing backend fields or moving scoring into the renderer. The existing [burst culling explainability plan](../features/planned/burst-culling-explainability.md) contains additional first-party requirements for evidence and comparison. Treat those as later slices gated by the backend contract, rather than blocking the basic compare experience.
 
 Acceptance signals: median time to choose a frame in a stack, actions per selection, compare abandonment rate, and undo/reversal rate.
 
@@ -187,7 +187,7 @@ Acceptance signals: keyboard-action adoption, command search success, and reduce
 - Validate paths after canonicalization and authorize them against explicit roots; string normalization alone is insufficient.
 - Preserve read-only behavior in API mode and define offline/degraded behavior explicitly.
 - Keep destructive operations transactional where possible and visibly reconcile partial failures.
-- Continue the clean-room boundary stated above for all product and implementation work.
+
 
 ## Validation snapshot
 
