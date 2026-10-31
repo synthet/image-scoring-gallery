@@ -79,6 +79,7 @@ export type {
     ImageUpdates,
     KeywordCloudEntry,
     SubStackRow,
+    StackRow,
     SyncCandidate,
     SyncPreviewResult,
     SyncRunResult,
