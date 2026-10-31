@@ -89,6 +89,28 @@ async function del<T>(path: string): Promise<T> {
 
 function noop() { return () => { /* no-op cleanup */ }; }
 
+// Browser sessions share overlay preferences across the grid and viewer too.
+function browserOverlayPreference() {
+    let show = false;
+    const listeners = new Set<(value: boolean) => void>();
+    return {
+        get: () => Promise.resolve(show),
+        set: (value: boolean) => {
+            show = value;
+            listeners.forEach(listener => listener(value));
+            return Promise.resolve(true);
+        },
+        subscribe: (listener: (value: boolean) => void) => {
+            listeners.add(listener);
+            return () => { listeners.delete(listener); };
+        },
+    };
+}
+
+const browserBoundingBox = browserOverlayPreference();
+const browserEyes = browserOverlayPreference();
+const browserFocusPoint = browserOverlayPreference();
+
 const emptyFileImageMetadata = (): FileImageMetadataResult => ({
     tags: {},
     detail: {
@@ -225,6 +247,13 @@ function createHttpBridge(): Window['electron'] {
                 { rawJson: true },
             ),
 
+        getDiagnosticManifest: (imageId) => get(`/backend/images/${imageId}/evidence`, { schema_version: 2 }, { rawJson: true }),
+        requestDiagnostics: (imageId, layers, refresh = false) => post(`/backend/images/${imageId}/evidence/requests`, { layers, refresh }),
+        cancelDiagnostics: async (imageId, requestId) => {
+            const result = await fetch(`${BASE}/backend/images/${imageId}/evidence/requests/${encodeURIComponent(requestId)}`, { method: 'DELETE' });
+            if (!result.ok) throw new Error('Could not cancel diagnostics');
+        },
+        getDiagnosticArtifact: async (imageId, artifactId) => `${BASE}/backend/images/${imageId}/evidence/artifacts/${encodeURIComponent(artifactId)}`,
         exportEvidencePack: () =>
             Promise.reject(new Error('Export evidence pack requires the Electron app')),
 
@@ -379,14 +408,23 @@ function createHttpBridge(): Window['electron'] {
          
         setSingleImageViewOpen: (_open: boolean) => Promise.resolve(true),
 
-        getShowBoundingBox: () => Promise.resolve(false),
+        getShowBoundingBox: browserBoundingBox.get,
+        setShowBoundingBox: browserBoundingBox.set,
 
-        onShowBoundingBoxChanged: noop,
+        onShowBoundingBoxChanged: browserBoundingBox.subscribe,
 
         // Eye keypoints are an Electron-only diagnostic overlay (View > Eyes).
-        getShowEyes: () => Promise.resolve(false),
+        getShowEyes: browserEyes.get,
+        setShowEyes: browserEyes.set,
 
-        onShowEyesChanged: noop,
+        onShowEyesChanged: browserEyes.subscribe,
+
+        // Focus point reticle overlay (View > Focus Point).
+        getShowFocusPoint: browserFocusPoint.get,
+        setShowFocusPoint: browserFocusPoint.set,
+        onFindSimilarImages: noop,
+
+        onShowFocusPointChanged: browserFocusPoint.subscribe,
 
         getEyeKeypoints: () => Promise.resolve({}),
 
@@ -475,7 +513,7 @@ function createHttpBridge(): Window['electron'] {
             isAvailable: async () => { try { await get('/backend/health'); return true; } catch { return false; } },
             getStatus: () => get('/backend/status'),
             getStats: () => get('/backend/stats'),
-            getScoringSortOptions: () => get<Array<{ value: string; label: string; group: string }>>('/scoring/sort-options'),
+            getScoringSortOptions: () => get<import('../electron/scoringSortOptions').SortOption[]>('/scoring/sort-options'),
             getCullingAnalytics: (params?: { folderPath?: string; folderId?: number; perStackLimit?: number }) =>
                 get<Record<string, unknown>>('/backend/analytics/culling', {
                     folder_path: params?.folderPath,

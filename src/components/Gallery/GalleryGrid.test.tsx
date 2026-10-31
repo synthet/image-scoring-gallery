@@ -17,6 +17,8 @@ const {
     onShowBoundingBoxChangedMock,
     getShowEyesMock,
     onShowEyesChangedMock,
+    getShowFocusPointMock,
+    onShowFocusPointChangedMock,
     getEyeKeypointsMock,
 } = vi.hoisted(() => ({
     revealInExplorerMock: vi.fn().mockResolvedValue(true),
@@ -24,6 +26,8 @@ const {
     onShowBoundingBoxChangedMock: vi.fn().mockReturnValue(() => {}),
     getShowEyesMock: vi.fn().mockResolvedValue(false),
     onShowEyesChangedMock: vi.fn().mockReturnValue(() => {}),
+    getShowFocusPointMock: vi.fn().mockResolvedValue(false),
+    onShowFocusPointChangedMock: vi.fn().mockReturnValue(() => {}),
     getEyeKeypointsMock: vi.fn().mockResolvedValue({}),
 }));
 
@@ -34,6 +38,8 @@ vi.mock('../../bridge', () => ({
         onShowBoundingBoxChanged: onShowBoundingBoxChangedMock,
         getShowEyes: getShowEyesMock,
         onShowEyesChanged: onShowEyesChangedMock,
+        getShowFocusPoint: getShowFocusPointMock,
+        onShowFocusPointChanged: onShowFocusPointChangedMock,
         getEyeKeypoints: getEyeKeypointsMock,
     },
 }));

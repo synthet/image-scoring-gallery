@@ -1,3 +1,4 @@
+import type { ImageRow, StackRow } from '../../electron/types';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { bridge } from '../bridge';
 import { useAppMode } from '../context/AppModeContext';
@@ -20,29 +21,6 @@ interface ImageQueryOptions {
     capturedDate?: string;
 }
 
-interface ImageRow {
-    id: number;
-    file_path: string;
-    file_name: string;
-    score_general: number;
-    score_technical: number;
-    score_aesthetic: number;
-    score_spaq: number;
-    score_ava: number;
-    score_liqe: number;
-    rating: number;
-    label: string | null;
-    pick_status?: number | null;
-    created_at?: string;
-    thumbnail_path?: string;
-    stack_id?: number | null;
-    stack_key?: number;
-    image_count?: number;
-    pick_count?: number;
-    reject_count?: number;
-    sort_value?: number;
-    rep_image_id?: number;
-}
 
 export function useDatabase() {
     const { mode } = useAppMode();
@@ -272,6 +250,11 @@ function usePaginatedData<T extends { id: number }>(
         }).catch(err => {
             console.error('Failed to fetch count:', err);
         });
+
+        // Eagerly trigger initial page load for the new folder/filter selection
+        void Promise.resolve().then(() => {
+            void loadMoreRef.current();
+        });
     // filterKey is a stable string derived from filters; folderId is primitive.
      
     }, [folderId, filterKey, enabled]);
@@ -306,10 +289,11 @@ function usePaginatedData<T extends { id: number }>(
                 const existingKeys = new Set(prev.map(item => getUniqueKeyRef.current(item)));
                 const filtered = newItems.filter(item => !existingKeys.has(getUniqueKeyRef.current(item)));
                 const merged = trimItems([...prev, ...filtered]);
-
+                itemsRef.current = merged;
                 return merged;
             });
 
+            offsetRef.current += pageSize;
             setOffset(prev => prev + pageSize);
         } catch (err) {
             console.error("Failed to load data:", err);
@@ -322,6 +306,8 @@ function usePaginatedData<T extends { id: number }>(
         } finally {
             if (requestId === requestIdRef.current) {
                 loadingRef.current = false;
+                setLoading(false);
+            } else if (requestIdRef.current > requestId && !loadingRef.current) {
                 setLoading(false);
             }
         }
@@ -441,6 +427,8 @@ function usePaginatedData<T extends { id: number }>(
                 if (requestId === requestIdRef.current) {
                     loadingRef.current = false;
                     setLoading(false);
+                } else if (requestIdRef.current > requestId && !loadingRef.current) {
+                    setLoading(false);
                 }
             });
             return;
@@ -510,7 +498,7 @@ export function useStacks(
     filters?: ImageQueryOptions,
     enabled: boolean = true,
 ) {
-    const getUniqueKey = React.useCallback((stack: ImageRow) => stack.stack_key || stack.id, []);
+    const getUniqueKey = React.useCallback((stack: StackRow) => stack.stack_key || stack.id, []);
     const result = usePaginatedData(
         pageSize,
         folderId,

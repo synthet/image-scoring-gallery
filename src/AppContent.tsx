@@ -817,7 +817,7 @@ function AppContent() {
               />
             ) : toolView === 'keywords' ? (
               <KeywordsHubPage
-                currentFolder={currentFolder}
+                currentFolder={currentFolder ?? undefined}
                 folderIds={subfolderIds}
                 includeSubfolders={includeSubfolders}
                 filters={filters}

@@ -1,4 +1,3 @@
-import React from 'react';
 import { EVIDENCE_LAYER_LABELS } from '@synthet/image-scoring-design';
 import type { EvidenceDisplayGates, EvidenceLayerId, EvidenceLayerState } from '../../types/imageEvidence';
 

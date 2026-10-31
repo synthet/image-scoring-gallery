@@ -29,9 +29,8 @@ export function useImageEvidence(imageId: number | null, enabled: boolean): {
         void bridge.getImageEvidence(imageId).then(
             (payload) => {
                 if (!active) return;
-                const typed = payload as ImageEvidencePayload | null;
-                cache.set(imageId, typed);
-                setResult({ imageId, tick, data: typed, error: null });
+                cache.set(imageId, payload);
+                setResult({ imageId, tick, data: payload, error: null });
             },
             (err: unknown) => {
                 if (!active) return;

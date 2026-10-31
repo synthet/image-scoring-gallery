@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { AFReticleOverlay } from './AFReticleOverlay';
 import type { AFMetadata } from '../../../electron/types';
+import styles from './ImageOverlays.module.css';
 
 describe('AFReticleOverlay', () => {
     it('returns null when af is null or undefined', () => {
@@ -41,10 +42,10 @@ describe('AFReticleOverlay', () => {
         expect(el.style.top).toBe('47.066%');
         expect(el.style.width).toBe('3.525%');
         expect(el.style.height).toBe('5.868%');
-        // jsdom computes hex colors to rgb()
-        expect(el.style.border).toMatch(/0,\s*230,\s*118|#00e676/);
+        expect(el.classList.contains(styles.focus)).toBe(true);
+        expect(el.classList.contains(styles.locked)).toBe(true);
 
-        expect(screen.getByText('Single')).toBeTruthy();
+        expect(screen.getByText('AF · Single')).toBeTruthy();
         expect(screen.getByText('LOCKED')).toBeTruthy();
         expect(screen.getByText('0.45m')).toBeTruthy();
     });
@@ -67,8 +68,9 @@ describe('AFReticleOverlay', () => {
         render(<AFReticleOverlay af={af} />);
         const el = screen.getByTestId('af-reticle-overlay');
         expect(el).toBeTruthy();
-        expect(el.style.border).toMatch(/255,\s*145,\s*0|#ff9100/);
-        expect(screen.getByText('Wide (L)')).toBeTruthy();
+        expect(el.classList.contains(styles.focus)).toBe(true);
+        expect(el.classList.contains(styles.locked)).toBe(false);
+        expect(screen.getByText('AF · Wide (L)')).toBeTruthy();
         expect(screen.getByText('UNCONFIRMED')).toBeTruthy();
     });
 

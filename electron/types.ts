@@ -145,6 +145,7 @@ export interface FolderRow {
 }
 
 export interface StackRow extends ImageRow {
+    rep_image_id?: number | null;
     stack_id?: number | null;
     stack_key?: number;
     image_count?: number;

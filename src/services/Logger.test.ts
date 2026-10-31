@@ -1,25 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Logger } from './Logger';
 
-type TestWindow = Window & typeof globalThis & {
-  electron?: {
-    log: ReturnType<typeof vi.fn>;
-  };
-};
 
 describe('Logger', () => {
   let logMock: ReturnType<typeof vi.fn>;
-  const testWindow = globalThis.window as TestWindow;
 
   beforeEach(() => {
     logMock = vi.fn().mockResolvedValue(undefined);
-    (testWindow).electron = {
+    vi.stubGlobal('electron', {
       log: logMock,
-    };
+    });
   });
 
   afterEach(() => {
-    testWindow.electron = undefined;
+    vi.unstubAllGlobals();
   });
 
   it('calls window.electron.log with INFO for info()', () => {
@@ -49,11 +43,8 @@ describe('Logger', () => {
   });
 
   it('does not throw when window.electron is absent', () => {
-    vi.unstubAllGlobals();
-    const orig = testWindow.electron;
-    (testWindow).electron = undefined;
+    vi.stubGlobal('electron', undefined);
     expect(() => Logger.info('no electron')).not.toThrow();
-    testWindow.electron = orig;
   });
 
   it('handles log error from backend', async () => {

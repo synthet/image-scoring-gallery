@@ -13,6 +13,14 @@ Chronological record of wiki maintenance activities. Newest entries first.
 
 ## 2026-10
 
+- 2026-10-30: updated — [OpenAPI consumer contract](technical/OPENAPI_CONTRACT.md): made generation consume the committed snapshot instead of a stale sibling export, and added a regression test. The snapshot follows backend master's `openapi.json`. Contract checks and both TypeScript checks pass.
+
+- 2026-10-30: updated — [Visual evidence overlays](features/implemented/09-visual-evidence-overlays.md): fixed the clipped diagnostic menu with viewport positioning, scrolling and focus restoration; cleared the full renderer TypeScript build gate through shared contracts, browser-safe sort defaults and isolated test hosts.
+
+- 2026-10-30: updated — [Visual evidence overlays](features/implemented/09-visual-evidence-overlays.md): added on-demand sharpness, peaking, noise, real subject masks and head detail in Gallery and the web inspector, with binary artifact transport, exact preview registration and backend cache/cancellation.
+
+- 2026-10-30: updated — Ported the compact preview overlay controls to the backend image inspector; its [API contract](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/API_CONTRACT.md) documents additive cached autofocus and reliable eye artifacts. Gallery controls remain synchronized with the View menu; the similarity threshold slider now centers its thumb on the track.
+
 - 2026-10-21: updated — [Normalized bird-box compatibility reads](architecture/02-database-design.md#normalized-bird-box-compatibility-reads): local default-off SQL consumers use backend view 0043 in both provider modes; migration prerequisites and restart rollback are documented. All seven projections are covered; 58 focused tests, both TypeScript projects and scoped lint passed. No runtime flag or schema activation.
 - 2026-10-10: created — planned features: [loupe subject tracking](features/planned/loupe-subject-tracking.md), [backup copy identity](features/planned/backup-copy-identity.md) (records current Backup gaps: name-derived destinations without collision handling, overwriting `copyFile`, size-only skip-copy, silent sidecar failures, destination sidecar unlink), [archive picks](features/planned/archive-picks.md), and [learn weights from choices](features/planned/learn-weights-from-choices.md); indexed in [features/planned/README.md](features/planned/README.md).
 - 2026-10-05: updated — [JPEG export and EXIF orientation](features/implemented/05-jpeg-export-exif-orientation.md): documented Chromium's oriented decode, source TIFF orientation for browser RAW fallbacks, numeric ExifTool preview stamping, thumbnail cache recovery, diagnostic tools, and unchanged image 240203 with real-file verification evidence.
