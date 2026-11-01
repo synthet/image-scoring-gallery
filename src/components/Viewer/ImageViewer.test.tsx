@@ -239,8 +239,10 @@ describe('ImageViewer tag propagation suggestions', () => {
             expect(screen.queryByText('sunset')).toBeNull();
         });
 
+        // The button reads "Loading…" while the post-reject reload is in flight; wait for it to settle.
+        const refreshButton = await screen.findByRole('button', { name: /refresh/i });
         const callsBeforeRefresh = electron.api.propagateTags.mock.calls.length;
-        fireEvent.click(screen.getByRole('button', { name: /refresh/i }));
+        fireEvent.click(refreshButton);
 
         await waitFor(() => {
             expect(electron.api.propagateTags.mock.calls.length).toBeGreaterThan(callsBeforeRefresh);
