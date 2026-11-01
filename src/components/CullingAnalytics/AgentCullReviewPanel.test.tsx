@@ -1,13 +1,47 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AgentCullReviewPanel } from './AgentCullReviewPanel';
+import { BACKEND_UNAVAILABLE_HINT, useBackendStatusStore } from '../../store/useBackendStatusStore';
 
 describe('AgentCullReviewPanel', () => {
     beforeEach(() => {
+        useBackendStatusStore.getState().setState({ status: 'unknown', url: null, lastCheckedAt: null, error: null });
         Object.defineProperty(window, 'electron', {
             configurable: true,
             value: undefined,
         });
+    });
+
+    it('shows the offline hint, not the raw error, when the backend refuses the connection', async () => {
+        Object.defineProperty(window, 'electron', {
+            configurable: true,
+            value: {
+                api: {
+                    getAgentCullGroups: vi.fn().mockRejectedValue(new Error('net::ERR_CONNECTION_REFUSED')),
+                    runAgentCullReview: vi.fn(),
+                    getAgentCullGroup: vi.fn(),
+                },
+            },
+        });
+        render(<AgentCullReviewPanel stackId={1} />);
+        const panel = await screen.findByTestId('agent-cull-review-panel');
+        await waitFor(() => expect(panel.textContent).toContain(BACKEND_UNAVAILABLE_HINT));
+        expect(panel.textContent).not.toContain('ERR_CONNECTION_REFUSED');
+        expect(screen.queryByTestId('agent-cull-error')).toBeNull();
+        expect((screen.getByTestId('agent-cull-run-review') as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it('does not call the backend while it is known to be disconnected', async () => {
+        useBackendStatusStore.getState().setState({ status: 'disconnected', url: null, lastCheckedAt: null, error: null });
+        const getAgentCullGroups = vi.fn().mockResolvedValue({ groups: [] });
+        Object.defineProperty(window, 'electron', {
+            configurable: true,
+            value: { api: { getAgentCullGroups, runAgentCullReview: vi.fn(), getAgentCullGroup: vi.fn() } },
+        });
+        render(<AgentCullReviewPanel stackId={1} />);
+        const panel = await screen.findByTestId('agent-cull-review-panel');
+        expect(panel.textContent).toContain(BACKEND_UNAVAILABLE_HINT);
+        expect(getAgentCullGroups).not.toHaveBeenCalled();
     });
 
     it('renders nothing when API bridge is unavailable', async () => {
