@@ -115,6 +115,15 @@ const NIKON_AF_AREA_MODES: Record<number, string> = {
 };
 
 export function parseAfMetadataFromTags(m: Record<string, unknown>): AFMetadata | null {
+    // Same guard as the backend (`exif_extractor._parse_af_metadata`): when the camera
+    // flags the AF coordinates as unavailable, the area fields are placeholders.
+    // exiftool-vendored prints the value ("Yes"/"No"); `-n` gives 1/0.
+    const coordsAvailable = m.AFCoordinatesAvailable;
+    if (coordsAvailable !== undefined && coordsAvailable !== null) {
+        const flag = String(coordsAvailable).trim().toLowerCase();
+        if (flag !== '1' && flag !== 'yes') return null;
+    }
+
     const afImgW = Number(m.AFImageWidth);
     const afImgH = Number(m.AFImageHeight);
     const areaX = Number(m.AFAreaXPosition);

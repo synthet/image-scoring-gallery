@@ -36,6 +36,7 @@ import type {
     BackupVerifyReport,
     DuplicateResponse,
     ExportImageContext,
+    ExportExifResult,
     FileImageMetadataResult,
     FolderRow,
     FsReadDirResult,
@@ -53,6 +54,7 @@ import type {
     SyncPreviewResult,
     SyncRunResult,
 } from '../electron/types';
+import type { BackendConnectionState } from '../electron/backendConnection';
 import type {
     ExampleQueriesResponse,
     OutlierSearchResult,
@@ -69,6 +71,7 @@ export type {
     BackupVerifyReport,
     DuplicateResponse,
     ExportImageContext,
+    ExportExifResult,
     FileImageMetadataResult,
     FolderRow,
     FsReadDirResult,
@@ -139,6 +142,7 @@ declare global {
             getConfig: () => Promise<AppConfig>;
             saveConfig: (updates: Partial<AppConfig>) => Promise<AppConfig>;
             setCurrentExportImageContext: (context: ExportImageContext | null) => Promise<boolean>;
+            exportExif: (filePath?: string) => Promise<ExportExifResult>;
             setSelectionPath: (filePath: string | null) => Promise<boolean>;
             revealInExplorer: (filePath: string) => Promise<boolean>;
             readExif: (filePath: string) => Promise<Record<string, unknown>>;
@@ -164,6 +168,8 @@ declare global {
             setShowFocusPoint: (show: boolean) => Promise<boolean>;
             onFindSimilarImages: (callback: () => void) => () => void;
             onShowFocusPointChanged: (callback: (show: boolean) => void) => () => void;
+            onBackendStatusChanged?: (callback: (state: BackendConnectionState) => void) => () => void;
+            onBackendReconnectResult?: (callback: (state: BackendConnectionState) => void) => () => void;
             getEyeKeypoints: (ids: number[]) => Promise<Record<number, ImageEyeKeypoints>>;
             getImageEvidence: (imageId: number) => Promise<import('../electron/imageEvidenceTypes').ImageEvidencePayload | null>;
             getDiagnosticManifest: (imageId: number) => Promise<import('../electron/diagnosticTypes').DiagnosticManifest>;
@@ -224,6 +230,8 @@ declare global {
             api: {
                 healthCheck: () => Promise<BackendHealthResponse>;
                 isAvailable: () => Promise<boolean>;
+                getConnectionStatus?: () => Promise<BackendConnectionState | null>;
+                reconnect?: () => Promise<BackendConnectionState | null>;
                 getStatus: () => Promise<BackendStatusResponse>;
                 getStats: () => Promise<BackendDatabaseStats>;
                 getScoringSortOptions: () => Promise<import('../electron/scoringSortOptions').SortOption[]>;

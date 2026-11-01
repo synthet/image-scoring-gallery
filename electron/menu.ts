@@ -4,6 +4,7 @@ import path from 'path';
 import type { SyncGuards } from './main.handlers';
 import type { ExportImageContext } from './types';
 import { revealInExplorer } from './revealInExplorer';
+import type { BackendConnectionState } from './backendConnection';
 
 export type ApplicationMenuDeps = {
     getMainWindow: () => BrowserWindow | null;
@@ -24,7 +25,20 @@ export type ApplicationMenuDeps = {
     getSelectionPath: () => string | null;
     exportCurrentImage: () => Promise<void>;
     openScoringWindow: () => void;
+    getBackendStatus: () => BackendConnectionState;
+    reconnectBackend: () => void;
+    /** True when similarity search can run without the backend (direct PostgreSQL engine). */
+    isLocalSimilarityAvailable: () => boolean;
 };
+
+export function backendStatusLabel(state: BackendConnectionState): string {
+    switch (state.status) {
+        case 'connected': return `Backend: Connected${state.url ? ` (${state.url})` : ''}`;
+        case 'checking': return 'Backend: Checking…';
+        case 'disconnected': return 'Backend: Not connected';
+        default: return 'Backend: Unknown';
+    }
+}
 
 export function createApplicationMenu(deps: ApplicationMenuDeps): { rebuildApplicationMenu: () => void } {
     const rebuildApplicationMenu = () => {
@@ -34,6 +48,8 @@ export function createApplicationMenu(deps: ApplicationMenuDeps): { rebuildAppli
         const syncGuards = deps.syncGuards;
         const currentExportImageContext = deps.getExportContext();
         const currentSelectionPath = deps.getSelectionPath();
+        const backendState = deps.getBackendStatus();
+        const backendConnected = backendState.status === 'connected';
 
         const menu = Menu.buildFromTemplate([
             {
@@ -179,10 +195,22 @@ export function createApplicationMenu(deps: ApplicationMenuDeps): { rebuildAppli
                     },
                     {
                         label: 'Scoring...',
-                        enabled: !folderMode,
+                        enabled: !folderMode && backendConnected,
                         click: () => {
                             deps.openScoringWindow();
                         },
+                    },
+                    { type: 'separator' },
+                    {
+                        id: 'backend-status',
+                        label: backendStatusLabel(backendState),
+                        enabled: false,
+                    },
+                    {
+                        label: backendConnected ? 'Reconnect to Backend' : 'Connect to Backend',
+                        accelerator: 'CmdOrCtrl+Shift+B',
+                        enabled: backendState.status !== 'checking',
+                        click: () => deps.reconnectBackend(),
                     },
                 ],
             },
@@ -191,7 +219,7 @@ export function createApplicationMenu(deps: ApplicationMenuDeps): { rebuildAppli
                 label: 'Image',
                 submenu: [{
                     label: 'Find Similar Images',
-                    enabled: !folderMode,
+                    enabled: !folderMode && (backendConnected || deps.isLocalSimilarityAvailable()),
                     click: () => mainWindow?.webContents.send('find-similar-images'),
                 }],
             }] : []),

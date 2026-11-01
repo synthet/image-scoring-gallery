@@ -109,18 +109,37 @@ export function registerDbHandlers(deps: DbHandlersDeps): void {
       }));
 
       ipcMain.handle('api:similarity:search', wrapIpcHandler(async (_, options) => {
-          console.log(`[Main] Finding similar images via backend API`, options);
           const { imageId, limit, folderId, folderPath, minSimilarity } = options;
           if (!imageId) throw new Error("image_id is required");
 
+          // Direct PostgreSQL: search the stored embeddings locally (works without the backend).
+          let missingEmbedding = false;
+          if (db.isDirectPostgresEngine()) {
+              try {
+                  const local = await db.searchSimilarByStoredEmbedding(imageId, { limit, folderId, folderPath, minSimilarity });
+                  if (local.status === 'ok') return local.result;
+                  missingEmbedding = true;
+              } catch (e) {
+                  console.warn('[Main] Local similarity search failed; using backend API:', e);
+              }
+          }
+
+          console.log(`[Main] Finding similar images via backend API`, options);
           const resolvedFolderPath = folderPath || (folderId ? await db.getFolderPathById(folderId) : undefined) || undefined;
 
-          return await apiService.searchSimilar({
-              image_id: imageId,
-              limit,
-              folder_path: resolvedFolderPath,
-              min_similarity: minSimilarity,
-          });
+          try {
+              return await apiService.searchSimilar({
+                  image_id: imageId,
+                  limit,
+                  folder_path: resolvedFolderPath,
+                  min_similarity: minSimilarity,
+              });
+          } catch (e) {
+              if (missingEmbedding) {
+                  throw new Error('This image has no stored embedding yet. Connect to the backend to compute one, or run clustering for its folder.');
+              }
+              throw e;
+          }
       }));
 
       let textSearchAbort: AbortController | null = null;
@@ -148,6 +167,14 @@ export function registerDbHandlers(deps: DbHandlersDeps): void {
           limit?: number;
           folder_path?: string;
       }) => {
+          // Plain keyword ranking: answer locally on direct PostgreSQL, backend otherwise.
+          if (db.isDirectPostgresEngine()) {
+              try {
+                  return await db.getSearchExampleQueries(options);
+              } catch (e) {
+                  console.warn('[Main] Local example queries failed; using backend API:', e);
+              }
+          }
           return await apiService.getSearchExampleQueries(options);
       }));
 

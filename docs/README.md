@@ -81,6 +81,7 @@ See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenan
 - [integration/TODO.md](integration/TODO.md) - API/WebSocket backlog split by backend-owned contract tasks and gallery implementation tasks.
 - [technical/AGENT_COORDINATION.md](technical/AGENT_COORDINATION.md) - local pointer to backend canonical coordination.
 - [technical/OPENAPI_CONTRACT.md](technical/OPENAPI_CONTRACT.md) - gallery consumer checklist for backend OpenAPI sync and type generation.
+- [technical/BACKEND_INDEPENDENCE.md](technical/BACKEND_INDEPENDENCE.md) - which features need the Python backend, which run locally, and the backend connection flag / reconnect menu.
 - [technical/DATABASE_REFACTOR_ANALYSIS.md](technical/DATABASE_REFACTOR_ANALYSIS.md) - analysis of backend `modules/db.py` decomposition (pointer).
 - [technical/EXTERNAL_CLI_REVIEWS.md](technical/EXTERNAL_CLI_REVIEWS.md) - Codex/Gemini review via subagent-orchestrator MCP.
 - [api-contract/](../api-contract/) - synced API contract snapshot (`openapi.json` from backend).

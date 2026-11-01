@@ -14,12 +14,18 @@ export const AFReticleOverlay: React.FC<AFReticleOverlayProps> = ({ af, showDeta
     if (!box || !(box.width > 0) || !(box.height > 0)) return null;
     const inFocus = Boolean(af.in_focus);
     const percent = (value: number) => Number((value * 100).toFixed(4)) + '%';
+    // Grid thumbnails: anchor at the AF center so the CSS minimum size grows the box evenly
+    // around the real point (a 152 px Z8 AF area is ~5 px on a thumbnail).
+    const compact = !showDetails;
+    const position = compact
+        ? { left: percent(box.left + box.width / 2), top: percent(box.top + box.height / 2) }
+        : { left: percent(box.left), top: percent(box.top) };
 
     return (
         <div
             data-testid="af-reticle-overlay"
-            className={[styles.frame, styles.focus, inFocus ? styles.locked : ''].join(' ')}
-            style={{ left: percent(box.left), top: percent(box.top), width: percent(box.width), height: percent(box.height) }}
+            className={[styles.frame, styles.focus, inFocus ? styles.locked : '', compact ? styles.compact : ''].join(' ')}
+            style={{ ...position, width: percent(box.width), height: percent(box.height) }}
         >
             <span className={styles.crosshair} />
             <span className={[styles.corner, styles.topLeft].join(' ')} />

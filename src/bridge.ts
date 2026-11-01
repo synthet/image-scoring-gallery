@@ -90,8 +90,8 @@ async function del<T>(path: string): Promise<T> {
 function noop() { return () => { /* no-op cleanup */ }; }
 
 // Browser sessions share overlay preferences across the grid and viewer too.
-function browserOverlayPreference() {
-    let show = false;
+function browserOverlayPreference(initial = false) {
+    let show = initial;
     const listeners = new Set<(value: boolean) => void>();
     return {
         get: () => Promise.resolve(show),
@@ -109,7 +109,8 @@ function browserOverlayPreference() {
 
 const browserBoundingBox = browserOverlayPreference();
 const browserEyes = browserOverlayPreference();
-const browserFocusPoint = browserOverlayPreference();
+// Matches the Electron default (electron/viewPrefsStore.ts): the AF reticle starts on.
+const browserFocusPoint = browserOverlayPreference(true);
 
 const emptyFileImageMetadata = (): FileImageMetadataResult => ({
     tags: {},
@@ -225,6 +226,18 @@ const FOLDER_API_STUB: Window['electron']['api'] = {
 };
 
 // ── HTTP Bridge (browser mode) ────────────────────────────────────────────────
+
+/** Browser mode: the Express server proxies `/gallery-api/backend/*`, so health goes through it. */
+async function checkBrowserBackendConnection(): Promise<import('../electron/backendConnection').BackendConnectionState> {
+    let url: string | null = null;
+    try {
+        url = (await get<{ url: string }>('/api-config')).url;
+        await get('/backend/health');
+        return { status: 'connected', url, lastCheckedAt: new Date().toISOString(), error: null };
+    } catch (e) {
+        return { status: 'disconnected', url, lastCheckedAt: new Date().toISOString(), error: e instanceof Error ? e.message : String(e) };
+    }
+}
 
 function createHttpBridge(): Window['electron'] {
     return {
@@ -372,6 +385,9 @@ function createHttpBridge(): Window['electron'] {
          
         setCurrentExportImageContext: (_context: Parameters<Window['electron']['setCurrentExportImageContext']>[0]) => Promise.resolve(true),
 
+        exportExif: (_filePath?: string) =>
+            Promise.resolve({ success: false, error: 'Export EXIF is only available in the Electron desktop app' }),
+
          
         setSelectionPath: (_filePath: Parameters<Window['electron']['setSelectionPath']>[0]) => Promise.resolve(true),
 
@@ -440,8 +456,8 @@ function createHttpBridge(): Window['electron'] {
             const apiCfg = await get<{ url: string }>('/api-config');
             let apiConnected = false;
             try {
-                const res = await fetch(apiCfg.url + '/health', { signal: AbortSignal.timeout(3000) });
-                apiConnected = res.ok;
+                await get('/backend/health');
+                apiConnected = true;
             } catch { /* unreachable backend */ }
             return {
                 os: { platform: 'browser', release: '', arch: '', uptime: 0 },
@@ -517,6 +533,8 @@ function createHttpBridge(): Window['electron'] {
         api: {
             healthCheck: () => get('/backend/health'),
             isAvailable: async () => { try { await get('/backend/health'); return true; } catch { return false; } },
+            getConnectionStatus: () => checkBrowserBackendConnection(),
+            reconnect: () => checkBrowserBackendConnection(),
             getStatus: () => get('/backend/status'),
             getStats: () => get('/backend/stats'),
             getScoringSortOptions: () => get<import('../electron/scoringSortOptions').SortOption[]>('/scoring/sort-options'),
