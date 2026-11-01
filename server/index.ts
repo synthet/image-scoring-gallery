@@ -376,7 +376,13 @@ export function createServerApp(deps: ServerDeps) {
             fetchOptions.body = JSON.stringify(req.body);
         }
 
-        const upstream = await fetch(targetUrl.toString(), fetchOptions);
+        let upstream: globalThis.Response;
+        try {
+            upstream = await fetch(targetUrl.toString(), fetchOptions);
+        } catch (e) {
+            fail(res, `Backend unavailable: ${e instanceof Error ? e.message : String(e)}`, 502);
+            return;
+        }
         res.status(upstream.status);
         upstream.headers.forEach((value, name) => {
             if (!['transfer-encoding', 'connection', 'content-length', 'content-encoding'].includes(name.toLowerCase())) {
@@ -482,7 +488,16 @@ async function startServer() {
     // ── Start ─────────────────────────────────────────────────────────────────
 
     const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
-    app.listen(PORT, () => {
+    // Express 5 hands listen failures (e.g. EADDRINUSE) to this callback instead of throwing;
+    // without the check the process logs "running", binds nothing, and exits 0.
+    app.listen(PORT, (err?: Error) => {
+        if (err) {
+            console.error(
+                `[Server] Cannot listen on port ${PORT}: ${err.message}. ` +
+                'Another gallery server is probably still running (stop it, or set PORT).',
+            );
+            process.exit(1);
+        }
         console.log(`[Server] Browser-mode server running on http://localhost:${PORT}`);
         console.log(`[Server] Python backend URL: ${backendBaseUrl}`);
     });

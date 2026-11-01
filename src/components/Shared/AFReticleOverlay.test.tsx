@@ -89,4 +89,29 @@ describe('AFReticleOverlay', () => {
         expect(el.style.width).toBe('15%');
         expect(el.style.height).toBe('25%');
     });
+
+    it('anchors the compact (grid) reticle at the AF center so tiny areas can grow to a visible minimum', () => {
+        // DSC_1035: 152 px AF area on an 8256 x 5504 sensor, about 5 px on a grid thumbnail.
+        const af: AFMetadata = {
+            in_focus: false,
+            box: { left: 0.40262, top: 0.33412, width: 0.01841, height: 0.02762, center_x: 0.41182, center_y: 0.34793 },
+        };
+
+        render(<AFReticleOverlay af={af} showDetails={false} />);
+        const el = screen.getByTestId('af-reticle-overlay');
+        expect(el.classList.contains(styles.compact)).toBe(true);
+        expect(el.style.left).toBe('41.1825%');
+        expect(el.style.top).toBe('34.793%');
+        expect(el.style.width).toBe('1.841%');
+        expect(el.style.height).toBe('2.762%');
+        expect(screen.queryByText(/AF ·/)).toBeNull();
+    });
+
+    it('keeps the full reticle anchored at its top-left corner', () => {
+        const af: AFMetadata = { box: { left: 0.1, top: 0.2, width: 0.3, height: 0.4, center_x: 0.25, center_y: 0.4 } };
+        render(<AFReticleOverlay af={af} />);
+        const el = screen.getByTestId('af-reticle-overlay');
+        expect(el.classList.contains(styles.compact)).toBe(false);
+        expect(el.style.left).toBe('10%');
+    });
 });

@@ -516,3 +516,9 @@
   background: #444;
   color: #fff;
 }
+
+.offlineHint {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--color-warning);
+}

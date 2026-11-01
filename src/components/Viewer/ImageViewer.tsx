@@ -9,6 +9,7 @@ import { EyeKeypointsOverlay } from '../Shared/EyeKeypointsOverlay';
 import { hasDrawableEyes } from '../Shared/eyeKeypoints';
 import { useEyeKeypoints, useShowEyes } from '../../hooks/useEyeKeypoints';
 import { useShowFocusPoint } from '../../hooks/useShowFocusPoint';
+import { BACKEND_UNAVAILABLE_HINT, useBackendUnavailable } from '../../store/useBackendStatusStore';
 import { useDiagnostics } from '../../hooks/useDiagnostics';
 import { diagnosticsTransport } from '../../services/diagnosticsTransport';
 import { DiagnosticControls, DiagnosticLegend } from '../Diagnostics/DiagnosticControls';
@@ -21,7 +22,7 @@ import { toMediaUrl } from '../../utils/mediaUrl';
 import { formatShutterSpeedDisplay } from '../../utils/formatShutterSpeed';
 import { bridge } from '../../bridge';
 import { STAGE_DISPLAY } from '../../constants/pipelineLabels';
-import type { AFMetadata, BirdBoundingBox, ImagePhaseStatus } from '../../../electron/types';
+import type { AFMetadata, BirdBoundingBox, FileImageMetadataResult, ImagePhaseStatus } from '../../../electron/types';
 import type { TagPropagationRequest } from '../../../electron/apiTypes';
 import { bakeExifOrientationToBlob } from '../../utils/exportImageBake';
 import { pickServerFilesystemPath } from '../../utils/pickServerFilesystemPath';
@@ -272,8 +273,27 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [exifLoading, setExifLoading] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const showFocusPoint = useShowFocusPoint();
+    // AI keyword suggestions, tag propagation and the backend detail view need the backend.
+    const backendUnavailable = useBackendUnavailable();
     const addNotification = useNotificationStore(state => state.addNotification);
-    const lazyMetadataFetchedIdRef = useRef<number | null>(null);
+    /**
+     * One exiftool read per file, shared by every run of the EXIF effect. The
+     * effect re-runs when DB details merge in; caching the promise (instead of a
+     * "fetched" flag) lets the re-run pick up a read that the cancelled run started.
+     */
+    const fileMetadataReadRef = useRef<{ path: string; promise: Promise<FileImageMetadataResult | null> } | null>(null);
+    const readFileMetadataOnce = useCallback((filePath: string): Promise<FileImageMetadataResult | null> => {
+        if (fileMetadataReadRef.current?.path !== filePath) {
+            const promise = typeof bridge.readImageMetadata === 'function'
+                ? bridge.readImageMetadata(filePath).catch((e: unknown) => {
+                    console.error('[ImageViewer] readImageMetadata failed', e);
+                    return null;
+                })
+                : Promise.resolve(null);
+            fileMetadataReadRef.current = { path: filePath, promise };
+        }
+        return fileMetadataReadRef.current.promise;
+    }, []);
     const activeAfMetadata = exifData?.af_metadata || image.af_metadata;
 
     const serverFsPath = React.useMemo(
@@ -480,14 +500,13 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 af_metadata: image.af_metadata || undefined,
             });
             setExifLoading(false);
-            if (!image.af_metadata && serverFsPath && typeof bridge.readImageMetadata === 'function') {
-                if (lazyMetadataFetchedIdRef.current !== image.id) {
-                    lazyMetadataFetchedIdRef.current = image.id;
-                    void bridge.readImageMetadata(serverFsPath).then((meta) => {
-                        if (!active || !meta.detail?.af_metadata) return;
-                        setExifData((prev) => prev ? { ...prev, af_metadata: meta.detail.af_metadata ?? undefined } : { af_metadata: meta.detail.af_metadata ?? undefined });
-                    }).catch(() => { /* ignore fallback error */ });
-                }
+            // DB row predates af_metadata (no backfill): fall back to the file's MakerNotes.
+            if (!image.af_metadata && serverFsPath) {
+                void readFileMetadataOnce(serverFsPath).then((meta) => {
+                    const af = meta?.detail?.af_metadata;
+                    if (!active || !af) return;
+                    setExifData((prev) => prev ? { ...prev, af_metadata: af } : { af_metadata: af });
+                });
             }
             return;
         }
@@ -498,14 +517,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 return;
             }
 
-            if (lazyMetadataFetchedIdRef.current === image.id) {
-                return;
-            }
-            lazyMetadataFetchedIdRef.current = image.id;
-
             setExifLoading(true);
             try {
-                const meta = typeof bridge.readImageMetadata === 'function' ? await bridge.readImageMetadata(pathSchema) : null;
+                const meta = await readFileMetadataOnce(pathSchema);
                 if (active && meta?.detail) {
                     const d = meta.detail;
                     setExifData({
@@ -543,7 +557,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         return () => { active = false; };
     }, [
         image.id, serverFsPath, readOnlyFilesystemMode, image.exif_iso, image.exif_shutter,
-        image.exif_aperture, image.exif_focal_length, image.exif_model, image.exif_lens_model
+        image.exif_aperture, image.exif_focal_length, image.exif_model, image.exif_lens_model,
+        image.af_metadata, readFileMetadataOnce,
     ]);
 
     // Editing & Drawer State
@@ -768,8 +783,13 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             setSuggestionsLoadError(null);
             return;
         }
+        if (backendUnavailable) {
+            setSuggestionRows([]);
+            setSuggestionsLoadError(BACKEND_UNAVAILABLE_HINT);
+            return;
+        }
         void loadSuggestedKeywords();
-    }, [isEditing, readOnlyFilesystemMode, image.id, loadSuggestedKeywords]);
+    }, [isEditing, readOnlyFilesystemMode, backendUnavailable, image.id, loadSuggestedKeywords]);
 
     const handleSave = async () => {
         try {
@@ -1087,6 +1107,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0);
     const propagationFolderPath = getFolderPathFromFilePath(serverFsPath);
+    const propagateDisabled = propagateLoading || backendUnavailable || !propagationFolderPath || !normalizedEditKeywords;
 
     return (
         <div style={{
@@ -1308,9 +1329,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 onClick={() => {
                                     void handlePropagateTags();
                                 }}
-                                disabled={propagateLoading || !propagationFolderPath || !normalizedEditKeywords}
+                                disabled={propagateDisabled}
                                 title={
-                                    !propagationFolderPath
+                                    backendUnavailable
+                                        ? BACKEND_UNAVAILABLE_HINT
+                                        : !propagationFolderPath
                                         ? 'Folder path unavailable for propagation'
                                         : !normalizedEditKeywords
                                             ? 'Add keywords before propagating'
@@ -1326,8 +1349,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     borderRadius: 4,
                                     color: '#ccc',
                                     fontSize: '0.75em',
-                                    cursor: propagateLoading || !propagationFolderPath || !normalizedEditKeywords ? 'default' : 'pointer',
-                                    opacity: propagateLoading || !propagationFolderPath || !normalizedEditKeywords ? 0.6 : 1
+                                    cursor: propagateDisabled ? 'default' : 'pointer',
+                                    opacity: propagateDisabled ? 0.6 : 1
                                 }}
                             >
                                 {propagateLoading ? <Loader2 size={12} className="animate-spin" /> : <Tag size={12} />}
@@ -1391,7 +1414,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => { void loadSuggestedKeywords(); }}
-                                    disabled={suggestionsLoading}
+                                    disabled={suggestionsLoading || backendUnavailable}
+                                    title={backendUnavailable ? BACKEND_UNAVAILABLE_HINT : undefined}
                                     style={{
                                         padding: '2px 8px',
                                         background: '#262626',
@@ -1629,7 +1653,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     {onOpenImageById ? (
                                         <button
                                             type="button"
-                                            title="Open image details in Python backend"
+                                            title={backendUnavailable ? BACKEND_UNAVAILABLE_HINT : 'Open image details in Python backend'}
+                                            disabled={backendUnavailable}
                                             onClick={() => { void handleOpenBackend(); }}
                                             style={{
                                                 fontFamily: 'monospace',
@@ -1737,6 +1762,16 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                             </div>
                                         );
                                     })()}
+                                    {!activeAfMetadata && /nikon/i.test(exifData.Model ?? '') && (
+                                        <div
+                                            data-testid="af-metadata-missing"
+                                            title="The camera or AF-area mode did not record AF coordinates, or this image's metadata was extracted before AF support. Re-running the metadata stage in the backend fills it in."
+                                            style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #2a2a2a', display: 'flex', justifyContent: 'space-between' }}
+                                        >
+                                            <span style={{ color: '#888' }}>Autofocus:</span>
+                                            <span style={{ color: 'var(--color-text-muted)' }}>No AF point data</span>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div style={{ fontSize: '0.8em', color: '#666' }}>No EXIF data found</div>

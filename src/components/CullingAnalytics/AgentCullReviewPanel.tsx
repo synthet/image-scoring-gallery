@@ -13,6 +13,7 @@ import {
 } from './analyticsChipLabels';
 import { useAgentCullReview, type AgentCullReviewState } from '../../hooks/useAgentCullReview';
 import styles from './AgentCullReviewPanel.module.css';
+import { BACKEND_UNAVAILABLE_HINT, useBackendUnavailable } from '../../store/useBackendStatusStore';
 
 interface Props {
     stackId: number;
@@ -283,6 +284,9 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
         error,
         canRun,
     } = r;
+    // Every review action is a backend call; block them while it is unreachable.
+    const backendUnavailable = useBackendUnavailable();
+    const actionsDisabled = actionBusy || backendUnavailable;
 
     const removable = useMemo(
         () => recommendations.filter((rec) => rec.final_decision === 'remove' && !isAdvisoryRecommendation(rec)),
@@ -310,7 +314,8 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
         <button
             type="button"
             className={`${styles.btn} ${styles.btnPrimary}`}
-            disabled={actionBusy || loading}
+            disabled={actionsDisabled || loading}
+            title={backendUnavailable ? BACKEND_UNAVAILABLE_HINT : undefined}
             // Re-run on a unit that already has a group must force, else the backend returns existing_review.
             onClick={() => r.runReview(false, { force: groups.length > 0 })}
             data-testid="agent-cull-run-review"
@@ -348,7 +353,11 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                 <div className={styles.body}>
                     {reviewProgress}
                     {!reviewRunning && (
-                        <div className={styles.meta}>No review yet — records remove candidates only; files are not deleted until you confirm.</div>
+                        <div className={styles.meta}>
+                            {backendUnavailable
+                                ? BACKEND_UNAVAILABLE_HINT
+                                : 'No review yet — records remove candidates only; files are not deleted until you confirm.'}
+                        </div>
                     )}
                     <div className={styles.actionRow}>{runReviewButton}</div>
                 </div>
@@ -435,7 +444,7 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                             <button
                                 type="button"
                                 className={`${styles.btn} ${styles.btnPrimary}`}
-                                disabled={actionBusy}
+                                disabled={actionsDisabled}
                                 onClick={() => r.applyCandidates()}
                                 data-testid="agent-cull-apply-candidates"
                             >
@@ -445,7 +454,7 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                                 <button
                                     type="button"
                                     className={`${styles.btn} ${styles.btnDanger}`}
-                                    disabled={actionBusy}
+                                    disabled={actionsDisabled}
                                     onClick={() => setConfirmDeleteOpen(true)}
                                     data-testid="agent-cull-delete-approved"
                                 >
@@ -468,7 +477,7 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                                 <button
                                     type="button"
                                     className={`${styles.btn} ${styles.btnPrimary}`}
-                                    disabled={actionBusy}
+                                    disabled={actionsDisabled}
                                     onClick={() => r.approveAll(pendingRemovable)}
                                     data-testid="agent-cull-approve-all"
                                 >
@@ -478,7 +487,7 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                             <button
                                 type="button"
                                 className={styles.btn}
-                                disabled={actionBusy}
+                                disabled={actionsDisabled}
                                 onClick={() => r.dismissAll(pendingRemovable)}
                                 data-testid="agent-cull-dismiss-all"
                             >
@@ -496,7 +505,7 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                                     fileName={fileNames?.get(rec.image_id)}
                                     thumbUrl={thumbnails?.get(rec.image_id)}
                                     canApprove={!isDryRun}
-                                    busy={actionBusy}
+                                    busy={actionsDisabled}
                                     onApprove={() => r.approve(rec)}
                                     onReject={() => r.reject(rec)}
                                     onRollback={() => r.rollback(rec)}
@@ -536,7 +545,7 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                             <button
                                 type="button"
                                 className={styles.btn}
-                                disabled={actionBusy}
+                                disabled={actionsDisabled}
                                 onClick={() => setConfirmDeleteOpen(false)}
                                 data-testid="agent-cull-delete-cancel"
                             >
@@ -545,7 +554,7 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
                             <button
                                 type="button"
                                 className={`${styles.btn} ${styles.btnDanger}`}
-                                disabled={actionBusy}
+                                disabled={actionsDisabled}
                                 onClick={() => {
                                     r.deleteApproved();
                                     setConfirmDeleteOpen(false);

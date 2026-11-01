@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act } from 'react';
 import { StackAnalyticsBanner } from './StackAnalyticsBanner';
+import { useBackendStatusStore } from '../../store/useBackendStatusStore';
 
 describe('StackAnalyticsBanner', () => {
     beforeEach(() => {
@@ -19,6 +21,7 @@ describe('StackAnalyticsBanner', () => {
     });
 
     afterEach(() => {
+        useBackendStatusStore.setState({ state: { status: 'unknown', url: null, lastCheckedAt: null, error: null }, reconnectCount: 0 });
         vi.unstubAllGlobals();
         vi.clearAllMocks();
     });
@@ -53,5 +56,20 @@ describe('StackAnalyticsBanner', () => {
         const warnChip = screen.getByText('Mixed color labels');
         expect(warnChip.className).toContain('chip');
         expect(warnChip.className).toContain('chipWarn');
+    });
+
+    it('skips the backend call while disconnected and loads after reconnect', async () => {
+        const offline = { status: 'disconnected' as const, url: 'http://127.0.0.1:7860', lastCheckedAt: null, error: 'fetch failed' };
+        useBackendStatusStore.getState().setState(offline);
+
+        render(<StackAnalyticsBanner stackId={28679} />);
+        expect(window.electron.api.getStackAnalytics).not.toHaveBeenCalled();
+        expect(screen.queryByText('Pick 3')).toBeNull();
+
+        act(() => { useBackendStatusStore.getState().setState({ ...offline, status: 'connected', error: null }); });
+        expect(useBackendStatusStore.getState().reconnectCount).toBe(1);
+        await waitFor(() => {
+            expect(screen.getByText('Pick 3')).toBeTruthy();
+        });
     });
 });

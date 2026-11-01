@@ -652,3 +652,62 @@ describe('ImageViewer eye keypoints', () => {
         expect(screen.queryByTestId('eye-keypoint-marker')).toBeNull();
     });
 });
+
+describe('ImageViewer autofocus point', () => {
+    let electron: ElectronMock & { readImageMetadata: ReturnType<typeof vi.fn> };
+    const afFromFile = {
+        mode: 'Single-point AF',
+        in_focus: true,
+        box: { left: 0.4, top: 0.3, width: 0.1, height: 0.1, center_x: 0.45, center_y: 0.35 },
+    };
+
+    beforeEach(() => {
+        electron = { ...makeElectronMock(), readImageMetadata: vi.fn() };
+        electron.getShowFocusPoint.mockResolvedValue(true);
+        (window as unknown as { electron: ElectronMock }).electron = electron;
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            blob: async () => new Blob(['preview'], { type: 'image/jpeg' }),
+        }));
+    });
+
+    afterEach(() => {
+        (window as unknown as { electron?: ElectronMock }).electron = undefined;
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    it('keeps AF data read from the file when DB details arrive first without af_metadata', async () => {
+        // DB EXIF is present but af_metadata was never backfilled.
+        electron.getImageDetails.mockResolvedValue({ ...baseImage, exif_iso: 400, exif_model: 'NIKON Z 8', af_metadata: null });
+        let resolveMeta: (value: unknown) => void = () => {};
+        electron.readImageMetadata.mockReturnValue(new Promise((resolve) => { resolveMeta = resolve; }));
+
+        render(<ImageViewer image={baseImage} onClose={vi.fn()} allImages={[baseImage]} currentIndex={0} />);
+
+        // Details merge first and re-run the EXIF effect while the slow exiftool read is pending.
+        await screen.findByText('NIKON Z 8');
+        await act(async () => {
+            resolveMeta({ tags: {}, detail: { exif_iso: 400, exif_model: 'NIKON Z 8', af_metadata: afFromFile } });
+        });
+
+        expect(await screen.findByTestId('af-reticle-overlay')).toBeTruthy();
+        expect(electron.readImageMetadata).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses DB af_metadata without reading the file when the row already has EXIF', async () => {
+        const dbImage = { ...baseImage, exif_iso: 400, af_metadata: afFromFile };
+        electron.getImageDetails.mockResolvedValue(dbImage);
+        render(<ImageViewer image={dbImage} onClose={vi.fn()} allImages={[dbImage]} currentIndex={0} />);
+        expect(await screen.findByTestId('af-reticle-overlay')).toBeTruthy();
+        expect(electron.readImageMetadata).not.toHaveBeenCalled();
+    });
+
+    it('says there is no AF point data for a Nikon image without it', async () => {
+        const dbImage = { ...baseImage, exif_iso: 400, exif_model: 'NIKON D500', af_metadata: null };
+        electron.getImageDetails.mockResolvedValue(dbImage);
+        electron.readImageMetadata.mockResolvedValue({ tags: {}, detail: { exif_model: 'NIKON D500', af_metadata: null } });
+        render(<ImageViewer image={dbImage} onClose={vi.fn()} allImages={[dbImage]} currentIndex={0} />);
+        expect(await screen.findByTestId('af-metadata-missing')).toBeTruthy();
+        expect(screen.queryByTestId('af-reticle-overlay')).toBeNull();
+    });
+});

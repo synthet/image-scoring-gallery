@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { DIAGNOSTIC_LAYERS, type DiagnosticLayer, type DiagnosticManifest, type DiagnosticTransport, type PeakingMode } from '../types/diagnostics';
+import { BACKEND_UNAVAILABLE_HINT, useBackendStatusStore, useBackendUnavailable } from '../store/useBackendStatusStore';
 
 type Selection = Record<DiagnosticLayer, boolean>;
 const empty = (): Selection => ({ sharpness: false, peaking: false, noise: false, mask: false, head: false });
@@ -33,6 +34,19 @@ function pause(signal: AbortSignal) {
     });
 }
 
+/**
+ * A backend without the diagnostics v2 service ignores `schema_version=2` and
+ * answers with the v1 evidence payload (no `layers`). Fail with a clear message
+ * instead of a TypeError on `layers[layer].state`.
+ */
+function requireLayerManifest(manifest: DiagnosticManifest): DiagnosticManifest {
+    const layers = (manifest as Partial<DiagnosticManifest> | null)?.layers;
+    if (!layers || typeof layers !== 'object' || DIAGNOSTIC_LAYERS.some(layer => !layers[layer])) {
+        throw new Error('The backend does not provide diagnostic layers; update image-scoring-pipeline.');
+    }
+    return manifest;
+}
+
 export function useDiagnostics(imageId: number, transport: DiagnosticTransport, eyes: boolean, enableEyes: () => void) {
     const view = useSyncExternalStore(subscribe, () => session);
     const [open, setOpen] = useState(false);
@@ -46,6 +60,9 @@ export function useDiagnostics(imageId: number, transport: DiagnosticTransport, 
     const layers = { ...view.layers, head: view.layers.head && eyes };
     const selectedKey = DIAGNOSTIC_LAYERS.filter(layer => layers[layer]).join(',');
     const shouldLoad = open || !!selectedKey;
+    // Every layer is computed by the backend; wait for it and reload after a reconnect.
+    const backendUnavailable = useBackendUnavailable();
+    const backendReconnectCount = useBackendStatusStore((s) => s.reconnectCount);
     const manifest = result?.image_id === imageId ? result : null;
 
     useEffect(() => {
@@ -67,7 +84,7 @@ export function useDiagnostics(imageId: number, transport: DiagnosticTransport, 
     }, [imageId, transport]);
 
     useEffect(() => {
-        if (!shouldLoad || !(imageId > 0)) return;
+        if (!shouldLoad || !(imageId > 0) || backendUnavailable) return;
         let active = true;
         const controller = new AbortController();
         const selected = selectedKey ? selectedKey.split(',') as DiagnosticLayer[] : [];
@@ -75,12 +92,12 @@ export function useDiagnostics(imageId: number, transport: DiagnosticTransport, 
         lastRefresh.current = refreshTick;
         void (async () => {
             try {
-                let current = await transport.manifest(imageId);
+                let current = requireLayerManifest(await transport.manifest(imageId));
                 if (!active) return;
                 setResult(current);
                 setError(null);
                 if (selected.length && (force || selected.some(layer => current.layers[layer].state !== 'ready'))) {
-                    current = await transport.request(imageId, selected, force);
+                    current = requireLayerManifest(await transport.request(imageId, selected, force));
                     if (current.request_id) {
                         if (!active) {
                             await transport.cancel(imageId, current.request_id).catch(() => {});
@@ -94,7 +111,7 @@ export function useDiagnostics(imageId: number, transport: DiagnosticTransport, 
                 while (active && selected.some(layer => ['queued', 'running'].includes(current.layers[layer].state))) {
                     await pause(controller.signal);
                     if (!active) return;
-                    current = await transport.manifest(imageId);
+                    current = requireLayerManifest(await transport.manifest(imageId));
                     if (active) setResult(current);
                 }
             } catch (failure) {
@@ -102,7 +119,7 @@ export function useDiagnostics(imageId: number, transport: DiagnosticTransport, 
             }
         })();
         return () => { active = false; controller.abort(); };
-    }, [imageId, shouldLoad, selectedKey, refreshTick, transport]);
+    }, [imageId, shouldLoad, selectedKey, refreshTick, transport, backendUnavailable, backendReconnectCount]);
 
     const identity = manifest?.identity;
     const artifacts = selectedKey && manifest?.rendition ? [manifest.rendition.preview_artifact,
@@ -169,7 +186,8 @@ export function useDiagnostics(imageId: number, transport: DiagnosticTransport, 
     }, []);
 
     const urls = loaded?.identity === manifest?.identity ? loaded?.urls ?? {} : {};
-    return { open, setOpen, layers, manifest, error: error?.imageId === imageId ? error.message : null, urls,
+    const errorMessage = backendUnavailable && shouldLoad ? BACKEND_UNAVAILABLE_HINT : error?.imageId === imageId ? error.message : null;
+    return { open, setOpen, layers, manifest, error: errorMessage, backendUnavailable, urls,
         preview: selectedKey && manifest?.rendition ? urls[manifest.rendition.preview_artifact] ?? null : null,
         peakingMode: view.peakingMode, opacity: view.opacity, dimming: view.dimming, toggle, setPeakingMode, cyclePeaking,
         quickTogglePeaking, cancel, refresh: () => setRefreshTick(value => value + 1),
