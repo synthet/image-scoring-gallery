@@ -2,7 +2,7 @@ import { BrowserWindow, Menu, dialog, app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import type { SyncGuards } from './main.handlers';
-import type { ExportImageContext } from './types';
+import type { ExportImageContext, ExportExifResult } from './types';
 import { revealInExplorer } from './revealInExplorer';
 import type { BackendConnectionState } from './backendConnection';
 
@@ -24,6 +24,7 @@ export type ApplicationMenuDeps = {
     getExportContext: () => ExportImageContext | null;
     getSelectionPath: () => string | null;
     exportCurrentImage: () => Promise<void>;
+    exportCurrentExif: (sourcePath?: string) => Promise<ExportExifResult>;
     openScoringWindow: () => void;
     getBackendStatus: () => BackendConnectionState;
     reconnectBackend: () => void;
@@ -140,6 +141,22 @@ export function createApplicationMenu(deps: ApplicationMenuDeps): { rebuildAppli
                                     type: 'error',
                                     title: 'Export Failed',
                                     message: e instanceof Error ? e.message : 'Failed to export image.',
+                                });
+                            }
+                        },
+                    },
+                    {
+                        label: 'Export EXIF...',
+                        enabled: !!currentSelectionPath || !!currentExportImageContext?.sourcePath,
+                        click: async () => {
+                            try {
+                                await deps.exportCurrentExif();
+                            } catch (e: unknown) {
+                                console.error('[Main] Export EXIF error:', e);
+                                await deps.showMessageBox({
+                                    type: 'error',
+                                    title: 'Export EXIF Failed',
+                                    message: e instanceof Error ? e.message : 'Failed to export EXIF.',
                                 });
                             }
                         },

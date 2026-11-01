@@ -372,6 +372,33 @@ describe('ImageViewer Open Folder', () => {
         expect(onOpenFolder).toHaveBeenCalledWith(72052);
     });
 
+    it('exports EXIF for the open image from the Photography Stats header', async () => {
+        const exportExif = vi.fn().mockResolvedValue({ success: true, filePath: 'D:/out/image.json' });
+        (electron as unknown as { exportExif: typeof exportExif }).exportExif = exportExif;
+        render(<ImageViewer image={baseImage} onClose={vi.fn()} />);
+
+        fireEvent.click(await screen.findByRole('button', { name: /export exif/i }));
+        await waitFor(() => expect(exportExif).toHaveBeenCalledWith(expect.stringContaining('image.jpg')));
+        expect(addNotification).not.toHaveBeenCalledWith(expect.stringContaining('Export EXIF failed'), 'error');
+    });
+
+    it('reports a failed EXIF export but stays quiet when the user cancels', async () => {
+        const exportExif = vi.fn()
+            .mockResolvedValueOnce({ success: false, error: 'Export cancelled' })
+            .mockResolvedValueOnce({ success: false, error: 'exiftool missing' });
+        (electron as unknown as { exportExif: typeof exportExif }).exportExif = exportExif;
+        render(<ImageViewer image={baseImage} onClose={vi.fn()} />);
+        const button = await screen.findByRole('button', { name: /export exif/i });
+
+        fireEvent.click(button);
+        await waitFor(() => expect(exportExif).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+        expect(addNotification).not.toHaveBeenCalled();
+
+        fireEvent.click(button);
+        await waitFor(() => expect(addNotification).toHaveBeenCalledWith('Export EXIF failed: exiftool missing', 'error'));
+    });
+
     it('falls back to fallbackFolderId when the grid row lacks folder_id', async () => {
         electron.getImageDetails.mockResolvedValue({ ...baseImage });
         const onOpenFolder = vi.fn();

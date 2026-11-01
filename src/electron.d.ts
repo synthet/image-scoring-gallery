@@ -36,6 +36,7 @@ import type {
     BackupVerifyReport,
     DuplicateResponse,
     ExportImageContext,
+    ExportExifResult,
     FileImageMetadataResult,
     FolderRow,
     FsReadDirResult,
@@ -70,6 +71,7 @@ export type {
     BackupVerifyReport,
     DuplicateResponse,
     ExportImageContext,
+    ExportExifResult,
     FileImageMetadataResult,
     FolderRow,
     FsReadDirResult,
@@ -140,6 +142,7 @@ declare global {
             getConfig: () => Promise<AppConfig>;
             saveConfig: (updates: Partial<AppConfig>) => Promise<AppConfig>;
             setCurrentExportImageContext: (context: ExportImageContext | null) => Promise<boolean>;
+            exportExif: (filePath?: string) => Promise<ExportExifResult>;
             setSelectionPath: (filePath: string | null) => Promise<boolean>;
             revealInExplorer: (filePath: string) => Promise<boolean>;
             readExif: (filePath: string) => Promise<Record<string, unknown>>;

@@ -9,6 +9,7 @@ import { ApiService } from './apiService';
 import {
     ExportImageContext,
     type AppConfig,
+    type ExportExifResult,
 } from './types';
 import { SessionLogManager } from './sessionLogManager';
 import { getConfigPath, loadAppConfig } from './config';
@@ -32,6 +33,8 @@ import { createApplicationMenu } from './menu';
 import { createBackendConnectionMonitor } from './backendConnection';
 import { DEFAULT_VIEW_PREFS, loadViewPrefs, saveViewPrefs } from './viewPrefsStore';
 import { exportCurrentImage } from './exportImage';
+import { exportImageExif } from './exportExif';
+import { wrapIpcHandler } from './ipc/wrapIpcHandler';
 import {
     startGalleryMcpLiveFromElectron,
     stopGalleryMcpLiveFromElectron,
@@ -140,6 +143,16 @@ function setShowFocusPointAndNotify(show: boolean) {
     }
 }
 
+function exportExifForCurrentImage(sourcePath?: string): Promise<ExportExifResult> {
+    return exportImageExif({
+        getMainWindow: () => mainWindow,
+        getExportContext: () => currentExportImageContext,
+        getSelectionPath: () => currentSelectionPath,
+        showSaveDialog,
+        exiftool,
+    }, sourcePath);
+}
+
 function initApplicationMenu(): void {
     ({ rebuildApplicationMenu } = createApplicationMenu({
         getMainWindow: () => mainWindow,
@@ -164,6 +177,7 @@ function initApplicationMenu(): void {
             showSaveDialog,
             exiftool,
         }),
+        exportCurrentExif: exportExifForCurrentImage,
         openScoringWindow,
         getBackendStatus: () => backendConnection.getState(),
         reconnectBackend: () => reconnectBackendFromMenu(),
@@ -476,6 +490,13 @@ async function startFullApplication(): Promise<void> {
         electronDirname: __dirname,
         backendConnection,
     });
+
+    ipcMain.handle(
+        'export:exif',
+        wrapIpcHandler(async (_, filePath?: unknown) =>
+            exportExifForCurrentImage(typeof filePath === 'string' && filePath.trim() ? filePath : undefined),
+        ),
+    );
 
 
     console.log('[Main] All IPC handlers registered. Creating window...');

@@ -303,6 +303,27 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
     const openFolderId = image.folder_id ?? fallbackFolderId;
 
+    const [isExportingExif, setIsExportingExif] = useState(false);
+    const handleExportExif = useCallback(async () => {
+        const target = serverFsPath || image.file_path || image.win_path;
+        if (!target) {
+            addNotification('No file path available for EXIF export', 'warning');
+            return;
+        }
+        setIsExportingExif(true);
+        try {
+            const result = await bridge.exportExif(target);
+            if (!result.success && result.error && result.error !== 'Export cancelled') {
+                addNotification(`Export EXIF failed: ${result.error}`, 'error');
+            }
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            addNotification(`Export EXIF failed: ${msg}`, 'error');
+        } finally {
+            setIsExportingExif(false);
+        }
+    }, [addNotification, image.file_path, image.win_path, serverFsPath]);
+
     const handleOpenBackend = useCallback(async () => {
         try {
             const config = await bridge.getApiConfig();
@@ -1697,7 +1718,18 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
                         {/* EXIF Info */}
                         <div style={{ borderTop: '1px solid #333', paddingTop: 15 }}>
-                            <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 10, color: '#ddd' }}>Photography Stats</div>
+                            <div className={styles.statsHeader}>
+                                <div className={styles.statsTitle}>Photography Stats</div>
+                                <button
+                                    type="button"
+                                    className={styles.exportExifButton}
+                                    disabled={isExportingExif}
+                                    onClick={() => { void handleExportExif(); }}
+                                    title="Export full EXIF and MakerNotes metadata (JSON, TXT, or MD)"
+                                >
+                                    {isExportingExif ? 'Exporting…' : 'Export EXIF'}
+                                </button>
+                            </div>
                             {exifLoading ? (
                                 <div style={{ fontSize: '0.8em', color: '#666', fontStyle: 'italic' }}>Loading camera data...</div>
                             ) : exifData ? (

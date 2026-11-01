@@ -12,6 +12,7 @@ import type {
     DuplicateResponse,
     AppConfig,
     ExportImageContext,
+    ExportExifResult,
     FsReadDirResult,
     FileImageMetadataResult,
     BackupTargetInfo,
@@ -230,6 +231,10 @@ contextBridge.exposeInMainWorld('electron', {
     },
     setCurrentExportImageContext: async (context: ExportImageContext | null) => {
         return ipcRenderer.invoke('export:set-current-image-context', context);
+    },
+    exportExif: async (filePath?: string) => {
+        const response = await ipcRenderer.invoke('export:exif', filePath);
+        return unwrapEnvelope<ExportExifResult>(response);
     },
     setSelectionPath: async (filePath: string | null) => {
         return ipcRenderer.invoke('app:set-selection-path', filePath);

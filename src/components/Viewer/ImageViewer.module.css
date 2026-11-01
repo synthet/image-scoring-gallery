@@ -70,3 +70,40 @@
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
 }
+
+.statsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.statsTitle {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: var(--color-text-primary);
+}
+
+.exportExifButton {
+    padding: 3px var(--space-sm);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: var(--font-sm);
+    cursor: pointer;
+}
+
+.exportExifButton:hover:not(:disabled) {
+    background: var(--color-bg-elevated);
+}
+
+.exportExifButton:disabled {
+    color: var(--color-text-secondary);
+    cursor: wait;
+}
+
+.exportExifButton:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}

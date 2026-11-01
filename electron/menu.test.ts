@@ -103,3 +103,46 @@ describe('Tools menu backend items', () => {
     });
 });
 
+describe('File › Export EXIF', () => {
+    function build(selectionPath: string | null, exportExif = vi.fn().mockResolvedValue({ success: true })) {
+        const showMessageBox = vi.fn().mockResolvedValue({ response: 0 });
+        const deps = {
+            getMainWindow: () => ({ webContents: { send: vi.fn() } }),
+            getGalleryMode: () => 'db',
+            getIsSingleImageViewOpen: () => false,
+            getIsBackupRunning: () => false,
+            getExportContext: () => null,
+            getSelectionPath: () => selectionPath,
+            getShowBoundingBox: () => false,
+            getShowEyes: () => false,
+            getShowFocusPoint: () => true,
+            getBackendStatus: () => ({ status: 'disconnected', url: null, lastCheckedAt: null, error: null }),
+            isLocalSimilarityAvailable: () => true,
+            exportCurrentExif: exportExif,
+            showMessageBox,
+            syncGuards: { isSyncRunInProgress: () => false, activeSyncPreviewCount: () => 0 },
+        } as unknown as ApplicationMenuDeps;
+        createApplicationMenu(deps).rebuildApplicationMenu();
+        const template = vi.mocked(Menu.buildFromTemplate).mock.calls.at(-1)![0];
+        const file = template.find(item => item.label === 'File')!.submenu as Electron.MenuItemConstructorOptions[];
+        return { item: file.find(i => i.label === 'Export EXIF...')!, exportExif, showMessageBox };
+    }
+
+    it('is disabled without a selected image', () => {
+        expect(build(null).item.enabled).toBe(false);
+    });
+
+    it('exports the selected image without needing the backend', async () => {
+        const { item, exportExif } = build('D:/Photos/DSC_0001.NEF');
+        expect(item.enabled).toBe(true);
+        await item.click!({} as Electron.MenuItem, {} as Electron.BrowserWindow, {} as Electron.KeyboardEvent);
+        expect(exportExif).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows an error dialog when the export throws', async () => {
+        const { item, showMessageBox } = build('D:/Photos/DSC_0001.NEF', vi.fn().mockRejectedValue(new Error('exiftool missing')));
+        await item.click!({} as Electron.MenuItem, {} as Electron.BrowserWindow, {} as Electron.KeyboardEvent);
+        expect(showMessageBox).toHaveBeenCalledWith(expect.objectContaining({ title: 'Export EXIF Failed', message: 'exiftool missing' }));
+    });
+});
+

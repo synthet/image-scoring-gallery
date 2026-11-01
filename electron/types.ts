@@ -335,6 +335,12 @@ export interface ExportImageContext {
     previewOrientation?: number | string;
 }
 
+export interface ExportExifResult {
+    success: boolean;
+    filePath?: string;
+    error?: string;
+}
+
 // -- Backup Feature Types --
 
 export interface BackupTargetInfo {
