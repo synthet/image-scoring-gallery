@@ -39,6 +39,7 @@ dm_check.json
 config.json
 environment.json
 /.env.txt
+/.env
 
 # External sub-agent run outputs (subagent-orchestrator MCP)
 .agent-runs/
