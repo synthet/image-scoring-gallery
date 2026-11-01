@@ -5,6 +5,7 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 ## [Unreleased]
 
 ### Added
+- **Export EXIF:** **File › Export EXIF…** and an **Export EXIF** button in the viewer's Photography Stats save every EXIF and MakerNotes tag of the open image as JSON, TXT or Markdown. Works without the backend.
 - **Representative preview:** An opt-in sidebar switch opens a study manifest for the current folder. Each group of similar burst frames shows as one card with a count, and one click expands it. The view is read-only. Protected frames and frames edited since the manifest stay visible, and any mismatch falls back to the ordinary grid.
 
 ### Fixed
