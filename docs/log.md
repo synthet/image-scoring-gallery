@@ -11,6 +11,10 @@ timestamp: 2026-10-05T00:00:00Z
 
 Chronological record of wiki maintenance activities. Newest entries first.
 
+## 2026-11
+
+- 2026-11-01: updated — [Representative preview](features/implemented/10-representative-preview.md): opened groups are ordered sharpest-first by the manifest's optional `focus` hint, with the value shown; assist only, no badge.
+
 ## 2026-10
 
 - 2026-10-31: created — [Representative preview](features/implemented/10-representative-preview.md): opt-in read-only folder view from a `driftara-representative-preview/1` study manifest; new IPC channel `study:load-representative-preview`; fallbacks and tests documented; indexed in [features/implemented/INDEX.md](features/implemented/INDEX.md) and [README.md](README.md).

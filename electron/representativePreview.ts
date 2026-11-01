@@ -31,7 +31,11 @@ export type RepresentativeFallbackReason =
 export interface RepresentativeCard {
     /** Image id shown on the card. */
     representativeId: number;
-    /** Image ids the card stands for, representative first, then capture order. Length 1 = plain image. */
+    /**
+     * Image ids the card stands for. Length 1 = plain image. Opened groups list members sharpest-first by the
+     * manifest's focus hint (missing hints last, ties in capture order); without hints, representative first, then
+     * capture order.
+     */
     memberIds: number[];
 }
 
@@ -44,6 +48,8 @@ export type RepresentativePreviewResult =
         cards: RepresentativeCard[];
         /** Frames shown on their own because their live flags changed since the freeze. */
         changedSinceFreeze: number[];
+        /** Focus hint by image id, for display; absent when the manifest has none. */
+        focusById: Record<number, number>;
     }
     | { status: 'fallback'; reason: RepresentativeFallbackReason; detail: string };
 
@@ -68,6 +74,8 @@ interface ManifestFrame {
     protected?: string[];
     identity_resolved?: boolean;
     flags_at_freeze?: { rating?: number | null; label?: string | null; pick_status?: number | null };
+    /** Optional ordering hint (refcull_focus, higher is sharper); never a decision. */
+    focus?: number | null;
 }
 
 interface Manifest {
@@ -108,6 +116,21 @@ export function parseRepresentativeManifest(json: unknown): Manifest | Represent
         }
     }
     return json as unknown as Manifest;
+}
+
+const isFocus = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/** Members sharpest-first by the focus hint (missing last, ties keep the given order); unchanged without hints. */
+export function sharpestFirst(members: ManifestFrame[]): number[] {
+    if (!members.some((f) => isFocus(f.focus))) return members.map((f) => f.image_id);
+    return members
+        .map((f, i) => ({ f, i }))
+        .sort((x, y) => {
+            const fx = isFocus(x.f.focus) ? x.f.focus : -Infinity;
+            const fy = isFocus(y.f.focus) ? y.f.focus : -Infinity;
+            return fy - fx || x.i - y.i;
+        })
+        .map(({ f }) => f.image_id);
 }
 
 function sameFlags(frozen: ManifestFrame['flags_at_freeze'], live: RepresentativeLiveFlags): boolean {
@@ -183,7 +206,7 @@ export function buildRepresentativePreview(
             else hidden.push(f);
         }
         hidden.sort((a, b) => order.get(a.key)! - order.get(b.key)!);
-        cards.push({ at: order.get(rep.key)!, card: { representativeId: rep.image_id, memberIds: [rep.image_id, ...hidden.map((f) => f.image_id)] } });
+        cards.push({ at: order.get(rep.key)!, card: { representativeId: rep.image_id, memberIds: sharpestFirst([rep, ...hidden]) } });
     }
     for (const k of manifest.singletons) {
         const f = byKey.get(k)!;
@@ -198,5 +221,6 @@ export function buildRepresentativePreview(
         frameCount: manifest.frames.length,
         cards: cards.map((c) => c.card),
         changedSinceFreeze: changed.sort((a, b) => a - b),
+        focusById: Object.fromEntries(manifest.frames.filter((f) => isFocus(f.focus)).map((f) => [f.image_id, f.focus as number])),
     };
 }

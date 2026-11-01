@@ -34,7 +34,7 @@ This is a local preview of a study artifact, not a backend contract. Study group
 |---|---|
 | Turn on **Representatives** (sidebar, folder open) | Main process opens a JSON file picker, reads the file (64 MB cap), hashes it, and reads the folder's rows and raw flags. Stacks mode turns off. |
 | Manifest matches the folder | Grid shows one card per group (layered card, member count badge) plus individual frames, in capture order. Header count reads `representatives (N hidden)`. |
-| Click a group card | Grid shows that group's frames, representative first. Clicking a frame opens the viewer as usual. |
+| Click a group card | Grid shows that group's frames. With a focus hint in the manifest they are ordered sharpest-first, and each frame shows `focus 0.42`. Without hints, the representative comes first, then capture order. Clicking a frame opens the viewer as usual. |
 | **Back** or **Escape** | Returns to the representative grid and scrolls back to the group's card. |
 | Turn off, or turn on **Stacks** | Ordinary grid. |
 
@@ -44,6 +44,17 @@ Frames always get their own card when any of these holds:
 - their live rating, label or stored pick status differs from the value frozen in the manifest. The pipeline rates and labels every frame, so a change since the freeze is what marks a user's own edit.
 
 Opening a group card never selects or acts on its hidden members.
+
+## Focus ordering (assist only)
+
+Manifests from the 2026-11-01 export carry an optional per-frame `focus` hint: the study's frozen `refcull_focus` score, where higher is sharper.
+- **Order:** an opened group lists its frames sharpest-first. Frames without a hint go last; ties keep capture order.
+- **Display:** each frame shows its value.
+- **No verdict:** there is no "softer" badge. The score has not been validated against visible defocus; it agreed with judges about 64% of the time on near-equal pairs. Choosing a cut-off would claim more than the score supports.
+- **Scope:** nothing is removed, flagged or rated.
+- **Older manifests:** without the field, they keep the previous order.
+
+On the 2026-01-19 goldfinch shoot, 83 of 294 groups now open with a sharper frame ahead of the representative.
 
 ## Fallback to the ordinary grid
 
