@@ -13,6 +13,7 @@
       "Bash(wc:*)",
       "Bash(npm run lint:*)",
       "Bash(npm run doctor:*)",
+      "Bash(npm run typecheck:*)",
       "Bash(npx tsc --noEmit:*)",
       "Bash(npx tsc -p electron/tsconfig.json --noEmit:*)",
       "Bash(npx vitest run:*)",
