@@ -385,9 +385,6 @@ function createHttpBridge(): Window['electron'] {
          
         setCurrentExportImageContext: (_context: Parameters<Window['electron']['setCurrentExportImageContext']>[0]) => Promise.resolve(true),
 
-        exportExif: (_filePath?: string) =>
-            Promise.resolve({ success: false, error: 'Export EXIF is only available in the Electron desktop app' }),
-
          
         setSelectionPath: (_filePath: Parameters<Window['electron']['setSelectionPath']>[0]) => Promise.resolve(true),
 
