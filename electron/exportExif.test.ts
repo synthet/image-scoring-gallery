@@ -4,6 +4,10 @@ import type { ExportImageContext } from './types';
 import type { ExifTool } from 'exiftool-vendored';
 import { exportImageExif, type ExportExifDeps } from './exportExif';
 import fs from 'fs';
+import path from 'path';
+
+// Host-native paths: on Linux CI, path.basename does not split Windows backslashes.
+const photo = (name: string) => path.join(path.resolve('/Photos'), name);
 
 describe('exportImageExif', () => {
     let mockMainWindow: BrowserWindow;
@@ -79,7 +83,7 @@ describe('exportImageExif', () => {
         const deps: ExportExifDeps = {
             getMainWindow: () => mockMainWindow,
             getExportContext: () => null,
-            getSelectionPath: () => 'D:\\Photos\\test_bird.nef',
+            getSelectionPath: () => photo('test_bird.nef'),
             showSaveDialog: mockShowSaveDialog,
             exiftool: mockExiftool as unknown as ExifTool,
         };
@@ -94,8 +98,8 @@ describe('exportImageExif', () => {
     });
 
     it('exports metadata to JSON file', async () => {
-        const sourcePath = 'D:\\Photos\\test_bird.nef';
-        const savePath = 'D:\\Photos\\test_bird-exif.json';
+        const sourcePath = photo('test_bird.nef');
+        const savePath = photo('test_bird-exif.json');
 
         const existsSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
         const statSpy = vi.spyOn(fs.promises, 'stat').mockResolvedValue({
@@ -159,8 +163,8 @@ describe('exportImageExif', () => {
     });
 
     it('exports metadata to Markdown file when .md selected', async () => {
-        const sourcePath = 'D:\\Photos\\test_bird.jpg';
-        const savePath = 'D:\\Photos\\test_bird-exif.md';
+        const sourcePath = photo('test_bird.jpg');
+        const savePath = photo('test_bird-exif.md');
 
         const existsSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
         const statSpy = vi.spyOn(fs.promises, 'stat').mockResolvedValue({
@@ -213,8 +217,8 @@ describe('exportImageExif', () => {
     });
 
     it('handles exiftool extraction error gracefully', async () => {
-        const sourcePath = 'D:\\Photos\\corrupted.nef';
-        const savePath = 'D:\\Photos\\corrupted-exif.json';
+        const sourcePath = photo('corrupted.nef');
+        const savePath = photo('corrupted-exif.json');
 
         const existsSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
         mockShowSaveDialog.mockResolvedValue({
