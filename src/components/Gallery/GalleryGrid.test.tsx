@@ -427,6 +427,12 @@ describe('GalleryGrid representative cards', () => {
         expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }));
     });
 
+    it('shows the focus hint on frames of an opened group', () => {
+        render(<GalleryGrid images={[image(1), image(2)]} focusById={{ 1: 0.4234 }} />);
+        expect(screen.getByText('focus 0.42')).toBeTruthy();
+        expect(screen.queryAllByText(/^focus /)).toHaveLength(1);
+    });
+
     it('renders plain image cards when representative mode is off', () => {
         render(<GalleryGrid images={[image(1, 3)]} />);
         expect(screen.queryByTitle('DSC_1.NEF (shows 3 similar frames)')).toBeNull();

@@ -6,6 +6,7 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ### Added
 - **Representative preview:** An opt-in sidebar switch opens a study manifest for the current folder. Each group of similar burst frames shows as one card with a count, and one click expands it. The view is read-only. Protected frames and frames edited since the manifest stay visible, and any mismatch falls back to the ordinary grid.
+- **Representative preview focus ordering:** Opened groups list frames sharpest-first by the manifest's optional focus hint (refcull_focus), and each frame shows the value. It is an ordering aid only; there is no verdict or badge.
 
 ### Fixed
 - **RAW preview orientation:** Avoid applying EXIF rotation twice in Chromium, retain source TIFF orientation in browser preview fallbacks, and stamp Electron preview orientation in numeric ExifTool mode. Verified desktop/browser parity and preserved backend image 240203.

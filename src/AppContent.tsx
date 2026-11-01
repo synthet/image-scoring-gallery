@@ -931,6 +931,7 @@ function AppContent() {
                   onEndReached={activeStackId || representative.enabled ? undefined : loadMore}
                   representativeMode={representative.enabled && !representative.activeCard}
                   onSelectRepresentative={representative.openCard}
+                  focusById={representative.activeCard ? representative.focusById : undefined}
                   onNavigateToParent={handleNavigateToParent}
                   viewerOpen={!!openingImage}
                   subfolders={folders.flatMap(f => {

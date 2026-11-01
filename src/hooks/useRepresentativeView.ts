@@ -116,6 +116,8 @@ export function useRepresentativeView<T extends { id: number }>(folderId: number
         activeCard,
         displayImages: activeCard ? memberImages : cardImages,
         hiddenCount: cards ? (preview?.status === 'ok' ? preview.frameCount - cards.length : 0) : 0,
+        /** Focus hints for the opened group's cards (empty when the manifest has none). */
+        focusById: cards && preview?.status === 'ok' ? (preview.focusById ?? {}) : {},
         returnToId,
         setRepresentativeMode,
         openCard,

@@ -13,6 +13,7 @@ Chronological record of wiki maintenance activities. Newest entries first.
 
 ## 2026-11
 
+- 2026-11-01: updated — [Representative preview](features/implemented/10-representative-preview.md): opened groups are ordered sharpest-first by the manifest's optional `focus` hint, with the value shown; assist only, no badge.
 - 2026-11-01: updated — [DEVELOPMENT.md](DEVELOPMENT.md), [UX_UI_CONSTITUTION.md](design/UX_UI_CONSTITUTION.md), [Culling stack analytics](features/implemented/06-culling-stack-analytics.md), [Species conflict resolution](features/planned/species-conflict-resolution.md): the type-check command is now `npm run typecheck`. The old `npx tsc --noEmit` checked nothing because the root `tsconfig.json` has `files: []` ([#203](https://github.com/synthet/image-scoring-gallery/issues/203)). Dated reports and plans keep the command they used.
 
 ## 2026-10

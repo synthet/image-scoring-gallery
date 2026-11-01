@@ -118,6 +118,8 @@ interface GalleryGridProps {
     /** Representative preview: cards with `image_count > 1` stand for a group and open it on click. */
     representativeMode?: boolean;
     onSelectRepresentative?: (image: Image) => void;
+    /** Focus ordering hint by image id inside an opened representative group (display only). */
+    focusById?: Record<number, number>;
 }
 
 
@@ -209,7 +211,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     activeStackId, activeSubStackId, useGalleryThumbnail = false, onFindSimilar,
     filterEmptyActive = false,
     agentRecommendations, onAgentAction, highlightImageId = null,
-    representativeMode = false, onSelectRepresentative,
+    representativeMode = false, onSelectRepresentative, focusById,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const virtuosoRef = useRef<VirtuosoGridHandle>(null);
@@ -466,11 +468,19 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                     <div className={styles.cardScore}>
                         <span className={styles.cardScoreValue}>{getScoreDisplay(img)}</span>
                         {showPickRejectStatus ? renderPickRejectStatus(img) : null}
+                        {focusById?.[img.id] !== undefined && (
+                            <span
+                                className={styles.cardScoreValue}
+                                title="Focus hint (refcull_focus): orders this group sharpest-first; not a verdict"
+                            >
+                                focus {focusById[img.id].toFixed(2)}
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>
         );
-    }, [getScoreDisplay, getLabelColor, renderPickRejectStatus, renderThumb, agentRecommendations, onAgentAction, highlightImageId, handleContextMenu]);
+    }, [getScoreDisplay, getLabelColor, renderPickRejectStatus, renderThumb, agentRecommendations, onAgentAction, highlightImageId, handleContextMenu, focusById]);
 
     const renderStackCard = useCallback((stack: Image, onClick: () => void, kind: 'stack' | 'substack' | 'representative' = 'stack') => {
         const labelColor = getLabelColor(stack.label);
