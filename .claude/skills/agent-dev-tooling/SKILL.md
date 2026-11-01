@@ -37,8 +37,7 @@ From repo root:
 
 ```bash
 npm run lint
-npx tsc --noEmit
-npx tsc -p electron/tsconfig.json --noEmit
+npm run typecheck
 npm run test:run
 npm run doctor
 ```
@@ -55,7 +54,7 @@ Check-only (no writes):
 
 ```bash
 npm run lint
-npx tsc --noEmit
+npm run typecheck
 npm run test:run
 ```
 
@@ -116,7 +115,6 @@ See [commands-requiring-confirmation.md](../agent-cli-hub/references/commands-re
 
 ```bash
 npm run lint
-npx tsc --noEmit
-npx tsc -p electron/tsconfig.json --noEmit
+npm run typecheck
 npm run test:run
 ```

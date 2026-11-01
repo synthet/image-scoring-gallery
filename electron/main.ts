@@ -29,6 +29,8 @@ import { registerSystemHandlers } from './ipc/registerSystemHandlers';
 import { registerApiHandlers } from './ipc/registerApiHandlers';
 import { registerMediaProtocol, registerMediaScheme } from './ipc/registerMediaProtocol';
 import { createApplicationMenu } from './menu';
+import { createBackendConnectionMonitor } from './backendConnection';
+import { DEFAULT_VIEW_PREFS, loadViewPrefs, saveViewPrefs } from './viewPrefsStore';
 import { exportCurrentImage } from './exportImage';
 import {
     startGalleryMcpLiveFromElectron,
@@ -51,9 +53,9 @@ let currentExportImageContext: ExportImageContext | null = null;
 let sessionLogManager: SessionLogManager | null = null;
 
 let appGalleryMode: 'db' | 'folder' = 'db';
-let appShowBoundingBox = false;
-let appShowEyes = false;
-let appShowFocusPoint = false;
+let appShowBoundingBox = DEFAULT_VIEW_PREFS.showBoundingBox;
+let appShowEyes = DEFAULT_VIEW_PREFS.showEyes;
+let appShowFocusPoint = DEFAULT_VIEW_PREFS.showFocusPoint;
 let isSingleImageViewOpen = false;
 let currentSelectionPath: string | null = null;
 let isBackupRunning = false;
@@ -103,8 +105,17 @@ function setGalleryModeAndNotify(mode: 'db' | 'folder') {
     }
 }
 
+function persistViewPrefs(): void {
+    saveViewPrefs(app.getPath('userData'), {
+        showBoundingBox: appShowBoundingBox,
+        showEyes: appShowEyes,
+        showFocusPoint: appShowFocusPoint,
+    });
+}
+
 function setShowBoundingBoxAndNotify(show: boolean) {
     appShowBoundingBox = show;
+    persistViewPrefs();
     rebuildApplicationMenu();
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('show-bounding-box-changed', show);
@@ -113,6 +124,7 @@ function setShowBoundingBoxAndNotify(show: boolean) {
 
 function setShowEyesAndNotify(show: boolean) {
     appShowEyes = show;
+    persistViewPrefs();
     rebuildApplicationMenu();
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('show-eyes-changed', show);
@@ -121,6 +133,7 @@ function setShowEyesAndNotify(show: boolean) {
 
 function setShowFocusPointAndNotify(show: boolean) {
     appShowFocusPoint = show;
+    persistViewPrefs();
     rebuildApplicationMenu();
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('show-focus-point-changed', show);
@@ -152,6 +165,9 @@ function initApplicationMenu(): void {
             exiftool,
         }),
         openScoringWindow,
+        getBackendStatus: () => backendConnection.getState(),
+        reconnectBackend: () => reconnectBackendFromMenu(),
+        isLocalSimilarityAvailable: () => config.database?.engine !== 'api',
     }));
 }
 
@@ -164,6 +180,31 @@ function loadConfig(): AppConfig {
 
 const config = loadConfig();
 const apiService = new ApiService(loadConfig);
+
+/** Health-check timeout: short so the reconnect menu item answers quickly. */
+const BACKEND_HEALTH_TIMEOUT_MS = 3_000;
+
+const backendConnection = createBackendConnectionMonitor({
+    resetBaseUrl: () => apiService.resetBaseUrl(),
+    getBaseUrl: () => apiService.getBaseUrl(),
+    healthCheck: () => apiService.healthCheck(BACKEND_HEALTH_TIMEOUT_MS),
+    onChange: (state) => {
+        console.log(`[Main] Backend ${state.status}${state.url ? ` (${state.url})` : ''}${state.error ? `: ${state.error}` : ''}`);
+        rebuildApplicationMenu();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('backend-status-changed', state);
+        }
+    },
+});
+apiService.onTransportError((message) => backendConnection.markDisconnected(message));
+
+function reconnectBackendFromMenu(): void {
+    void backendConnection.check({ announce: true }).then((state) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('backend-reconnect-result', state);
+        }
+    });
+}
 
 function parseWebuiShellUrl(): string | null {
     const prefix = '--webui-shell=';
@@ -268,6 +309,7 @@ function openScoringWindow(): void {
 }
 
 app.on('before-quit', () => {
+    backendConnection.stop();
     if (scoringUiServer) {
         void scoringUiServer.close();
         scoringUiServer = null;
@@ -310,6 +352,8 @@ function createWindow() {
 
     mainWindow.webContents.on('did-finish-load', () => {
         console.log('[Main] Window finished loading');
+        // First health check runs once the UI is up; later loads (reload) re-read state over IPC.
+        backendConnection.start();
     });
 
     mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
@@ -339,6 +383,11 @@ function createWebuiShellWindow(targetUrl: string): void {
 
 async function startFullApplication(): Promise<void> {
     console.log('[Main] App ready, setting up protocol...');
+
+    const viewPrefs = loadViewPrefs(app.getPath('userData'));
+    appShowBoundingBox = viewPrefs.showBoundingBox;
+    appShowEyes = viewPrefs.showEyes;
+    appShowFocusPoint = viewPrefs.showFocusPoint;
 
     initApplicationMenu();
 
@@ -425,7 +474,9 @@ async function startFullApplication(): Promise<void> {
         ipcMain,
         apiService,
         electronDirname: __dirname,
+        backendConnection,
     });
+
 
     console.log('[Main] All IPC handlers registered. Creating window...');
     createWindow();

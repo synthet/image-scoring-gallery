@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useJobProgressStore } from '../store/useJobProgressStore';
 import { useConnectionStore } from '../store/useConnectionStore';
+import { useBackendStatusStore } from '../store/useBackendStatusStore';
 import { bridge } from '../bridge';
 import { BACKEND_JOB_TYPE_LABEL } from '../constants/pipelineLabels';
 import { useSyncRef } from './useSyncRef';
@@ -33,6 +34,9 @@ export function useGalleryWebSocket({
 }: UseGalleryWebSocketParams) {
   const addNotification = useNotificationStore(state => state.addNotification);
   const isWebSocketEnabled = useConnectionStore(state => state.isWebSocketEnabled);
+  // Re-run the effect after a backend reconnect: tears down the old socket and
+  // reconnects with a fresh retry budget (the service gives up after 50 tries).
+  const backendReconnectCount = useBackendStatusStore(state => state.reconnectCount);
 
   const refreshImagesRef = useSyncRef(refreshImages);
   const refreshStacksRef = useSyncRef(refreshStacks);
@@ -189,5 +193,5 @@ export function useGalleryWebSocket({
       if (folderRefreshTimer) clearTimeout(folderRefreshTimer);
       if (ws) ws.disconnect();
     };
-  }, [addNotification, isWebSocketEnabled, activeStackIdRef, stacksModeRef]);
+  }, [addNotification, isWebSocketEnabled, activeStackIdRef, stacksModeRef, backendReconnectCount]);
 }

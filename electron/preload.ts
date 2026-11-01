@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { RepresentativePreviewLoad } from './representativePreview';
 import type { DiagnosticLayer, DiagnosticManifest } from './diagnosticTypes';
+import type { BackendConnectionState } from './backendConnection';
 import type {
     ImageQueryOptions,
     ImageRow,
@@ -313,6 +314,20 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.removeListener('show-focus-point-changed', handler);
         };
     },
+    onBackendStatusChanged: (callback: (state: BackendConnectionState) => void) => {
+        const handler = (_: unknown, state: BackendConnectionState) => callback(state);
+        ipcRenderer.on('backend-status-changed', handler);
+        return () => {
+            ipcRenderer.removeListener('backend-status-changed', handler);
+        };
+    },
+    onBackendReconnectResult: (callback: (state: BackendConnectionState) => void) => {
+        const handler = (_: unknown, state: BackendConnectionState) => callback(state);
+        ipcRenderer.on('backend-reconnect-result', handler);
+        return () => {
+            ipcRenderer.removeListener('backend-reconnect-result', handler);
+        };
+    },
     selectDirectory: async () => {
         const response = await ipcRenderer.invoke('fs:select-directory');
         return unwrapEnvelope<string | null>(response);
@@ -489,6 +504,14 @@ contextBridge.exposeInMainWorld('electron', {
         isAvailable: async () => {
             const r = await ipcRenderer.invoke('api:is-available');
             return unwrapEnvelope<boolean>(r);
+        },
+        getConnectionStatus: async () => {
+            const r = await ipcRenderer.invoke('api:connection-status');
+            return unwrapEnvelope<BackendConnectionState | null>(r);
+        },
+        reconnect: async () => {
+            const r = await ipcRenderer.invoke('api:reconnect');
+            return unwrapEnvelope<BackendConnectionState | null>(r);
         },
         getStatus: async () => {
             const r = await ipcRenderer.invoke('api:status');

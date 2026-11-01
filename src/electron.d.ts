@@ -53,6 +53,7 @@ import type {
     SyncPreviewResult,
     SyncRunResult,
 } from '../electron/types';
+import type { BackendConnectionState } from '../electron/backendConnection';
 import type {
     ExampleQueriesResponse,
     OutlierSearchResult,
@@ -164,6 +165,8 @@ declare global {
             setShowFocusPoint: (show: boolean) => Promise<boolean>;
             onFindSimilarImages: (callback: () => void) => () => void;
             onShowFocusPointChanged: (callback: (show: boolean) => void) => () => void;
+            onBackendStatusChanged?: (callback: (state: BackendConnectionState) => void) => () => void;
+            onBackendReconnectResult?: (callback: (state: BackendConnectionState) => void) => () => void;
             getEyeKeypoints: (ids: number[]) => Promise<Record<number, ImageEyeKeypoints>>;
             getImageEvidence: (imageId: number) => Promise<import('../electron/imageEvidenceTypes').ImageEvidencePayload | null>;
             getDiagnosticManifest: (imageId: number) => Promise<import('../electron/diagnosticTypes').DiagnosticManifest>;
@@ -224,6 +227,8 @@ declare global {
             api: {
                 healthCheck: () => Promise<BackendHealthResponse>;
                 isAvailable: () => Promise<boolean>;
+                getConnectionStatus?: () => Promise<BackendConnectionState | null>;
+                reconnect?: () => Promise<BackendConnectionState | null>;
                 getStatus: () => Promise<BackendStatusResponse>;
                 getStats: () => Promise<BackendDatabaseStats>;
                 getScoringSortOptions: () => Promise<import('../electron/scoringSortOptions').SortOption[]>;

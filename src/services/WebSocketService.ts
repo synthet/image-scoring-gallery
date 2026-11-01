@@ -142,6 +142,8 @@ class WebSocketService {
 
     public disconnect() {
         this.intentionalDisconnect = true;
+        // An explicit disconnect ends this session; the next connect() starts with a fresh retry budget.
+        this.reconnectAttempts = 0;
 
         if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);

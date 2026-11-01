@@ -66,6 +66,7 @@ function resolveFetch(): (url: string, options?: RequestInit) => Promise<Respons
 export class ApiService {
     private baseUrl: string | null = null;
     private configLoader: () => AppConfig;
+    private transportErrorListeners = new Set<(message: string) => void>();
 
     constructor(configLoader: () => AppConfig) {
         this.configLoader = configLoader;
@@ -87,6 +88,26 @@ export class ApiService {
     /** Force re-resolution on next call (e.g. after config change). */
     public resetBaseUrl(): void {
         this.baseUrl = null;
+    }
+
+    /**
+     * Subscribes to failures where the backend did not answer at all
+     * (connection refused, DNS, reset). Timeouts and HTTP error statuses are not
+     * reported: the backend may just be slow, or it answered. Returns an unsubscribe function.
+     */
+    public onTransportError(listener: (message: string) => void): () => void {
+        this.transportErrorListeners.add(listener);
+        return () => { this.transportErrorListeners.delete(listener); };
+    }
+
+    private notifyTransportError(message: string): void {
+        for (const listener of this.transportErrorListeners) {
+            try {
+                listener(message);
+            } catch {
+                /* listener errors must not mask the request error */
+            }
+        }
     }
 
     // ── Generic HTTP ────────────────────────────────────────────────────────
@@ -124,6 +145,7 @@ export class ApiService {
         const timer = setTimeout(() => controller.abort(), timeoutMs);
         const onExternalAbort = () => controller.abort();
         options?.externalSignal?.addEventListener('abort', onExternalAbort);
+        let gotResponse = false;
 
         try {
             const fetchOptions: RequestInit = {
@@ -137,6 +159,7 @@ export class ApiService {
             }
 
             const response = await resolveFetch()(url.toString(), fetchOptions);
+            gotResponse = true;
 
             if (!response.ok) {
                 const errorText = await response.text().catch(() => '');
@@ -178,8 +201,10 @@ export class ApiService {
                 if (options?.externalSignal?.aborted) {
                     throw err;
                 }
+                // A slow backend (e.g. busy GPU) is not a lost connection; the poll decides.
                 throw new Error(`API ${method} ${apiPath} timed out after ${timeoutMs}ms`);
             }
+            if (!gotResponse) this.notifyTransportError(err instanceof Error ? err.message : String(err));
             throw err;
         } finally {
             clearTimeout(timer);
@@ -201,8 +226,8 @@ export class ApiService {
 
     // ── Health & Status ─────────────────────────────────────────────────────
 
-    healthCheck() {
-        return this.get<HealthResponse>('/api/health');
+    healthCheck(timeout?: number) {
+        return this.get<HealthResponse>('/api/health', undefined, timeout);
     }
 
     getStatus() {

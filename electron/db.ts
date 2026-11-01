@@ -1399,6 +1399,31 @@ export async function updateImageDetails(id: number, updates: Record<string, str
     }
 }
 
+/**
+ * Local port of backend `PATCH /api/images/{id}` with only `pick_status` (electron_images.update_image):
+ * sets pick_status and mirrors it onto rating/label (1 → 4/Green, -1 → 1/Red, 0 → 0/"").
+ * Does not write a sidecar (the gallery always sends write_sidecar:false) and does not write
+ * the backend's audit row, so callers use it only when the backend is unreachable.
+ * Returns the same `data` shape as the backend response.
+ */
+export async function updateImagePickStatus(imageId: number, pickStatus: -1 | 0 | 1): Promise<Record<string, unknown>> {
+    if (pickStatus !== -1 && pickStatus !== 0 && pickStatus !== 1) {
+        throw new Error(`pick_status must be -1, 0, or 1; got ${String(pickStatus)}`);
+    }
+    const rating = pickStatus === 1 ? 4 : pickStatus === -1 ? 1 : 0;
+    const label = pickStatus === 1 ? 'Green' : pickStatus === -1 ? 'Red' : '';
+    const rows = await query<{ id: number }>(
+        'UPDATE images SET pick_status = ?, rating = ?, label = ? WHERE id = ? RETURNING id',
+        [pickStatus, rating, label, imageId],
+    );
+    if (rows.length === 0) throw new Error(`Image not found: id=${imageId}`);
+    return {
+        success: true,
+        message: `Updated image ${imageId}`,
+        data: { image_id: imageId, sidecar_written: false, pick_status: pickStatus, rating, label },
+    };
+}
+
 export async function syncImageKeywords(imageId: number, keywordsStr: string | null): Promise<void> {
     const kws = Array.from(new Set((keywordsStr ?? '').split(',').map(s => s.trim()).filter(s => s.length > 0)));
     try {
@@ -2702,6 +2727,143 @@ export async function getSimilarPairsInGroup(
         console.error('[DB] getSimilarPairsInGroup failed:', e);
         return { pairs: [], error: message };
     }
+}
+
+/**
+ * Local port of backend `GET /api/similarity/example-queries` (keyword_discovery.get_top_keywords):
+ * most-used keywords as suggestion strings, deduped case-insensitively, at least 2 characters.
+ * An unknown folder returns no queries (the backend would create the folder row; this only reads).
+ */
+export async function getSearchExampleQueries(
+    options: { limit?: number; folder_path?: string } = {},
+): Promise<{ queries: string[]; source: string }> {
+    const limit = Math.min(100, Math.max(1, Math.trunc(options.limit ?? 48)));
+    const params: QueryParam[] = [];
+    let folderJoin = '';
+    if (options.folder_path) {
+        const rows = await query<{ id: number }>('SELECT id FROM folders WHERE path = ?', [normalizePathForDb(options.folder_path)]);
+        if (rows.length === 0) return { queries: [], source: 'keywords' };
+        folderJoin = 'JOIN images i ON ik.image_id = i.id WHERE i.folder_id = ?';
+        params.push(rows[0].id);
+    }
+    params.push(limit);
+    const rows = await query<{ keyword_norm: string | null; keyword_display: string | null }>(
+        `SELECT kd.keyword_norm, kd.keyword_display, COUNT(DISTINCT ik.image_id) AS count
+         FROM keywords_dim kd
+         JOIN image_keywords ik ON kd.keyword_id = ik.keyword_id
+         ${folderJoin}
+         GROUP BY kd.keyword_id, kd.keyword_norm, kd.keyword_display
+         ORDER BY count DESC
+         LIMIT ?`,
+        params,
+    );
+    const queries: string[] = [];
+    const seen = new Set<string>();
+    for (const row of rows) {
+        const text = String((row.keyword_display && row.keyword_display.trim()) ? row.keyword_display : row.keyword_norm ?? '').trim();
+        if (text.length < 2) continue;
+        const key = text.toLocaleLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        queries.push(text);
+    }
+    return { queries, source: 'keywords' };
+}
+
+/** True when queries go straight to PostgreSQL (not tunnelled through the backend's `/api/db/query`). */
+export function isDirectPostgresEngine(): boolean {
+    const engine = (dbConfig as { engine?: string; provider?: string }).engine
+        ?? (dbConfig as { provider?: string }).provider;
+    return engine !== 'api';
+}
+
+export type LocalSimilarSearchResult =
+    | {
+        status: 'ok';
+        result: {
+            query_image_id: number;
+            results: Array<{ image_id: number; file_path: string; similarity: number }>;
+            count: number;
+        };
+    }
+    | { status: 'no-embedding' };
+
+/**
+ * Local port of backend `GET /api/similarity/search` (similar_search.search_similar_images,
+ * default MobileNet space) using the embedding already stored for the query image.
+ * Same defaults as the backend: limit 20 (max 100), min_similarity 0.80, folder scope by folder id.
+ * Returns `no-embedding` when the query image has none; only the backend can compute one.
+ */
+export async function searchSimilarByStoredEmbedding(
+    imageId: number,
+    options: { limit?: number; folderId?: number; folderPath?: string; minSimilarity?: number } = {},
+): Promise<LocalSimilarSearchResult> {
+    const space = 'mobilenet_v2_imagenet_gap';
+    const has = await query<{ ok: number }>(
+        `SELECT 1 AS ok
+         FROM image_embeddings ie
+         JOIN embedding_spaces es ON es.id = ie.embedding_space_id
+         WHERE ie.image_id = ? AND es.code = ?
+         LIMIT 1`,
+        [imageId, space],
+    );
+    if (has.length === 0) return { status: 'no-embedding' };
+
+    const limit = Math.min(100, Math.max(1, Math.trunc(options.limit ?? 20)));
+    const minSimilarity = options.minSimilarity ?? 0.8;
+
+    let folderId = options.folderId;
+    if (folderId == null && options.folderPath) {
+        const rows = await query<{ id: number }>('SELECT id FROM folders WHERE path = ?', [normalizePathForDb(options.folderPath)]);
+        if (rows.length === 0) {
+            // Backend returns an empty list for an unknown folder.
+            return { status: 'ok', result: { query_image_id: imageId, results: [], count: 0 } };
+        }
+        folderId = rows[0].id;
+    }
+
+    const params: QueryParam[] = [imageId, space, space, imageId];
+    let folderClause = '';
+    if (folderId != null) {
+        folderClause = 'AND i.folder_id = ?';
+        params.push(folderId);
+    }
+    params.push(limit);
+
+    // <=> is pgvector cosine distance; similarity = 1 - distance.
+    const rows = await query<{ image_id: number; file_path: string; similarity: number | string }>(
+        `WITH q AS (
+            SELECT ie.embedding
+            FROM image_embeddings ie
+            JOIN embedding_spaces es ON es.id = ie.embedding_space_id
+            WHERE ie.image_id = ? AND es.code = ?
+            LIMIT 1
+         )
+         SELECT i.id AS image_id, i.file_path, 1 - (ie.embedding <=> q.embedding) AS similarity
+         FROM q
+         CROSS JOIN image_embeddings ie
+         JOIN embedding_spaces es ON es.id = ie.embedding_space_id
+         JOIN images i ON i.id = ie.image_id
+         WHERE es.code = ?
+           AND i.id <> ?
+           ${folderClause}
+         ORDER BY ie.embedding <=> q.embedding
+         LIMIT ?`,
+        params,
+    );
+
+    const results: Array<{ image_id: number; file_path: string; similarity: number }> = [];
+    for (const row of rows) {
+        const similarity = Number(row.similarity);
+        // Rows are ordered by distance, so the first one under the threshold ends the list.
+        if (similarity < minSimilarity) break;
+        results.push({
+            image_id: Number(row.image_id),
+            file_path: row.file_path,
+            similarity: Math.round(similarity * 1e6) / 1e6,
+        });
+    }
+    return { status: 'ok', result: { query_image_id: imageId, results, count: results.length } };
 }
 
 /**

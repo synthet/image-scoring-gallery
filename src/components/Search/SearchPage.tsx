@@ -19,6 +19,7 @@ import { getEffectiveKeyword } from '../../utils/keywordFilters';
 import { GalleryThumbnail } from '../Gallery/GalleryThumbnail';
 import { SearchProgressOverlay } from './SearchProgressOverlay';
 import styles from './SearchPage.module.css';
+import { BACKEND_UNAVAILABLE_HINT, useBackendUnavailable } from '../../store/useBackendStatusStore';
 
 const RESULT_LIMITS = [12, 24, 48, 96] as const;
 const MIN_SIM_OPTIONS = [
@@ -184,6 +185,8 @@ export function SearchPage({
     const inputRef = useRef<HTMLInputElement>(null);
 
     const { status, isSearching, data, error, activeQuery, search, cancel } = useSemanticTextSearch();
+    // Text search encodes the query with the backend's CLIP model; it cannot run locally.
+    const backendUnavailable = useBackendUnavailable();
 
     const [examplePool, setExamplePool] = useState<string[]>(EXAMPLE_QUERIES);
     const [rotatingChips, setRotatingChips] = useState(() => pickExampleSubset(EXAMPLE_QUERIES));
@@ -278,7 +281,7 @@ export function SearchPage({
     const runSearch = useCallback(
         (q?: string) => {
             const text = (q ?? queryText).trim();
-            if (!text || isSearching) return;
+            if (!text || isSearching || backendUnavailable) return;
             if (q) setQueryText(q);
             setHasSearched(true);
             void search(
@@ -290,11 +293,11 @@ export function SearchPage({
                 ),
             );
         },
-        [queryText, isSearching, search, limit, folderPath, folderIds, filters, minSim],
+        [queryText, isSearching, backendUnavailable, search, limit, folderPath, folderIds, filters, minSim],
     );
 
     useEffect(() => {
-        if (!hasSearched || !queryText.trim() || isSearching) return;
+        if (!hasSearched || !queryText.trim() || isSearching || backendUnavailable) return;
         void search(
             buildTextSearchParams(
                 queryText,
@@ -400,9 +403,10 @@ export function SearchPage({
                             </button>
                             <button
                                 type="submit"
-                                disabled={!queryText.trim() || isSearching}
+                                disabled={!queryText.trim() || isSearching || backendUnavailable}
+                                title={backendUnavailable ? BACKEND_UNAVAILABLE_HINT : undefined}
                                 className={`${styles.submitBtn} ${
-                                    queryText.trim() && !isSearching
+                                    queryText.trim() && !isSearching && !backendUnavailable
                                         ? styles.submitBtnEnabled
                                         : styles.submitBtnDisabled
                                 }`}
@@ -412,6 +416,11 @@ export function SearchPage({
                             </button>
                         </div>
                     </form>
+                    {backendUnavailable && (
+                        <div className={styles.offlineHint} role="status">
+                            {BACKEND_UNAVAILABLE_HINT}. Text search uses the backend's CLIP model.
+                        </div>
+                    )}
                     {showFilters && (
                         <div className={styles.filters}>
                             <label>

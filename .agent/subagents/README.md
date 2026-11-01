@@ -27,8 +27,7 @@ Physical definitions: [`.cursor/agents/`](../.cursor/agents/), mirrored to [`.cl
 
 ## Validation commands
 
-- `npx tsc --noEmit`
-- `npx tsc -p electron/tsconfig.json --noEmit`
+- `npm run typecheck`
 - `npm run lint`
 - `npm run test:run` when behavior changes
 - `npm run doctor` for connectivity sanity

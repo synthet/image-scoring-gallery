@@ -74,7 +74,7 @@ Backend (`pytest`, mirror existing bird-species tests):
 - `top_k` override still honored when explicitly passed (e.g. `top_k=3`).
 - Backfill: image with three `species:*` (confidences 0.7/0.2/0.1) → keeps only the 0.7 one; null-confidence ties left untouched + logged.
 
-Gallery (this repo — `npx tsc --noEmit`, `npm test`):
+Gallery (this repo — `npm run typecheck`, `npm test`):
 - `src/utils/keywordFilters.test.ts` and `electron/db.getKeywordCloud.test.ts` stay green (species partitioning unchanged).
 
 ## Rollback / flags

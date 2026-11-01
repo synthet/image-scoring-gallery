@@ -26,6 +26,8 @@ import { useStacksMode } from './hooks/useStacksMode';
 import { useRepresentativeView } from './hooks/useRepresentativeView';
 import { useImageOpener } from './hooks/useImageOpener';
 import { useGalleryWebSocket } from './hooks/useGalleryWebSocket';
+import { useBackendStatusSync } from './hooks/useBackendStatus';
+import { BackendStatusChip } from './components/Layout/BackendStatusChip';
 import { isSortOptionValue, useScoringSortOptions } from './hooks/useScoringSortOptions';
 
 import { StackAnalyticsBanner } from './components/CullingAnalytics/StackAnalyticsBanner';
@@ -236,6 +238,8 @@ function AppContent() {
     activeStackIdRef.current = activeStackId;
     refreshStacksRef.current = refreshStacks;
   }, [stacksMode, activeStackId, refreshStacks]);
+
+  useBackendStatusSync();
 
   useGalleryWebSocket({
     refreshImages,
@@ -629,6 +633,7 @@ function AppContent() {
             </span>
             )}
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '15px', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+              <BackendStatusChip />
               {!isToolViewOpen && (
                 <button
                   type="button"

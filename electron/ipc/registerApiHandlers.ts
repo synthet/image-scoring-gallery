@@ -1,17 +1,32 @@
 import path from 'path';
 import type { IpcMain } from 'electron';
 import type { ApiService } from '../apiService';
+import type { BackendConnectionMonitor } from '../backendConnection';
 import { resolveSortOptions } from '../scoringModels';
+import * as db from '../db';
 import { wrapIpcHandler } from './wrapIpcHandler';
 
 export type ApiHandlersDeps = {
     ipcMain: IpcMain;
     apiService: ApiService;
     electronDirname: string;
+    backendConnection?: BackendConnectionMonitor;
 };
 
 export function registerApiHandlers(deps: ApiHandlersDeps): void {
-    const { ipcMain, apiService, electronDirname } = deps;
+    const { ipcMain, apiService, electronDirname, backendConnection } = deps;
+
+    ipcMain.handle('api:connection-status', wrapIpcHandler(async () => {
+        if (!backendConnection) return null;
+        const state = backendConnection.getState();
+        // A renderer can ask before the first poll finished; answer with a real check.
+        return state.status === 'unknown' ? await backendConnection.check() : state;
+    }));
+
+    ipcMain.handle('api:reconnect', wrapIpcHandler(async () => {
+        if (!backendConnection) return null;
+        return await backendConnection.check({ announce: true });
+    }));
 
     ipcMain.handle('api:health', wrapIpcHandler(async () => {
         return await apiService.healthCheck();
@@ -100,7 +115,20 @@ export function registerApiHandlers(deps: ApiHandlersDeps): void {
     }));
 
     ipcMain.handle('api:update-image-pick-status', wrapIpcHandler(async (_, imageId: number, pickStatus: -1 | 0 | 1) => {
-        return await apiService.updateImagePickStatus(imageId, pickStatus);
+        // Backend first (it also writes the audit row); direct PostgreSQL covers it while the backend is down.
+        const backendDown = () => backendConnection?.getState().status === 'disconnected';
+        if (db.isDirectPostgresEngine() && backendDown()) {
+            return await db.updateImagePickStatus(imageId, pickStatus);
+        }
+        try {
+            return await apiService.updateImagePickStatus(imageId, pickStatus);
+        } catch (e) {
+            // A transport failure marks the backend disconnected before the error reaches us.
+            if (db.isDirectPostgresEngine() && backendDown()) {
+                return await db.updateImagePickStatus(imageId, pickStatus);
+            }
+            throw e;
+        }
     }));
 
     ipcMain.handle('api:scoring-start', wrapIpcHandler(async (_, opts) => {

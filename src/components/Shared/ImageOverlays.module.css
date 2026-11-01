@@ -30,6 +30,13 @@
 
 .locked { --overlay-color: var(--color-success); }
 
+/* Grid thumbnails: positioned by AF center (see AFReticleOverlay) with a visible minimum size. */
+.compact {
+    min-width: 12px;
+    min-height: 12px;
+    transform: translate(-50%, -50%);
+}
+
 .crosshair::before,
 .crosshair::after {
     content: '';

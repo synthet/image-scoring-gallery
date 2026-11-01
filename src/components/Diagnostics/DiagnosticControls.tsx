@@ -101,9 +101,9 @@ export function DiagnosticControls({ controller: c, onExport }: { controller: Di
                     onChange={event => c.setDimming(Number(event.target.value))} />
             </label>
             <div className={styles.actions}>
-                <button type="button" onClick={c.refresh} disabled={!active}><RefreshCw size={14} /> Refresh</button>
+                <button type="button" onClick={c.refresh} disabled={!active || c.backendUnavailable}><RefreshCw size={14} /> Refresh</button>
                 {pending && <button type="button" onClick={c.cancel}><X size={14} /> Cancel preparing</button>}
-                {onExport && <button type="button" onClick={onExport}>Export evidence pack</button>}
+                {onExport && <button type="button" onClick={onExport} disabled={c.backendUnavailable}>Export evidence pack</button>}
             </div>
             <small className={styles.hint}>P: cycle peaking · Shift+P: hide/restore</small>
             {c.error && <div role="alert" className={styles.error}>{c.error}</div>}

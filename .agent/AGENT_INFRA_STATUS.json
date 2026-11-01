@@ -61,8 +61,7 @@
   "missing_recommended_files": [],
   "validation_commands": [
     "npm run doctor",
-    "npx tsc --noEmit",
-    "npx tsc -p electron/tsconfig.json --noEmit",
+    "npm run typecheck",
     "npm run lint"
   ],
   "known_risks": [

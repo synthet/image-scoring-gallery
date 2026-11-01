@@ -7,6 +7,7 @@ import {
     type AnalyticsChip,
 } from './analyticsChipLabels';
 import styles from './CullingAnalytics.module.css';
+import { useBackendStatusStore, useBackendUnavailable } from '../../store/useBackendStatusStore';
 
 interface Props {
     stackId: number;
@@ -15,9 +16,16 @@ interface Props {
 export function StackAnalyticsBanner({ stackId }: Props) {
     const [data, setData] = useState<CullingAnalyticsResponse | null>(null);
     const [loading, setLoading] = useState(false);
+    // Analytics are computed by the backend: skip the call while it is down, reload after reconnect.
+    const backendUnavailable = useBackendUnavailable();
+    const backendReconnectCount = useBackendStatusStore((s) => s.reconnectCount);
 
     useEffect(() => {
         let cancelled = false;
+        if (backendUnavailable) {
+            setData(null);
+            return;
+        }
         const load = async () => {
             setLoading(true);
             try {
@@ -37,7 +45,7 @@ export function StackAnalyticsBanner({ stackId }: Props) {
         return () => {
             cancelled = true;
         };
-    }, [stackId]);
+    }, [stackId, backendUnavailable, backendReconnectCount]);
 
     if (loading) {
         return <div className={styles.banner}>Stack analytics…</div>;

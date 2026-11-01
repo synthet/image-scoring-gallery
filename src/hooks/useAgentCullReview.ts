@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useBackendStatusStore } from '../store/useBackendStatusStore';
 import type {
     AgentCullRecommendation,
     AgentCullReviewGroupDetail,
@@ -126,10 +127,12 @@ export function useAgentCullReview(
         }
     }, [enabled, stackId, subStackId]);
 
+    // Review data lives in the backend; reload it after a reconnect.
+    const backendReconnectCount = useBackendStatusStore((s) => s.reconnectCount);
     useEffect(() => {
         if (!enabled) return;
         void refresh();
-    }, [enabled, refresh]);
+    }, [enabled, refresh, backendReconnectCount]);
 
     const runAction = useCallback(async (fn: () => Promise<unknown>) => {
         setActionBusy(true);

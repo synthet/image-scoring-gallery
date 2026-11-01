@@ -27,7 +27,7 @@ Closes #
 ## Checklist
 
 - [ ] No secrets or credentials in code
-- [ ] Typecheck / tests as appropriate (`npm run test:run`, `npx tsc --noEmit`, …)
+- [ ] Typecheck / tests as appropriate (`npm run test:run`, `npm run typecheck`, …)
 
 ## Skill files (`SKILL.md`) — only if this PR adds or materially changes agent skills
 

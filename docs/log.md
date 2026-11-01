@@ -14,8 +14,11 @@ Chronological record of wiki maintenance activities. Newest entries first.
 ## 2026-11
 
 - 2026-11-01: updated — [Representative preview](features/implemented/10-representative-preview.md): opened groups are ordered sharpest-first by the manifest's optional `focus` hint, with the value shown; assist only, no badge.
+- 2026-11-01: updated — [DEVELOPMENT.md](DEVELOPMENT.md), [UX_UI_CONSTITUTION.md](design/UX_UI_CONSTITUTION.md), [Culling stack analytics](features/implemented/06-culling-stack-analytics.md), [Species conflict resolution](features/planned/species-conflict-resolution.md): the type-check command is now `npm run typecheck`. The old `npx tsc --noEmit` checked nothing because the root `tsconfig.json` has `files: []` ([#203](https://github.com/synthet/image-scoring-gallery/issues/203)). Dated reports and plans keep the command they used.
 
 ## 2026-10
+
+- 2026-10-31: created — [Backend independence](technical/BACKEND_INDEPENDENCE.md): inventory of the 42 backend paths the gallery uses (17 portable, 6 local or fallback, 21 backend-only), the new backend connection flag, the Tools › Reconnect menu item and UI gating, local similarity search, example queries and pick-status fallback on direct PostgreSQL, and why the autofocus point can be empty (view toggle now saved and on by default, file-metadata race fixed, `AFCoordinatesAvailable` parity).
 
 - 2026-10-31: created — [Representative preview](features/implemented/10-representative-preview.md): opt-in read-only folder view from a `driftara-representative-preview/1` study manifest; new IPC channel `study:load-representative-preview`; fallbacks and tests documented; indexed in [features/implemented/INDEX.md](features/implemented/INDEX.md) and [README.md](README.md).
 - 2026-10-30: updated — [OpenAPI consumer contract](technical/OPENAPI_CONTRACT.md): made generation consume the committed snapshot instead of a stale sibling export, and added a regression test. The snapshot follows backend master's `openapi.json`. Contract checks and both TypeScript checks pass.

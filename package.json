@@ -12,6 +12,7 @@
     "dev:electron": "wait-on http://localhost:5173 && tsc -p electron/tsconfig.json && cross-env ELECTRON_IS_DEV=1 electron .",
     "build": "tsc -p electron/tsconfig.json && tsc -b && vite build && electron-packager . --overwrite --platform=win32 --arch=x64 --out=release-builds --prune=true",
     "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p electron/tsconfig.json --noEmit",
     "preview": "vite preview",
     "test": "cross-env VITEST=1 vitest",
     "test:run": "cross-env VITEST=1 vitest run",

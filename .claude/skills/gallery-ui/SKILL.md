@@ -111,7 +111,7 @@ Full-screen overlay: prev/next, metadata, in-viewer edits, Escape to close.
 
 ```bash
 npm run design:check
-npx tsc --noEmit
+npm run typecheck
 npm run lint        # known pre-existing issues; avoid new errors
 ```
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { bridge } from '../bridge';
+import { useBackendStatusStore } from '../store/useBackendStatusStore';
 import { FALLBACK_MODEL_SORT_OPTIONS, type SortOption } from '../../electron/scoringSortOptions';
 
 export type { SortOption };
@@ -8,6 +9,8 @@ export function useScoringSortOptions() {
     const [sortOptions, setSortOptions] = useState<SortOption[]>(FALLBACK_MODEL_SORT_OPTIONS);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    // Model list comes partly from the backend; reload it after a reconnect.
+    const backendReconnectCount = useBackendStatusStore((s) => s.reconnectCount);
 
     useEffect(() => {
         let cancelled = false;
@@ -34,7 +37,7 @@ export function useScoringSortOptions() {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [backendReconnectCount]);
 
     return { sortOptions, loading, error };
 }
