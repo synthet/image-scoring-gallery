@@ -23,7 +23,7 @@ Change **API**, **schema**, or **pipeline terminology** without breaking **Vexlu
 4. **Backend docs pass** — `AGENT_COORDINATION.md` if needed; append backend `docs/log.md`.
 5. **Gallery integration (this repo)** — `electron/apiService.ts`, IPC/preload types, `src/constants/pipelineLabels.ts`, [docs/integration/TODO.md](../../docs/integration/TODO.md) if work remains.
 6. **Backend checks** — doctor + pytest (sibling clone).
-7. **Gallery checks** — `npm run doctor`, `npx tsc --noEmit`, `npx tsc -p electron/tsconfig.json --noEmit`, `npm run lint`, `npm run contract:check`.
+7. **Gallery checks** — `npm run doctor`, `npm run typecheck`, `npm run lint`, `npm run contract:check`.
 8. **Handoff note** in PR: repos touched, commands run, follow-ups.
 
 ## Do not

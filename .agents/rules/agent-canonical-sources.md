@@ -18,8 +18,7 @@ Do **not** invent REST paths, response fields, SQL column names, `phase_code` va
 
 - `npm run doctor`
 - `npm run dev` (see [.agent/workflows/run_gallery_dev.md](../../.agent/workflows/run_gallery_dev.md))
-- `npx tsc --noEmit`
-- `npx tsc -p electron/tsconfig.json --noEmit`
+- `npm run typecheck`
 - `npm run lint`
 
 ## Backend connectivity when debugging

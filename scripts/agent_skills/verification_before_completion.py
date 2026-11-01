@@ -28,7 +28,7 @@ CLAIM_PROOF_CATALOG: dict[str, dict[str, str]] = {
     },
     "tsc_renderer": {
         "claim": "Renderer TypeScript clean",
-        "proof": "npx tsc --noEmit",
+        "proof": "npm run typecheck",
         "not_enough": "Assumed types from editor",
     },
     "tsc_electron": {

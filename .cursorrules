@@ -60,8 +60,8 @@ happens in the main process behind IPC.
 - `npm run test:run` — Vitest.
 - `npm run doctor` — Node + config + sibling backend discovery.
 - `npm run generate:api-types` — regenerate types from backend OpenAPI.
-- `npx tsc --noEmit` — renderer typecheck.
-- `npx tsc -p electron/tsconfig.json --noEmit` — main-process typecheck.
+- `npm run typecheck` — renderer, Vite config and main-process typecheck.
+- `npx tsc -p electron/tsconfig.json --noEmit` — main-process typecheck only.
 
 ## Regression-sensitive areas
 
