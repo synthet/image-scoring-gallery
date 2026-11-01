@@ -285,7 +285,8 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
         canRun,
     } = r;
     // Every review action is a backend call; block them while it is unreachable.
-    const backendUnavailable = useBackendUnavailable();
+    const storeOffline = useBackendUnavailable();
+    const backendUnavailable = storeOffline || r.backendOffline;
     const actionsDisabled = actionBusy || backendUnavailable;
 
     const removable = useMemo(
@@ -328,7 +329,8 @@ export function AgentCullReviewPanel({ stackId, subStackId = null, review, fileN
         return <div className={styles.panel}><div className={styles.body}>Agent cull review…</div></div>;
     }
 
-    if (error && groups.length === 0) {
+    // Offline: fall through to the empty state, which shows the neutral backend hint.
+    if (error && groups.length === 0 && !backendUnavailable) {
         return (
             <div className={styles.panel} data-testid="agent-cull-error">
                 <div className={styles.header}>

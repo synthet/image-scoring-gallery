@@ -1,5 +1,7 @@
 /** User-facing labels for culling analytics banner chips and agent review badges. */
 
+import { BACKEND_UNAVAILABLE_HINT } from '../../store/useBackendStatusStore';
+
 export type AnalyticsChip = { key: string; text: string; warn?: boolean };
 
 const WARNING_LABELS: Record<string, string> = {
@@ -242,9 +244,17 @@ export function friendlyAgentReviewFailure(
     return errorMessage ?? null;
 }
 
+/** True when a request never reached the backend (refused, reset, offline). */
+export function isBackendConnectionError(raw: string): boolean {
+    return /ERR_CONNECTION_REFUSED|ERR_CONNECTION_RESET|ERR_INTERNET_DISCONNECTED|ECONNREFUSED|ECONNRESET|Failed to fetch|fetch failed/i.test(raw);
+}
+
 export function friendlyAgentError(raw: string, skipReason?: string | null): string {
     if (skipReason && AGENT_ERROR_LABELS[skipReason]) {
         return AGENT_ERROR_LABELS[skipReason];
+    }
+    if (isBackendConnectionError(raw)) {
+        return BACKEND_UNAVAILABLE_HINT;
     }
     for (const [code, msg] of Object.entries(AGENT_ERROR_LABELS)) {
         if (raw.includes(code)) return msg;

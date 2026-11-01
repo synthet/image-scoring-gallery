@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useBackendStatusStore } from '../store/useBackendStatusStore';
+import { useBackendStatusStore, useBackendUnavailable } from '../store/useBackendStatusStore';
 import type {
     AgentCullRecommendation,
     AgentCullReviewGroupDetail,
     AgentCullReviewGroupSummary,
 } from '../types/agentCullReview';
-import { friendlyAgentError, formatAgentActionError } from '../components/CullingAnalytics/analyticsChipLabels';
+import {
+    friendlyAgentError,
+    formatAgentActionError,
+    isBackendConnectionError,
+} from '../components/CullingAnalytics/analyticsChipLabels';
 
 /** Shared, reusable state + actions for the agent cull review of one stack/sub-stack.
  *
@@ -28,6 +32,8 @@ export interface AgentCullReviewState {
     error: string | null;
     /** True when the IPC bridge exposes the run endpoint. */
     canRun: boolean;
+    /** True while the backend is known to be down, or the last load could not reach it. */
+    backendOffline: boolean;
     refresh: (options?: { clearError?: boolean; force?: boolean }) => Promise<void>;
     /**
      * Run the agent review (live). `force` re-runs even when a group already exists for the unit
@@ -82,6 +88,8 @@ export function useAgentCullReview(
     const [reviewRunning, setReviewRunning] = useState(false);
     const [reviewElapsedSec, setReviewElapsedSec] = useState(0);
     const [error, setError] = useState<string | null>(null);
+    const [loadUnreachable, setLoadUnreachable] = useState(false);
+    const storeOffline = useBackendUnavailable();
     const reviewStartedAtRef = useRef<number | null>(null);
     const reviewRunningRef = useRef(false);
 
@@ -110,6 +118,9 @@ export function useAgentCullReview(
         if (reviewRunningRef.current && !opts?.force) {
             return;
         }
+        // Review data lives in the backend: don't call it while it is known to be down.
+        // The reconnect effect below reloads once it is back.
+        if (storeOffline) return;
         setLoading(true);
         if (opts?.clearError !== false) {
             setError(null);
@@ -118,14 +129,22 @@ export function useAgentCullReview(
             const data = await loadReviewData(stackId, subStackId);
             setGroups(data.groups);
             setDetail(data.detail);
+            setLoadUnreachable(false);
         } catch (e) {
-            setError(friendlyAgentError(e instanceof Error ? e.message : 'Failed to load agent review'));
+            const message = e instanceof Error ? e.message : 'Failed to load agent review';
+            if (isBackendConnectionError(message)) {
+                // Not an error in the review itself: the panel shows the offline hint instead.
+                setLoadUnreachable(true);
+                setError(null);
+            } else {
+                setError(friendlyAgentError(message));
+            }
             setGroups([]);
             setDetail(null);
         } finally {
             setLoading(false);
         }
-    }, [enabled, stackId, subStackId]);
+    }, [enabled, stackId, subStackId, storeOffline]);
 
     // Review data lives in the backend; reload it after a reconnect.
     const backendReconnectCount = useBackendStatusStore((s) => s.reconnectCount);
@@ -243,6 +262,7 @@ export function useAgentCullReview(
         reviewElapsedSec,
         error,
         canRun,
+        backendOffline: storeOffline || loadUnreachable,
         refresh,
         runReview,
         approve,

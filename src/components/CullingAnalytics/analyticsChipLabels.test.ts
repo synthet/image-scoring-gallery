@@ -12,7 +12,9 @@ import {
     agentRecommendationBadge,
     isAdvisoryRecommendation,
     formatAgentSummaryDigest,
+    isBackendConnectionError,
 } from './analyticsChipLabels';
+import { BACKEND_UNAVAILABLE_HINT } from '../../store/useBackendStatusStore';
 
 describe('formatAnalyticsWarning', () => {
     it('maps known stack warning codes to friendly labels', () => {
@@ -131,6 +133,14 @@ describe('formatAgentSummaryDigest', () => {
 });
 
 describe('friendlyAgentError', () => {
+    it('turns connection failures into the backend hint', () => {
+        for (const raw of ['net::ERR_CONNECTION_REFUSED', 'connect ECONNREFUSED 127.0.0.1:7860', 'TypeError: Failed to fetch']) {
+            expect(isBackendConnectionError(raw)).toBe(true);
+            expect(friendlyAgentError(raw)).toBe(BACKEND_UNAVAILABLE_HINT);
+        }
+        expect(isBackendConnectionError('HTTP 500 internal error')).toBe(false);
+    });
+
     it('prefers skip_reason over generic no_eligible_unit', () => {
         expect(friendlyAgentError('no_eligible_unit', 'group_too_large')).toMatch(
             /configured max size/i,
