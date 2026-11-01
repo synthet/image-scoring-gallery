@@ -54,7 +54,7 @@ You are the **gallery-mcp-debug** specialist for **image-scoring-gallery**. Work
 
 ## Commands cheat sheet
 
-- Renderer types: `npx tsc --noEmit`
+- Renderer types: `npm run typecheck`
 - Electron main types: `npx tsc -p electron/tsconfig.json`
 - Lint: `npm run lint`
 - Tests: `npm run test:run`

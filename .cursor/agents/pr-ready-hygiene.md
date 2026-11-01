@@ -17,7 +17,7 @@ Follow root **AGENTS.md**, **`.cursor/commands/pr-ready.md`**, **`.cursor/comman
 
 1. **Lint** — `npm run lint` when TS/JS changed. Do **not** expand scope to pre-existing lint debt unless the user asked or your diff touched those files (then fix only what you broke or adjacent obvious issues).
 2. **Tests** — `npm run test:run` when behavior or tests changed, or as a final sanity pass before PR.
-3. **Types** — `npx tsc --noEmit`; when Electron code changed, also `npx tsc -p electron/tsconfig.json`.
+3. **Types** — `npm run typecheck`; when Electron code changed, also `npx tsc -p electron/tsconfig.json`.
 4. **Cross-repo** — If the user also changed **image-scoring-pipeline** (sibling clone), say what they should run there (ruff on changed paths, scoped pytest, WSL/venv per that repo’s AGENTS.md) or delegate; do not invent backend paths.
 
 ## Output (required)

@@ -32,7 +32,7 @@ IPC: `api:get-culling-analytics`, `api:get-stack-analytics` via `electron/apiSer
 ## Regression
 
 - `src/components/CullingAnalytics/*.test.tsx` (Vitest, mocked API)
-- `npx tsc --noEmit` after API type changes
+- `npm run typecheck` after API type changes
 
 ## Related
 

@@ -108,4 +108,4 @@ Verification after install:
 
 - [ ] `git --version`, `rg --version`, `fd --version`, `jq --version`, `gh --version`, `node --version`
 - [ ] Block B (Recommended): `yq --version`, `just --version`, `shellcheck --version`
-- [ ] `npm run doctor`, `npm run lint`, `npx tsc --noEmit`
+- [ ] `npm run doctor`, `npm run lint`, `npm run typecheck`

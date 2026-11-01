@@ -20,7 +20,7 @@ From [AGENTS.md](../AGENTS.md), [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md), a
 
 ## Types / lint / tests
 
-- Renderer: `npx tsc --noEmit`
+- All projects (renderer, Vite config, Electron main): `npm run typecheck`
 - Electron main: `npx tsc -p electron/tsconfig.json --noEmit` (plan uses `--noEmit`; package `dev:electron` uses compile — both valid for CI checks)
 - Lint: `npm run lint`
 - Tests: `npm run test:run`

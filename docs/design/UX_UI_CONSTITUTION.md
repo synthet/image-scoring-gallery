@@ -50,7 +50,7 @@ Palette tables: [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) (pointer) · [image-scoring
 
 ```bash
 npm run design:check
-npx tsc --noEmit
+npm run typecheck
 ```
 
 **Skill:** `.cursor/skills/gallery-ui/SKILL.md`

@@ -32,7 +32,7 @@ Prefer documented runners in **AGENTS.md**:
 
 - Backend: WSL + `~/.venvs/tf` or `image-scoring-tests`; fast subset
   `pytest -m "not gpu and not db and not ml" --ignore=tests/test_probe.py`
-- Gallery: `npm run test:run`, `npx tsc --noEmit`, `npx tsc -p electron/tsconfig.json --noEmit`
+- Gallery: `npm run test:run`, `npm run typecheck`
 
 ## Use with
 

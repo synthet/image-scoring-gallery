@@ -21,7 +21,7 @@ If a change requires backend DDL or API changes, **say so explicitly** and treat
 
 ## Commands (gallery `AGENTS.md`)
 
-- Renderer: `npx tsc --noEmit`
+- Renderer: `npm run typecheck`
 - Electron main: `npx tsc -p electron/tsconfig.json`
 - Lint: `npm run lint` (known legacy noise; do not add new issues)
 - Tests: `npm run test:run`

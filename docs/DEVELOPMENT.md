@@ -38,8 +38,7 @@ This starts the local server, Vite, and Electron dev process according to [../pa
 ## Type Checks
 
 ```bash
-npx tsc --noEmit
-npx tsc -p electron/tsconfig.json --noEmit
+npm run typecheck
 ```
 
 Known pre-existing TypeScript errors should only be mentioned when documented in repo docs or current task output. Do not introduce new errors.

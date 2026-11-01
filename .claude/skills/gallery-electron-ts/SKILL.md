@@ -59,7 +59,7 @@ Keep **sibling clone layout** in mind: backend and gallery as sibling folders so
 
 ## Commands (canonical: **`AGENTS.md`**)
 
-- Renderer type-check: `npx tsc --noEmit`
+- Renderer type-check: `npm run typecheck`
 - Electron main process: `npx tsc -p electron/tsconfig.json`
 - Lint: `npm run lint` (known pre-existing issues; avoid introducing new ones)
 - Tests: `npm run test:run`

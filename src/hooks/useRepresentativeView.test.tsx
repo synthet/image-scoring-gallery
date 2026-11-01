@@ -24,11 +24,11 @@ describe('useRepresentativeView', () => {
     beforeEach(() => {
         loadRepresentativePreview = vi.fn().mockResolvedValue(okLoad);
         // Only the read-only loader exists: any rating, flag or file call would throw.
-        (window as Window & { electron?: unknown }).electron = { loadRepresentativePreview };
+        (window as unknown as { electron?: unknown }).electron = { loadRepresentativePreview };
     });
 
     afterEach(() => {
-        (window as Window & { electron?: unknown }).electron = undefined;
+        (window as unknown as { electron?: unknown }).electron = undefined;
     });
 
     it('shows one card per group, opens a group, and returns to the card on Back', async () => {

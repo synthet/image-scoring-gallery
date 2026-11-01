@@ -21,8 +21,7 @@ Sanity-check **image-scoring-gallery** before feature work: dependencies, TypeSc
 ```bash
 npm install
 npm run doctor
-npx tsc --noEmit
-npx tsc -p electron/tsconfig.json --noEmit
+npm run typecheck
 npm run lint
 ```
 

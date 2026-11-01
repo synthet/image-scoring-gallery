@@ -21,7 +21,7 @@ per-criterion verification; do not conflate "meets spec" with "mergeable".
 
 1. **Summary** — User-facing description of the change (not the commit list).
 2. **Risk / rollout** — Breaking changes, migrations, config.
-3. **Testing** — Commands run and results (`npm run lint`, `npm run test:run`, `npx tsc --noEmit`).
+3. **Testing** — Commands run and results (`npm run lint`, `npm run test:run`, `npm run typecheck`).
 4. **Suggested commit message** — Prefer [Conventional Commits](https://www.conventionalcommits.org/); use skill `commit-conventions` if present.
 5. **PR description** — Paste-ready Markdown; align with `.github/pull_request_template.md`.
 
