@@ -451,6 +451,9 @@ function createHttpBridge(): Window['electron'] {
             preview: { status: 'fallback', reason: 'unreadable', detail: 'representative preview needs the desktop app' },
             images: [],
         }),
+        loadKeepOneReview: () => Promise.resolve({
+            status: 'fallback', reason: 'unreadable', detail: 'keep-one review needs the desktop app',
+        }),
 
         getDiagnostics: async () => {
             const apiCfg = await get<{ url: string }>('/api-config');
@@ -475,6 +478,7 @@ function createHttpBridge(): Window['electron'] {
         onOpenDiagnostics: noop,
         onOpenSearch: noop,
         onOpenKeywords: noop,
+        onOpenKeepOneReview: noop,
         onImportFolderSelected: noop,
         onImportProgress: noop,
         onShowNotification: noop,

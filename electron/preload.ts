@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { RepresentativePreviewLoad } from './representativePreview';
+import type { KeepOneReviewResult } from './keepOneReview';
 import type { DiagnosticLayer, DiagnosticManifest } from './diagnosticTypes';
 import type { BackendConnectionState } from './backendConnection';
 import type {
@@ -341,6 +342,10 @@ contextBridge.exposeInMainWorld('electron', {
         const response = await ipcRenderer.invoke('study:load-representative-preview', folderId);
         return unwrapEnvelope<RepresentativePreviewLoad>(response);
     },
+    loadKeepOneReview: async () => {
+        const response = await ipcRenderer.invoke('study:load-keepone-review');
+        return unwrapEnvelope<KeepOneReviewResult>(response);
+    },
     openExternalUrl: async (url: string) => {
         await ipcRenderer.invoke('system:open-external-url', url);
     },
@@ -370,6 +375,13 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.on('open-keywords', handler);
         return () => {
             ipcRenderer.removeListener('open-keywords', handler);
+        };
+    },
+    onOpenKeepOneReview: (callback: () => void) => {
+        const handler = () => callback();
+        ipcRenderer.on('open-keepone-review', handler);
+        return () => {
+            ipcRenderer.removeListener('open-keepone-review', handler);
         };
     },
     onImportFolderSelected: (callback: (folderPath: string) => void) => {

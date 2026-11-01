@@ -8,6 +8,12 @@ import {
     type RepresentativeLiveFlags,
     type RepresentativePreviewLoad,
 } from '../representativePreview';
+import {
+    buildKeepOneReview,
+    keepOneImageIds,
+    type KeepOneLiveRow,
+    type KeepOneReviewResult,
+} from '../keepOneReview';
 import { wrapIpcHandler } from './wrapIpcHandler';
 
 /** Study manifests are a few MB per shoot; refuse anything far larger before parsing. */
@@ -51,6 +57,30 @@ export async function loadRepresentativePreview(
     return { preview, images };
 }
 
+export type KeepOneReviewDeps = {
+    readFile: (filePath: string) => Promise<Buffer>;
+    getImages: (ids: number[]) => Promise<KeepOneLiveRow[]>;
+};
+
+/** Read-only: reads the chosen keep-one export and the referenced catalog rows; never writes anything. */
+export async function loadKeepOneReview(filePath: string, deps: KeepOneReviewDeps): Promise<KeepOneReviewResult> {
+    let bytes: Buffer;
+    let json: unknown;
+    try {
+        bytes = await deps.readFile(filePath);
+        if (bytes.length > MAX_MANIFEST_BYTES) {
+            return { status: 'fallback', reason: 'unreadable', detail: 'export is larger than 64 MB' };
+        }
+        json = JSON.parse(bytes.toString('utf8'));
+    } catch (e) {
+        return { status: 'fallback', reason: 'unreadable', detail: e instanceof Error ? e.message : String(e) };
+    }
+    const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+    const ids = keepOneImageIds(json);
+    const rows = ids.length > 0 ? await deps.getImages(ids) : [];
+    return buildKeepOneReview(json, sha256, rows);
+}
+
 export type StudyHandlersDeps = {
     ipcMain: IpcMain;
     getMainWindow: () => BrowserWindow | null;
@@ -77,6 +107,23 @@ export function registerStudyHandlers(deps: StudyHandlersDeps): void {
             readFile: (p) => fs.promises.readFile(p),
             getFolderImageFlags: (id) => db.getFolderImageFlags(id),
             getFolderImages: (id, limit) => db.getImagesByStack(null, { folderId: id, limit }),
+        });
+    }));
+
+    ipcMain.handle('study:load-keepone-review', wrapIpcHandler(async () => {
+        const mainWindow = getMainWindow();
+        const win = BrowserWindow.getFocusedWindow() ?? mainWindow;
+        const result = await dialog.showOpenDialog(win || mainWindow!, {
+            properties: ['openFile'],
+            filters: [{ name: 'Keep-one review export', extensions: ['json'] }],
+            title: 'Open keep-one review export',
+        });
+        if (result.canceled || !result.filePaths[0]) {
+            return { status: 'fallback', reason: 'cancelled', detail: 'no export chosen' } satisfies KeepOneReviewResult;
+        }
+        return await loadKeepOneReview(result.filePaths[0], {
+            readFile: (p) => fs.promises.readFile(p),
+            getImages: (ids) => db.getImagesForKeepOneReview(ids),
         });
     }));
 }

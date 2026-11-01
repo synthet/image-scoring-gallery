@@ -22,7 +22,7 @@ vi.mock('./db/provider', () => ({
   })),
 }));
 
-import { getSearchExampleQueries, isDirectPostgresEngine, searchSimilarByStoredEmbedding, updateImagePickStatus } from './db';
+import { getImagesForKeepOneReview, getSearchExampleQueries, isDirectPostgresEngine, searchSimilarByStoredEmbedding, updateImagePickStatus } from './db';
 
 describe('db.searchSimilarByStoredEmbedding', () => {
   beforeEach(() => {
@@ -137,5 +137,29 @@ describe('db.getSearchExampleQueries', () => {
 
     queryMock.mockResolvedValueOnce([]);
     await expect(getSearchExampleQueries({ folder_path: '/mnt/d/none' })).resolves.toEqual({ queries: [], source: 'keywords' });
+  });
+});
+
+describe('db.getImagesForKeepOneReview', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('queries ids in chunks of 1000 with pick_status', async () => {
+    queryMock.mockResolvedValue([]);
+    const ids = Array.from({ length: 1500 }, (_, i) => i + 1);
+    await getImagesForKeepOneReview(ids);
+    expect(queryMock).toHaveBeenCalledTimes(2);
+    expect(queryMock.mock.calls[0][0]).toContain('i.pick_status');
+    expect(queryMock.mock.calls[0][1]).toHaveLength(1000);
+    expect(queryMock.mock.calls[1][1]).toHaveLength(500);
+  });
+
+  it('retries without pick_status on older catalogs', async () => {
+    queryMock
+      .mockRejectedValueOnce(Object.assign(new Error('column i.pick_status does not exist'), { code: '42703' }))
+      .mockResolvedValueOnce([{ id: 1, rating: 3, label: 'Green' }]);
+    await expect(getImagesForKeepOneReview([1])).resolves.toEqual([{ id: 1, rating: 3, label: 'Green' }]);
+    expect(queryMock.mock.calls[1][0]).not.toContain('pick_status');
   });
 });

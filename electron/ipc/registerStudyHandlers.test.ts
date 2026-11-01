@@ -5,10 +5,11 @@ vi.mock('electron', () => ({
     BrowserWindow: { getFocusedWindow: () => null },
     dialog: { showOpenDialog: (...args: unknown[]) => showOpenDialog(...args) },
 }));
-vi.mock('../db', () => ({ getFolderImageFlags: vi.fn(), getImagesByStack: vi.fn() }));
+vi.mock('../db', () => ({ getFolderImageFlags: vi.fn(), getImagesByStack: vi.fn(), getImagesForKeepOneReview: vi.fn() }));
 
 import { REPRESENTATIVE_PREVIEW_SCHEMA } from '../representativePreview';
-import { loadRepresentativePreview, MAX_MANIFEST_BYTES, registerStudyHandlers } from './registerStudyHandlers';
+import { KEEPONE_REVIEW_SCHEMA } from '../keepOneReview';
+import { loadKeepOneReview, loadRepresentativePreview, MAX_MANIFEST_BYTES, registerStudyHandlers } from './registerStudyHandlers';
 
 const manifest = {
     schema: REPRESENTATIVE_PREVIEW_SCHEMA,
@@ -71,5 +72,41 @@ describe('study:load-representative-preview', () => {
         const result = await register()({}, undefined);
         expect(result).toMatchObject({ ok: false });
         expect(showOpenDialog).not.toHaveBeenCalled();
+    });
+});
+
+describe('loadKeepOneReview', () => {
+    const doc = {
+        schema: KEEPONE_REVIEW_SCHEMA,
+        shoots: [{ shoot: 's', clusters: [{ cluster: 0, keeper: { image_id: 2 }, removed: [{ image_id: 1, basis: 'tie' }] }] }],
+    };
+
+    it('reads the export, looks up only the referenced ids and hashes the bytes', async () => {
+        const getImages = vi.fn().mockResolvedValue([{ id: 1 }, { id: 2 }]);
+        const result = await loadKeepOneReview('k.json', { readFile: vi.fn().mockResolvedValue(Buffer.from(JSON.stringify(doc))), getImages });
+        expect(getImages).toHaveBeenCalledWith([2, 1]);
+        expect(result).toMatchObject({ status: 'ok', totals: { clusters: 1, removed: 1 }, missingIds: [] });
+        expect(result.status === 'ok' && result.manifestSha256).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    it('falls back on unreadable or oversized files without touching the catalog', async () => {
+        const getImages = vi.fn();
+        await expect(loadKeepOneReview('k.json', { readFile: vi.fn().mockResolvedValue(Buffer.from('{oops')), getImages }))
+            .resolves.toMatchObject({ status: 'fallback', reason: 'unreadable' });
+        const big = { length: MAX_MANIFEST_BYTES + 1 } as Buffer;
+        await expect(loadKeepOneReview('k.json', { readFile: vi.fn().mockResolvedValue(big), getImages }))
+            .resolves.toMatchObject({ status: 'fallback', reason: 'unreadable' });
+        expect(getImages).not.toHaveBeenCalled();
+    });
+
+    it('registers a picker-backed IPC channel that reports a cancelled pick', async () => {
+        const handlers = new Map<string, (...args: unknown[]) => Promise<unknown>>();
+        registerStudyHandlers({
+            ipcMain: { handle: (channel: string, fn: (...args: unknown[]) => Promise<unknown>) => handlers.set(channel, fn) } as never,
+            getMainWindow: () => null,
+        });
+        showOpenDialog.mockResolvedValue({ canceled: true, filePaths: [] });
+        const result = await handlers.get('study:load-keepone-review')!({});
+        expect(result).toEqual({ ok: true, data: expect.objectContaining({ status: 'fallback', reason: 'cancelled' }) });
     });
 });

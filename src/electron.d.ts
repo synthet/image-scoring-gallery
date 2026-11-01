@@ -61,6 +61,7 @@ import type {
     TextSearchResponse,
 } from '../electron/apiTypes';
 import type { RepresentativePreviewLoad } from '../electron/representativePreview';
+import type { KeepOneReviewResult } from '../electron/keepOneReview';
 
 export type {
     AppConfig,
@@ -180,6 +181,8 @@ declare global {
             selectDirectory: () => Promise<string | null>;
             /** Opt-in representative browsing view: pick a study manifest for this folder (read-only). */
             loadRepresentativePreview: (folderId: number) => Promise<RepresentativePreviewLoad>;
+            /** Read-only keep-one review: pick a `driftara-keepone-review/1` export and join it with the catalog. */
+            loadKeepOneReview: () => Promise<KeepOneReviewResult>;
             openExternalUrl: (url: string) => Promise<void>;
             getDiagnostics: () => Promise<DiagnosticsReport>;
             getProcessMemoryInfo: () => Promise<ProcessMemorySnapshot | null>;
@@ -187,6 +190,7 @@ declare global {
             onOpenDiagnostics: (callback: () => void) => () => void;
             onOpenSearch: (callback: () => void) => () => void;
             onOpenKeywords: (callback: () => void) => () => void;
+            onOpenKeepOneReview: (callback: () => void) => () => void;
             onImportFolderSelected: (callback: (folderPath: string) => void) => () => void;
             importRun: (folderPath: string) => Promise<{
                 added: number;
