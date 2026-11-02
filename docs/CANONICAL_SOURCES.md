@@ -15,6 +15,7 @@ Use this map before changing integration contracts, renderer labels, database ac
 
 | Topic | Canonical source |
 |---|---|
+| Cross-repo vision terms (burst, stack, same moment, sharpness, box format) | [hub `vision-terms-contract.md`](https://github.com/synthet/image-scoring/blob/main/docs/specs/vision-terms-contract.md) |
 | REST API paths, request bodies, response fields | [image-scoring-pipeline API_CONTRACT.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/API_CONTRACT.md), [openapi.yaml](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/reference/api/openapi.yaml), [OPENAPI_CROSS_PROJECT.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/OPENAPI_CROSS_PROJECT.md) |
 | Synced OpenAPI snapshot (gallery, not authority) | [api-contract/openapi.json](../api-contract/openapi.json), [technical/OPENAPI_CONTRACT.md](technical/OPENAPI_CONTRACT.md) |
 | Database schema and columns | [image-scoring-pipeline DB_SCHEMA.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/DB_SCHEMA.md), [DATABASE.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/DATABASE.md), backend migrations |
