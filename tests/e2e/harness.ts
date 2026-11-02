@@ -51,13 +51,22 @@ export interface Launched {
     page: Page;
     /** Uncaught page errors and console errors seen so far. */
     errors: string[];
+    /** Main-process stdout and stderr since launch (stderr lines prefixed with "ERR "). */
+    mainLog: string[];
     pid: number | undefined;
 }
+
+/** Main-process log lines that mean a crash or an uncaught error, as Electron prints them. */
+export const MAIN_ERROR_PATTERN = /A JavaScript error occurred in the main process|Uncaught Exception|UnhandledPromiseRejection/i;
 
 /** Launches the built app (dist-electron + dist) and waits until the shell has left its connecting screen. */
 export async function launch(e: E2eEnv, extraArgs: string[] = []): Promise<Launched> {
     const app = await _electron.launch({ args: [...extraArgs, '.'], cwd: REPO_ROOT, env: e.env, timeout: 60_000 });
     const pid = app.process().pid;
+    const mainLog: string[] = [];
+    app.process().stdout?.on('data', (d: Buffer) => mainLog.push(...String(d).split(/\r?\n/).filter(Boolean)));
+    app.process().stderr?.on('data', (d: Buffer) =>
+        mainLog.push(...String(d).split(/\r?\n/).filter(Boolean).map((l) => `ERR ${l}`)));
     try {
         const page = await app.firstWindow();
         const errors: string[] = [];
@@ -66,7 +75,7 @@ export async function launch(e: E2eEnv, extraArgs: string[] = []): Promise<Launc
             if (msg.type() === 'error') errors.push(`console: ${msg.text()}`);
         });
         await expect(page.locator('body[data-app-ready]')).toBeAttached({ timeout: 30_000 });
-        return { app, page, errors, pid };
+        return { app, page, errors, mainLog, pid };
     } catch (err) {
         // The caller never gets a handle on failure, so close here; otherwise Electron keeps the temp
         // profile locked and cleanup fails.
@@ -104,6 +113,43 @@ export async function disposeEnv(e: E2eEnv): Promise<void> {
             await new Promise((r) => setTimeout(r, 300));
         }
     }
+}
+
+/** Clicks an application-menu item by its labels, e.g. ['View', 'Mode: Folder']. Throws if it is missing or disabled. */
+export async function clickMenu(app: ElectronApplication, labels: string[]): Promise<void> {
+    await app.evaluate(({ Menu, BrowserWindow }, path) => {
+        let items = Menu.getApplicationMenu()?.items ?? [];
+        let item: Electron.MenuItem | undefined;
+        for (const label of path) {
+            item = items.find((i) => i.label === label);
+            if (!item) throw new Error(`menu item not found: ${path.join(' › ')}`);
+            items = item.submenu?.items ?? [];
+        }
+        if (!item!.enabled) throw new Error(`menu item disabled: ${path.join(' › ')}`);
+        // MenuItem.click() flips checkbox/radio state itself before calling the handler, like a real click.
+        item!.click(undefined, BrowserWindow.getAllWindows()[0], undefined);
+    }, labels);
+}
+
+/** State of an application-menu item, or null when it does not exist. */
+export async function menuItemState(app: ElectronApplication, labels: string[]) {
+    return app.evaluate(({ Menu }, path) => {
+        let items = Menu.getApplicationMenu()?.items ?? [];
+        let item: Electron.MenuItem | undefined;
+        for (const label of path) {
+            item = items.find((i) => i.label === label);
+            if (!item) return null;
+            items = item.submenu?.items ?? [];
+        }
+        return item ? { enabled: item.enabled, checked: item.checked } : null;
+    }, labels);
+}
+
+/** Native dialogs bypass Playwright: replace showOpenDialog in the main process for this app run. */
+export async function stubOpenDialog(app: ElectronApplication, filePaths: string[]): Promise<void> {
+    await app.evaluate(({ dialog }, paths) => {
+        dialog.showOpenDialog = (async () => ({ canceled: paths.length === 0, filePaths: paths })) as typeof dialog.showOpenDialog;
+    }, filePaths);
 }
 
 /** Attaches a screenshot of the window when a test fails (Playwright cannot do this for Electron pages itself). */
