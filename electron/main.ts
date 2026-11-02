@@ -35,6 +35,7 @@ import { DEFAULT_VIEW_PREFS, loadViewPrefs, saveViewPrefs } from './viewPrefsSto
 import { exportCurrentImage } from './exportImage';
 import { exportImageExif } from './exportExif';
 import { wrapIpcHandler } from './ipc/wrapIpcHandler';
+import { readE2eOverrides, resolveConfigPath } from './e2eHooks';
 import {
     startGalleryMcpLiveFromElectron,
     stopGalleryMcpLiveFromElectron,
@@ -187,8 +188,14 @@ function initApplicationMenu(): void {
 
 registerMediaScheme();
 
+// E2E test hook: inert unless the launcher sets GALLERY_E2E=1 (see electron/e2eHooks.ts).
+const e2eOverrides = readE2eOverrides();
+if (e2eOverrides?.userData) {
+    app.setPath('userData', e2eOverrides.userData);
+}
+
 function loadConfig(): AppConfig {
-    const configPath = getConfigPath(__dirname);
+    const configPath = resolveConfigPath(getConfigPath(__dirname));
     return loadAppConfig(configPath);
 }
 
@@ -503,7 +510,8 @@ async function startFullApplication(): Promise<void> {
     createWindow();
     rebuildApplicationMenu();
 
-    void startGalleryMcpLiveFromElectron({
+    // The live MCP server binds a fixed port; e2e runs must not depend on it or collide with a dev app.
+    if (!e2eOverrides) void startGalleryMcpLiveFromElectron({
         projectRoot: path.join(__dirname, '..'),
         getWindowStatus: async () => ({
             hasMainWindow: mainWindow !== null && !mainWindow.isDestroyed(),

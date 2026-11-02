@@ -3,6 +3,7 @@ import path from 'path';
 import { app } from 'electron';
 import type { BrowserWindow, IpcMain } from 'electron';
 import { getConfigPath, loadAppConfig } from '../config';
+import { resolveConfigPath } from '../e2eHooks';
 import { buildBackupPlan } from '../backupPipeline';
 import {
     reconcileManifestWithDiskReport,
@@ -195,7 +196,7 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
     }
 
     async function computeBackupPreview(targetPath: string): Promise<BackupPreviewInfo> {
-        const appConfig = loadAppConfig(getConfigPath(electronDirname));
+        const appConfig = loadAppConfig(resolveConfigPath(getConfigPath(electronDirname)));
         const backupConfig = loadBackupConfig(appConfig.backup as Record<string, unknown> | undefined);
         const { manifest } = await loadBackupManifest(targetPath);
         const fleet = resolveFleet(manifest, backupConfig.distributionEnabled);
@@ -548,7 +549,7 @@ export function registerBackupHandlers(deps: BackupHandlersDeps): void {
             });
             await new Promise<void>((r) => setImmediate(r));
 
-            const appConfig = loadAppConfig(getConfigPath(electronDirname));
+            const appConfig = loadAppConfig(resolveConfigPath(getConfigPath(electronDirname)));
             const backupConfig = loadBackupConfig(
                 appConfig.backup as Record<string, unknown> | undefined,
             );

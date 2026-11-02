@@ -1,7 +1,7 @@
 {
   "name": "electron-gallery",
   "private": true,
-  "version": "7.30.0",
+  "version": "7.31.0",
   "description": "Driftara Gallery — desktop app for Vexlum Scoring libraries",
   "author": "Driftara Gallery",
   "main": "dist-electron/main.js",
@@ -12,7 +12,8 @@
     "dev:electron": "wait-on http://localhost:5173 && tsc -p electron/tsconfig.json && cross-env ELECTRON_IS_DEV=1 electron .",
     "build": "tsc -p electron/tsconfig.json && tsc -b && vite build && electron-packager . --overwrite --platform=win32 --arch=x64 --out=release-builds --prune=true",
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p electron/tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p electron/tsconfig.json --noEmit && tsc -p tests/e2e/tsconfig.json --noEmit",
+    "test:e2e": "tsc -p electron/tsconfig.json && vite build && playwright test",
     "preview": "vite preview",
     "test": "cross-env VITEST=1 vitest",
     "test:run": "cross-env VITEST=1 vitest run",
@@ -65,7 +66,9 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "1.64.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^24.10.1",

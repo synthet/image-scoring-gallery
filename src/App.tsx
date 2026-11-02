@@ -44,6 +44,17 @@ function AppShell() {
     prevConnected.current = isConnected;
   }, [isConnected, error, hasConnectedOnce]);
 
+  // Startup phase on <body> (data-app-state / data-app-ready) so automated e2e tests can wait for the shell.
+  const appState = mode === 'folder' ? 'folder'
+    : hasConnectedOnce ? 'gallery'
+    : error ? 'error'
+    : 'connecting';
+  useEffect(() => {
+    document.body.dataset.appState = appState;
+    if (appState === 'connecting') delete document.body.dataset.appReady;
+    else document.body.dataset.appReady = 'true';
+  }, [appState]);
+
   if (mode === 'folder') {
     return <FsGallery />;
   }

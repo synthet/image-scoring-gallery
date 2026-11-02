@@ -87,3 +87,7 @@ codex-session-*.md
 AGENTS.md
 CLAUDE.md
 GEMINI.md
+
+# Playwright e2e output
+/test-results/
+/playwright-report/

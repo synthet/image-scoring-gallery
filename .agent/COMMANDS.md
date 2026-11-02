@@ -24,6 +24,7 @@ From [AGENTS.md](../AGENTS.md), [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md), a
 - Electron main: `npx tsc -p electron/tsconfig.json --noEmit` (plan uses `--noEmit`; package `dev:electron` uses compile — both valid for CI checks)
 - Lint: `npm run lint`
 - Tests: `npm run test:run`
+- E2E (builds, then Playwright on the built Electron app): `npm run test:e2e`; one spec against the last build: `npx playwright test <spec>`; inspector: `npx playwright test --debug`. See [docs/guides/06-e2e-testing.md](../docs/guides/06-e2e-testing.md)
 
 ## API contract sync (with backend)
 
