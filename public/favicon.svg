@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">Driftara Gallery — 32 px simplification</title>
+  <desc id="description">Driftara D with a photo grid.</desc>
+  <g id="foundation">
+    <rect x="64" y="64" width="896" height="896" rx="184" fill="#101014"/>
+  </g>
+  <g id="glyph" fill="#A9B7C6" fill-rule="evenodd">
+    <path d="M 240,224 H 528.0 A 288.0,288.0 0 0 1 528.0,800 H 240 Z M 352,336 H 528.0 A 176.0,176.0 0 0 1 528.0,688 H 352 Z"/>
+    <path d="M 424,416 h 80 v 80 h -80 Z"/>
+    <path d="M 424,528 h 80 v 80 h -80 Z"/>
+    <path d="M 536,416 h 80 v 80 h -80 Z"/>
+    <path d="M 536,528 h 80 v 80 h -80 Z"/>
+  </g>
+</svg>
