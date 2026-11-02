@@ -74,6 +74,8 @@ Each request is recorded in `backend.requests`. The generated config points both
 
 ## Journeys
 
+Every test with its exact assertions and status: [07 - UX/UI test catalog](07-e2e-test-catalog.md).
+
 | # | Spec | What it proves |
 |---|---|---|
 | — | `smoke.spec.ts` | A fresh profile starts, connects to the fake backend, uses the hermetic profile and config, and closes cleanly. |

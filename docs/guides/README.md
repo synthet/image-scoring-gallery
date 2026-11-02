@@ -17,5 +17,6 @@ Development workflows and maintenance recommendations.
 - [04 - Agent cull review](04-agent-cull-review.md) - Gallery operator guide; picked quality advisories; backend CLI setup (cross-link)
 - [05 - MCP compact server](05-mcp-compact-servers.md) - is-ui-mcp setup, sse_status, CDP live actions, multi-root Cursor
 - [06 - End-to-end (Electron) testing](06-e2e-testing.md) - Playwright journeys on the built app: harness, fake backend, dialog and menu stubs, budgets, known defects
+- [07 - UX/UI test catalog](07-e2e-test-catalog.md) - Every e2e test: what it asserts, the defect it tracks, and its status
 
 [← Back to Documentation Index](../README.md)
