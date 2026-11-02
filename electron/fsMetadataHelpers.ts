@@ -4,6 +4,7 @@ import path from 'path';
 import type { ExifTool } from 'exiftool-vendored';
 import type { AFMetadata, FileImageMetadataDetail } from './types';
 import { getConfigPath } from './config';
+import { resolveConfigPath } from './e2eHooks';
 import { collapseMalformedThumbnailSegments } from './thumbnailPathNormalize';
 
 /** Verbose `media://` request logging (default off in dev — huge galleries flood the console). */
@@ -305,7 +306,7 @@ function defaultLightModeRoot(): string {
 
 export function readLightModeRootFromConfig(electronDirname: string): string {
     try {
-        const configPath = getConfigPath(electronDirname);
+        const configPath = resolveConfigPath(getConfigPath(electronDirname));
         if (fs.existsSync(configPath)) {
             const raw = JSON.parse(fs.readFileSync(configPath, 'utf8')) as { lightModeRootFolder?: string };
             if (typeof raw.lightModeRootFolder === 'string' && raw.lightModeRootFolder.trim()) {

@@ -6,6 +6,7 @@ import type { ApiService } from '../apiService';
 import type { AppConfig } from '../types';
 import * as db from '../db';
 import { getConfigPath } from '../config';
+import { resolveConfigPath } from '../e2eHooks';
 import { loadSystemConfig, saveSystemConfig } from '../main.handlers';
 import { SessionLogManager } from '../sessionLogManager';
 import { wrapIpcHandler } from './wrapIpcHandler';
@@ -143,7 +144,7 @@ export function registerSystemHandlers(deps: SystemHandlersDeps): void {
 
     ipcMain.handle('system:save-config', wrapIpcHandler(async (_, updates) =>
         saveSystemConfig({
-            configPath: getConfigPath(electronDirname),
+            configPath: resolveConfigPath(getConfigPath(electronDirname)),
             updates,
             readFile: fs.promises.readFile,
             writeFile: (p, d) => fs.promises.writeFile(p, d),

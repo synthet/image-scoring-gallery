@@ -12,7 +12,8 @@
     "dev:electron": "wait-on http://localhost:5173 && tsc -p electron/tsconfig.json && cross-env ELECTRON_IS_DEV=1 electron .",
     "build": "tsc -p electron/tsconfig.json && tsc -b && vite build && electron-packager . --overwrite --platform=win32 --arch=x64 --out=release-builds --prune=true",
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p electron/tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p electron/tsconfig.json --noEmit && tsc -p tests/e2e/tsconfig.json --noEmit",
+    "test:e2e": "tsc -p electron/tsconfig.json && vite build && playwright test",
     "preview": "vite preview",
     "test": "cross-env VITEST=1 vitest",
     "test:run": "cross-env VITEST=1 vitest run",
@@ -66,6 +67,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "1.64.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^24.10.1",

@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs';
 
 import { getConfigPath, loadAppConfig } from './config';
+import { resolveConfigPath } from './e2eHooks';
 import {
     attachModelSortOverlays,
     buildImageSortSql,
@@ -18,7 +19,7 @@ import type { KeepOneLiveRow } from './keepOneReview';
 
 // Load configuration
 function loadConfig(): AppConfig {
-    return loadAppConfig(getConfigPath(__dirname));
+    return loadAppConfig(resolveConfigPath(getConfigPath(__dirname)));
 }
 
 const config = loadConfig();
