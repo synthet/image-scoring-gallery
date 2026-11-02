@@ -16,6 +16,7 @@ import { SyncModal } from './components/Sync/SyncModal';
 import { BackupModal } from './components/Backup/BackupModal';
 import { SimilarSearchDrawer } from './components/Viewer/SimilarSearchDrawer';
 import { SearchPage } from './components/Search/SearchPage';
+import { KeepOneReviewPage } from './components/KeepOne/KeepOneReviewPage';
 import { KeywordsHubPage } from './components/Keywords/KeywordsHubPage';
 import { Loader2, ChevronRight, RefreshCw, PanelLeft } from 'lucide-react';
 import { useOperationStore } from './store/useOperationStore';
@@ -494,6 +495,8 @@ function AppContent() {
     ? 'Semantic Search'
     : toolView === 'keywords'
       ? 'Keywords'
+      : toolView === 'keepone'
+      ? 'Keep-one Review'
       : activeUngroupedSubStack
       ? (activeSubStackInfo?.name || 'Ungrouped')
       : activeSubStackId !== null
@@ -856,7 +859,9 @@ function AppContent() {
                 <div style={{ fontSize: '11px', color: '#888', marginBottom: 8, lineHeight: 1.4 }}>
                   {toolView === 'keywords'
                     ? 'Scope: select a folder below or leave unselected for the whole library.'
-                    : 'Search scope: select a folder below or leave unselected for the whole library.'}
+                    : toolView === 'keepone'
+                      ? 'Keep-one review covers the shoots in the opened export; folder selection does not apply.'
+                      : 'Search scope: select a folder below or leave unselected for the whole library.'}
                 </div>
               )}
               {foldersLoading ? <div>Loading folders...</div> : (
@@ -893,6 +898,8 @@ function AppContent() {
                   setToolView('search');
                 }}
               />
+            ) : toolView === 'keepone' ? (
+              <KeepOneReviewPage onOpenImage={(id) => { void openImageById(id); }} />
             ) : (
             <>
               {isInitialGridLoading && (

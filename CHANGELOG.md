@@ -5,6 +5,7 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 ## [Unreleased]
 
 ### Added
+- **Keep-one review:** Tools › Keep-one Review opens a keep-one study export and shows, across shoots, each cluster's keeper next to the frames proposed for soft-cull, with scores, Jev tie confidence and what changed since the run. Read-only.
 - **Export EXIF:** **File › Export EXIF…** and an **Export EXIF** button in the viewer's Photography Stats save every EXIF and MakerNotes tag of the open image as JSON, TXT or Markdown. Works without the backend.
 - **Representative preview:** An opt-in sidebar switch opens a study manifest for the current folder. Each group of similar burst frames shows as one card with a count, and one click expands it. The view is read-only. Protected frames and frames edited since the manifest stay visible, and any mismatch falls back to the ordinary grid.
 - **Representative preview focus ordering:** Opened groups list frames sharpest-first by the manifest's optional focus hint (refcull_focus), and each frame shows the value. It is an ordering aid only; there is no verdict or badge.

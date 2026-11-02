@@ -14,6 +14,7 @@ import { applyThumbnailPathRemaps } from './pathsRemap';
 import type { AFMetadata, AppConfig, DatabaseConfig, EyeKeypoint, ImageEyeKeypoints, ScoredImageForBackup } from './types';
 import { createDatabaseConnector, IDatabaseConnector, QueryParam, TxQuery } from './db/provider';
 import type { RepresentativeLiveFlags } from './representativePreview';
+import type { KeepOneLiveRow } from './keepOneReview';
 
 // Load configuration
 function loadConfig(): AppConfig {
@@ -1999,6 +2000,35 @@ export async function getFolderImageFlags(folderId: number): Promise<Representat
             [folderId],
         );
     }
+}
+
+/**
+ * Live rating, label, stored pick status and media paths for the given image ids, across folders,
+ * for the keep-one review's changed-since-freeze check and thumbnails. Read-only; ids are queried
+ * in chunks. Without the pick_status column, rows omit it.
+ */
+export async function getImagesForKeepOneReview(ids: number[]): Promise<KeepOneLiveRow[]> {
+    const out: KeepOneLiveRow[] = [];
+    const CHUNK = 1000;
+    let withPickStatus = true;
+    for (let start = 0; start < ids.length; start += CHUNK) {
+        const chunk = ids.slice(start, start + CHUNK);
+        const placeholders = chunk.map(() => '?').join(', ');
+        const columns = 'i.id, i.rating, i.label, i.file_path, i.thumbnail_path';
+        if (withPickStatus) {
+            try {
+                out.push(...await query<KeepOneLiveRow>(
+                    `SELECT ${columns}, i.pick_status FROM images i WHERE i.id IN (${placeholders})`, chunk));
+                continue;
+            } catch (e) {
+                if (!isMissingPickStatusColumnError(e)) throw e;
+                warnMissingPickStatusColumn(e);
+                withPickStatus = false;
+            }
+        }
+        out.push(...await query<KeepOneLiveRow>(`SELECT ${columns} FROM images i WHERE i.id IN (${placeholders})`, chunk));
+    }
+    return out;
 }
 
 function imagePickStatusSelect(includePickStatus: boolean, imageAlias = 'i'): string {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { bridge } from '../bridge';
 
-export type ToolView = null | 'search' | 'keywords';
+export type ToolView = null | 'search' | 'keywords' | 'keepone';
 
 /**
  * Registers Electron IPC menu listeners and exposes the modal/view state they control.
@@ -39,6 +39,10 @@ export function useElectronListeners() {
       setToolView('keywords');
     });
 
+    const cleanupKeepOne = bridge.onOpenKeepOneReview(() => {
+      setToolView('keepone');
+    });
+
     const cleanupImport = bridge.onImportFolderSelected((path) => {
       setImportFolderPath(path);
       setIsImportModalOpen(true);
@@ -63,6 +67,7 @@ export function useElectronListeners() {
       cleanupDiagnostics();
       cleanupSearch();
       cleanupKeywords();
+      cleanupKeepOne();
       cleanupImport();
       cleanupSync();
       cleanupBackup();

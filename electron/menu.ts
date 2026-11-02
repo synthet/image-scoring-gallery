@@ -211,6 +211,16 @@ export function createApplicationMenu(deps: ApplicationMenuDeps): { rebuildAppli
                         },
                     },
                     {
+                        // Read-only review of keep-one study proposals; resolves frames from the catalog.
+                        label: 'Keep-one Review',
+                        enabled: !folderMode,
+                        click: () => {
+                            if (mainWindow) {
+                                mainWindow.webContents.send('open-keepone-review');
+                            }
+                        },
+                    },
+                    {
                         label: 'Scoring...',
                         enabled: !folderMode && backendConnected,
                         click: () => {
