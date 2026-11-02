@@ -155,6 +155,17 @@ describe('db.getImagesForKeepOneReview', () => {
     expect(queryMock.mock.calls[1][1]).toHaveLength(500);
   });
 
+  it('resolves thumbnails like the grid: Windows path preferred, column dropped', async () => {
+    queryMock.mockResolvedValueOnce([
+      { id: 1, thumbnail_path: '/mnt/d/thumbs/1.jpg', thumbnail_path_win: 'D:/thumbs/1.jpg' },
+    ]);
+    const [row] = await getImagesForKeepOneReview([1]);
+    expect(queryMock.mock.calls[0][0]).toContain('i.thumbnail_path_win');
+    expect(row).not.toHaveProperty('thumbnail_path_win');
+    expect(row.thumbnail_path).toBeTruthy();
+    if (process.platform === 'win32') expect(row.thumbnail_path).toContain('thumbs');
+  });
+
   it('retries without pick_status on older catalogs', async () => {
     queryMock
       .mockRejectedValueOnce(Object.assign(new Error('column i.pick_status does not exist'), { code: '42703' }))
