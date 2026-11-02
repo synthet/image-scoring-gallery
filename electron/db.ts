@@ -2014,7 +2014,8 @@ export async function getImagesForKeepOneReview(ids: number[]): Promise<KeepOneL
     for (let start = 0; start < ids.length; start += CHUNK) {
         const chunk = ids.slice(start, start + CHUNK);
         const placeholders = chunk.map(() => '?').join(', ');
-        const columns = 'i.id, i.rating, i.label, i.file_path, i.thumbnail_path';
+        // thumbnail_path_win is selected so rows resolve like the grid's (Windows path, remaps, absolute).
+        const columns = 'i.id, i.rating, i.label, i.file_path, i.thumbnail_path, i.thumbnail_path_win';
         if (withPickStatus) {
             try {
                 out.push(...await query<KeepOneLiveRow>(
@@ -2028,6 +2029,7 @@ export async function getImagesForKeepOneReview(ids: number[]): Promise<KeepOneL
         }
         out.push(...await query<KeepOneLiveRow>(`SELECT ${columns} FROM images i WHERE i.id IN (${placeholders})`, chunk));
     }
+    for (const row of out) normalizeImageRowThumbnails(row as unknown as Record<string, unknown>);
     return out;
 }
 
