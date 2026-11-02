@@ -216,3 +216,56 @@ describe('WebSocketService', () => {
     });
   });
 });
+
+describe('WebSocketService: replacing a socket that is still connecting (#230)', () => {
+  type FakeSocket = {
+    readyState: number;
+    onopen: (() => void) | null;
+    onmessage: ((e: MessageEvent) => void) | null;
+    onclose: (() => void) | null;
+    onerror: ((e: Event) => void) | null;
+    close: ReturnType<typeof vi.fn>;
+  };
+  let sockets: FakeSocket[];
+
+  beforeEach(() => {
+    sockets = [];
+    vi.stubGlobal('WebSocket', class {
+      constructor() {
+        const s: FakeSocket = { readyState: 0, onopen: null, onmessage: null, onclose: null, onerror: null, close: vi.fn() };
+        sockets.push(s);
+        return s;
+      }
+    } as unknown as new (url: string) => WebSocket);
+    vi.stubGlobal('electron', { getApiConfig: vi.fn().mockResolvedValue({ url: 'http://localhost:8000' }) });
+    const service = webSocketService as unknown as WebSocketServiceInternals;
+    service.reconnectAttempts = 0;
+    service.intentionalDisconnect = false;
+  });
+
+  afterEach(() => {
+    webSocketService.disconnect();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('events from the closed socket neither log an error, close the new socket, nor schedule a reconnect', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await webSocketService.connect();
+    const [old] = sockets;
+
+    // An effect re-run: disconnect while the first socket is still connecting, then connect again.
+    webSocketService.disconnect();
+    await webSocketService.connect();
+    const fresh = sockets[1];
+    expect(fresh).toBeDefined();
+
+    // The browser then reports the aborted handshake on the OLD socket: error, then close.
+    old.onerror?.(new Event('error'));
+    old.onclose?.();
+
+    expect(fresh.close).not.toHaveBeenCalled();
+    expect(consoleError).not.toHaveBeenCalledWith('[WebSocket] Error:', expect.anything());
+    expect((webSocketService as unknown as WebSocketServiceInternals).reconnectTimeout).toBeNull();
+  });
+});
