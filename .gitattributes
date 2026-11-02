@@ -1,0 +1,2 @@
+# Playwright snapshots are compared byte for byte; keep them exactly as committed (no CRLF on Windows checkout).
+tests/e2e/**/*-snapshots/** -text

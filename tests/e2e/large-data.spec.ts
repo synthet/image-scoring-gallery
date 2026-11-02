@@ -5,11 +5,12 @@ import { expect, test } from './fixture';
 
 /**
  * Budgets for this journey (recorded in docs/testing/e2e.md). Measured on the reference Windows machine
- * with the built app: first thumbnail about 240 ms after opening the folder, at most 40 cards rendered.
- * The budgets leave room for a busy machine while still catching a lost virtualization or a blocking load.
+ * with the built app: first thumbnail 190-930 ms after opening the folder (2.6 s once, with other sessions
+ * loading the machine), at most 40 cards rendered. The budgets leave room for a busy machine while still
+ * catching a lost virtualization or a blocking load.
  */
 const PHOTO_COUNT = 3_000;
-const FIRST_THUMBNAIL_BUDGET_MS = 2_000;
+const FIRST_THUMBNAIL_BUDGET_MS = 4_000;
 const MAX_RENDERED_CARDS = 120;
 
 test.describe('Journey 7: large data', () => {
