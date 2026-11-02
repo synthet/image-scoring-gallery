@@ -4,13 +4,21 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.31.0] — 2026-11-01
+
 ### Added
 - **Keep-one review:** Tools › Keep-one Review opens a keep-one study export and shows, across shoots, each cluster's keeper next to the frames proposed for soft-cull, with scores, Jev tie confidence and what changed since the run. Read-only.
 - **Export EXIF:** **File › Export EXIF…** and an **Export EXIF** button in the viewer's Photography Stats save every EXIF and MakerNotes tag of the open image as JSON, TXT or Markdown. Works without the backend.
 - **Representative preview:** An opt-in sidebar switch opens a study manifest for the current folder. Each group of similar burst frames shows as one card with a count, and one click expands it. The view is read-only. Protected frames and frames edited since the manifest stay visible, and any mismatch falls back to the ordinary grid.
 - **Representative preview focus ordering:** Opened groups list frames sharpest-first by the manifest's optional focus hint (refcull_focus), and each frame shows the value. It is an ordering aid only; there is no verdict or badge.
+- **Backend connection state** (#199): The gallery now tracks whether the scoring backend is reachable, shows it in the Tools menu, and offers **Tools › Reconnect to Backend** (Ctrl/Cmd+Shift+B). Backend-only actions are disabled with a tooltip while it is down, and a backend restarted on a new port is picked up on reconnect.
+
+### Changed
+- **App icon** (#217): The window, installer and favicon use the new black-and-white Driftara Gallery icon (a D with a grid) that matches the desktop shortcut. `index.html` also links a new `favicon.svg`.
 
 ### Fixed
+- **Agent cull offline** (#211): The Agent-cull review degrades gracefully when the backend is offline instead of failing.
+- **Developer tooling** (#203): `npm run typecheck` now checks the renderer, main process and e2e projects; the previously documented command checked nothing.
 - **RAW preview orientation:** Avoid applying EXIF rotation twice in Chromium, retain source TIFF orientation in browser preview fallbacks, and stamp Electron preview orientation in numeric ExifTool mode. Verified desktop/browser parity and preserved backend image 240203.
 
 ## [7.30.0] - 2026-09-30
