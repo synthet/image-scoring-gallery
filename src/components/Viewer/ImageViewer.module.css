@@ -107,3 +107,19 @@
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
 }
+
+/* Secondary sidebar text: --text-secondary keeps at least 4.5:1 on the panel background (#225). */
+.metaDate {
+    margin-top: 5px;
+    font-size: 0.8em;
+    color: var(--text-secondary);
+}
+
+.mutedNote {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+}
+
+.mutedText {
+    color: var(--text-secondary);
+}

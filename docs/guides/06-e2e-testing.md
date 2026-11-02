@@ -81,7 +81,7 @@ Each request is recorded in `backend.requests`. The generated config points both
 | 2 | `persistence.spec.ts` | A View toggle survives a relaunch on the same profile. |
 | 3 | `lifecycle.spec.ts` | Closing the main window quits with no leftover process or main-process error. |
 | 4 | `security.spec.ts` | No Node.js in the page; the preload API matches a reviewed snapshot; malformed IPC arguments are rejected; window, navigation, `media://` and external-URL guards (the guards are known defects). |
-| 5 | `accessibility.spec.ts` | axe-core WCAG 2.1 A/AA on the empty gallery, root-folder dialog, folder grid and viewer, with no violations beyond the known ones; Escape closes the viewer. |
+| 5 | `accessibility.spec.ts` | axe-core WCAG 2.1 A/AA on the empty gallery, root-folder dialog, folder grid and viewer, with no violations; the viewer close button has a name; Escape closes the viewer. |
 | 6 | `layout.spec.ts` | Library view at 1024×640, 800×600 and 640×480: no horizontal overflow, header controls not covered, the drawer collapses and opens. 150% scaling at 1280×720. |
 | 7 | `large-data.spec.ts` | 3,000 photos in folder mode: first thumbnail within budget, a bounded DOM at the top, middle and end, and the last photo reachable by scrolling. |
 | 8 | `long-operations.spec.ts` | File › Import: one progress event per photo, each photo recorded once, and a failed photo reported while the rest completes. |
@@ -111,7 +111,6 @@ A test for a known defect is marked `test.fail(true, '#<issue>: …')`. It passe
 |---|---|
 | [#223](https://github.com/synthet/image-scoring-gallery/issues/223) | Closing the main window while the scoring window is open leaves the app running. |
 | [#224](https://github.com/synthet/image-scoring-gallery/issues/224) | `window.open` opens windows; the main window navigates to remote origins; `media://` serves any file and `..` traversal; `file://` URLs reach `shell.openExternal`. |
-| [#225](https://github.com/synthet/image-scoring-gallery/issues/225) | The viewer close button has no accessible name; secondary text is below 4.5:1 contrast. |
 | [#226](https://github.com/synthet/image-scoring-gallery/issues/226) | Below 1100 px the sidebar drawer can't be closed, and in folder mode it covers the header and grid. |
 | [#227](https://github.com/synthet/image-scoring-gallery/issues/227) | The grid has no keyboard navigation or select-all. |
 | [#228](https://github.com/synthet/image-scoring-gallery/issues/228) | Import, sync and backup can't be cancelled. |

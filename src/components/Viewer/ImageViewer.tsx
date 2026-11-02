@@ -1142,7 +1142,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             {/* Main Image Area */}
             <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', minHeight: 0, minWidth: 0 }}>
                 <button
+                    type="button"
                     onClick={onClose}
+                    aria-label="Close viewer"
+                    title="Close viewer (Esc)"
                     style={{
                         position: 'absolute',
                         top: 20,
@@ -1197,7 +1200,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                         <DiagnosticOverlays controller={diagnostics} ready={loadedDiagnosticPreview === diagnostics.preview} />
                     </div>
                 ) : (
-                    <div style={{ color: '#666' }}>{error || 'Image not found'}</div>
+                    <div className={styles.mutedText}>{error || 'Image not found'}</div>
                 )}
             </div>
 
@@ -1252,7 +1255,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                         <FileText size={14} />
                         <span style={{ wordBreak: 'break-all' }}>{image.win_path || image.file_path}</span>
                     </div>
-                    <div style={{ marginTop: 5, fontSize: '0.8em', color: '#666' }}>
+                    <div className={styles.metaDate}>
                         {dateStr}
                     </div>
 
@@ -1423,7 +1426,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 ))}
                             </div>
                         ) : (
-                            <div style={{ fontSize: '0.8em', color: '#666' }}>No keywords</div>
+                            <div className={styles.mutedNote}>No keywords</div>
                         )
                     )}
                 </div>
@@ -1517,7 +1520,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 ))}
                             </div>
                         ) : (
-                            <div style={{ fontSize: '0.8em', color: '#666' }}>
+                            <div className={styles.mutedNote}>
                                 {suggestionsLoading ? 'Loading suggestions…' : 'No pending suggestions'}
                             </div>
                         )}
@@ -1731,7 +1734,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                 </button>
                             </div>
                             {exifLoading ? (
-                                <div style={{ fontSize: '0.8em', color: '#666', fontStyle: 'italic' }}>Loading camera data...</div>
+                                <div className={styles.mutedNote} style={{ fontStyle: 'italic' }}>Loading camera data...</div>
                             ) : exifData ? (
                                 <div style={{ fontSize: '0.85em', display: 'flex', flexDirection: 'column', gap: 6 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1806,7 +1809,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                                     )}
                                 </div>
                             ) : (
-                                <div style={{ fontSize: '0.8em', color: '#666' }}>No EXIF data found</div>
+                                <div className={styles.mutedNote}>No EXIF data found</div>
                             )}
                         </div>
 
