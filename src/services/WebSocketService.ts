@@ -80,15 +80,18 @@ class WebSocketService {
             this.url = config.url.replace('http', 'ws') + '/ws/updates'; // Assuming WS endpoint is at /ws/updates
 
             console.log(`[WebSocket] Connecting to: ${this.url} (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
-            this.ws = new WebSocket(this.url);
+            // Handlers act only on their own socket: a replaced socket can still report its aborted
+            // handshake after a newer one exists (#230).
+            const socket = new WebSocket(this.url);
+            this.ws = socket;
 
-            this.ws.onopen = () => {
+            socket.onopen = () => {
                 console.log('[WebSocket] Connected successfully');
                 // Reset reconnect counter on successful connection
                 this.reconnectAttempts = 0;
             };
 
-            this.ws.onmessage = (event) => {
+            socket.onmessage = (event) => {
                 try {
                     const message: WebSocketMessage = JSON.parse(event.data);
                     this.dispatch(message.type, message.data);
@@ -97,7 +100,8 @@ class WebSocketService {
                 }
             };
 
-            this.ws.onclose = () => {
+            socket.onclose = () => {
+                if (this.ws !== socket) return;
                 if (this.intentionalDisconnect) {
                     console.log('[WebSocket] Disconnected intentionally');
                     return;
@@ -107,9 +111,10 @@ class WebSocketService {
                 this.scheduleReconnect();
             };
 
-            this.ws.onerror = (error) => {
+            socket.onerror = (error) => {
+                if (this.ws !== socket) return;
                 console.error('[WebSocket] Error:', error);
-                this.ws?.close();
+                socket.close();
             };
 
         } catch (e) {
@@ -150,8 +155,15 @@ class WebSocketService {
             this.reconnectTimeout = null;
         }
         if (this.ws) {
-            this.ws.close();
+            // Detach first: closing a socket that is still connecting makes the browser fire error and
+            // close events, which must not reach a newer connection (#230).
+            const socket = this.ws;
             this.ws = null;
+            socket.onopen = null;
+            socket.onmessage = null;
+            socket.onerror = null;
+            socket.onclose = null;
+            socket.close();
         }
         console.log('[WebSocket] Disconnected');
     }
