@@ -152,16 +152,21 @@ export async function stubOpenDialog(app: ElectronApplication, filePaths: string
     }, filePaths);
 }
 
-/** Folder mode rooted at `env.photos`, opened on its 2026-01-19 folder (see generateJpegs); returns once the grid shows it. */
-export async function openFolderGrid({ app, page }: Launched, env: E2eEnv): Promise<void> {
+/** Switches to folder mode and sets its root to `env.photos` through the (stubbed) folder dialog. */
+export async function setFolderModeRoot({ app, page }: Launched, env: E2eEnv): Promise<void> {
     await clickMenu(app, ['View', 'Mode: Folder']);
     await page.getByRole('button', { name: /root folder/i }).click();
     const dialog = page.getByRole('dialog', { name: /root folder|folder mode/i });
     await stubOpenDialog(app, [env.photos]);
     await dialog.getByRole('button', { name: /browse/i }).click();
     await dialog.getByRole('button', { name: /save/i }).click();
-    await page.getByText('2026-01-19', { exact: true }).first().click();
-    await expect(page.getByText('DSC_0001.JPG')).toBeVisible();
+}
+
+/** Folder mode rooted at `env.photos`, opened on its 2026-01-19 folder (see generateJpegs); returns once the grid shows it. */
+export async function openFolderGrid(launched: Launched, env: E2eEnv): Promise<void> {
+    await setFolderModeRoot(launched, env);
+    await launched.page.getByText('2026-01-19', { exact: true }).first().click();
+    await expect(launched.page.getByText('DSC_0001.JPG')).toBeVisible();
 }
 
 /** Attaches a screenshot of the window when a test fails (Playwright cannot do this for Electron pages itself). */

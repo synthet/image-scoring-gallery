@@ -17,7 +17,7 @@ export type SqlHandler = (sql: string, params: unknown[]) => unknown[] | undefin
 export interface FakeBackend {
     url: string;
     requests: FakeRequest[];
-    /** Add a handler for SQL queries; later handlers win. */
+    /** Add a handler for SQL queries; later handlers win. A handler that throws answers HTTP 500. */
     onSql: (handler: SqlHandler) => void;
     close: () => Promise<void>;
 }
@@ -57,7 +57,13 @@ export async function startFakeBackend(): Promise<FakeBackend> {
             if (path === '/api/health' || path === '/health') return send(200, { status: 'ok' });
             if (path === '/api/db/query' && sql !== null) {
                 for (let i = handlers.length - 1; i >= 0; i--) {
-                    const rows = handlers[i](sql, params);
+                    let rows: unknown[] | undefined;
+                    try {
+                        rows = handlers[i](sql, params);
+                    } catch (e) {
+                        // A throwing handler simulates a database failure for this one query.
+                        return send(500, { detail: e instanceof Error ? e.message : String(e) });
+                    }
                     if (rows !== undefined) return send(200, { rows });
                 }
                 return send(200, { rows: [] });

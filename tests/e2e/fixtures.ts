@@ -49,3 +49,19 @@ export async function generateJpegs(dir: string, count: number, start = new Date
     }
     return out;
 }
+
+/**
+ * Writes `count` copies of the seed JPEG named DSC_0001.JPG... into `dir`, without EXIF stamping.
+ * For large-data journeys, where thousands of exiftool writes would dominate the run time.
+ */
+export function copyJpegs(dir: string, count: number): string[] {
+    fs.mkdirSync(dir, { recursive: true });
+    const seed = Buffer.from(SEED_JPEG_BASE64, 'base64');
+    const files: string[] = [];
+    for (let i = 0; i < count; i++) {
+        const file = `DSC_${String(i + 1).padStart(4, '0')}.JPG`;
+        fs.writeFileSync(path.join(dir, file), seed);
+        files.push(file);
+    }
+    return files;
+}
