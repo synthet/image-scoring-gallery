@@ -53,7 +53,8 @@
   font-size: 11px;
   border: none;
   border-radius: 4px;
-  color: var(--text-secondary);
+  /* --text-primary: --text-secondary is 2.7:1 on the selected (--input-border) background (#225). */
+  color: var(--text-primary);
   cursor: pointer;
   font-family: inherit;
   transition: background 0.15s ease;
