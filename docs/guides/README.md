@@ -16,5 +16,6 @@ Development workflows and maintenance recommendations.
 - [03 - Testing and Coverage Guide](03-testing-and-coverage.md) - Test commands, coverage artifacts, and threshold ratcheting policy
 - [04 - Agent cull review](04-agent-cull-review.md) - Gallery operator guide; picked quality advisories; backend CLI setup (cross-link)
 - [05 - MCP compact server](05-mcp-compact-servers.md) - is-ui-mcp setup, sse_status, CDP live actions, multi-root Cursor
+- [06 - End-to-end (Electron) testing](06-e2e-testing.md) - Playwright journeys on the built app: harness, fake backend, dialog and menu stubs, budgets, known defects
 
 [← Back to Documentation Index](../README.md)

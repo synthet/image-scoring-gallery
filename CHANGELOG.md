@@ -4,6 +4,9 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+### Added
+- **End-to-end tests** (#221): `npm run test:e2e` builds the app and runs Playwright journeys on the real Electron window: startup, persistence, clean shutdown, security, accessibility (axe), small windows and 150% scaling, a 3,000-photo folder, and import. Each run gets a temporary profile, a generated config and a fake backend, so it never touches your settings, database or backend. Known defects (#223–#228) are recorded as expected failures. See [docs/guides/06-e2e-testing.md](docs/guides/06-e2e-testing.md).
+
 ## [7.31.0] — 2026-11-01
 
 ### Added

@@ -9,7 +9,7 @@ timestamp: 2026-06-16T00:00:00Z
 
 # Testing and Coverage Guide
 
-This project uses Vitest for unit/integration tests and V8 coverage reporting.
+This project uses Vitest for unit/integration tests and V8 coverage reporting. End-to-end journeys on the built Electron app use Playwright; see [06 - End-to-end (Electron) testing](06-e2e-testing.md).
 
 ## Run tests
 

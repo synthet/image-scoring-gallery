@@ -75,6 +75,7 @@ See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenan
 - [guides/03-testing-and-coverage.md](guides/03-testing-and-coverage.md) - Vitest and coverage notes.
 - [guides/04-agent-cull-review.md](guides/04-agent-cull-review.md) - Agent cull review panel and Gemini CLI errors.
 - [guides/05-mcp-compact-servers.md](guides/05-mcp-compact-servers.md) - is-ui-mcp Node stdio MCP (search, dispatch, sse_status).
+- [guides/06-e2e-testing.md](guides/06-e2e-testing.md) - Playwright e2e journeys on the built Electron app.
 
 ## Integration
 
