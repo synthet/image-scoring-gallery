@@ -1,38 +1,47 @@
 ---
 name: image-scoring-mcp
-description: Driftara Gallery MCP — is-ui-* router-first; backend triage via sibling is-be-mcp search+dispatch.
+description: Driftara Gallery MCP — one driftara server (search → resolve → execute over local, ipc, cdp, api and system actions); backend work goes to the sibling vexlum (is-be-mcp).
 ---
 
-# Gallery MCP
+# Gallery MCP (driftara)
 
-Catalog: [`mcp-server/tool_catalog.json`](../../../mcp-server/tool_catalog.json). Reference: [mcp_tools_reference.md](../../mcp_tools_reference.md).
+Catalog: [`mcp-server/driftara/catalog.json`](../../../mcp-server/driftara/catalog.json). Contract: [DRIFTARA_MCP.md](../../../docs/technical/DRIFTARA_MCP.md). Quick reference: [mcp_tools_reference.md](../../mcp_tools_reference.md).
 
 ## Server keys
 
 | Key | Tools |
 |-----|-------|
-| **`is-ui-router`** | `ui_find`, `ui_domains`, `ui_card` |
-| **`is-ui-local`** | `gallery_status`, `get_electron_logs`, config |
-| **`is-ui-api`** | `api_health`, `api_*` |
-| **`is-ui-live`** | `cdp_*`, `gallery_window_status` |
-| **`is-be-mcp`** (sibling backend) | **`search`**, **`dispatch`** — preferred for pipeline/DB triage |
+| **`driftara`** | **`search`**, **`resolve`**, **`execute`**; `dispatch` and `sse_status` are deprecated aliases |
+| **`is-be-mcp`** (sibling backend, vexlum) | Same three tools for backend REST, SQL, jobs and diagnostics |
 
-Do not use `imgscore-el-*`, `image-scoring-gallery-*`, `image-scoring-pipeline-*`.
+The old gallery keys (`is-ui-mcp`, `is-ui-router`, `is-ui-local`, `is-ui-api`) still start but warn and serve driftara. Do not use `imgscore-el-*`, `image-scoring-gallery-*`, `image-scoring-pipeline-*`.
 
 ## Workflows
 
 ### Gallery startup / backend connection
 
-1. **`is-ui-local`** → **`gallery_status`**
-2. **`is-ui-api`** → **`api_health`**
-3. Backend deep dive → sibling **`is-be-mcp`**: `search("scoring errors")` → `dispatch("diagnostics.get_error_summary", {})`
+1. `execute("system.status")`: catalog, live server, CDP and backend reachability.
+2. `execute("local.gallery_status")`, then `execute("api.api_health")`.
+3. Backend deep dive → vexlum: `search("scoring errors")` → `execute("diagnostics.get_error_summary", {})`.
 
-### Unknown tool
+### Anything in the running app (IPC, renderer)
 
-**`is-ui-router`** → **`ui_find(query)`** → call tool on returned server.
+1. Start the app with `npm run dev` (or `ENABLE_GALLERY_MCP_SSE=1`); `ipc.*` and `live.*` otherwise return `live_unavailable`.
+2. `search("image count")` → `resolve("ipc.db.get-image-count")` → `execute(...)`.
+3. Renderer: `live.cdp_screenshot`, `live.cdp_console_logs`, `live.cdp_click`.
 
-## execute_code
+### Unknown action
 
-Backend only: **`is-be-live`** + `ENABLE_MCP_EXECUTE_CODE=1` (and usually `MCP_SSE_PROFILE=full`).
+`search(query)` ranks ids, aliases and intent examples. A miss returns suggestions, and a vexlum hint when the intent is backend work.
 
-Backend compact contract: [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/MCP_SEARCH_DISPATCH.md).
+## Writes and destructive actions
+
+- `write` needs `confirmed=true`.
+- `destructive` needs three things:
+  - `DRIFTARA_ALLOW_ELEVATED=1` in the **gallery app's** environment;
+  - a `dry_run=true` call that returns `confirm_token`;
+  - `confirmed=true` plus that token, with the same arguments.
+
+  Destructive actions are deletes, import, sync, backup, config save and `live.cdp_evaluate`.
+
+Dry-run first. Keep elevation off in automated profiles.

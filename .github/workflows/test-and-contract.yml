@@ -45,6 +45,9 @@ jobs:
       - name: Gallery MCP unit tests
         run: npm run test:unit --prefix mcp-server
 
+      - name: driftara catalog drift check (catalog and docs/technical/DRIFTARA_MCP.md match the IPC handlers)
+        run: npm run check:driftara-catalog --prefix mcp-server
+
       - name: Check renderer/electron type sync
         run: npm run check:type-sync
 

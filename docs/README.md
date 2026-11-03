@@ -42,6 +42,7 @@ See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenan
 - [architecture/README.md](architecture/README.md) - architecture section index.
 - [architecture/01-system-overview.md](architecture/01-system-overview.md) - Electron main/renderer/preload responsibilities, API mode, PostgreSQL mode, `media://`, and RAW/NEF preview flow.
 - [architecture/02-database-design.md](architecture/02-database-design.md) - PostgreSQL/API connector modes and Firebird historical notes.
+- [architecture/03-driftara-mcp.md](architecture/03-driftara-mcp.md) - driftara MCP internals: catalog, tier policy, live-server IPC execution.
 - [architecture/import-discovery-alignment.md](architecture/import-discovery-alignment.md) - gallery Import vs backend Discovery alignment.
 - [architecture/backup-feature.md](architecture/backup-feature.md) - Backup/import alignment with backend.
 - [technical/PIPELINE_TERMINOLOGY.md](technical/PIPELINE_TERMINOLOGY.md) - local mirror of backend stage labels and renderer constants.
@@ -84,6 +85,7 @@ See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenan
 - [integration/TODO.md](integration/TODO.md) - API/WebSocket backlog split by backend-owned contract tasks and gallery implementation tasks.
 - [technical/AGENT_COORDINATION.md](technical/AGENT_COORDINATION.md) - local pointer to backend canonical coordination.
 - [technical/OPENAPI_CONTRACT.md](technical/OPENAPI_CONTRACT.md) - gallery consumer checklist for backend OpenAPI sync and type generation.
+- [technical/DRIFTARA_MCP.md](technical/DRIFTARA_MCP.md) - driftara, the single MCP server + CLI: search, resolve, execute, catalog sources, tier policy, setup.
 - [technical/BACKEND_INDEPENDENCE.md](technical/BACKEND_INDEPENDENCE.md) - which features need the Python backend, which run locally, and the backend connection flag / reconnect menu.
 - [technical/DATABASE_REFACTOR_ANALYSIS.md](technical/DATABASE_REFACTOR_ANALYSIS.md) - analysis of backend `modules/db.py` decomposition (pointer).
 - [technical/EXTERNAL_CLI_REVIEWS.md](technical/EXTERNAL_CLI_REVIEWS.md) - Codex/Gemini review via subagent-orchestrator MCP.
