@@ -438,3 +438,52 @@ describe('GalleryGrid representative cards', () => {
         expect(screen.queryByTitle('DSC_1.NEF (shows 3 similar frames)')).toBeNull();
     });
 });
+
+describe('GalleryGrid keyboard navigation (#227)', () => {
+    const photos = Array.from({ length: 5 }, (_, i) => ({
+        id: i + 1,
+        file_path: `D:/photos/DSC_000${i + 1}.JPG`,
+        file_name: `DSC_000${i + 1}.JPG`,
+        thumbnail_path: `D:/photos/thumbs/DSC_000${i + 1}.jpg`,
+        score_general: 0.5,
+        rating: 0,
+        label: '',
+        pick_status: 0,
+    }));
+    const slot = (index: number) => document.querySelector(`[data-grid-index="${index}"]`);
+    const grid = () => screen.getByTestId('virtuoso-grid').parentElement as HTMLElement;
+
+    it('arrow keys, Home and End move keyboard focus between photos', async () => {
+        render(<GalleryGrid images={photos} />);
+        fireEvent.keyDown(grid(), { key: 'ArrowRight' });
+        await waitFor(() => expect(document.activeElement).toBe(slot(0)));
+        fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' });
+        await waitFor(() => expect(document.activeElement).toBe(slot(1)));
+        fireEvent.keyDown(document.activeElement!, { key: 'End' });
+        await waitFor(() => expect(document.activeElement).toBe(slot(4)));
+        fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' });
+        await waitFor(() => expect(document.activeElement).toBe(slot(4)));
+        fireEvent.keyDown(document.activeElement!, { key: 'Home' });
+        await waitFor(() => expect(document.activeElement).toBe(slot(0)));
+        fireEvent.keyDown(document.activeElement!, { key: 'ArrowLeft' });
+        await waitFor(() => expect(document.activeElement).toBe(slot(0)));
+    });
+
+    it('Enter opens the focused photo like a click', async () => {
+        const onSelect = vi.fn();
+        render(<GalleryGrid images={photos} onSelect={onSelect} />);
+        fireEvent.keyDown(grid(), { key: 'End' });
+        await waitFor(() => expect(document.activeElement).toBe(slot(4)));
+        fireEvent.keyDown(document.activeElement!, { key: 'Enter' });
+        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 5 }));
+    });
+
+    it('leaves keys typed into controls inside a card alone', () => {
+        const onSelect = vi.fn();
+        render(<GalleryGrid images={photos} onSelect={onSelect} />);
+        const input = document.createElement('input');
+        grid().appendChild(input);
+        fireEvent.keyDown(input, { key: 'End' });
+        expect(slot(4)).not.toBe(document.activeElement);
+    });
+});

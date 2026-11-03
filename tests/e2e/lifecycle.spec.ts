@@ -21,7 +21,6 @@ test.describe('Journey 3: lifecycle and clean shutdown', () => {
     });
 
     test('closing the main window while the scoring window is open still quits cleanly', async ({ launchApp }) => {
-        test.fail(true, '#223: the app keeps running with only the scoring window after the main window closes');
         const l = await launchApp();
         await expect.poll(() => menuItemState(l.app, ['Tools', 'Scoring...'])).toMatchObject({ enabled: true });
         const opened = l.app.waitForEvent('window');

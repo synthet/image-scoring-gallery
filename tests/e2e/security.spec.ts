@@ -35,7 +35,6 @@ test.describe('Journey 4: security regressions', () => {
     });
 
     test('window.open does not create a new window', async ({ launchApp }) => {
-        test.fail(true, '#224 (1): no setWindowOpenHandler; window.open creates a window');
         const { app, page } = await launchApp();
         const before = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length);
         const opened = app.waitForEvent('window', { timeout: 3_000 }).then(() => true, () => false);
@@ -45,7 +44,6 @@ test.describe('Journey 4: security regressions', () => {
     });
 
     test('the main window cannot be navigated to a remote origin', async ({ env, launchApp }) => {
-        test.fail(true, '#224 (2): no will-navigate guard; the main window navigates to remote origins');
         const { page } = await launchApp();
         const start = page.url();
         // A reachable origin (the fake backend), so a missing navigation guard really commits the navigation.
@@ -58,36 +56,39 @@ test.describe('Journey 4: security regressions', () => {
         expect(page.url()).toBe(start);
     });
 
-    test('the media protocol refuses files outside the photo and thumbnail roots', async ({ env, launchApp }) => {
-        test.fail(true, '#224 (3): media:// serves any absolute path');
-        const secret = path.join(env.root, 'not-a-photo.txt');
-        fs.writeFileSync(secret, 'secret');
-        const { page } = await launchApp();
-        const result = await page.evaluate(async (url) => {
-            try {
-                const r = await fetch(url);
-                return { status: r.status, body: r.ok ? await r.text() : '' };
-            } catch (e) {
-                return { status: 0, body: String(e) };
-            }
-        }, mediaUrl(secret));
-        expect(result.body, 'file outside allowed roots was served').not.toBe('secret');
-    });
+    test.describe('media protocol', () => {
+        // The refused fetch makes Chromium log the 403; that log line is the expected outcome here.
+        test.use({ allowErrors: ['status of 403 (Forbidden)'] });
 
-    test('the media protocol refuses ".." traversal out of a photo folder', async ({ env, launchApp }) => {
-        test.fail(true, '#224 (4): ".." traversal out of a photo folder is served');
-        fs.writeFileSync(path.join(env.root, 'outside.txt'), 'outside');
-        const { page } = await launchApp();
-        const traversal = mediaUrl(env.photos) + '/../outside.txt';
-        const body = await page.evaluate(async (url) => {
-            try {
-                const r = await fetch(url);
-                return r.ok ? await r.text() : '';
-            } catch {
-                return '';
-            }
-        }, traversal);
-        expect(body, 'traversal outside the photo folder was served').not.toBe('outside');
+        test('the media protocol refuses a non-image file outside the photo folders', async ({ env, launchApp }) => {
+            const secret = path.join(env.root, 'not-a-photo.txt');
+            fs.writeFileSync(secret, 'secret');
+            const { page } = await launchApp();
+            const result = await page.evaluate(async (url) => {
+                try {
+                    const r = await fetch(url);
+                    return { status: r.status, body: r.ok ? await r.text() : '' };
+                } catch (e) {
+                    return { status: 0, body: String(e) };
+                }
+            }, mediaUrl(secret));
+            expect(result.body, 'file outside allowed roots was served').not.toBe('secret');
+        });
+
+        test('the media protocol refuses ".." traversal to a non-image file', async ({ env, launchApp }) => {
+            fs.writeFileSync(path.join(env.root, 'outside.txt'), 'outside');
+            const { page } = await launchApp();
+            const traversal = mediaUrl(env.photos) + '/../outside.txt';
+            const body = await page.evaluate(async (url) => {
+                try {
+                    const r = await fetch(url);
+                    return r.ok ? await r.text() : '';
+                } catch {
+                    return '';
+                }
+            }, traversal);
+            expect(body, 'traversal outside the photo folder was served').not.toBe('outside');
+        });
     });
 
     test('IPC rejects malformed arguments', async ({ launchApp }) => {
@@ -104,20 +105,24 @@ test.describe('Journey 4: security regressions', () => {
         expect(err).toMatch(/boolean/);
     });
 
-    test('openExternalUrl only hands http(s) URLs to the operating system', async ({ launchApp }) => {
-        test.fail(true, '#224 (5): file:// URLs reach shell.openExternal');
+    test('openExternalUrl hands only backend links to the operating system', async ({ env, launchApp }) => {
         const { app, page } = await launchApp();
         await app.evaluate(({ shell }) => {
             const g = globalThis as unknown as { __opened: string[] };
             g.__opened = [];
             shell.openExternal = (async (url: string) => { g.__opened.push(url); }) as typeof shell.openExternal;
         });
-        const target = pathToFileURL(path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'calc.exe')).href;
-        await page.evaluate(async (url) => {
+        const open = (url: string) => page.evaluate(async (u) => {
             const api = (window as unknown as { electron: { openExternalUrl: (u: string) => Promise<void> } }).electron;
-            await api.openExternalUrl(url).catch(() => undefined);
-        }, target);
+            return api.openExternalUrl(u).then(() => 'opened', (e) => String(e));
+        }, url);
+        const calc = pathToFileURL(path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'calc.exe')).href;
+        const backendLink = `${env.backend.url}/ui/images/1`;
+
+        expect(await open(calc)).toMatch(/configured backend/);
+        expect(await open('http://127.0.0.1:9/elsewhere')).toMatch(/configured backend/);
+        expect(await open(backendLink)).toBe('opened');
         const opened = await app.evaluate(() => (globalThis as unknown as { __opened: string[] }).__opened);
-        expect(opened, 'a file:// URL was passed to shell.openExternal').toEqual([]);
+        expect(opened, 'only the backend link reached shell.openExternal').toEqual([backendLink]);
     });
 });

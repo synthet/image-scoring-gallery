@@ -63,6 +63,19 @@ body {
     min-width: var(--sidebar-width);
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45);
   }
+
+  /* Clicking beside the open drawer closes it (#226). */
+  .sidebarBackdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    background: var(--modal-backdrop);
+  }
+}
+
+.sidebarBackdrop {
+  display: none;
 }
 
 .sidebarToggle {

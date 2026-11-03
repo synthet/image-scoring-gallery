@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, dialog, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import isDev from 'electron-is-dev';
@@ -36,6 +36,8 @@ import { exportCurrentImage } from './exportImage';
 import { exportImageExif } from './exportExif';
 import { wrapIpcHandler } from './ipc/wrapIpcHandler';
 import { readE2eOverrides, resolveConfigPath } from './e2eHooks';
+import { isAllowedAppNavigation, isAllowedExternalUrl } from './navigationGuard';
+import { allowedExternalBaseUrls, resolveRendererApiConfig } from './rendererApiConfig';
 import {
     startGalleryMcpLiveFromElectron,
     stopGalleryMcpLiveFromElectron,
@@ -369,6 +371,11 @@ function createWindow() {
     mainWindow.on('closed', () => {
         console.log('[Main] Window closed');
         mainWindow = null;
+        // The scoring window and other tool windows belong to the gallery: close them too, so
+        // window-all-closed runs its cleanup and the app quits (#223).
+        for (const win of BrowserWindow.getAllWindows()) {
+            if (!win.isDestroyed()) win.close();
+        }
     });
 
     mainWindow.webContents.on('did-finish-load', () => {
@@ -538,6 +545,34 @@ if (webuiShellOnlyUrl) {
 } else {
     app.whenReady().then(() => void startFullApplication());
 }
+
+/** Opens `url` in the system browser only when it is a link to the configured backend (#224). */
+async function openBackendLinkExternally(url: string): Promise<void> {
+    const apiConfig = await resolveRendererApiConfig(loadConfig(), findActiveWebuiPort);
+    if (!isAllowedExternalUrl(url, allowedExternalBaseUrls(apiConfig))) {
+        console.warn('[Main] Refused window.open outside the backend origin:', url);
+        return;
+    }
+    await shell.openExternal(url);
+}
+
+// Every window (main, scoring, web-UI shell): pages can't open new windows or navigate away from the
+// page they loaded (#224). A window.open to the backend still opens in the system browser.
+app.on('web-contents-created', (_event, contents) => {
+    contents.setWindowOpenHandler(({ url }) => {
+        void openBackendLinkExternally(url).catch((e) => console.error('[Main] window.open handling failed:', e));
+        return { action: 'deny' };
+    });
+    const guardNavigation = (event: Electron.Event, url: string) => {
+        const current = contents.getURL();
+        if (current && !isAllowedAppNavigation(url, current)) {
+            event.preventDefault();
+            console.warn('[Main] Blocked navigation away from the app page:', url);
+        }
+    };
+    contents.on('will-navigate', guardNavigation);
+    contents.on('will-redirect', guardNavigation);
+});
 
 app.on('window-all-closed', async () => {
     await stopGalleryMcpLiveFromElectron();

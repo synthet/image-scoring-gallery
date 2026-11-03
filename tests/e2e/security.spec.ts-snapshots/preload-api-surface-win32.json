@@ -47,6 +47,7 @@
     "getStackCount",
     "getStacks",
     "getSubstacksForStack",
+    "importCancel",
     "importRun",
     "loadKeepOneReview",
     "loadRepresentativePreview",

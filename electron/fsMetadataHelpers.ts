@@ -17,6 +17,14 @@ export const FS_IMAGE_EXTENSIONS = new Set([
     '.nef', '.nrw', '.cr2', '.cr3', '.arw', '.orf', '.rw2', '.dng',
 ]);
 
+/**
+ * True when the media:// protocol may serve this file: image and RAW types only (#224). Text,
+ * configuration, credential and executable files are never served, wherever they are.
+ */
+export function isServableMediaPath(filePath: string): boolean {
+    return FS_IMAGE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
+
 export function convertFsImagePathForExif(filePath: string): string {
     let convertedPath = filePath;
     if (process.platform === 'win32' && filePath.match(/^\/mnt\/[a-zA-Z]\//)) {

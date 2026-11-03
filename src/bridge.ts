@@ -486,6 +486,8 @@ function createHttpBridge(): Window['electron'] {
         onSyncProgress: noop,
 
         importRun: (folderPath) => post('/import/run', { folderPath }),
+        // Browser mode imports on the server in one request; there is nothing to cancel from here.
+        importCancel: () => Promise.resolve(false),
 
         syncPreview: (sourcePath) => get<SyncPreviewResult>('/sync/preview', { sourcePath }),
         syncRun: (sourcePath, pickedCandidates) => post<SyncRunResult>('/sync/run', { sourcePath, pickedCandidates }),
@@ -639,6 +641,7 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
         }),
     rebuildStackCache: () => Promise.resolve({ success: false, count: 0 }),
     importRun: () => Promise.resolve({ added: 0, skipped: 0, errors: [], processing: { method: 'none' as const } }),
+    importCancel: () => Promise.resolve(false),
     syncPreview: () =>
         Promise.resolve({
             thresholdDate: null,

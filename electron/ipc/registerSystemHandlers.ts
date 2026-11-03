@@ -10,6 +10,8 @@ import { resolveConfigPath } from '../e2eHooks';
 import { loadSystemConfig, saveSystemConfig } from '../main.handlers';
 import { SessionLogManager } from '../sessionLogManager';
 import { wrapIpcHandler } from './wrapIpcHandler';
+import { isAllowedExternalUrl } from '../navigationGuard';
+import { allowedExternalBaseUrls, resolveRendererApiConfig } from '../rendererApiConfig';
 
 export type SystemHandlersDeps = {
     ipcMain: IpcMain;
@@ -63,26 +65,7 @@ export function registerSystemHandlers(deps: SystemHandlersDeps): void {
         }
     });
 
-    ipcMain.handle('system:get-api-config', async () => {
-        const config = loadConfig();
-        const apiPort = await findActiveWebuiPort();
-
-        let port = apiPort || 7860;
-        let host = '127.0.0.1';
-
-        if (config.api) {
-            if (config.api.url) {
-                const url = config.api.url.replace(/\/$/, '');
-                const browserRaw = config.api.browserUrl?.trim();
-                const browserUrl = browserRaw ? browserRaw.replace(/\/$/, '') : undefined;
-                return browserUrl ? { url, browserUrl } : { url };
-            }
-            if (config.api.port) port = config.api.port;
-            if (config.api.host) host = config.api.host;
-        }
-
-        return { url: `http://${host}:${port}` };
-    });
+    ipcMain.handle('system:get-api-config', async () => resolveRendererApiConfig(loadConfig(), findActiveWebuiPort));
 
     ipcMain.handle('system:get-api-port', async () => {
         const config = loadConfig();
@@ -95,6 +78,12 @@ export function registerSystemHandlers(deps: SystemHandlersDeps): void {
     });
 
     ipcMain.handle('system:open-external-url', wrapIpcHandler(async (_, url: string) => {
+        // Only links to the configured backend may leave the app (#224): no file:, other hosts or ports.
+        const apiConfig = await resolveRendererApiConfig(loadConfig(), findActiveWebuiPort);
+        if (typeof url !== 'string' || !isAllowedExternalUrl(url, allowedExternalBaseUrls(apiConfig))) {
+            console.warn('[Main] Refused to open a URL outside the backend origin:', url);
+            throw new Error('Only links to the configured backend can be opened');
+        }
         const scoringWindow = getScoringWindow();
         const webuiShellWindow = getWebuiShellWindow();
         const targetWin = (scoringWindow && !scoringWindow.isDestroyed()) ? scoringWindow :
