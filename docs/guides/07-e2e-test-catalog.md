@@ -16,7 +16,7 @@ Every end-to-end test in `tests/e2e/`: what it checks, and whether it passes or 
 - **Pass:** the behavior is asserted and must hold.
 - **Known defect #N:** the test is marked `test.fail(true, '#N: …')`. It passes while the defect exists and fails once the fix lands; remove the marker then.
 
-Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 34 tests, of which 22 pass and 12 track known defects.
+Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 34 tests, of which 23 pass and 11 track known defects.
 - #232 fixed the accessibility defects (#225), so the four axe scans are strict: any WCAG 2.1 A/AA violation fails.
 - #231 fixed the WebSocket bug (#230) behind the suite's only flake.
 
@@ -45,7 +45,7 @@ Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/im
 | Test | Asserts | Status |
 |---|---|---|
 | closing the main window quits the app with no leftover process or main-process error | the process exits; no Electron process left; no main-process error lines | Pass |
-| closing the main window while the scoring window is open still quits cleanly | the same, with Tools › Scoring open | Known defect [#223](https://github.com/synthet/image-scoring-gallery/issues/223) |
+| closing the main window while the scoring window is open still quits cleanly | the same, with Tools › Scoring open | Pass (was [#223](https://github.com/synthet/image-scoring-gallery/issues/223)) |
 
 ## Journey 4: security (`security.spec.ts`)
 

@@ -369,6 +369,11 @@ function createWindow() {
     mainWindow.on('closed', () => {
         console.log('[Main] Window closed');
         mainWindow = null;
+        // The scoring window and other tool windows belong to the gallery: close them too, so
+        // window-all-closed runs its cleanup and the app quits (#223).
+        for (const win of BrowserWindow.getAllWindows()) {
+            if (!win.isDestroyed()) win.close();
+        }
     });
 
     mainWindow.webContents.on('did-finish-load', () => {

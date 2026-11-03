@@ -111,7 +111,6 @@ A test for a known defect is marked `test.fail(true, '#<issue>: …')`. It passe
 
 | Issue | Tests |
 |---|---|
-| [#223](https://github.com/synthet/image-scoring-gallery/issues/223) | Closing the main window while the scoring window is open leaves the app running. |
 | [#224](https://github.com/synthet/image-scoring-gallery/issues/224) | `window.open` opens windows; the main window navigates to remote origins; `media://` serves any file and `..` traversal; `file://` URLs reach `shell.openExternal`. |
 | [#226](https://github.com/synthet/image-scoring-gallery/issues/226) | Below 1100 px the sidebar drawer can't be closed, and in folder mode it covers the header and grid. |
 | [#227](https://github.com/synthet/image-scoring-gallery/issues/227) | The grid has no keyboard navigation or select-all. |
