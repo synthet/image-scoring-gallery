@@ -6,6 +6,7 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ### Fixed
 - **Quit** (#223): Closing the main window also closes the Scoring window and quits the app, so shutdown cleanup always runs.
+- **IPC errors** (#222): Opening the backend's image page now reports a failure instead of silently doing nothing, and `findNearDuplicates` returns its result rather than the IPC envelope.
 - **Accessibility** (#225): The viewer's close button has an accessible name ("Close viewer"). Low-contrast secondary text now meets WCAG AA (4.5:1) through design tokens. This covers the Color Label **All** button, the folder-mode root label, and the viewer's date, empty-state and loading notes.
 
 ### Added

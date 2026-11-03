@@ -73,9 +73,6 @@ const handlers = scanHandlers();
 const handled = new Set(handlers.map((h) => h.channel));
 const invoked = scanPreloadInvokes();
 
-/** Known contract defects, tracked in #222; each has an expected-failure test below. */
-const KNOWN_ENVELOPE_DEFECTS = new Set(['api:similarity:find-duplicates', 'system:open-external-url']);
-
 function envelopeMismatches(): string[] {
     return handlers
         .filter((h) => h.wrapped && invoked.has(h.channel) && !invoked.get(h.channel))
@@ -114,17 +111,7 @@ describe('IPC registry', () => {
         }).toEqual({ listenedButNeverSent: [], sentButNeverListened: [] });
     });
 
-    it('unwraps the { ok, data, error } envelope of every wrapped handler (known defects excepted)', () => {
-        expect(envelopeMismatches().filter((c) => !KNOWN_ENVELOPE_DEFECTS.has(c))).toEqual([]);
-    });
-
-    // Expected failures: these flip to "passed unexpectedly" once #222 is fixed; then remove them from
-    // KNOWN_ENVELOPE_DEFECTS and turn these into ordinary tests.
-    it.fails('find-duplicates returns DuplicateResponse, not the envelope (#222)', () => {
-        expect(envelopeMismatches()).not.toContain('api:similarity:find-duplicates');
-    });
-
-    it.fails('open-external-url surfaces handler failures to the renderer (#222)', () => {
-        expect(envelopeMismatches()).not.toContain('system:open-external-url');
+    it('unwraps the { ok, data, error } envelope of every wrapped handler', () => {
+        expect(envelopeMismatches()).toEqual([]);
     });
 });

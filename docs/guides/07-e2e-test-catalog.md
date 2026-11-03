@@ -110,6 +110,6 @@ Sync and backup have no end-to-end test. Sync reads only `.nef` files, and backu
 - every event is both sent and listened for;
 - handlers wrapped in the IPC envelope are unwrapped by the preload.
 
-Two `it.fails` cases track [#222](https://github.com/synthet/image-scoring-gallery/issues/222): `findNearDuplicates` returns the raw envelope, and `openExternalUrl` swallows failures.
+The envelope check is strict, with no exceptions. Its two former defects, `findNearDuplicates` returning the raw envelope and `openExternalUrl` swallowing failures, were fixed in [#222](https://github.com/synthet/image-scoring-gallery/issues/222).
 
 [← Back to Guides](README.md)

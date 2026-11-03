@@ -139,8 +139,8 @@ contextBridge.exposeInMainWorld('electron', {
         return unwrapEnvelope<import('./types').KeywordCloudEntry[]>(response);
     },
     findNearDuplicates: async (options?: { threshold?: number; folder_path?: string; limit?: number }) => {
-        // Find duplicates doesn't use standard DB envelope
-        return await ipcRenderer.invoke('api:similarity:find-duplicates', options) as DuplicateResponse;
+        const response = await ipcRenderer.invoke('api:similarity:find-duplicates', options);
+        return unwrapEnvelope<DuplicateResponse>(response);
     },
     searchSimilarImages: async (options: { imageId: number; limit?: number; folderId?: number; folderPath?: string; minSimilarity?: number }) => {
         const response = await ipcRenderer.invoke('api:similarity:search', options);
@@ -347,7 +347,8 @@ contextBridge.exposeInMainWorld('electron', {
         return unwrapEnvelope<KeepOneReviewResult>(response);
     },
     openExternalUrl: async (url: string) => {
-        await ipcRenderer.invoke('system:open-external-url', url);
+        const response = await ipcRenderer.invoke('system:open-external-url', url);
+        unwrapEnvelope<unknown>(response);
     },
     onOpenSettings: (callback: () => void) => {
         const handler = () => callback();

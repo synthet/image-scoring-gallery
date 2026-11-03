@@ -116,7 +116,7 @@ A test for a known defect is marked `test.fail(true, '#<issue>: …')`. It passe
 | [#227](https://github.com/synthet/image-scoring-gallery/issues/227) | The grid has no keyboard navigation or select-all. |
 | [#228](https://github.com/synthet/image-scoring-gallery/issues/228) | Import, sync and backup can't be cancelled. |
 
-The IPC contract test (`electron/ipcRegistry.test.ts`, Vitest) holds two more known defects for [#222](https://github.com/synthet/image-scoring-gallery/issues/222).
+The IPC contract test (`electron/ipcRegistry.test.ts`, Vitest) is strict: every wrapped handler's envelope must be unwrapped by the preload. Its two former defects were fixed in [#222](https://github.com/synthet/image-scoring-gallery/issues/222).
 
 ## Flakiness
 
