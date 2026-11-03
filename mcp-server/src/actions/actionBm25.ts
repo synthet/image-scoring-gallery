@@ -94,11 +94,11 @@ export class ActionBm25Index {
 
     search(
         query: string,
-        opts: { limit?: number; category?: string; readOnlyOnly?: boolean } = {},
+        opts: { limit?: number; category?: string; readOnlyOnly?: boolean; maxLimit?: number } = {},
     ): Array<{ entry: ActionSearchEntry; score: number; idx: number }> {
         const qTerms = tokenize(query);
         if (!qTerms.length) return [];
-        const limit = Math.max(1, Math.min(opts.limit ?? 10, 50));
+        const limit = Math.max(1, Math.min(opts.limit ?? 10, opts.maxLimit ?? 50));
         const scored: Array<{ idx: number; score: number }> = [];
         for (let idx = 0; idx < this.entries.length; idx++) {
             const entry = this.entries[idx];

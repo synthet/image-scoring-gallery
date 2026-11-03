@@ -1,11 +1,11 @@
 {
-  "_comment": "Copy to .cursor/mcp.json (gitignored). Uses workspaceFolder:image-scoring-gallery for multi-root workspaces. Build: cd mcp-server && npm install && npm run build:registry.",
+  "_comment": "Copy to .cursor/mcp.json (gitignored). Uses workspaceFolder:image-scoring-gallery for multi-root workspaces. Build: cd mcp-server && npm install && npm run build. One server, driftara (search -> resolve -> execute); see docs/technical/DRIFTARA_MCP.md. The old is-ui-* keys still start but are deprecated.",
   "_comment_fff": "Optional fff file search \u2014 project-level only (needs repo cwd). Install: irm https://raw.githubusercontent.com/dmtrKovalenko/fff/main/install-mcp.ps1 | iex. See AGENTS.md \u00a7 fff.",
   "mcpServers": {
-    "is-ui-mcp": {
+    "driftara": {
       "command": "node",
       "args": [
-        "mcp-server/dist/compactIndex.js"
+        "mcp-server/dist/driftara.js"
       ],
       "cwd": "${workspaceFolder:image-scoring-gallery}"
     },

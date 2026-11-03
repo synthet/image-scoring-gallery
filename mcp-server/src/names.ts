@@ -11,7 +11,12 @@ export const UI_FIND = "ui_find";
 export const UI_DOMAINS = "ui_domains";
 export const UI_CARD = "ui_card";
 
+/** The single gallery MCP server and CLI (search -> resolve -> execute). The is-ui-* names are deprecated shims. */
+export const DRIFTARA = "driftara";
+
 export const SEARCH = "search";
+export const RESOLVE = "resolve";
+export const EXECUTE = "execute";
 export const DISPATCH = "dispatch";
 export const SSE_STATUS = "sse_status";
 

@@ -51,6 +51,10 @@ Before changing IPC contracts, stage labels, or backend integration: read **[`do
 - **State**: Use `zustand` for shared UI state.
 - **Performance**: Use virtualization for long lists (e.g., `react-virtuoso` in the gallery).
 
+### 4. MCP for agents
+- One server, **`driftara`** (`search` → `resolve` → `execute`) covers the gallery: every Electron IPC channel (`ipc.*`, needs the app running), renderer automation (`live.cdp_*`), local probes and backend-connection checks. Writes need `confirmed=true`; destructive actions also need a dry-run confirm token and `DRIFTARA_ALLOW_ELEVATED=1` in the app.
+- Contract: [docs/technical/DRIFTARA_MCP.md](../docs/technical/DRIFTARA_MCP.md). Quick reference: [mcp_tools_reference.md](mcp_tools_reference.md). Backend work goes to the sibling's vexlum.
+
 ## Troubleshooting Flow
 1. Check `npm run lint` for syntax or type errors.
 2. Verify PostgreSQL is accessible (`localhost:5432`). Ensure Docker container is running.

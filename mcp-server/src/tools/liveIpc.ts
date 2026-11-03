@@ -3,6 +3,11 @@ import { UI_LIVE } from "../names.js";
 
 export interface GalleryLiveHooks {
     getWindowStatus?: () => Promise<Record<string, unknown>>;
+    /**
+     * Invoke a registered ipcMain.handle channel in the Electron main process (driftara ipc.* actions).
+     * Electron allows only channels recorded at registration; driftara allows only catalog channels.
+     */
+    invokeIpc?: (channel: string, args: unknown[]) => Promise<unknown>;
 }
 
 export function createLiveIpcToolDefs(): ToolDef[] {

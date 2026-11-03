@@ -1,19 +1,9 @@
 #!/usr/bin/env node
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+/** DEPRECATED entry point (is-ui-mcp): starts driftara (search, resolve, execute) under the old server name. See docs/technical/DRIFTARA_MCP.md */
+import { runDeprecatedShim } from "./driftara.js";
+import { UI_MCP } from "./names.js";
 
-import { createGalleryCompactMcpServer } from "./createGalleryCompactMcpServer.js";
-import { DISPATCH, SEARCH, SSE_STATUS, UI_MCP } from "./names.js";
-
-async function main() {
-    process.env.MCP_TOOL_PROFILE = "compact";
-    const { server, toolDefs } = createGalleryCompactMcpServer();
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error(`${UI_MCP} MCP v2.3.0 (${SEARCH}, ${DISPATCH}, ${SSE_STATUS})`);
-    console.error(`Tools: ${toolDefs.map((t) => t.name).join(", ")}`);
-}
-
-main().catch((error) => {
-    console.error("Fatal error running gallery compact MCP:", error);
+runDeprecatedShim(UI_MCP, "dist/compactIndex.js").catch((error) => {
+    console.error("Fatal error running driftara (via dist/compactIndex.js):", error);
     process.exit(1);
 });

@@ -1,9 +1,9 @@
 # Codex: copy to .codex/config.toml in this repo (trusted project) or merge into ~/.codex/config.toml.
-# Build: cd mcp-server && npm install && npm run build:registry
+# Build: cd mcp-server && npm install && npm run build
 
-[mcp_servers.is-ui-mcp]
+[mcp_servers.driftara]
 command = "node"
-args = ["mcp-server/dist/compactIndex.js"]
+args = ["mcp-server/dist/driftara.js"]
 enabled = true
 startup_timeout_sec = 30
 tool_timeout_sec = 120

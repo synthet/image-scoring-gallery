@@ -13,5 +13,6 @@ Core system design and high-level technical overviews.
 
 - [01 - System Overview](01-system-overview.md) - High-density project context, tech stack, and entry points
 - [02 - Database Design](02-database-design.md) - Database providers, normalized bird-box compatibility view, migration prerequisites, and restart rollback
+- [03 - driftara MCP](03-driftara-mcp.md) - The single MCP server and CLI: generated catalog, tier policy, and how ipc.* calls reach the Electron main process
 
 [← Back to Documentation Index](../README.md)

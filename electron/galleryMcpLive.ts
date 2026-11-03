@@ -15,6 +15,8 @@ export function isGalleryMcpLiveEnabled(): boolean {
 export async function startGalleryMcpLiveFromElectron(options: {
     projectRoot: string;
     getWindowStatus: () => Promise<Record<string, unknown>>;
+    /** driftara ipc.* actions: invoke a recorded ipcMain.handle channel (see ipc/ipcInvokeRegistry.ts). */
+    invokeIpc: (channel: string, args: unknown[]) => Promise<unknown>;
 }): Promise<void> {
     if (!isGalleryMcpLiveEnabled() || galleryMcpLive) {
         return;
@@ -28,9 +30,9 @@ export async function startGalleryMcpLiveFromElectron(options: {
     galleryMcpLive = await mod.startGalleryMcpLiveServer({
         projectRoot: options.projectRoot,
         port,
-        hooks: { getWindowStatus: options.getWindowStatus },
+        hooks: { getWindowStatus: options.getWindowStatus, invokeIpc: options.invokeIpc },
     });
-    console.log(`[Main] is-ui-live MCP at ${galleryMcpLive?.sseUrl ?? "unknown"}`);
+    console.log(`[Main] driftara live MCP at ${galleryMcpLive?.sseUrl ?? "unknown"}`);
 }
 
 export async function stopGalleryMcpLiveFromElectron(): Promise<void> {

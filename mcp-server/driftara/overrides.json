@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "_comment": "Hand-written driftara metadata. ipc: keyed by ipcMain.handle channel. actions: keyed by action_registry.json action_id. Fields: tier (read|write|destructive), title, description, tags, aliases, intent_examples, notes; ipc only: properties (refine a scanned argument schema), required. Every channel carries an explicit, reviewed tier. Run `npm run build:driftara-catalog` after editing.",
+  "ipc": {
+    "ping": { "tier": "read", "title": "Electron IPC ping", "intent_examples": ["is electron main responding"] },
+
+    "api:connection-status": { "tier": "read", "intent_examples": ["is the gallery connected to the backend"] },
+    "api:reconnect": { "tier": "write", "notes": ["Re-probes the backend connection and announces the result in the UI."] },
+    "api:health": { "tier": "read" },
+    "api:is-available": { "tier": "read" },
+    "api:status": { "tier": "read" },
+    "api:stats": { "tier": "read" },
+    "api:get-scoring-sort-options": { "tier": "read" },
+    "api:get-stack-analytics": { "tier": "read" },
+    "api:get-agent-cull-groups": { "tier": "read", "intent_examples": ["list agent cull review groups"] },
+    "api:get-agent-cull-group": { "tier": "read" },
+    "api:run-agent-cull-review": { "tier": "write", "notes": ["Starts an agent cull review on the backend; pass body.dryRun=true for a backend preview."] },
+    "api:apply-agent-cull-candidates": { "tier": "write" },
+    "api:delete-approved-agent-cull": { "tier": "destructive", "notes": ["Deletes the approved cull candidates of a group (backend /delete-approved)."] },
+    "api:approve-agent-cull-group": { "tier": "write" },
+    "api:reject-agent-cull-group": { "tier": "write" },
+    "api:rollback-agent-cull-recommendation": { "tier": "write" },
+    "api:update-image-pick-status": { "tier": "write", "intent_examples": ["mark image as pick", "reject image", "set pick flag"] },
+    "api:scoring-start": { "tier": "write", "intent_examples": ["start scoring a folder"] },
+    "api:scoring-stop": { "tier": "write" },
+    "api:scoring-status": { "tier": "read", "intent_examples": ["is scoring running"] },
+    "api:scoring-single": { "tier": "write" },
+    "api:scoring-fix-image": { "tier": "write" },
+    "api:tagging-start": { "tier": "write" },
+    "api:tagging-stop": { "tier": "write" },
+    "api:tagging-status": { "tier": "read" },
+    "api:tagging-single": { "tier": "write" },
+    "api:tagging-propagate": { "tier": "write" },
+    "api:clustering-start": { "tier": "write" },
+    "api:clustering-stop": { "tier": "write" },
+    "api:clustering-status": { "tier": "read" },
+    "api:pipeline-submit": { "tier": "write" },
+    "api:pipeline-skip": { "tier": "write" },
+    "api:pipeline-retry": { "tier": "write" },
+    "api:status-all": { "tier": "read" },
+    "api:jobs-queue": { "tier": "read", "intent_examples": ["show the job queue"] },
+    "api:job-cancel": { "tier": "write" },
+    "api:jobs-recent": { "tier": "read" },
+    "api:job-detail": { "tier": "read" },
+    "api:get-scope-tree": { "tier": "read" },
+
+    "api:evidence:manifest": { "tier": "read" },
+    "api:evidence:request": { "tier": "write", "notes": ["Starts backend diagnostic layer computation for an image."] },
+    "api:evidence:cancel": { "tier": "write" },
+    "api:evidence:artifact": { "tier": "read" },
+    "api:evidence:get-image": { "tier": "read" },
+    "api:evidence:export-pack": { "tier": "destructive", "notes": ["Writes a JSON file to body.destPath (creating folders) and overwrites an existing file there."] },
+    "api:similarity:find-duplicates": { "tier": "read", "intent_examples": ["find near duplicates"] },
+    "api:similarity:search": { "tier": "read", "intent_examples": ["find similar images"] },
+    "api:similarity:text-search": { "tier": "read", "intent_examples": ["search images by text description"] },
+    "api:similarity:text-search-cancel": { "tier": "write" },
+    "api:similarity:example-queries": { "tier": "read" },
+    "api:similarity:outliers": { "tier": "read" },
+
+    "db:check-connection": { "tier": "read", "intent_examples": ["is the gallery database reachable"] },
+    "db:get-image-count": { "tier": "read", "intent_examples": ["how many images are in the gallery"] },
+    "db:get-images": { "tier": "read", "intent_examples": ["list images", "query gallery images by rating or keyword"] },
+    "db:get-image-details": { "tier": "read", "intent_examples": ["show image details"] },
+    "db:get-eye-keypoints": { "tier": "read" },
+    "db:get-image-phase-statuses": { "tier": "read" },
+    "db:update-image-details": { "tier": "write", "notes": ["Updates one image row with the given columns."] },
+    "db:delete-image": { "tier": "destructive", "notes": ["Deletes the source file on disk, then the images row. Not undoable."] },
+    "db:get-keywords": { "tier": "read" },
+    "db:get-keyword-cloud": { "tier": "read" },
+    "db:get-stacks": { "tier": "read" },
+    "db:get-images-by-stack": { "tier": "read" },
+    "db:get-images-by-stack-ungrouped": { "tier": "read" },
+    "db:get-substacks-for-stack": { "tier": "read" },
+    "db:get-images-by-substack": { "tier": "read" },
+    "db:get-stack-count": { "tier": "read" },
+    "db:get-stack-cache-count": { "tier": "read" },
+    "db:get-stack-cache-status": { "tier": "read" },
+    "db:rebuild-stack-cache": { "tier": "destructive", "notes": ["Deletes and rebuilds the stack_cache table."] },
+    "db:get-dates-with-shots": { "tier": "read" },
+    "db:get-folders": { "tier": "read", "intent_examples": ["list gallery folders"] },
+    "db:delete-folder": { "tier": "destructive", "notes": ["Deletes the folder rows of a subtree; refuses while images remain in it."] },
+
+    "app:set-gallery-mode": { "tier": "write" },
+    "app:get-gallery-mode": { "tier": "read" },
+    "app:set-viewer-open": { "tier": "write" },
+    "app:get-show-bounding-box": { "tier": "read" },
+    "app:get-show-eyes": { "tier": "read" },
+    "app:get-show-focus-point": { "tier": "read" },
+    "app:set-show-bounding-box": { "tier": "write" },
+    "app:set-show-eyes": { "tier": "write" },
+    "app:set-show-focus-point": { "tier": "write" },
+    "export:set-current-image-context": { "tier": "write" },
+    "app:set-selection-path": { "tier": "write" },
+    "app:reveal-in-explorer": { "tier": "write", "notes": ["Opens the OS file manager."] },
+    "export:exif": { "tier": "write", "notes": ["Opens a native save dialog in the app and writes the exported file there."] },
+
+    "debug:log": { "tier": "write", "notes": ["Appends to the app's renderer log file."] },
+    "system:get-api-config": { "tier": "read" },
+    "system:get-api-port": { "tier": "read" },
+    "system:open-external-url": { "tier": "write", "notes": ["Opens a URL in a gallery window or the system browser."] },
+    "system:get-config": { "tier": "read", "notes": ["Secret-looking keys (password, token, api key) are redacted in the envelope."] },
+    "system:get-diagnostics": { "tier": "read" },
+    "system:save-config": { "tier": "destructive", "notes": ["Deep-merges updates into config.json and rewrites the whole file."] },
+
+    "nef:extract-preview": { "tier": "read" },
+    "nef:read-exif": { "tier": "read", "intent_examples": ["read exif of a raw file"] },
+    "fs:read-image-metadata": { "tier": "read" },
+    "fs:get-light-mode-root": { "tier": "read" },
+    "fs:read-dir": { "tier": "read" },
+    "fs:select-directory": { "tier": "write", "notes": ["Opens a native folder dialog in the app and waits for the user."] },
+
+    "backup:check-target": { "tier": "read" },
+    "backup:set-fleet-identity": { "tier": "write", "notes": ["Rewrites the backup target's manifest.json (atomic, keeps a .bak)."] },
+    "backup:verify-target": { "tier": "read" },
+    "backup:preview": { "tier": "read", "intent_examples": ["what would a backup copy"] },
+    "backup:run": {
+      "tier": "destructive",
+      "intent_examples": ["start a backup", "run a backup to a drive", "back up the library"],
+      "notes": ["Copies images to the target and can delete stale, rotated-out or space-dropped files there. Preview with ipc.backup.preview first."],
+      "properties": {
+        "arg1": {
+          "anyOf": [
+            { "type": "string", "description": "target path" },
+            { "type": "object", "properties": { "targetPath": { "type": "string" }, "confirmMassDelete": { "type": "boolean" } }, "required": ["targetPath"] }
+          ],
+          "description": "Backup target path, or { targetPath, confirmMassDelete }."
+        }
+      },
+      "required": ["arg1"]
+    },
+
+    "sync:preview": { "tier": "read", "intent_examples": ["what would a sync import"] },
+    "sync:run": { "tier": "destructive", "intent_examples": ["sync photos from a memory card", "import from camera card"], "notes": ["Copies files into the library and inserts DB rows in bulk. Preview with ipc.sync.preview first."] },
+
+    "study:load-representative-preview": { "tier": "read" },
+    "study:load-keepone-review": { "tier": "write", "notes": ["Opens a native file dialog in the app and waits for the user."] },
+
+    "import:run": { "tier": "destructive", "intent_examples": ["import a folder into the gallery", "register existing photos"], "notes": ["Registers every image in a folder (backend import, or bulk DB inserts when the backend is down)."] },
+    "import:cancel": {
+      "tier": "write",
+      "intent_examples": [
+        "stop the running import"
+      ],
+      "notes": [
+        "Stops a running import between photos; photos already imported are kept."
+      ]
+    }
+  },
+  "actions": {
+    "local.gallery_status": { "tier": "read", "tags": ["gallery", "status", "health"], "aliases": ["gallery status"], "intent_examples": ["gallery status", "is the gallery healthy", "check backend and cdp reachability"] },
+    "live.cdp_click": { "tier": "write" },
+    "live.cdp_fill": { "tier": "write" },
+    "live.cdp_press": { "tier": "write" },
+    "live.cdp_type": { "tier": "write" },
+    "live.cdp_evaluate": { "tier": "destructive", "notes": ["Runs arbitrary JavaScript in the renderer, which can reach every preload API."] }
+  }
+}

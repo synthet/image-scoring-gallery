@@ -7,9 +7,9 @@ import { fileURLToPath } from "node:url";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import getRawBody from "raw-body";
 
-import { createGalleryMcpServer } from "./createGalleryMcpServer.js";
+import { createDriftaraServer } from "./createDriftaraServer.js";
 import type { GalleryLiveHooks } from "./tools/liveIpc.js";
-import { UI_LIVE } from "./names.js";
+import { DRIFTARA, UI_LIVE } from "./names.js";
 
 const DEFAULT_PORT = 9373;
 const LOCK_FILENAME = "gallery-mcp.lock";
@@ -62,7 +62,7 @@ export async function startGalleryMcpLiveServer(
 
     const transports = new Map<
         string,
-        { transport: SSEServerTransport; mcpServer: ReturnType<typeof createGalleryMcpServer>["server"] }
+        { transport: SSEServerTransport; mcpServer: ReturnType<typeof createDriftaraServer>["server"] }
     >();
 
     const httpServer = http.createServer(async (req, res) => {
@@ -80,7 +80,8 @@ export async function startGalleryMcpLiveServer(
                     return;
                 }
 
-                const { server: sessionServer } = createGalleryMcpServer({ mode: "live", hooks });
+                // The live server serves driftara; ipc.* runs here through the Electron hooks.
+                const { server: sessionServer } = createDriftaraServer({ serverName: DRIFTARA, runtime: { hooks } });
                 const transport = new SSEServerTransport("/mcp/messages", res);
                 transports.set(transport.sessionId, { transport, mcpServer: sessionServer });
                 // Session cleanup only — do not call sessionServer.close() here.
@@ -122,6 +123,8 @@ export async function startGalleryMcpLiveServer(
                 res.end(
                     JSON.stringify({
                         server: UI_LIVE,
+                        serves: DRIFTARA,
+                        ipc_hooks: Boolean(hooks.invokeIpc),
                         expected_sse_url: `http://127.0.0.1:${boundPort}/mcp/sse`,
                     }),
                 );

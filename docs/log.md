@@ -13,6 +13,7 @@ Chronological record of wiki maintenance activities. Newest entries first.
 
 ## 2026-11
 
+- 2026-11-02: created — [driftara contract](technical/DRIFTARA_MCP.md) and [driftara architecture](architecture/03-driftara-mcp.md) for the single gallery MCP server + CLI (#236). Updated [guides/05-mcp-compact-servers.md](guides/05-mcp-compact-servers.md) (superseded note), [architecture/README.md](architecture/README.md) and [README.md](README.md).
 - 2026-11-02: created — [UX/UI test catalog](guides/07-e2e-test-catalog.md): all 34 e2e tests with their assertions, tracked defects (#222–#228) and status, plus the changes pending in #231 and #232. Linked from [06 - End-to-end (Electron) testing](guides/06-e2e-testing.md), [guides/README.md](guides/README.md) and [README.md](README.md).
 - 2026-11-02: created — [End-to-end (Electron) testing](guides/06-e2e-testing.md): Playwright `_electron` suite on the built app (#221). Covers the hermetic harness (`GALLERY_E2E`), the fake backend, dialog and menu stubs, journeys 1–8, the large-data budgets, and known defects #223–#228 as `test.fail`. Linked from [guides/README.md](guides/README.md), [README.md](README.md) and [03 - Testing and Coverage](guides/03-testing-and-coverage.md).
 - 2026-11-01: created — [Keep-one review](features/implemented/11-keepone-review.md): read-only tool view over a `driftara-keepone-review/1` export (image-scoring-skills `keepone_export`); new IPC channel `study:load-keepone-review`; indexed in [features/implemented/INDEX.md](features/implemented/INDEX.md) and [README.md](README.md).

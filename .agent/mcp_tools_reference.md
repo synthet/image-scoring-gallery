@@ -1,35 +1,44 @@
 # MCP Tools Quick Reference — Driftara Gallery
 
-Router-first dispatch. Catalog: `mcp-server/tool_catalog.json`.
+One server, **`driftara`**: `search` → `resolve` → `execute` over one catalog (`mcp-server/driftara/catalog.json`). Contract: [docs/technical/DRIFTARA_MCP.md](../docs/technical/DRIFTARA_MCP.md). Architecture: [docs/architecture/03-driftara-mcp.md](../docs/architecture/03-driftara-mcp.md).
 
 ## Server keys
 
 | Key | Use |
 |-----|-----|
-| **`is-ui-router`** | **`ui_find`**, `ui_domains`, `ui_card` |
-| **`is-ui-local`** | `gallery_status`, logs, config |
-| **`is-ui-api`** | `api_health`, `api_*` (backend WebUI up) |
-| **`is-ui-live`** | `cdp_*`, `gallery_window_status`, `gallery_ipc_ping` |
-| **`is-be-mcp`** | Sibling backend: **`search`**, **`dispatch`** (preferred for pipeline triage) |
+| **`driftara`** | All gallery actions: `local.*` probes, `ipc.*` (every Electron IPC channel), `live.cdp_*` renderer automation, `api.*` backend-connection probes, `system.*` |
+| **`is-be-mcp`** (vexlum) | Sibling backend: REST, SQL, jobs, diagnostics. driftara never does backend work; it points you to vexlum. Contract: [VEXLUM_MCP.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/VEXLUM_MCP.md) |
 
-Backend compact contract: [MCP_SEARCH_DISPATCH.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/MCP_SEARCH_DISPATCH.md). Full backend catalog: [AGENTS.md](https://github.com/synthet/image-scoring-pipeline/blob/main/AGENTS.md).
+Deprecated: `is-ui-mcp`, `is-ui-router`, `is-ui-local` and `is-ui-api` still start, but they log a warning and serve the driftara tools. The `dispatch` and `sse_status` tools are aliases of `execute`.
 
 ## Read-only triage
 
-1. **`is-ui-router`** → **`ui_find("gallery status")`** or **`is-ui-local`** → **`gallery_status`**
-2. **`is-ui-api`** → `api_health`
-3. Sibling backend **`is-be-mcp`**: `search("connection error")` → `dispatch("diagnostics.validate_config", {})`
-4. **`is-ui-live`** → `cdp_console_logs` when Electron running
+1. `execute("system.status")`: catalog counts, live server, CDP and backend reachability.
+2. `execute("local.gallery_status")`: backend API and Electron CDP probes (no app needed).
+3. `search("…")` → `resolve(id)` → `execute(id, args)` for anything else. `ipc.*` and `live.*` need the app running (`npm run dev`); otherwise they return `live_unavailable`.
+4. Backend problems: vexlum `search("connection error")` → `execute("diagnostics.validate_config", {})`.
 
-## High-risk
+## Tiers (write safety)
 
-Writes and `execute_code` live on backend **`is-be-live`** with **`MCP_SSE_PROFILE=full`** (and `ENABLE_MCP_EXECUTE_CODE=1` for `execute_code`). Keep disabled in automated profiles.
+| Tier | Run requires |
+|------|--------------|
+| `read` | nothing |
+| `write` | `confirmed=true` |
+| `destructive` (deletes, imports, sync, backup, config save, `live.cdp_evaluate`) | `DRIFTARA_ALLOW_ELEVATED=1` in the **app's** environment, a `dry_run=true` that returns `confirm_token`, then `confirmed=true` with that token and the same arguments |
+
+Prefer `dry_run=true` first for anything that isn't `read`. Keep elevation off in automated profiles.
+
+## CLI
+
+`scripts\driftara.cmd status`, `search "…"`, `resolve ID`, `exec ID --args "{…}" [--dry-run] [--confirm] [--token T]`. Use `--json` for raw envelopes. Exit codes: 0 ok, 1 action error, 2 usage error.
 
 ## Agent config files
 
 | Tool | Project MCP file |
 |------|------------------|
 | **Cursor** | Copy [`.cursor/mcp.example.json`](../.cursor/mcp.example.json) → `.cursor/mcp.json` (gitignored) |
-| **Claude Code** | [`.mcp.json`](../.mcp.json) if present |
+| **Claude Code** | Copy [`.mcp.json.example`](../.mcp.json.example) → `.mcp.json` |
+| **Antigravity** | [`mcp_config.example.json`](../mcp_config.example.json) |
+| **Codex** | [`.codex/config.example.toml`](../.codex/config.example.toml) |
 
 Build: `cd mcp-server && npm install && npm run build`.

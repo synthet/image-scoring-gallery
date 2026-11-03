@@ -7,9 +7,9 @@ cwd = "../image-scoring-pipeline"
 enabled = true
 enabled_tools = ["search", "dispatch", "sse_status"]
 
-[mcp_servers.is-ui-mcp]
+[mcp_servers.driftara]
 command = "node"
-args = ["mcp-server/dist/compactIndex.js"]
+args = ["mcp-server/dist/driftara.js"]
 cwd = "."
 enabled = true
-enabled_tools = ["search", "dispatch", "sse_status"]
+enabled_tools = ["search", "resolve", "execute"]

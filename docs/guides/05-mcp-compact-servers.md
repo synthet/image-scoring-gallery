@@ -10,6 +10,8 @@ okf_version: 0.1
 
 # Compact MCP server (is-ui-mcp)
 
+> **Superseded by driftara.** `is-ui-mcp` is now a deprecated shim that serves the driftara tools (`search`, `resolve`, `execute`). Use the `driftara` key; see the [driftara contract](../technical/DRIFTARA_MCP.md) and [architecture](../architecture/03-driftara-mcp.md). This page describes the earlier surface.
+
 Driftara Gallery exposes **`is-ui-mcp`** — a Node stdio MCP server with the same compact tools as the backend:
 
 | Tool | Purpose |

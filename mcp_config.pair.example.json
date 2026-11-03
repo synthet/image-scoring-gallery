@@ -6,9 +6,9 @@
       "args": ["mcp-server/dist/compactIndex.js"],
       "cwd": "../image-scoring-pipeline"
     },
-    "is-ui-mcp": {
+    "driftara": {
       "command": "node",
-      "args": ["mcp-server/dist/compactIndex.js"],
+      "args": ["mcp-server/dist/driftara.js"],
       "cwd": "."
     }
   }

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, dialog, shell } from 'electron';
+import { app, BrowserWindow, ipcMain as electronIpcMain, Menu, dialog, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import isDev from 'electron-is-dev';
@@ -42,6 +42,11 @@ import {
     startGalleryMcpLiveFromElectron,
     stopGalleryMcpLiveFromElectron,
 } from './galleryMcpLive';
+import { createIpcInvokeRegistry } from './ipc/ipcInvokeRegistry';
+
+// Every handler registers through this recording ipcMain so driftara's ipc.* actions can invoke it by channel.
+const ipcRegistry = createIpcInvokeRegistry(electronIpcMain);
+const ipcMain = ipcRegistry.ipcMain;
 
 /** Placeholder when camera model cannot be derived; sync/backup must not create this folder. */
 const UNKNOWN_CAMERA_FOLDER = '_unknown_camera';
@@ -526,8 +531,9 @@ async function startFullApplication(): Promise<void> {
             focused: mainWindow?.isFocused() ?? false,
             bounds: mainWindow && !mainWindow.isDestroyed() ? mainWindow.getBounds() : null,
         }),
+        invokeIpc: ipcRegistry.invoke,
     }).catch((err) => {
-        console.warn('[Main] is-ui-live MCP failed to start:', err);
+        console.warn('[Main] driftara live MCP failed to start:', err);
     });
 
     void db.initializeDatabaseProvider().then((ok) => {
