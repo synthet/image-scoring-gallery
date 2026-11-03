@@ -87,16 +87,27 @@ test.describe('Journey 8: long operations', () => {
         await expect(page.getByRole('heading', { name: 'Import folder' })).toHaveCount(0);
     });
 
-    test('a running import can be cancelled', async ({ env, launchApp }) => {
-        test.fail(true, '#228: import, sync and backup cannot be cancelled once started');
+    test('a running import can be cancelled and keeps what it imported', async ({ env, launchApp }) => {
         const folder = path.join(env.photos, 'to-import');
         copyJpegs(folder, 400);
-        recordImports(env.backend);
+        const recorded = recordImports(env.backend);
         const { app, page } = await launchApp();
 
         await startImport(app, page, folder);
         await expect(page.getByText(/^Processing \d+ of 400$/)).toBeVisible({ timeout: 10_000 });
-        await page.getByRole('button', { name: /cancel/i }).click({ timeout: 3_000 });
-        await expect(page.getByText(/cancelled/i)).toBeVisible();
+        await page.getByRole('button', { name: 'Cancel', exact: true }).click({ timeout: 3_000 });
+        await expect(page.getByText(/^Import cancelled after \d+ of 400 files/)).toBeVisible({ timeout: 15_000 });
+
+        // Consistent state: the "Added" count matches what reached the database, each photo once,
+        // and the import stopped well before the end.
+        const summary = await page.getByText(/^Added: \d+ · Skipped: \d+/).textContent();
+        const added = Number(/Added: (\d+)/.exec(summary ?? '')?.[1]);
+        expect(recorded.files).toHaveLength(added);
+        expect(new Set(recorded.files).size).toBe(added);
+        expect(added).toBeLessThan(400);
+        // The Cancel button is gone and the dialog can be closed.
+        await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toHaveCount(0);
+        await page.getByTitle('Close').click();
+        await expect(page.getByRole('heading', { name: 'Import folder' })).toHaveCount(0);
     });
 });

@@ -21,6 +21,15 @@ export type ImportHandlersDeps = {
 export function registerImportHandlers(deps: ImportHandlersDeps): void {
     const { ipcMain, apiService, exiftool, getMainWindow } = deps;
 
+    // The running import, if any; import:cancel stops it between files (#228).
+    let runningImport: AbortController | null = null;
+
+    ipcMain.handle('import:cancel', wrapIpcHandler(async () => {
+        if (!runningImport) return false;
+        runningImport.abort();
+        return true;
+    }));
+
     ipcMain.handle('import:run', wrapIpcHandler(async (_, folderPath: string) => {
         if (!folderPath || typeof folderPath !== 'string') {
             throw new Error('Folder path is required');
@@ -70,56 +79,69 @@ export function registerImportHandlers(deps: ImportHandlersDeps): void {
         const folderId = await db.getOrCreateFolder(folderPath);
         const newImageIds: number[] = [];
 
-        for (let i = 0; i < files.length; i++) {
-            const filePath = files[i];
-            const fileName = path.basename(filePath);
-            const fileType = path.extname(filePath).toLowerCase().replace(/^\./, '') || 'unknown';
-
-            getMainWindow()?.webContents.send('import:progress', { current: i + 1, total, path: filePath });
-
-            try {
-                const existsByPath = await db.findImageByFilePath(filePath);
-                if (existsByPath) {
-                    skipped++;
-                    continue;
+        const controller = new AbortController();
+        runningImport = controller;
+        let cancelled = false;
+        try {
+            for (let i = 0; i < files.length; i++) {
+                // Stop between files, never mid-file: every photo is either fully recorded or untouched.
+                if (controller.signal.aborted) {
+                    cancelled = true;
+                    break;
                 }
+                const filePath = files[i];
+                const fileName = path.basename(filePath);
+                const fileType = path.extname(filePath).toLowerCase().replace(/^\./, '') || 'unknown';
 
-                let imageUuid: string | null = null;
+                getMainWindow()?.webContents.send('import:progress', { current: i + 1, total, path: filePath });
+
                 try {
-                    const tags = await exiftool.read(filePath);
-                    const uid = tags.ImageUniqueID ?? tags.DocumentID ?? null;
-                    if (uid && typeof uid === 'string') {
-                        imageUuid = uid;
-                        const existsByUuid = await db.findImageByUuid(imageUuid);
-                        if (existsByUuid) {
-                            skipped++;
-                            continue;
-                        }
+                    const existsByPath = await db.findImageByFilePath(filePath);
+                    if (existsByPath) {
+                        skipped++;
+                        continue;
                     }
-                } catch {
-                    /* No EXIF or read failed */
-                }
 
-                const newImageId = await db.insertImage({
-                    file_path: filePath,
-                    file_name: fileName,
-                    file_type: fileType,
-                    folder_id: folderId,
-                    image_uuid: imageUuid,
-                });
-                try {
-                    await db.markImageIndexingPhaseDone(newImageId);
-                } catch (phaseErr) {
-                    console.warn('[Main] Import: markImageIndexingPhaseDone failed:', phaseErr);
+                    let imageUuid: string | null = null;
+                    try {
+                        const tags = await exiftool.read(filePath);
+                        const uid = tags.ImageUniqueID ?? tags.DocumentID ?? null;
+                        if (uid && typeof uid === 'string') {
+                            imageUuid = uid;
+                            const existsByUuid = await db.findImageByUuid(imageUuid);
+                            if (existsByUuid) {
+                                skipped++;
+                                continue;
+                            }
+                        }
+                    } catch {
+                        /* No EXIF or read failed */
+                    }
+
+                    const newImageId = await db.insertImage({
+                        file_path: filePath,
+                        file_name: fileName,
+                        file_type: fileType,
+                        folder_id: folderId,
+                        image_uuid: imageUuid,
+                    });
+                    try {
+                        await db.markImageIndexingPhaseDone(newImageId);
+                    } catch (phaseErr) {
+                        console.warn('[Main] Import: markImageIndexingPhaseDone failed:', phaseErr);
+                    }
+                    newImageIds.push(newImageId);
+                    added++;
+                } catch (e) {
+                    const msg = e instanceof Error ? e.message : String(e);
+                    errors.push(`${fileName}: ${msg}`);
                 }
-                newImageIds.push(newImageId);
-                added++;
-            } catch (e) {
-                const msg = e instanceof Error ? e.message : String(e);
-                errors.push(`${fileName}: ${msg}`);
             }
+        } finally {
+            if (runningImport === controller) runningImport = null;
         }
 
+        // Photos recorded before a cancel are kept and scheduled like any other import.
         const processing = await scheduleProcessingForImages(apiService, {
             folderPath,
             imageIds: newImageIds,
@@ -127,6 +149,6 @@ export function registerImportHandlers(deps: ImportHandlersDeps): void {
         if (processing.method !== 'none') {
             console.log('[Main] Import (direct DB) schedule:', folderPath, newImageIds.length, processing);
         }
-        return { added, skipped, errors, processing };
+        return { added, skipped, errors, processing, cancelled, total };
     }));
 }

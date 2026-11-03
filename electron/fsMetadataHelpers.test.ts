@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseAfMetadataFromTags } from './fsMetadataHelpers';
+import { isServableMediaPath, parseAfMetadataFromTags } from './fsMetadataHelpers';
 
 const z8Tags = {
     AFInfo2Version: '0400',
@@ -28,5 +28,21 @@ describe('parseAfMetadataFromTags', () => {
     it('returns null when the camera says the AF coordinates are not valid (backend parity)', () => {
         expect(parseAfMetadataFromTags({ ...z8Tags, AFCoordinatesAvailable: 0 })).toBeNull();
         expect(parseAfMetadataFromTags({ ...z8Tags, AFCoordinatesAvailable: 'No' })).toBeNull();
+    });
+});
+
+describe('isServableMediaPath (#224)', () => {
+    it('serves image and RAW files, in any letter case', () => {
+        expect(isServableMediaPath('D:/Photos/2026/DSC_0001.JPG')).toBe(true);
+        expect(isServableMediaPath('/mnt/d/Photos/DSC_0002.nef')).toBe(true);
+        expect(isServableMediaPath('C:/thumbs/ab/abc.webp')).toBe(true);
+    });
+
+    it('refuses everything else, including traversal to a non-image file', () => {
+        expect(isServableMediaPath('C:/Users/me/AppData/notes.txt')).toBe(false);
+        expect(isServableMediaPath('D:/Photos/../outside.txt')).toBe(false);
+        expect(isServableMediaPath('C:/Windows/System32/calc.exe')).toBe(false);
+        expect(isServableMediaPath('C:/project/data.json')).toBe(false);
+        expect(isServableMediaPath('C:/Photos/noextension')).toBe(false);
     });
 });

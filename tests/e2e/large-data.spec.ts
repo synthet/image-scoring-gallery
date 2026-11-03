@@ -61,20 +61,51 @@ test.describe('Journey 7: large data', () => {
         }
     });
 
-    test('keyboard navigation and select-all reach photos outside the rendered window', async ({ env, launchApp }) => {
-        test.fail(true, '#227: the grid has no keyboard navigation or select-all');
+    test('keyboard navigation reaches photos outside the rendered window', async ({ env, launchApp }) => {
         const launched = await launchApp();
         const { page } = launched;
         await setFolderModeRoot(launched, env);
         await page.getByText('big', { exact: true }).first().click();
         const items = page.getByTestId('virtuoso-item-list');
-        await items.getByTitle('DSC_0001.JPG').click();
+        await expect(items.getByTitle('DSC_0001.JPG')).toBeVisible();
+        // The photo whose card slot has keyboard focus (null when focus is anywhere else, e.g. the grid).
+        const focusedPhoto = () => page.evaluate(() => {
+            const el = document.activeElement;
+            if (!el?.hasAttribute('data-grid-index')) return null;
+            return el.querySelector('[title$=".JPG"]')?.getAttribute('title') ?? null;
+        });
 
-        // End moves to the last photo, which is far outside the rendered window.
+        // The grid itself takes focus; the arrows then move between photos.
+        await page.getByTestId('virtuoso-scroller').locator('..').focus();
+        await page.keyboard.press('ArrowRight');
+        await expect.poll(focusedPhoto).toBe('DSC_0001.JPG');
+        await page.keyboard.press('ArrowRight');
+        await expect.poll(focusedPhoto).toBe('DSC_0002.JPG');
+        await page.keyboard.press('ArrowLeft');
+        await expect.poll(focusedPhoto).toBe('DSC_0001.JPG');
+
+        // End goes to the last photo, loading folder pages (80 at a time) until it gets there.
+        const last = `DSC_${String(PHOTO_COUNT).padStart(4, '0')}.JPG`;
         await page.keyboard.press('End');
-        await expect(items.getByTitle(`DSC_${String(PHOTO_COUNT).padStart(4, '0')}.JPG`)).toBeVisible({ timeout: 3_000 });
+        await expect.poll(focusedPhoto, { timeout: 60_000 }).toBe(last);
+        await expect(items.getByTitle(last)).toBeVisible();
+        expect(await items.locator(':scope > *').count()).toBeLessThanOrEqual(MAX_RENDERED_CARDS);
 
-        // Select-all selects every photo, not only the rendered ones.
+        // Home comes back, and Enter opens the focused photo.
+        await page.keyboard.press('Home');
+        await expect.poll(focusedPhoto).toBe('DSC_0001.JPG');
+        await page.keyboard.press('Enter');
+        await expect(page.getByText('Photography Stats')).toBeVisible();
+    });
+
+    test('select-all selects every photo, not only the rendered ones', async ({ env, launchApp }) => {
+        test.fail(true, '#239: the grid has no multi-selection or select-all yet');
+        const launched = await launchApp();
+        const { page } = launched;
+        await setFolderModeRoot(launched, env);
+        await page.getByText('big', { exact: true }).first().click();
+        await expect(page.getByTestId('virtuoso-item-list').getByTitle('DSC_0001.JPG')).toBeVisible();
+        await page.getByTestId('virtuoso-scroller').locator('..').focus();
         await page.keyboard.press('ControlOrMeta+A');
         await expect(page.getByText(new RegExp(`${PHOTO_COUNT} selected`))).toBeVisible({ timeout: 3_000 });
     });

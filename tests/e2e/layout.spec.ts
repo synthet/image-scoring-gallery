@@ -53,7 +53,6 @@ test.describe('Journey 6: layout at small sizes and 150% scaling', () => {
         });
 
         test(`library view at ${width}x${height}: the drawer can be closed again`, async ({ launchApp }) => {
-            test.fail(true, '#226: the open drawer covers its own toggle and has no backdrop, Escape or close button');
             const { app, page } = await launchApp();
             await resize(app, page, width, height);
             const toggle = page.getByRole('button', { name: 'Toggle filters sidebar' });
@@ -66,7 +65,6 @@ test.describe('Journey 6: layout at small sizes and 150% scaling', () => {
     }
 
     test('folder mode at 1024x640: the sidebar does not cover the header and grid', async ({ env, launchApp }) => {
-        test.fail(true, '#226: below 1100 px the folder-mode sidebar is a fixed overlay with no way to close it');
         await generateJpegs(path.join(env.photos, '2026-01-19'), 3);
         const launched = await launchApp();
         await openFolderGrid(launched, env);

@@ -139,8 +139,8 @@ contextBridge.exposeInMainWorld('electron', {
         return unwrapEnvelope<import('./types').KeywordCloudEntry[]>(response);
     },
     findNearDuplicates: async (options?: { threshold?: number; folder_path?: string; limit?: number }) => {
-        // Find duplicates doesn't use standard DB envelope
-        return await ipcRenderer.invoke('api:similarity:find-duplicates', options) as DuplicateResponse;
+        const response = await ipcRenderer.invoke('api:similarity:find-duplicates', options);
+        return unwrapEnvelope<DuplicateResponse>(response);
     },
     searchSimilarImages: async (options: { imageId: number; limit?: number; folderId?: number; folderPath?: string; minSimilarity?: number }) => {
         const response = await ipcRenderer.invoke('api:similarity:search', options);
@@ -347,7 +347,8 @@ contextBridge.exposeInMainWorld('electron', {
         return unwrapEnvelope<KeepOneReviewResult>(response);
     },
     openExternalUrl: async (url: string) => {
-        await ipcRenderer.invoke('system:open-external-url', url);
+        const response = await ipcRenderer.invoke('system:open-external-url', url);
+        unwrapEnvelope<unknown>(response);
     },
     onOpenSettings: (callback: () => void) => {
         const handler = () => callback();
@@ -446,7 +447,15 @@ contextBridge.exposeInMainWorld('electron', {
                 reason?: 'api-unavailable' | 'api-error';
                 error?: string;
             };
+            /** True when import:cancel stopped the run; `added`/`skipped` cover the photos done before it. */
+            cancelled?: boolean;
+            /** Photos found in the folder (direct-DB import only). */
+            total?: number;
         }>(response);
+    },
+    importCancel: async () => {
+        const response = await ipcRenderer.invoke('import:cancel');
+        return unwrapEnvelope<boolean>(response);
     },
     onImportProgress: (callback: (data: { current: number; total: number; path?: string }) => void) => {
         const handler = (_: unknown, data: { current: number; total: number; path?: string }) => callback(data);
