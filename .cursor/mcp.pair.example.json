@@ -6,9 +6,9 @@
       "args": ["mcp-server/dist/compactIndex.js"],
       "cwd": "${workspaceFolder:image-scoring-pipeline}"
     },
-    "is-ui-mcp": {
+    "driftara": {
       "command": "node",
-      "args": ["mcp-server/dist/compactIndex.js"],
+      "args": ["mcp-server/dist/driftara.js"],
       "cwd": "${workspaceFolder:image-scoring-gallery}"
     },
     "is-be-live": {
@@ -19,7 +19,7 @@
       }
     },
     "is-ui-live": {
-      "_comment": "Optional — Electron dev running only",
+      "_comment": "Optional — Electron dev running only. driftara (stdio) already forwards ipc.* and live.* calls to this server; add it only for direct SSE access.",
       "url": "http://127.0.0.1:9373/mcp/sse",
       "headers": {
         "Authorization": "Bearer ${env:GALLERY_MCP_TOKEN}"
