@@ -27,7 +27,7 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | gallery-ui | `.cursor/skills/gallery-ui/SKILL.md` | Renderer UI, CSS Modules, design tokens | L1 | Yes | 2026-07-26 |
 | security-review | `.cursor/skills/security-review/SKILL.md` | Pre-merge security sanity | L1 | — | 2026-04-25 |
 | subagent-review | `.cursor/skills/subagent-review/SKILL.md` | External Codex/Gemini review via subagent-orchestrator MCP | L2 | Yes | 2026-05-26 |
-| image-scoring-mcp | `.cursor/skills/image-scoring-mcp/SKILL.md` | Compact MCP search/dispatch for gallery | L2 | — | 2026-07-01 |
+| image-scoring-mcp | `.cursor/skills/image-scoring-mcp/SKILL.md` | driftara MCP (search/resolve/execute) for the gallery; backend via vexlum | L2 | — | 2026-11-02 |
 | codebase-size-audit | `.cursor/skills/codebase-size-audit/SKILL.md` | Large-file / long-method read-only audit | L1 | — | 2026-07-01 |
 | validate-implementation | `.cursor/skills/validate-implementation/SKILL.md` | Per-AC gate via `scripts/agent_skills/validate_implementation.py` | L1 | Yes | 2026-07-26 |
 | threat-modeling-agentic-tools | `.cursor/skills/threat-modeling-agentic-tools/SKILL.md` | MCP/hook/prompt-injection threat modeling | L1 | — | 2026-07-01 |
