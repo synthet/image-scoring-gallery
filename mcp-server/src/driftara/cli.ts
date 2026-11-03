@@ -95,7 +95,7 @@ export function parseCliArgs(argv: string[], readFile: (p: string) => string = (
                 } catch (err) {
                     throw new CliUsageError(`--args-file ${p}: ${(err as Error).message}`);
                 }
-                flags.arguments = parseArgsJson(raw.replace(/^﻿/, ""), "--args-file");
+                flags.arguments = parseArgsJson(raw.replace(/^\uFEFF/, ""), "--args-file");
                 break;
             }
             case "--dry-run":

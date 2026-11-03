@@ -135,7 +135,16 @@
     "study:load-representative-preview": { "tier": "read" },
     "study:load-keepone-review": { "tier": "write", "notes": ["Opens a native file dialog in the app and waits for the user."] },
 
-    "import:run": { "tier": "destructive", "intent_examples": ["import a folder into the gallery", "register existing photos"], "notes": ["Registers every image in a folder (backend import, or bulk DB inserts when the backend is down)."] }
+    "import:run": { "tier": "destructive", "intent_examples": ["import a folder into the gallery", "register existing photos"], "notes": ["Registers every image in a folder (backend import, or bulk DB inserts when the backend is down)."] },
+    "import:cancel": {
+      "tier": "write",
+      "intent_examples": [
+        "stop the running import"
+      ],
+      "notes": [
+        "Stops a running import between photos; photos already imported are kept."
+      ]
+    }
   },
   "actions": {
     "local.gallery_status": { "tier": "read", "tags": ["gallery", "status", "health"], "aliases": ["gallery status"], "intent_examples": ["gallery status", "is the gallery healthy", "check backend and cdp reachability"] },

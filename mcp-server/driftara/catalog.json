@@ -6082,6 +6082,45 @@
       ]
     },
     {
+      "action_id": "ipc.import.cancel",
+      "source": "ipc",
+      "category": "ipc.import",
+      "title": "import: cancel",
+      "description": "Electron IPC channel 'import:cancel', window.electron.importCancel() in the renderer (registerImportHandlers.ts).",
+      "tags": [
+        "cancel",
+        "import",
+        "ipc"
+      ],
+      "aliases": [
+        "import:cancel"
+      ],
+      "intent_examples": [
+        "stop the running import"
+      ],
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "tier": "write",
+      "native_dry_run": false,
+      "executor": {
+        "kind": "ipc",
+        "channel": "import:cancel",
+        "params": [],
+        "wrapped": true,
+        "file": "electron/ipc/registerImportHandlers.ts"
+      },
+      "legacy_tool_name": null,
+      "canonical_docs": [
+        "docs/technical/DRIFTARA_MCP.md"
+      ],
+      "notes": [
+        "Stops a running import between photos; photos already imported are kept."
+      ]
+    },
+    {
       "action_id": "ipc.import.run",
       "source": "ipc",
       "category": "ipc.import",
