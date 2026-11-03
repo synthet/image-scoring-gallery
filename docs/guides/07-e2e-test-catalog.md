@@ -16,9 +16,9 @@ Every end-to-end test in `tests/e2e/`: what it checks, and whether it passes or 
 - **Pass:** the behavior is asserted and must hold.
 - **Known defect #N:** the test is marked `test.fail(true, '#N: …')`. It passes while the defect exists and fails once the fix lands; remove the marker then.
 
-Status is as of `main` on 2026-11-02, with 34 tests: 20 pass and 14 track known defects. Two open PRs change this catalog:
-- [#232](https://github.com/synthet/image-scoring-gallery/pull/232) fixes #225. Its two accessibility tests become **Pass**, and the four scans become strict, with no allowed violations.
-- [#231](https://github.com/synthet/image-scoring-gallery/pull/231) fixes the WebSocket bug (#230) behind the suite's only flake. It also raises the first-thumbnail budget to 4 s.
+Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 34 tests, of which 22 pass and 12 track known defects.
+- #232 fixed the accessibility defects (#225), so the four axe scans are strict: any WCAG 2.1 A/AA violation fails.
+- #231 fixed the WebSocket bug (#230) behind the suite's only flake.
 
 ## Smoke
 
@@ -52,7 +52,7 @@ Status is as of `main` on 2026-11-02, with 34 tests: 20 pass and 14 track known 
 | Test | Asserts | Status |
 |---|---|---|
 | the page has no Node.js access | `require`, `process` and `module` are undefined in the page | Pass |
-| the preload API surface matches the reviewed snapshot | the sorted keys of `window.electron` and its nested objects equal `preload-api-surface-win32.json`; update with `--update-snapshots` only after review | Pass |
+| the preload API surface matches the reviewed snapshot (no accidental new powers) | the sorted keys of `window.electron` and its nested objects equal `preload-api-surface-win32.json`; update with `--update-snapshots` only after review | Pass |
 | IPC rejects malformed arguments | `setShowEyes('yes')` rejects with a "boolean" error | Pass |
 | window.open does not create a new window | no new BrowserWindow after `window.open(...)` | Known defect [#224](https://github.com/synthet/image-scoring-gallery/issues/224) (1) |
 | the main window cannot be navigated to a remote origin | `location.href` to a reachable origin neither commits nor requests the page | Known defect #224 (2) |
@@ -66,12 +66,12 @@ axe-core 4.14 with WCAG 2.1 A and AA tags, run in-page with `setLegacyMode(true)
 
 | Test | Asserts | Status |
 |---|---|---|
-| the empty gallery has no new WCAG 2.1 A/AA violations | no violations except the #225 ones | Pass (strict after #232) |
-| the folder-mode root dialog has no new WCAG 2.1 A/AA violations | same, with the dialog open | Pass (strict after #232) |
-| the folder grid has no new WCAG 2.1 A/AA violations | same, on a folder of generated photos | Pass (strict after #232) |
-| the viewer has no new WCAG 2.1 A/AA violations and Escape closes it | same, with the viewer open; Escape closes it | Pass (strict after #232) |
-| the viewer close button has an accessible name | a button named /close/ is visible in the viewer | Known defect [#225](https://github.com/synthet/image-scoring-gallery/issues/225), fixed by #232 |
-| secondary text meets the 4.5:1 contrast ratio | no `color-contrast` violations in the library view, folder mode or viewer | Known defect #225, fixed by #232 |
+| the empty gallery has no WCAG 2.1 A/AA violations | no violations | Pass |
+| the folder-mode root dialog has no WCAG 2.1 A/AA violations | same, with the dialog open | Pass |
+| the folder grid has no WCAG 2.1 A/AA violations | same, on a folder of generated photos | Pass |
+| the viewer has no WCAG 2.1 A/AA violations and Escape closes it | same, with the viewer open; Escape closes it | Pass |
+| the viewer close button has an accessible name | a button named /close/ is visible in the viewer | Pass (was [#225](https://github.com/synthet/image-scoring-gallery/issues/225)) |
+| secondary text meets the 4.5:1 contrast ratio | no `color-contrast` violations in the library view, folder mode or viewer | Pass (was #225) |
 
 ## Journey 6: layout and scaling (`layout.spec.ts`)
 
