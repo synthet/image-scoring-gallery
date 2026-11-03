@@ -16,7 +16,7 @@ Every end-to-end test in `tests/e2e/`: what it checks, and whether it passes or 
 - **Pass:** the behavior is asserted and must hold.
 - **Known defect #N:** the test is marked `test.fail(true, '#N: …')`. It passes while the defect exists and fails once the fix lands; remove the marker then.
 
-Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 34 tests, of which 33 pass and 1 tracks a known defect.
+Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 35 tests, of which 34 pass and 1 tracks a known defect.
 - #232 fixed the accessibility defects (#225), so the four axe scans are strict: any WCAG 2.1 A/AA violation fails.
 - #231 fixed the WebSocket bug (#230) behind the suite's only flake.
 
@@ -89,7 +89,8 @@ axe-core 4.14 with WCAG 2.1 A and AA tags, run in-page with `setLegacyMode(true)
 | Test | Asserts | Status |
 |---|---|---|
 | a 3000-photo folder virtualizes and shows its first thumbnail within budget | first loaded thumbnail within the budget (annotation `first-thumbnail-ms`); "3000 images"; the last photo is reached by wheel scrolling (annotation `scroll-to-end-ms`); at most 120 cards rendered at the top, middle and end | Pass |
-| keyboard navigation and select-all reach photos outside the rendered window | End shows the last photo; Ctrl/Cmd+A shows "3000 selected" | Known defect [#227](https://github.com/synthet/image-scoring-gallery/issues/227) |
+| keyboard navigation reaches photos outside the rendered window | with the grid focused, ArrowRight/ArrowLeft move keyboard focus between card slots; End focuses the last of 3,000 photos, loading pages until it is there, with at most 120 cards rendered; Home returns; Enter opens the viewer | Pass (was [#227](https://github.com/synthet/image-scoring-gallery/issues/227)) |
+| select-all selects every photo, not only the rendered ones | Ctrl/Cmd+A shows "3000 selected" | Known defect [#239](https://github.com/synthet/image-scoring-gallery/issues/239) (no selection model or bulk actions yet) |
 
 Budgets and measurements are in [06 - End-to-end (Electron) testing § Budgets](06-e2e-testing.md#budgets-journey-7).
 

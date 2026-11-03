@@ -546,31 +546,131 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         }
     }, [highlightImageId, displayData]);
 
-    const itemContent = useCallback((index: number) => {
-        const item = displayData[index];
-        if (!item) return null;
-
+    /** What a click (or Enter, #227) on the card does. */
+    const itemAction = useCallback((item: Image): (() => void) => {
         if (isStacksView) {
-            return renderStackCard(item, () => {
+            return () => {
                 if (item.image_count && item.image_count > 1 && onSelectStack) {
                     onSelectStack(item);
                 } else if (onSelect) {
                     onSelect(item);
                 }
-            });
-        } else if (isSubStacksView) {
-            return renderStackCard(item, () => {
+            };
+        }
+        if (isSubStacksView) {
+            return () => {
                 if ((item.is_ungrouped_sub_stack || item.sub_stack_id !== null && item.sub_stack_id !== undefined) && onSelectSubStack) {
                     onSelectSubStack(item);
                 }
-            }, 'substack');
-        } else if (representativeMode && (item.image_count ?? 1) > 1) {
-            // Opening a group never selects or acts on its hidden members.
-            return renderStackCard(item, () => onSelectRepresentative?.(item), 'representative');
-        } else {
-            return renderImageCard(item, () => onSelect && onSelect(item), activeStackId != null);
+            };
         }
-    }, [activeStackId, displayData, isStacksView, isSubStacksView, renderStackCard, renderImageCard, onSelectStack, onSelectSubStack, onSelect, representativeMode, onSelectRepresentative]);
+        if (representativeMode && (item.image_count ?? 1) > 1) {
+            // Opening a group never selects or acts on its hidden members.
+            return () => onSelectRepresentative?.(item);
+        }
+        return () => onSelect?.(item);
+    }, [isStacksView, isSubStacksView, representativeMode, onSelectStack, onSelectSubStack, onSelectRepresentative, onSelect]);
+
+    const itemContent = useCallback((index: number) => {
+        const item = displayData[index];
+        if (!item) return null;
+
+        const onClick = itemAction(item);
+        let card: React.ReactNode;
+        if (isStacksView) {
+            card = renderStackCard(item, onClick);
+        } else if (isSubStacksView) {
+            card = renderStackCard(item, onClick, 'substack');
+        } else if (representativeMode && (item.image_count ?? 1) > 1) {
+            card = renderStackCard(item, onClick, 'representative');
+        } else {
+            card = renderImageCard(item, onClick, activeStackId != null);
+        }
+        // Keyboard focus target for grid navigation (#227); not in the Tab order.
+        return (
+            <div className={styles.gridSlot} data-grid-index={index} tabIndex={-1}>
+                {card}
+            </div>
+        );
+    }, [activeStackId, displayData, isStacksView, isSubStacksView, renderStackCard, renderImageCard, representativeMode, itemAction]);
+
+    // ---- Keyboard navigation (#227) ----
+    // `activeIndex` is the card with keyboard focus. It lives in the data model, not the DOM, so End and
+    // the arrows reach photos outside the ~40 rendered cards: the card is scrolled into view, then focused.
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
+    // After End, keep following the end while more pages load (folder mode pages in 80 at a time).
+    const followEndRef = useRef(false);
+
+    useEffect(() => {
+        if (activeIndex == null) return;
+        virtuosoRef.current?.scrollToIndex({ index: activeIndex, align: 'center' });
+        let frames = 0;
+        let raf = 0;
+        const focusWhenRendered = () => {
+            const el = containerRef.current?.querySelector<HTMLElement>(`[data-grid-index="${activeIndex}"]`);
+            if (el) {
+                el.focus({ preventScroll: true });
+            } else if (frames++ < 60) {
+                raf = requestAnimationFrame(focusWhenRendered);
+            }
+        };
+        focusWhenRendered();
+        return () => cancelAnimationFrame(raf);
+    }, [activeIndex]);
+
+    useEffect(() => {
+        if (!followEndRef.current || displayData.length === 0) return;
+        setActiveIndex(displayData.length - 1);
+    }, [displayData.length]);
+
+    // A different folder or view starts without a keyboard position.
+    const firstItemId = displayData[0]?.id;
+    useEffect(() => {
+        followEndRef.current = false;
+        setActiveIndex(null);
+    }, [firstItemId]);
+
+    /** Cards per row, measured from the rendered cards (the grid wraps to the window width). */
+    const columnsPerRow = useCallback((): number => {
+        const slots = containerRef.current?.querySelectorAll<HTMLElement>('[data-grid-index]');
+        if (!slots || slots.length === 0) return 1;
+        const firstTop = slots[0].getBoundingClientRect().top;
+        let cols = 0;
+        for (const s of slots) {
+            if (Math.abs(s.getBoundingClientRect().top - firstTop) < 2) cols++;
+            else break;
+        }
+        return Math.max(1, cols);
+    }, []);
+
+    const handleGridKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (viewerOpen || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+        const target = e.target as HTMLElement;
+        if (target.closest('input, textarea, select, button, [contenteditable="true"]')) return;
+        const count = displayData.length;
+        if (count === 0) return;
+        const current = activeIndex ?? -1;
+        let next: number;
+        switch (e.key) {
+            case 'ArrowRight': next = current < 0 ? 0 : current + 1; break;
+            case 'ArrowLeft': next = current < 0 ? 0 : current - 1; break;
+            case 'ArrowDown': next = current < 0 ? 0 : current + columnsPerRow(); break;
+            case 'ArrowUp': next = current < 0 ? 0 : current - columnsPerRow(); break;
+            case 'Home': next = 0; break;
+            case 'End': next = count - 1; break;
+            case 'Enter':
+                if (current >= 0 && displayData[current]) {
+                    e.preventDefault();
+                    itemAction(displayData[current])();
+                }
+                return;
+            default:
+                return;
+        }
+        e.preventDefault();
+        followEndRef.current = e.key === 'End';
+        setActiveIndex(Math.min(count - 1, Math.max(0, next)));
+    }, [viewerOpen, displayData, activeIndex, columnsPerRow, itemAction]);
 
     const handleEndReached = useCallback(() => {
         endReachedHandler?.();
@@ -613,13 +713,14 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         <div
             className={styles.gridContainer}
             tabIndex={0}
+            onKeyDown={handleGridKeyDown}
             ref={(el) => {
                 if (containerRef) {
                     (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
                 }
                 if (el) {
-                    // Only focus if not already focused or on first mount
-                    if (document.activeElement !== el) {
+                    // Only focus if focus isn't already in the grid (a card can hold it, #227)
+                    if (!el.contains(document.activeElement)) {
                         el.focus();
                     }
                 }

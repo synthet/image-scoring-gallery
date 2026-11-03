@@ -26,7 +26,7 @@ npx playwright test security --update-snapshots                # after a reviewe
 Rebuild (`npx tsc -p electron/tsconfig.json && npx vite build`, or just `npm run test:e2e`) after changing app code; `npx playwright test` alone runs the existing build.
 
 - One worker; Electron can't run headless, so each test opens a real window. These windows don't take focus and most live only a few seconds.
-- 34 tests, about 2 minutes including the build on the reference Windows machine. Retries: none locally, 1 in CI.
+- 35 tests, about 2 minutes including the build on the reference Windows machine. Retries: none locally, 1 in CI.
 - On failure, Playwright keeps the trace, and the fixture attaches a window screenshot and the main-process log.
 
 ## The harness
@@ -85,7 +85,7 @@ Every test with its exact assertions and status: [07 - UX/UI test catalog](07-e2
 | 4 | `security.spec.ts` | No Node.js in the page; the preload API matches a reviewed snapshot; malformed IPC arguments are rejected; `window.open` and navigation away from the app are blocked; `media://` serves image files only; only backend links reach the operating system. |
 | 5 | `accessibility.spec.ts` | axe-core WCAG 2.1 A/AA on the empty gallery, root-folder dialog, folder grid and viewer, with no violations; the viewer close button has a name; Escape closes the viewer. |
 | 6 | `layout.spec.ts` | Library view at 1024×640, 800×600 and 640×480: no horizontal overflow, header controls not covered, the drawer collapses and opens. 150% scaling at 1280×720. |
-| 7 | `large-data.spec.ts` | 3,000 photos in folder mode: first thumbnail within budget, a bounded DOM at the top, middle and end, and the last photo reachable by scrolling. |
+| 7 | `large-data.spec.ts` | 3,000 photos in folder mode: first thumbnail within budget, a bounded DOM at the top, middle and end, the last photo reachable by scrolling and by keyboard (arrows, End across 38 pages, Home, Enter opens the photo). |
 | 8 | `long-operations.spec.ts` | File › Import: one progress event per photo, each photo recorded once, a failed photo reported while the rest completes, and a cancel that keeps exactly the photos imported so far. |
 
 Notes:
@@ -111,7 +111,7 @@ A test for a known defect is marked `test.fail(true, '#<issue>: …')`. It passe
 
 | Issue | Tests |
 |---|---|
-| [#227](https://github.com/synthet/image-scoring-gallery/issues/227) | The grid has no keyboard navigation or select-all. |
+| [#239](https://github.com/synthet/image-scoring-gallery/issues/239) | The grid has no multi-selection or select-all yet (waits for a decision on bulk actions). |
 
 The IPC contract test (`electron/ipcRegistry.test.ts`, Vitest) is strict: every wrapped handler's envelope must be unwrapped by the preload. Its two former defects were fixed in [#222](https://github.com/synthet/image-scoring-gallery/issues/222).
 
