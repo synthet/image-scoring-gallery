@@ -203,7 +203,11 @@ declare global {
                     reason?: 'api-unavailable' | 'api-error';
                     error?: string;
                 };
+                cancelled?: boolean;
+                total?: number;
             }>;
+            /** Asks a running import to stop after the current photo; false when none is running. */
+            importCancel: () => Promise<boolean>;
             onImportProgress: (callback: (data: { current: number; total: number; path?: string }) => void) => () => void;
             onShowNotification: (callback: (data: { message: string; type: 'info' | 'success' | 'warning' | 'error' }) => void) => () => void;
 

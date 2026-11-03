@@ -16,7 +16,7 @@ Every end-to-end test in `tests/e2e/`: what it checks, and whether it passes or 
 - **Pass:** the behavior is asserted and must hold.
 - **Known defect #N:** the test is marked `test.fail(true, '#N: …')`. It passes while the defect exists and fails once the fix lands; remove the marker then.
 
-Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 34 tests, of which 32 pass and 2 track known defects.
+Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 34 tests, of which 33 pass and 1 tracks a known defect.
 - #232 fixed the accessibility defects (#225), so the four axe scans are strict: any WCAG 2.1 A/AA violation fails.
 - #231 fixed the WebSocket bug (#230) behind the suite's only flake.
 
@@ -99,7 +99,7 @@ Budgets and measurements are in [06 - End-to-end (Electron) testing § Budgets](
 |---|---|---|
 | import reports progress for every photo and records each one exactly once | File › Import (stubbed dialog) on 25 photos: progress events 1…25 with total 25; "Completed: 25 files" and "Added: 25 · Skipped: 0"; the fake backend recorded each file name once | Pass |
 | a failed photo is reported and the rest of the import still completes consistently | one insert fails (HTTP 500): "Added: 24", "Errors:" lists that photo, the other 24 recorded once, progress reaches 25/25, the dialog closes | Pass |
-| a running import can be cancelled | a Cancel button during a 400-photo import, and a "cancelled" result | Known defect [#228](https://github.com/synthet/image-scoring-gallery/issues/228) |
+| a running import can be cancelled and keeps what it imported | Cancel during a 400-photo import shows "Import cancelled after N of 400 files"; the Added count equals the photos the fake backend recorded, each once, fewer than 400; the dialog then closes | Pass (was [#228](https://github.com/synthet/image-scoring-gallery/issues/228)); sync and backup cancel: [#238](https://github.com/synthet/image-scoring-gallery/issues/238) |
 
 Sync and backup have no end-to-end test. Sync reads only `.nef` files, and backup selects photos by score from the database.
 

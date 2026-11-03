@@ -86,7 +86,7 @@ Every test with its exact assertions and status: [07 - UX/UI test catalog](07-e2
 | 5 | `accessibility.spec.ts` | axe-core WCAG 2.1 A/AA on the empty gallery, root-folder dialog, folder grid and viewer, with no violations; the viewer close button has a name; Escape closes the viewer. |
 | 6 | `layout.spec.ts` | Library view at 1024×640, 800×600 and 640×480: no horizontal overflow, header controls not covered, the drawer collapses and opens. 150% scaling at 1280×720. |
 | 7 | `large-data.spec.ts` | 3,000 photos in folder mode: first thumbnail within budget, a bounded DOM at the top, middle and end, and the last photo reachable by scrolling. |
-| 8 | `long-operations.spec.ts` | File › Import: one progress event per photo, each photo recorded once, and a failed photo reported while the rest completes. |
+| 8 | `long-operations.spec.ts` | File › Import: one progress event per photo, each photo recorded once, a failed photo reported while the rest completes, and a cancel that keeps exactly the photos imported so far. |
 
 Notes:
 - axe runs in its **legacy (in-page) mode**, `AxeBuilder.setLegacyMode(true)`. The default mode opens a helper page, which Electron does not support.
@@ -112,7 +112,6 @@ A test for a known defect is marked `test.fail(true, '#<issue>: …')`. It passe
 | Issue | Tests |
 |---|---|
 | [#227](https://github.com/synthet/image-scoring-gallery/issues/227) | The grid has no keyboard navigation or select-all. |
-| [#228](https://github.com/synthet/image-scoring-gallery/issues/228) | Import, sync and backup can't be cancelled. |
 
 The IPC contract test (`electron/ipcRegistry.test.ts`, Vitest) is strict: every wrapped handler's envelope must be unwrapped by the preload. Its two former defects were fixed in [#222](https://github.com/synthet/image-scoring-gallery/issues/222).
 

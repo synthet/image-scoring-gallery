@@ -3,6 +3,7 @@ import { bridge } from '../../bridge';
 import { useOperationStore } from '../../store/useOperationStore';
 import { Logger } from '../../services/Logger';
 import { coerceScheduleResult, formatScheduleResultLine, type ScheduleResult } from '../../utils/scheduleProcessingOutcome';
+import styles from './ImportModal.module.css';
 
 interface Props {
     isOpen: boolean;
@@ -21,6 +22,8 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
     const [processing, setProcessing] = useState<ScheduleResult | null>(null);
     const [isRunning, setIsRunning] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
+    const [cancelled, setCancelled] = useState(false);
+    const [cancelRequested, setCancelRequested] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const runRef = useRef(false);
     const opIdRef = useRef<string>('');
@@ -35,6 +38,8 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
         queueMicrotask(() => {
             setIsRunning(true);
             setIsComplete(false);
+            setCancelled(false);
+            setCancelRequested(false);
             setError(null);
             setCurrent(0);
             setTotal(0);
@@ -76,6 +81,7 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
                     setSkipped(result.skipped);
                     setErrors(result.errors);
                     setProcessing(coerceScheduleResult(result.processing));
+                    setCancelled(result.cancelled === true);
                     setIsComplete(true);
                     Logger.info('[ImportModal] Import completed', {
                         opId, added: result.added, skipped: result.skipped, errorCount: result.errors.length,
@@ -109,6 +115,15 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
             cleanupProgress();
         };
     }, [isOpen, folderPath]);
+
+    const handleCancel = () => {
+        setCancelRequested(true);
+        Logger.info('[ImportModal] Cancel requested', { opId: opIdRef.current });
+        bridge.importCancel().catch((err: unknown) => {
+            Logger.error('[ImportModal] Cancel failed', { error: err instanceof Error ? err.message : String(err) });
+            setCancelRequested(false);
+        });
+    };
 
     const handleClose = () => {
         if (isComplete && onComplete) {
@@ -191,6 +206,11 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
                                 </div>
                             )}
 
+                            {isComplete && cancelled && (
+                                <div className={styles.cancelledNote}>
+                                    Import cancelled after {added + skipped + errors.length} of {total} files. Photos already imported are kept.
+                                </div>
+                            )}
                             {isComplete && (
                                 <div style={{ fontSize: '0.9em', color: '#aaa' }}>
                                     Added: {added} &middot; Skipped: {skipped}
@@ -221,6 +241,16 @@ export const ImportModal: React.FC<Props> = ({ isOpen, folderPath, onClose, onCo
                     padding: '16px 20px', borderTop: '1px solid #333', background: '#252526',
                     display: 'flex', justifyContent: 'flex-end', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px'
                 }}>
+                    {isRunning && (
+                        <button
+                            type="button"
+                            className={styles.cancelButton}
+                            onClick={handleCancel}
+                            disabled={cancelRequested}
+                        >
+                            {cancelRequested ? 'Cancelling…' : 'Cancel'}
+                        </button>
+                    )}
                     <button
                         onClick={handleClose}
                         disabled={isRunning}

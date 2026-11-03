@@ -447,7 +447,15 @@ contextBridge.exposeInMainWorld('electron', {
                 reason?: 'api-unavailable' | 'api-error';
                 error?: string;
             };
+            /** True when import:cancel stopped the run; `added`/`skipped` cover the photos done before it. */
+            cancelled?: boolean;
+            /** Photos found in the folder (direct-DB import only). */
+            total?: number;
         }>(response);
+    },
+    importCancel: async () => {
+        const response = await ipcRenderer.invoke('import:cancel');
+        return unwrapEnvelope<boolean>(response);
     },
     onImportProgress: (callback: (data: { current: number; total: number; path?: string }) => void) => {
         const handler = (_: unknown, data: { current: number; total: number; path?: string }) => callback(data);
