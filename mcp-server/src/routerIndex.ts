@@ -1,18 +1,9 @@
 #!/usr/bin/env node
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-
-import { createGalleryRouterMcpServer } from "./router/createRouterMcpServer.js";
+/** DEPRECATED entry point (is-ui-router): starts driftara (search, resolve, execute) under the old server name. See docs/technical/DRIFTARA_MCP.md */
+import { runDeprecatedShim } from "./driftara.js";
 import { UI_ROUTER } from "./names.js";
 
-async function main() {
-    const { server, toolDefs } = createGalleryRouterMcpServer();
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error(`${UI_ROUTER} MCP v2.3.0`);
-    console.error(`Tools: ${toolDefs.map((t) => t.name).join(", ")}`);
-}
-
-main().catch((error) => {
-    console.error("Fatal error running gallery router MCP:", error);
+runDeprecatedShim(UI_ROUTER, "dist/routerIndex.js").catch((error) => {
+    console.error("Fatal error running driftara (via dist/routerIndex.js):", error);
     process.exit(1);
 });

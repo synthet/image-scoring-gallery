@@ -3,7 +3,10 @@ import { describe, it } from "node:test";
 
 import {
     DISPATCH,
+    DRIFTARA,
+    EXECUTE,
     PROFILE_SERVER,
+    RESOLVE,
     SEARCH,
     UI_API,
     UI_FULL,
@@ -15,6 +18,11 @@ import {
 } from "./names.js";
 
 describe("gallery MCP server names", () => {
+    it("exports the driftara server and tool names", () => {
+        assert.equal(DRIFTARA, "driftara");
+        assert.deepEqual([SEARCH, RESOLVE, EXECUTE], ["search", "resolve", "execute"]);
+    });
+
     it("exports canonical is-ui-* constants", () => {
         assert.equal(UI_MCP, "is-ui-mcp");
         assert.equal(UI_ROUTER, "is-ui-router");

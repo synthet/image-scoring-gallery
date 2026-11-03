@@ -1,19 +1,9 @@
 #!/usr/bin/env node
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+/** DEPRECATED entry point (is-ui-api): starts driftara (search, resolve, execute) under the old server name. See docs/technical/DRIFTARA_MCP.md */
+import { runDeprecatedShim } from "./driftara.js";
+import { UI_API } from "./names.js";
 
-import { createGalleryMcpServer } from "./createGalleryMcpServer.js";
-import { serverForProfile } from "./names.js";
-
-async function main() {
-    process.env.MCP_TOOL_PROFILE = "api";
-    const { server, toolDefs, profile } = createGalleryMcpServer({ profile: "api" });
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error(`${serverForProfile(profile)} MCP v2.3.0`);
-    console.error(`Tools: ${toolDefs.map((t) => t.name).join(", ")}`);
-}
-
-main().catch((error) => {
-    console.error("Fatal error running gallery api MCP:", error);
+runDeprecatedShim(UI_API, "dist/apiIndex.js").catch((error) => {
+    console.error("Fatal error running driftara (via dist/apiIndex.js):", error);
     process.exit(1);
 });

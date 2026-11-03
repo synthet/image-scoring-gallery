@@ -1,14 +1,19 @@
 {
     "name": "image-scoring-gallery-mcp",
-    "version": "2.1.0",
-    "description": "Consolidated stdio MCP for Driftara Gallery (image-scoring-gallery): local tools, optional FastAPI + Electron CDP",
-    "main": "dist/index.js",
+    "version": "3.0.0",
+    "description": "driftara: single MCP server + CLI for Driftara Gallery (search, resolve, execute over gallery IPC, CDP, local and backend-probe actions)",
+    "main": "dist/driftara.js",
+    "bin": {
+        "driftara": "dist/driftara.js"
+    },
     "type": "module",
     "scripts": {
         "build": "tsc",
-        "test:unit": "npm run build && node --test dist/names.test.js dist/dispatch.test.js dist/proxyDispatch.test.js dist/liveClient.test.js",
+        "test:unit": "npm run build && node --test dist/names.test.js dist/dispatch.test.js dist/proxyDispatch.test.js dist/liveClient.test.js dist/driftara/policy.test.js dist/driftara/catalog.test.js dist/driftara/service.test.js dist/driftara/cli.test.js dist/driftaraLive.test.js",
         "build:registry": "npm run build && node scripts/build_action_registry.mjs",
-        "start": "node dist/index.js",
+        "build:driftara-catalog": "node scripts/build_driftara_catalog.mjs",
+        "check:driftara-catalog": "node scripts/build_driftara_catalog.mjs --check && node scripts/build_driftara_catalog.mjs --check-doc",
+        "start": "node dist/driftara.js",
         "start:live": "node dist/liveServer.js",
         "test:live-smoke": "npm run build && node dist/liveServer.smoke.js"
     },

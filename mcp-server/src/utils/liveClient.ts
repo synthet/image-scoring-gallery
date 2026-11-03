@@ -134,6 +134,26 @@ export async function callLiveTool(
     }
 }
 
+/** driftara: forward one execute call to the live server (IPC handlers such as backup:run can run long). */
+export async function callLiveExecute(
+    executeArgs: Record<string, unknown>,
+    options: { url?: string; headers?: Record<string, string>; timeoutMs?: number } = {},
+): Promise<Record<string, unknown> & { status: string }> {
+    const timeoutMs = options.timeoutMs ?? (Number(process.env.DRIFTARA_LIVE_TIMEOUT_MS) || 120000);
+    const payload = await callLiveTool("execute", executeArgs, { ...options, timeoutMs });
+    if (payload && typeof payload === "object" && !Array.isArray(payload) && "status" in payload) {
+        return payload as Record<string, unknown> & { status: string };
+    }
+    return {
+        status: "error",
+        code: "live_protocol_error",
+        message: "live server returned a non-envelope result (is it an older is-ui-live build?)",
+        action_id: String(executeArgs.action_id ?? ""),
+        request_id: executeArgs.request_id ? String(executeArgs.request_id) : null,
+        details: { payload },
+    };
+}
+
 export async function callLiveDispatch(
     dispatchArgs: Record<string, unknown>,
     options: { url?: string; headers?: Record<string, string> } = {},

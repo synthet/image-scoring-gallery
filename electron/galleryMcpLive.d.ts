@@ -10,6 +10,7 @@ declare module "../mcp-server/dist/liveServer.js" {
         projectRoot: string;
         hooks?: {
             getWindowStatus?: () => Promise<Record<string, unknown>>;
+            invokeIpc?: (channel: string, args: unknown[]) => Promise<unknown>;
         };
     }): Promise<GalleryLiveServer>;
 }
