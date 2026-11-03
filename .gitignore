@@ -41,6 +41,9 @@ environment.json
 /.env.txt
 /.env
 
+# driftara / gallery live MCP server lock (written by the app while it runs)
+gallery-mcp.lock
+
 # External sub-agent run outputs (subagent-orchestrator MCP)
 .agent-runs/
 
