@@ -82,7 +82,7 @@ Every test with its exact assertions and status: [07 - UX/UI test catalog](07-e2
 | 1 | `startup.spec.ts` | Empty gallery with the backend connected; folder mode through the stubbed dialog shows generated photos; Tools › Scoring opens a second window. |
 | 2 | `persistence.spec.ts` | A View toggle survives a relaunch on the same profile. |
 | 3 | `lifecycle.spec.ts` | Closing the main window quits with no leftover process or main-process error. |
-| 4 | `security.spec.ts` | No Node.js in the page; the preload API matches a reviewed snapshot; malformed IPC arguments are rejected; window, navigation, `media://` and external-URL guards (the guards are known defects). |
+| 4 | `security.spec.ts` | No Node.js in the page; the preload API matches a reviewed snapshot; malformed IPC arguments are rejected; `window.open` and navigation away from the app are blocked; `media://` serves image files only; only backend links reach the operating system. |
 | 5 | `accessibility.spec.ts` | axe-core WCAG 2.1 A/AA on the empty gallery, root-folder dialog, folder grid and viewer, with no violations; the viewer close button has a name; Escape closes the viewer. |
 | 6 | `layout.spec.ts` | Library view at 1024×640, 800×600 and 640×480: no horizontal overflow, header controls not covered, the drawer collapses and opens. 150% scaling at 1280×720. |
 | 7 | `large-data.spec.ts` | 3,000 photos in folder mode: first thumbnail within budget, a bounded DOM at the top, middle and end, and the last photo reachable by scrolling. |
@@ -111,7 +111,6 @@ A test for a known defect is marked `test.fail(true, '#<issue>: …')`. It passe
 
 | Issue | Tests |
 |---|---|
-| [#224](https://github.com/synthet/image-scoring-gallery/issues/224) | `window.open` opens windows; the main window navigates to remote origins; `media://` serves any file and `..` traversal; `file://` URLs reach `shell.openExternal`. |
 | [#227](https://github.com/synthet/image-scoring-gallery/issues/227) | The grid has no keyboard navigation or select-all. |
 | [#228](https://github.com/synthet/image-scoring-gallery/issues/228) | Import, sync and backup can't be cancelled. |
 

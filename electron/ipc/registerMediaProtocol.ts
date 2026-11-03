@@ -6,7 +6,7 @@ import { pathToFileURL } from 'url';
 import { parseMediaUrlToFilePath } from '../mediaUrlParse';
 import { absolutizeThumbnailPath } from '../thumbnailPathNormalize';
 import type { AppConfig } from '../types';
-import { debugGalleryMedia, resolveMediaFilePathWithFallbacks } from '../fsMetadataHelpers';
+import { debugGalleryMedia, isServableMediaPath, resolveMediaFilePathWithFallbacks } from '../fsMetadataHelpers';
 
 export type MediaProtocolDeps = {
     electronDirname: string;
@@ -64,6 +64,11 @@ export function registerMediaProtocol(deps: MediaProtocolDeps): void {
             const normalizedPath = path.normalize(resolvedPath);
 
             const mediaPath = resolveMediaFilePathWithFallbacks(normalizedPath);
+            // Images only (#224): a page script must not read other local files through media://.
+            if (!isServableMediaPath(mediaPath)) {
+                console.warn('[Main] Media blocked (not an image file):', mediaPath);
+                return new Response('Access denied', { status: 403 });
+            }
             if (mediaPath !== normalizedPath && fs.existsSync(mediaPath)) {
                 if (isDev || debugGalleryMedia()) {
                     console.log('[Main] Media path fallback:', normalizedPath, '->', mediaPath);

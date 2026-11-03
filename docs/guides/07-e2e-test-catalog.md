@@ -16,7 +16,7 @@ Every end-to-end test in `tests/e2e/`: what it checks, and whether it passes or 
 - **Pass:** the behavior is asserted and must hold.
 - **Known defect #N:** the test is marked `test.fail(true, '#N: …')`. It passes while the defect exists and fails once the fix lands; remove the marker then.
 
-Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 34 tests, of which 27 pass and 7 track known defects.
+Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 34 tests, of which 32 pass and 2 track known defects.
 - #232 fixed the accessibility defects (#225), so the four axe scans are strict: any WCAG 2.1 A/AA violation fails.
 - #231 fixed the WebSocket bug (#230) behind the suite's only flake.
 
@@ -54,11 +54,11 @@ Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/im
 | the page has no Node.js access | `require`, `process` and `module` are undefined in the page | Pass |
 | the preload API surface matches the reviewed snapshot (no accidental new powers) | the sorted keys of `window.electron` and its nested objects equal `preload-api-surface-win32.json`; update with `--update-snapshots` only after review | Pass |
 | IPC rejects malformed arguments | `setShowEyes('yes')` rejects with a "boolean" error | Pass |
-| window.open does not create a new window | no new BrowserWindow after `window.open(...)` | Known defect [#224](https://github.com/synthet/image-scoring-gallery/issues/224) (1) |
-| the main window cannot be navigated to a remote origin | `location.href` to a reachable origin neither commits nor requests the page | Known defect #224 (2) |
-| the media protocol refuses files outside the photo and thumbnail roots | `media://` fetch of a file outside the roots doesn't return its contents | Known defect #224 (3) |
-| the media protocol refuses ".." traversal out of a photo folder | `media://<photos>/../outside.txt` doesn't return its contents | Known defect #224 (4) |
-| openExternalUrl only hands http(s) URLs to the operating system | a `file://` URL never reaches `shell.openExternal` (stubbed) | Known defect #224 (5) |
+| window.open does not create a new window | no new BrowserWindow after `window.open(...)` | Pass (was [#224](https://github.com/synthet/image-scoring-gallery/issues/224)) |
+| the main window cannot be navigated to a remote origin | `location.href` to a reachable origin neither commits nor requests the page | Pass (was #224) |
+| the media protocol refuses a non-image file outside the photo folders | `media://` fetch of a `.txt` file outside the photo folders doesn't return its contents (403) | Pass (was #224). Image files outside the gallery's folders are still served; see [#237](https://github.com/synthet/image-scoring-gallery/issues/237) |
+| the media protocol refuses ".." traversal to a non-image file | `media://<photos>/../outside.txt` doesn't return its contents (403) | Pass (was #224) |
+| openExternalUrl hands only backend links to the operating system | a `file://` URL and another origin are refused with an error; a link on the backend origin reaches `shell.openExternal` (stubbed) | Pass (was #224) |
 
 ## Journey 5: accessibility (`accessibility.spec.ts`)
 
