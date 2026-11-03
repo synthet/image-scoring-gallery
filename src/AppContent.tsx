@@ -22,6 +22,7 @@ import { Loader2, ChevronRight, RefreshCw, PanelLeft } from 'lucide-react';
 import { useOperationStore } from './store/useOperationStore';
 import { bridge } from './bridge';
 import { useElectronListeners } from './hooks/useElectronListeners';
+import { useResponsiveSidebar } from './hooks/useResponsiveSidebar';
 import { useGalleryNavigation } from './hooks/useGalleryNavigation';
 import { useStacksMode } from './hooks/useStacksMode';
 import { useRepresentativeView } from './hooks/useRepresentativeView';
@@ -124,18 +125,8 @@ function AppContent() {
 
   const [isSimilarDrawerOpen, setIsSimilarDrawerOpen] = useState(false);
   const [similarSearchImageId, setSimilarSearchImageId] = useState<number | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { sidebarOpen, toggleSidebar, closeSidebar } = useResponsiveSidebar();
   const [pendingSearchQuery, setPendingSearchQuery] = useState<string | undefined>();
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1100px)');
-    const onMatch = () => {
-      if (mq.matches) setSidebarOpen(false);
-    };
-    onMatch();
-    mq.addEventListener('change', onMatch);
-    return () => mq.removeEventListener('change', onMatch);
-  }, []);
 
   const stacksModeRef = useRef(false);
   const activeStackIdRef = useRef<number | null>(null);
@@ -616,6 +607,7 @@ function AppContent() {
     <>
       <MainLayout
         sidebarOpen={sidebarOpen}
+        onCloseSidebar={closeSidebar}
         breadcrumbs={isToolViewOpen ? null : breadcrumbsNode}
         header={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -625,7 +617,7 @@ function AppContent() {
               aria-label="Toggle filters sidebar"
               title="Toggle filters sidebar"
               aria-expanded={sidebarOpen}
-              onClick={() => setSidebarOpen((open) => !open)}
+              onClick={toggleSidebar}
             >
               <PanelLeft size={16} />
             </button>

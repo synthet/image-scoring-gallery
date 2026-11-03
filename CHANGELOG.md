@@ -5,6 +5,7 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 ## [Unreleased]
 
 ### Fixed
+- **Sidebar on small windows** (#226): Below 1100 px the sidebar drawer closes on Escape or a click beside it. Folder mode now starts with it closed on a narrow window and has its own sidebar toggle, so the drawer no longer covers the header and the first photos.
 - **Quit** (#223): Closing the main window also closes the Scoring window and quits the app, so shutdown cleanup always runs.
 - **IPC errors** (#222): Opening the backend's image page now reports a failure instead of silently doing nothing, and `findNearDuplicates` returns its result rather than the IPC envelope.
 - **Accessibility** (#225): The viewer's close button has an accessible name ("Close viewer"). Low-contrast secondary text now meets WCAG AA (4.5:1) through design tokens. This covers the Color Label **All** button, the folder-mode root label, and the viewer's date, empty-state and loading notes.

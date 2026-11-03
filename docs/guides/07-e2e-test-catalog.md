@@ -16,7 +16,7 @@ Every end-to-end test in `tests/e2e/`: what it checks, and whether it passes or 
 - **Pass:** the behavior is asserted and must hold.
 - **Known defect #N:** the test is marked `test.fail(true, '#N: …')`. It passes while the defect exists and fails once the fix lands; remove the marker then.
 
-Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 34 tests, of which 23 pass and 11 track known defects.
+Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 34 tests, of which 27 pass and 7 track known defects.
 - #232 fixed the accessibility defects (#225), so the four axe scans are strict: any WCAG 2.1 A/AA violation fails.
 - #231 fixed the WebSocket bug (#230) behind the suite's only flake.
 
@@ -80,8 +80,8 @@ axe-core 4.14 with WCAG 2.1 A and AA tags, run in-page with `setLegacyMode(true)
 | Test | Asserts | Status |
 |---|---|---|
 | library view at 1024x640 / 800x600 / 640x480: the sidebar collapses and the header stays usable (3 tests) | toggle `aria-expanded=false`; toggle, title and Refresh uncovered; no horizontal page overflow; the toggle opens the drawer | Pass |
-| library view at 1024x640 / 800x600 / 640x480: the drawer can be closed again (3 tests) | after opening, Escape or the toggle closes it | Known defect [#226](https://github.com/synthet/image-scoring-gallery/issues/226) |
-| folder mode at 1024x640: the sidebar does not cover the header and grid | folder-mode title and first thumbnail uncovered | Known defect #226 |
+| library view at 1024x640 / 800x600 / 640x480: the drawer can be closed again (3 tests) | after opening, Escape closes it (a click on the backdrop does too) | Pass (was [#226](https://github.com/synthet/image-scoring-gallery/issues/226)) |
+| folder mode at 1024x640: the sidebar does not cover the header and grid | the sidebar closes as the window narrows; folder-mode title and first thumbnail uncovered | Pass (was #226) |
 | 150% display scaling at 1280x720 | `devicePixelRatio` is 1.5; no horizontal overflow; toggle, title, Refresh and sidebar filters uncovered | Pass |
 
 ## Journey 7: large data (`large-data.spec.ts`)

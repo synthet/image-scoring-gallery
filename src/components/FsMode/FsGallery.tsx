@@ -12,10 +12,11 @@ import { bridge } from '../../bridge';
 import type { Folder } from '../Tree/treeUtils';
 import breadcrumbStyles from '../../styles/breadcrumbs.module.css';
 import styles from './FsGallery.module.css';
-import { ArrowLeft, ChevronRight, FolderOpen, ImageIcon } from 'lucide-react';
+import { ArrowLeft, ChevronRight, FolderOpen, ImageIcon, PanelLeft } from 'lucide-react';
 import { invalidateFsReadDirCacheForFolder } from './fsReadDirCache';
 import { invalidateRawPreviewCacheForFolder } from '../../utils/galleryRawPreviewCache';
 import { useAppMode } from '../../context/AppModeContext';
+import { useResponsiveSidebar } from '../../hooks/useResponsiveSidebar';
 
 function fsDirsToSubfolders(entries: { name: string; path: string }[]): Folder[] {
     return entries.map((d) => ({
@@ -68,6 +69,7 @@ export const FsGallery: React.FC = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [folderCacheReload, setFolderCacheReload] = useState({ nonce: 0, folderPath: '' });
 
+    const { sidebarOpen, toggleSidebar, closeSidebar } = useResponsiveSidebar();
     const { items, subDirectories, totalCount, loading, loadMore } = useFsPagination(
         selectedPath || null,
         folderCacheReload.nonce,
@@ -218,9 +220,21 @@ export const FsGallery: React.FC = () => {
     return (
         <>
             <MainLayout
+                sidebarOpen={sidebarOpen}
+                onCloseSidebar={closeSidebar}
                 breadcrumbs={breadcrumbsNode}
                 header={
                     <div className={styles.headerRow}>
+                        <button
+                            type="button"
+                            className="sidebarToggle"
+                            aria-label="Toggle folders sidebar"
+                            title="Toggle folders sidebar"
+                            aria-expanded={sidebarOpen}
+                            onClick={toggleSidebar}
+                        >
+                            <PanelLeft size={16} />
+                        </button>
                         <h2 className={styles.headerTitle}>Gallery</h2>
                         <span className={styles.headerBadge}>
                             <FolderOpen size={11} />
