@@ -1,9 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "mcp__is-ui-mcp__search",
-      "mcp__is-ui-mcp__dispatch",
-      "mcp__is-ui-mcp__sse_status",
+      "mcp__driftara__search",
+      "mcp__driftara__resolve",
+      "mcp__driftara__sse_status",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
@@ -94,12 +94,13 @@
     ]
   },
   "enabledMcpjsonServers": [
-    "is-ui-mcp"
+    "driftara"
   ],
   "disabledMcpjsonServers": [
     "playwright",
     "imgscore-el-playwright",
     "imgscore-el-chrome-devtools",
+    "is-ui-mcp",
     "is-ui-router",
     "is-ui-local",
     "is-ui-api",
