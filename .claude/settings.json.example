@@ -1,10 +1,10 @@
 {
-  "_comment": "Claude Code MCP: copy .mcp.json.example → .mcp.json. Enable compact tools only (search/dispatch/sse_status). Backend triage via sibling is-be-mcp. Hooks run the Jev agent harness from the sibling backend — see .claude/HOOKS.md.",
+  "_comment": "Claude Code MCP: copy .mcp.json.example → .mcp.json. One server, driftara (search → resolve → execute; see docs/technical/DRIFTARA_MCP.md). search, resolve and sse_status are auto-allowed; execute and its deprecated alias dispatch prompt, because they can run write actions. Backend triage via sibling is-be-mcp (vexlum). Hooks run the Jev agent harness from the sibling backend — see .claude/HOOKS.md.",
   "permissions": {
     "allow": [
-      "mcp__is-ui-mcp__search",
-      "mcp__is-ui-mcp__dispatch",
-      "mcp__is-ui-mcp__sse_status",
+      "mcp__driftara__search",
+      "mcp__driftara__resolve",
+      "mcp__driftara__sse_status",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
@@ -106,12 +106,13 @@
     ]
   },
   "enabledMcpjsonServers": [
-    "is-ui-mcp"
+    "driftara"
   ],
   "disabledMcpjsonServers": [
     "playwright",
     "imgscore-el-playwright",
     "imgscore-el-chrome-devtools",
+    "is-ui-mcp",
     "is-ui-router",
     "is-ui-local",
     "is-ui-api",
