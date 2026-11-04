@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import type { Page } from '@playwright/test';
+import { copyJpegs } from './fixtures';
 import { expect, test } from './fixture';
 
 /** media:/// URL for an absolute Windows or POSIX path, the way the renderer builds it (src/utils/mediaUrl.ts). */
@@ -88,6 +90,31 @@ test.describe('Journey 4: security regressions', () => {
                 }
             }, traversal);
             expect(body, 'traversal outside the photo folder was served').not.toBe('outside');
+        });
+
+        /** Status of a media:// fetch of `file` from the page. */
+        const mediaStatus = (page: Page, file: string) => page.evaluate(async (url) => {
+            try {
+                return (await fetch(url)).status;
+            } catch {
+                return 0;
+            }
+        }, mediaUrl(file));
+
+        test('the media protocol refuses an image outside the gallery folders', async ({ env, launchApp }) => {
+            const elsewhere = path.join(env.root, 'elsewhere');
+            copyJpegs(elsewhere, 1);
+            const { page } = await launchApp();
+            expect(await mediaStatus(page, path.join(elsewhere, 'DSC_0001.JPG'))).toBe(403);
+        });
+
+        test('the media protocol serves an image in a library folder', async ({ env, launchApp }) => {
+            const library = path.join(env.root, 'library');
+            copyJpegs(library, 1);
+            env.backend.onSql((sql, params) =>
+                (/FROM folders WHERE path/i.test(sql) && String(params[0]).endsWith('/library') ? [{ id: 1 }] : undefined));
+            const { page } = await launchApp();
+            expect(await mediaStatus(page, path.join(library, 'DSC_0001.JPG'))).toBe(200);
         });
     });
 
