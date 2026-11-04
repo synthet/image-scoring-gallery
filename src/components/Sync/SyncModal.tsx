@@ -4,6 +4,7 @@ import { bridge } from '../../bridge';
 import { useOperationStore } from '../../store/useOperationStore';
 import { Logger } from '../../services/Logger';
 import { coerceScheduleResults, formatScheduleResultsSummary, type ScheduleResult } from '../../utils/scheduleProcessingOutcome';
+import styles from './SyncModal.module.css';
 
 interface SyncResult {
     scanned: number;
@@ -14,6 +15,7 @@ interface SyncResult {
     errors: string[];
     thresholdDate: string | null;
     processing?: ScheduleResult[];
+    cancelled?: boolean;
 }
 
 interface SyncPreviewData {
@@ -52,6 +54,7 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComplete }) => {
+    const [cancelRequested, setCancelRequested] = useState(false);
     const [progress, setProgress] = useState<SyncProgress>({ phase: '', current: 0, total: 0, detail: '' });
     const [preview, setPreview] = useState<SyncPreviewData | null>(null);
     const [previewLoading, setPreviewLoading] = useState(false);
@@ -141,6 +144,7 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
         runRef.current = true;
         modeRef.current = 'sync';
         setIsSyncRunning(true);
+        setCancelRequested(false);
         setSyncError(null);
         setResult(null);
         setIsComplete(false);
@@ -221,6 +225,15 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
                 }
             });
     }, [sourcePath, previewLoading, isSyncRunning, preview?.candidates, startOp, updateOp, completeOp]);
+
+    const handleCancel = () => {
+        setCancelRequested(true);
+        Logger.info('[SyncModal] Cancel requested', { opId: opIdRef.current });
+        bridge.syncCancel().catch((err: unknown) => {
+            Logger.error('[SyncModal] Cancel failed', { error: err instanceof Error ? err.message : String(err) });
+            setCancelRequested(false);
+        });
+    };
 
     const handleClose = () => {
         if (isComplete && onComplete) {
@@ -528,6 +541,11 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
                                 </>
                             )}
 
+                            {isComplete && result?.cancelled && (
+                                <div className={styles.cancelledNote}>
+                                    Sync cancelled. Photos already copied are kept and imported; run Sync again to copy the rest.
+                                </div>
+                            )}
                             {isComplete && result && (
                                 <div style={{ fontSize: '0.9em', color: '#ccc', lineHeight: 1.8 }}>
 
@@ -606,6 +624,17 @@ export const SyncModal: React.FC<Props> = ({ isOpen, sourcePath, onClose, onComp
                             }}
                         >
                             Start sync
+                        </button>
+                    )}
+                    {/* Importing is quick and finishes what was copied, so only copying can be cancelled. */}
+                    {isSyncRunning && progress.phase !== 'importing' && (
+                        <button
+                            type="button"
+                            className={styles.cancelButton}
+                            onClick={handleCancel}
+                            disabled={cancelRequested}
+                        >
+                            {cancelRequested ? 'Cancelling…' : 'Cancel'}
                         </button>
                     )}
                     <button

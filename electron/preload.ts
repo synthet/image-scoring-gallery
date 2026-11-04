@@ -511,7 +511,12 @@ contextBridge.exposeInMainWorld('electron', {
                 reason?: 'api-unavailable' | 'api-error';
                 error?: string;
             }>;
+            cancelled?: boolean;
         }>(response);
+    },
+    syncCancel: async () => {
+        const response = await ipcRenderer.invoke('sync:cancel');
+        return unwrapEnvelope<boolean>(response);
     },
     onSyncProgress: (callback: (data: { phase: string; current: number; total: number; detail: string }) => void) => {
         const handler = (_: unknown, data: { phase: string; current: number; total: number; detail: string }) => callback(data);

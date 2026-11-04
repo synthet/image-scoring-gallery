@@ -65,3 +65,30 @@ export function copyJpegs(dir: string, count: number): string[] {
     }
     return files;
 }
+
+/**
+ * Writes `count` files named DSC_0001.NEF... into `dir`. Sync picks files by extension and reads the
+ * capture date with exiftool, so a stamped JPEG under a .NEF name exercises it without a real RAW file.
+ * Each copy gets its own trailing byte, so a mixed-up copy would show in a content check.
+ */
+export async function generateNefNamedPhotos(dir: string, count: number): Promise<string[]> {
+    const seedDir = fs.mkdtempSync(path.join(path.dirname(dir), 'seed-'));
+    const [seed] = await generateJpegs(seedDir, 1);
+    // Sync skips photos without a camera and lens: it can't place them in its folder layout.
+    const exiftool = new ExifTool({ maxProcs: 1, taskTimeoutMillis: 20_000 });
+    try {
+        await exiftool.write(seed.path, { Model: 'NIKON Z 8', LensModel: 'NIKKOR Z 180-600mm' }, { writeArgs: ['-overwrite_original'] });
+    } finally {
+        await exiftool.end();
+    }
+    const bytes = fs.readFileSync(seed.path);
+    fs.mkdirSync(dir, { recursive: true });
+    const files: string[] = [];
+    for (let i = 0; i < count; i++) {
+        const file = `DSC_${String(i + 1).padStart(4, '0')}.NEF`;
+        fs.writeFileSync(path.join(dir, file), Buffer.concat([bytes, Buffer.from([i % 256])]));
+        files.push(file);
+    }
+    fs.rmSync(seedDir, { recursive: true, force: true });
+    return files;
+}

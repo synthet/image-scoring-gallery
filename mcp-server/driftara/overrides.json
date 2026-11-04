@@ -136,6 +136,15 @@
     "study:load-keepone-review": { "tier": "write", "notes": ["Opens a native file dialog in the app and waits for the user."] },
 
     "import:run": { "tier": "destructive", "intent_examples": ["import a folder into the gallery", "register existing photos"], "notes": ["Registers every image in a folder (backend import, or bulk DB inserts when the backend is down)."] },
+    "sync:cancel": {
+      "tier": "write",
+      "intent_examples": [
+        "stop the running sync"
+      ],
+      "notes": [
+        "Stops new copies; photos already copied are kept and imported. Run sync again to copy the rest."
+      ]
+    },
     "import:cancel": {
       "tier": "write",
       "intent_examples": [
