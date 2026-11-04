@@ -10,7 +10,7 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 - **Cancel import** (#228): File › Import has a Cancel button. The import stops after the current photo and keeps every photo it already imported. Cancel for sync and backup is tracked in #238.
 
 ### Fixed
-- **Security** (#224): Pages can no longer open new windows or navigate the app away from itself. The `media://` protocol serves image files only. Only links to the configured backend open in your browser; other URLs, `file://` included, are refused. Confining images to the gallery's folders is tracked in #237.
+- **Security** (#224): Pages can no longer open new windows or navigate the app away from itself. The `media://` protocol serves image files only. Only links to the configured backend open in your browser; other URLs, `file://` included, are refused. It also serves only files that belong to the gallery: thumbnails, the folder-mode root, and library folders (#237).
 - **Sidebar on small windows** (#226): Below 1100 px the sidebar drawer closes on Escape or a click beside it. Folder mode now starts with it closed on a narrow window and has its own sidebar toggle, so the drawer no longer covers the header and the first photos.
 - **Quit** (#223): Closing the main window also closes the Scoring window and quits the app, so shutdown cleanup always runs.
 - **IPC errors** (#222): Opening the backend's image page now reports a failure instead of silently doing nothing, and `findNearDuplicates` returns its result rather than the IPC envelope.

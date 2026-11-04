@@ -6,7 +6,9 @@ import { pathToFileURL } from 'url';
 import { parseMediaUrlToFilePath } from '../mediaUrlParse';
 import { absolutizeThumbnailPath } from '../thumbnailPathNormalize';
 import type { AppConfig } from '../types';
-import { debugGalleryMedia, isServableMediaPath, resolveMediaFilePathWithFallbacks } from '../fsMetadataHelpers';
+import * as db from '../db';
+import { debugGalleryMedia, isServableMediaPath, readLightModeRootFromConfig, resolveMediaFilePathWithFallbacks } from '../fsMetadataHelpers';
+import { createMediaAccess, thumbnailRoots } from '../mediaAccess';
 
 export type MediaProtocolDeps = {
     electronDirname: string;
@@ -24,8 +26,18 @@ export function registerMediaScheme(): void {
 
 export function registerMediaProtocol(deps: MediaProtocolDeps): void {
     const { electronDirname, config } = deps;
+    const projectRoot = path.resolve(electronDirname, '..');
+    const isAllowedMediaFile = createMediaAccess({
+        allowedRoots: () => [
+            ...thumbnailRoots(projectRoot, config?.paths?.thumbnail_base_dir),
+            readLightModeRootFromConfig(electronDirname),
+        ],
+        isLibraryFolder: db.isLibraryFolder,
+        isLibraryFile: async (file) => (await db.findImageByFilePath(file)) != null,
+        realPath: (p) => fs.promises.realpath(p),
+    });
 
-    protocol.handle('media', (request) => {
+    protocol.handle('media', async (request) => {
         if (debugGalleryMedia()) {
             console.log('[Main] Media request:', request.url);
         }
@@ -52,7 +64,6 @@ export function registerMediaProtocol(deps: MediaProtocolDeps): void {
                 filePath = filePath.slice(1);
             }
 
-            const projectRoot = path.resolve(electronDirname, '..');
             filePath = absolutizeThumbnailPath(filePath, projectRoot, config?.paths?.thumbnail_base_dir);
 
             if (!path.isAbsolute(filePath)) {
@@ -67,6 +78,11 @@ export function registerMediaProtocol(deps: MediaProtocolDeps): void {
             // Images only (#224): a page script must not read other local files through media://.
             if (!isServableMediaPath(mediaPath)) {
                 console.warn('[Main] Media blocked (not an image file):', mediaPath);
+                return new Response('Access denied', { status: 403 });
+            }
+            // Only the gallery's own folders (#237): a page script must not read other images on disk.
+            if (!(await isAllowedMediaFile(mediaPath))) {
+                console.warn('[Main] Media blocked (outside the gallery folders):', mediaPath);
                 return new Response('Access denied', { status: 403 });
             }
             if (mediaPath !== normalizedPath && fs.existsSync(mediaPath)) {

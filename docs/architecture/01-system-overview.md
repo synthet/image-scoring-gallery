@@ -56,6 +56,8 @@ The custom `media://` protocol serves local files for thumbnails and images. URL
 
 Path handling is security-sensitive. Preserve validation and regression tests when changing it.
 
+The protocol serves image and RAW files only, and only files that belong to the gallery ([electron/mediaAccess.ts](../../electron/mediaAccess.ts)): under the thumbnail folders or the folder-mode root (compared by real path), or in a library folder or known image according to the database. Everything else answers 403 and logs `Media blocked`. If photos stop showing, look for that line: it names the file.
+
 Thumbnail **pixel dimensions** are produced by the backend (`modules/thumbnails.py`, default max edge 512). Ongoing backend research on ideal ML input size may change thumb generation later; gallery reads paths only. See [reports/07-pipeline-input-size-study-2026-05.md](../reports/07-pipeline-input-size-study-2026-05.md).
 
 ## RAW / NEF Preview Flow

@@ -838,6 +838,12 @@ export async function getImageDetails(id: number): Promise<ImageDetailRow | null
     return image;
 }
 
+/** True when `folderPath` is a registered library folder (media:// access, #237). */
+export async function isLibraryFolder(folderPath: string): Promise<boolean> {
+    const rows = await query<{ id: number }>('SELECT id FROM folders WHERE path = ?', [normalizePathForDb(folderPath)]);
+    return rows.length > 0;
+}
+
 export async function getFolders(): Promise<unknown[]> {
     const rows = await query(`
         SELECT f.id, f.path, f.parent_id, f.is_fully_scored,

@@ -16,7 +16,7 @@ Every end-to-end test in `tests/e2e/`: what it checks, and whether it passes or 
 - **Pass:** the behavior is asserted and must hold.
 - **Known defect #N:** the test is marked `test.fail(true, '#N: …')`. It passes while the defect exists and fails once the fix lands; remove the marker then.
 
-Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 35 tests, of which 34 pass and 1 tracks a known defect.
+Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 37 tests, of which 36 pass and 1 tracks a known defect.
 - #232 fixed the accessibility defects (#225), so the four axe scans are strict: any WCAG 2.1 A/AA violation fails.
 - #231 fixed the WebSocket bug (#230) behind the suite's only flake.
 
@@ -56,8 +56,10 @@ Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/im
 | IPC rejects malformed arguments | `setShowEyes('yes')` rejects with a "boolean" error | Pass |
 | window.open does not create a new window | no new BrowserWindow after `window.open(...)` | Pass (was [#224](https://github.com/synthet/image-scoring-gallery/issues/224)) |
 | the main window cannot be navigated to a remote origin | `location.href` to a reachable origin neither commits nor requests the page | Pass (was #224) |
-| the media protocol refuses a non-image file outside the photo folders | `media://` fetch of a `.txt` file outside the photo folders doesn't return its contents (403) | Pass (was #224). Image files outside the gallery's folders are still served; see [#237](https://github.com/synthet/image-scoring-gallery/issues/237) |
+| the media protocol refuses a non-image file outside the photo folders | `media://` fetch of a `.txt` file outside the photo folders doesn't return its contents (403) | Pass (was #224) |
 | the media protocol refuses ".." traversal to a non-image file | `media://<photos>/../outside.txt` doesn't return its contents (403) | Pass (was #224) |
+| the media protocol refuses an image outside the gallery folders | a real JPEG that is not under a thumbnail folder, the folder-mode root or a library folder answers 403 | Pass ([#237](https://github.com/synthet/image-scoring-gallery/issues/237)) |
+| the media protocol serves an image in a library folder | with the fake backend reporting the folder in `folders`, the same kind of file answers 200 | Pass |
 | openExternalUrl hands only backend links to the operating system | a `file://` URL and another origin are refused with an error; a link on the backend origin reaches `shell.openExternal` (stubbed) | Pass (was #224) |
 
 ## Journey 5: accessibility (`accessibility.spec.ts`)
