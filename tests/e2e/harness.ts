@@ -59,6 +59,8 @@ export interface Launched {
 /** Main-process log lines that mean a crash or an uncaught error, as Electron prints them. */
 export const MAIN_ERROR_PATTERN = /A JavaScript error occurred in the main process|Uncaught Exception|UnhandledPromiseRejection/i;
 
+const OFFSCREEN_FPS = 10;
+
 /** Launches the built app (dist-electron + dist) and waits until the shell has left its connecting screen. */
 export async function launch(e: E2eEnv, extraArgs: string[] = []): Promise<Launched> {
     const app = await _electron.launch({ args: [...extraArgs, '.'], cwd: REPO_ROOT, env: e.env, timeout: 60_000 });
@@ -69,6 +71,11 @@ export async function launch(e: E2eEnv, extraArgs: string[] = []): Promise<Launc
         mainLog.push(...String(d).split(/\r?\n/).filter(Boolean).map((l) => `ERR ${l}`)));
     try {
         const page = await app.firstWindow();
+        // An offscreen window hands every painted frame to the main process, where import and sync run.
+        // At the default 60 fps a busy progress dialog slowed runs enough to trip test timeouts (#247).
+        await app.evaluate(({ BrowserWindow }, fps) => {
+            for (const win of BrowserWindow.getAllWindows()) win.webContents.setFrameRate(fps);
+        }, OFFSCREEN_FPS);
         const errors: string[] = [];
         page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`));
         page.on('console', (msg) => {

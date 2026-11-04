@@ -35,7 +35,7 @@ import { DEFAULT_VIEW_PREFS, loadViewPrefs, saveViewPrefs } from './viewPrefsSto
 import { exportCurrentImage } from './exportImage';
 import { exportImageExif } from './exportExif';
 import { wrapIpcHandler } from './ipc/wrapIpcHandler';
-import { readE2eOverrides, resolveConfigPath } from './e2eHooks';
+import { e2eWindowOptions, readE2eOverrides, resolveConfigPath } from './e2eHooks';
 import { isAllowedAppNavigation, isAllowedExternalUrl } from './navigationGuard';
 import { allowedExternalBaseUrls, resolveRendererApiConfig } from './rendererApiConfig';
 import {
@@ -307,13 +307,13 @@ async function ensureScoringUiServer(): Promise<ScoringUiServer | null> {
 function openScoringWindow(): void {
     void (async () => {
         const backendIcon = resolveBackendWebuiWindowIcon();
-        scoringWindow = new BrowserWindow({
+        scoringWindow = new BrowserWindow(e2eWindowOptions({
             width: 1280,
             height: 900,
             title: 'Vexlum Scoring',
             ...(backendIcon ? { icon: backendIcon } : {}),
             webPreferences: { contextIsolation: true },
-        });
+        }));
         scoringWindow.setMenu(null);
         scoringWindow.on('closed', () => {
             scoringWindow = null;
@@ -352,7 +352,7 @@ if (isDev) {
 
 function createWindow() {
     console.log('[Main] Creating window...');
-    mainWindow = new BrowserWindow({
+    mainWindow = new BrowserWindow(e2eWindowOptions({
         width: 1200,
         height: 800,
         webPreferences: {
@@ -362,7 +362,7 @@ function createWindow() {
             webSecurity: true,
         },
         icon: path.join(__dirname, '../public/icon.png'),
-    });
+    }));
 
     if (isDev) {
         const devUrl = config.dev?.url || 'http://localhost:5173';
@@ -397,7 +397,7 @@ function createWindow() {
 function createWebuiShellWindow(targetUrl: string): void {
     console.log('[Main] Standalone WebUI shell, loading:', targetUrl);
     const backendIcon = resolveBackendWebuiWindowIcon();
-    webuiShellWindow = new BrowserWindow({
+    webuiShellWindow = new BrowserWindow(e2eWindowOptions({
         width: 1400,
         height: 900,
         title: 'Vexlum Scoring WebUI',
@@ -406,7 +406,7 @@ function createWebuiShellWindow(targetUrl: string): void {
             contextIsolation: true,
             nodeIntegration: false,
         },
-    });
+    }));
     webuiShellWindow.loadURL(targetUrl);
     webuiShellWindow.on('closed', () => {
         webuiShellWindow = null;
