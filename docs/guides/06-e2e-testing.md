@@ -26,7 +26,7 @@ npx playwright test security --update-snapshots                # after a reviewe
 Rebuild (`npx tsc -p electron/tsconfig.json && npx vite build`, or just `npm run test:e2e`) after changing app code; `npx playwright test` alone runs the existing build.
 
 - One worker; Electron can't run headless, so each test opens a real window. These windows don't take focus and most live only a few seconds.
-- 37 tests, about 2 minutes including the build on the reference Windows machine. Retries: none locally, 1 in CI.
+- 39 tests, about 2 minutes including the build on the reference Windows machine. Retries: none locally, 1 in CI.
 - On failure, Playwright keeps the trace, and the fixture attaches a window screenshot and the main-process log.
 
 ## The harness
@@ -38,7 +38,7 @@ Everything lives in `tests/e2e/`.
 | `harness.ts` | `makeEnv()` creates a temp root holding `userData`, a generated config, a `photos/` folder and a fake backend. `launch()` starts the built app in it. Also has menu, dialog and folder-mode helpers. |
 | `fixture.ts` | `test` with `env`, `launchApp` and an `allowErrors` option. Every app launched in a test is closed afterwards. A page error, console error or main-process crash fails the test unless it matches `allowErrors`. |
 | `fakeBackend.ts` | Stand-in for the image-scoring backend (below). |
-| `fixtures.ts` | Generated photos. `generateJpegs(dir, n)` stamps an EXIF capture time on each file. `copyJpegs(dir, n)` skips EXIF and is fast enough for thousands. No binary fixtures are committed. |
+| `fixtures.ts` | Generated photos. `generateJpegs(dir, n)` stamps an EXIF capture time on each file. `copyJpegs(dir, n)` skips EXIF and is fast enough for thousands. `generateNefNamedPhotos(dir, n)` writes `.NEF`-named photos with a camera and lens for sync. No binary fixtures are committed. |
 
 The app sees the harness through three environment variables, read only in `electron/e2eHooks.ts`:
 
@@ -57,7 +57,7 @@ The harness also sets `ELECTRON_IS_DEV=0`. `electron-is-dev` treats any unpackag
 `startFakeBackend()` answers only what the app needs, on a random local port:
 
 - `GET /api/health` returns `{status: "ok"}`, so the backend counts as connected.
-- `POST /api/db/query` is the `api` database engine's SQL endpoint, which returns `{rows}`. By default every query gets `rows: []`. `backend.onSql((sql, params) => rows | undefined)` adds an answer, and later handlers win. A handler that **throws** produces HTTP 500, which simulates a database failure for that query.
+- `POST /api/db/query` is the `api` database engine's SQL endpoint, which returns `{rows}`. By default every query gets `rows: []`. `backend.onSql((sql, params) => rows | undefined)` adds an answer, and later handlers win. A handler that **throws** produces HTTP 500, which simulates a database failure for that query. `backend.slowQueries(ms)` delays SQL answers, so a test can interrupt a long operation reliably.
 - `/ws/updates` accepts the live-updates WebSocket and stays silent.
 - Everything else gets a 404, which the app treats as "backend feature unavailable".
 
@@ -86,12 +86,12 @@ Every test with its exact assertions and status: [07 - UX/UI test catalog](07-e2
 | 5 | `accessibility.spec.ts` | axe-core WCAG 2.1 A/AA on the empty gallery, root-folder dialog, folder grid and viewer, with no violations; the viewer close button has a name; Escape closes the viewer. |
 | 6 | `layout.spec.ts` | Library view at 1024×640, 800×600 and 640×480: no horizontal overflow, header controls not covered, the drawer collapses and opens. 150% scaling at 1280×720. |
 | 7 | `large-data.spec.ts` | 3,000 photos in folder mode: first thumbnail within budget, a bounded DOM at the top, middle and end, the last photo reachable by scrolling and by keyboard (arrows, End across 38 pages, Home, Enter opens the photo). |
-| 8 | `long-operations.spec.ts` | File › Import: one progress event per photo, each photo recorded once, a failed photo reported while the rest completes, and a cancel that keeps exactly the photos imported so far. |
+| 8 | `long-operations.spec.ts` | File › Import: one progress event per photo, each photo recorded once, a failed photo reported while the rest completes, and a cancel that keeps exactly the photos imported so far. File › Sync: every photo copied intact and recorded once; a cancel leaves no partial files, every copied photo has its row, and the next sync copies the rest. |
 
 Notes:
 - axe runs in its **legacy (in-page) mode**, `AxeBuilder.setLegacyMode(true)`. The default mode opens a helper page, which Electron does not support.
 - Journey 7 scrolls with the **mouse wheel**. Setting `scrollTop` directly is not equivalent: once the grid sits at the bottom, no more scroll events reach folder mode's paging trigger, so it stalls at 160 photos.
-- Journey 8 covers **import** only. Sync reads only Nikon `.nef` files, and backup selects photos by score from the database. Neither can run on generated fixtures without faking camera files or backend query results, so both are untested end to end.
+- Journey 8 covers **import** and **sync**. Sync selects files by extension and reads the date, camera and lens with exiftool, so `generateNefNamedPhotos` (a stamped JPEG under a `.NEF` name) exercises it without a real RAW file. Backup selects photos by score from the database, so it isn't tested end to end.
 
 ### Budgets (journey 7)
 

@@ -16,7 +16,7 @@ Every end-to-end test in `tests/e2e/`: what it checks, and whether it passes or 
 - **Pass:** the behavior is asserted and must hold.
 - **Known defect #N:** the test is marked `test.fail(true, '#N: …')`. It passes while the defect exists and fails once the fix lands; remove the marker then.
 
-Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 37 tests, of which 36 pass and 1 tracks a known defect.
+Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/image-scoring-gallery/pull/231) and [#232](https://github.com/synthet/image-scoring-gallery/pull/232): 39 tests, of which 38 pass and 1 tracks a known defect.
 - #232 fixed the accessibility defects (#225), so the four axe scans are strict: any WCAG 2.1 A/AA violation fails.
 - #231 fixed the WebSocket bug (#230) behind the suite's only flake.
 
@@ -102,9 +102,11 @@ Budgets and measurements are in [06 - End-to-end (Electron) testing § Budgets](
 |---|---|---|
 | import reports progress for every photo and records each one exactly once | File › Import (stubbed dialog) on 25 photos: progress events 1…25 with total 25; "Completed: 25 files" and "Added: 25 · Skipped: 0"; the fake backend recorded each file name once | Pass |
 | a failed photo is reported and the rest of the import still completes consistently | one insert fails (HTTP 500): "Added: 24", "Errors:" lists that photo, the other 24 recorded once, progress reaches 25/25, the dialog closes | Pass |
-| a running import can be cancelled and keeps what it imported | Cancel during a 400-photo import shows "Import cancelled after N of 400 files"; the Added count equals the photos the fake backend recorded, each once, fewer than 400; the dialog then closes | Pass (was [#228](https://github.com/synthet/image-scoring-gallery/issues/228)); sync and backup cancel: [#238](https://github.com/synthet/image-scoring-gallery/issues/238) |
+| a running import can be cancelled and keeps what it imported | Cancel during a 400-photo import shows "Import cancelled after N of 400 files"; the Added count equals the photos the fake backend recorded, each once, fewer than 400; the dialog then closes | Pass (was [#228](https://github.com/synthet/image-scoring-gallery/issues/228)); cancel for backup: [#238](https://github.com/synthet/image-scoring-gallery/issues/238) |
+| sync copies every photo intact and records each one once | File › Sync on 25 `.NEF`-named photos: every photo in the library is byte-identical to its source, and each was recorded once | Pass |
+| a running sync can be cancelled, leaves no partial files, and the next sync copies the rest | Cancel during a 300-photo sync: "Sync cancelled"; no `.part` files; copied photos are whole and each has its row; fewer than 300 copied. A second sync then brings all 300 in, with nothing recorded twice | Pass (#238) |
 
-Sync and backup have no end-to-end test. Sync reads only `.nef` files, and backup selects photos by score from the database.
+Backup has no end-to-end test: it selects photos by score from the database.
 
 ## Contract layer (Vitest)
 

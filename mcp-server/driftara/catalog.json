@@ -6396,6 +6396,45 @@
       "notes": []
     },
     {
+      "action_id": "ipc.sync.cancel",
+      "source": "ipc",
+      "category": "ipc.sync",
+      "title": "sync: cancel",
+      "description": "Electron IPC channel 'sync:cancel', window.electron.syncCancel() in the renderer (registerSyncHandlers.ts).",
+      "tags": [
+        "cancel",
+        "ipc",
+        "sync"
+      ],
+      "aliases": [
+        "sync:cancel"
+      ],
+      "intent_examples": [
+        "stop the running sync"
+      ],
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "tier": "write",
+      "native_dry_run": false,
+      "executor": {
+        "kind": "ipc",
+        "channel": "sync:cancel",
+        "params": [],
+        "wrapped": true,
+        "file": "electron/ipc/registerSyncHandlers.ts"
+      },
+      "legacy_tool_name": null,
+      "canonical_docs": [
+        "docs/technical/DRIFTARA_MCP.md"
+      ],
+      "notes": [
+        "Stops new copies; photos already copied are kept and imported. Run sync again to copy the rest."
+      ]
+    },
+    {
       "action_id": "ipc.sync.preview",
       "source": "ipc",
       "category": "ipc.sync",

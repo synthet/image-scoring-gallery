@@ -19,6 +19,8 @@ export interface FakeBackend {
     requests: FakeRequest[];
     /** Add a handler for SQL queries; later handlers win. A handler that throws answers HTTP 500. */
     onSql: (handler: SqlHandler) => void;
+    /** Delay every SQL answer from now on, so a long operation can be interrupted reliably. */
+    slowQueries: (ms: number) => void;
     close: () => Promise<void>;
 }
 
@@ -31,6 +33,7 @@ export interface FakeBackend {
 export async function startFakeBackend(): Promise<FakeBackend> {
     const requests: FakeRequest[] = [];
     const handlers: SqlHandler[] = [];
+    let queryDelayMs = 0;
 
     const server = http.createServer((req, res) => {
         const chunks: Buffer[] = [];
@@ -51,8 +54,10 @@ export async function startFakeBackend(): Promise<FakeBackend> {
             requests.push({ method: req.method ?? 'GET', path, sql, params });
 
             const send = (status: number, body: unknown) => {
-                res.writeHead(status, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify(body));
+                setTimeout(() => {
+                    res.writeHead(status, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(body));
+                }, path === '/api/db/query' ? queryDelayMs : 0);
             };
             if (path === '/api/health' || path === '/health') return send(200, { status: 'ok' });
             if (path === '/api/db/query' && sql !== null) {
@@ -97,6 +102,7 @@ export async function startFakeBackend(): Promise<FakeBackend> {
         url: `http://127.0.0.1:${port}`,
         requests,
         onSql: (handler) => handlers.push(handler),
+        slowQueries: (ms) => { queryDelayMs = ms; },
         close: () => new Promise<void>((resolve) => {
             for (const s of sockets) s.destroy();
             server.closeAllConnections();

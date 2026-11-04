@@ -491,6 +491,8 @@ function createHttpBridge(): Window['electron'] {
 
         syncPreview: (sourcePath) => get<SyncPreviewResult>('/sync/preview', { sourcePath }),
         syncRun: (sourcePath, pickedCandidates) => post<SyncRunResult>('/sync/run', { sourcePath, pickedCandidates }),
+        // Browser mode syncs on the server in one request; there is nothing to cancel from here.
+        syncCancel: () => Promise.resolve(false),
 
         backupCheckTarget: () => Promise.resolve(null),
         backupPreview: () =>
@@ -654,6 +656,7 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
             errors: [],
             candidates: [],
         }),
+    syncCancel: () => Promise.resolve(false),
     syncRun: () =>
         Promise.resolve({
             scanned: 0,

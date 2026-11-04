@@ -545,6 +545,8 @@ export interface SyncRunResult {
     folders: number;
     errors: string[];
     thresholdDate: string | null;
+    /** True when sync:cancel stopped the copying early; the counts cover what was done before it. */
+    cancelled?: boolean;
     processing?: Array<{
         method: 'api' | 'queue' | 'none';
         jobId?: string | number;

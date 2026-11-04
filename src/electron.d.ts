@@ -215,6 +215,8 @@ declare global {
             onSyncSourceSelected: (callback: (sourcePath: string) => void) => () => void;
             syncPreview: (sourcePath: string) => Promise<SyncPreviewResult>;
             syncRun: (sourcePath: string, pickedCandidates?: SyncCandidate[]) => Promise<SyncRunResult>;
+            /** Asks a running sync to stop starting new copies; false when none is running. */
+            syncCancel: () => Promise<boolean>;
             onSyncProgress: (callback: (data: { phase: string; current: number; total: number; detail: string }) => void) => () => void;
 
             // ── Backup ──────────────────────────────────────────────────

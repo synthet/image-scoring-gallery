@@ -14,6 +14,7 @@ import type {
   SyncRunResult,
 } from '../types';
 import * as db from '../db';
+import { copyFileAtomic } from '../atomicCopy';
 import { resolveDriveId } from '../driveIdentity';
 import { createStageLog } from '../stageLog';
 import {
@@ -184,7 +185,8 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
       async function runSyncFromSource(
           sourcePath: string,
           dryRun: boolean,
-          pickedCandidates?: SyncCandidate[]
+          pickedCandidates?: SyncCandidate[],
+          signal?: AbortSignal,
       ): Promise<SyncFromSourceResult> {
           const currentConfig = loadConfig();
           const destRoot = (currentConfig?.sync?.destinationRoot || 'D:\\Photos').replace(/\//g, '\\');
@@ -300,8 +302,14 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
           const processPhase = dryRun ? 'preview' : 'copying';
           let processedCount = 0;
           const concurrencyLimit = 15; // Safe parallelism for exiftool + DB queries
+          // sync:cancel stops new copies; a copy already running finishes (#238).
+          let stoppedEarly = false;
 
           for (let batchStart = 0; batchStart < allFiles.length; batchStart += concurrencyLimit) {
+              if (signal?.aborted) {
+                  stoppedEarly = true;
+                  break;
+              }
               const batch = allFiles.slice(batchStart, batchStart + concurrencyLimit);
 
               await Promise.all(batch.map(async (filePath, idxInBatch) => {
@@ -474,8 +482,12 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                                   imageUuid,
                               });
                           } else {
+                              if (signal?.aborted) {
+                                  stoppedEarly = true;
+                                  return;
+                              }
                               await fs.promises.mkdir(destDir, { recursive: true });
-                              await fs.promises.copyFile(filePath, destFile);
+                              await copyFileAtomic(filePath, destFile);
                               copied++;
                               pendingImports.set(destFile, { imageUuid });
                           }
@@ -527,7 +539,8 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                       sync: {
                           lastSourceRoot: sourcePath,
                           lastWatermark: thresholdDate,
-                          lastSyncAt: dryRun ? priorSession?.sync?.lastSyncAt : nowIso,
+                          // A cancelled run wasn't a full sync, so it keeps the previous time.
+                          lastSyncAt: dryRun || stoppedEarly ? priorSession?.sync?.lastSyncAt : nowIso,
                           seen: mergedSeen,
                       },
                       backup: priorSession?.backup,
@@ -568,6 +581,7 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
               };
           }
 
+          // This phase also runs after a cancel, so every photo that was copied gets its DB row.
           const pendingEntries = Array.from(pendingImports.entries());
           const foldersTouched = new Set(pendingEntries.map(([fp]) => path.dirname(fp)));
           log.stage('import phase starting', {
@@ -652,7 +666,7 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
               }
           }
 
-          log.stage('run complete', {
+          log.stage(stoppedEarly ? 'run cancelled' : 'run complete', {
               scanned: totalScanned,
               copied,
               imported,
@@ -662,7 +676,7 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
               totalSec: (log.totalMs() / 1000).toFixed(1),
           });
           getMainWindow()?.webContents.send('sync:progress', {
-              phase: 'done', current: 0, total: 0, detail: 'Sync complete'
+              phase: 'done', current: 0, total: 0, detail: stoppedEarly ? 'Sync cancelled' : 'Sync complete'
           });
 
           return {
@@ -675,8 +689,18 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
               errors,
               thresholdDate,
               processing,
+              cancelled: stoppedEarly,
           };
       }
+
+      // The running sync, if any; sync:cancel stops it between files (#238).
+      let runningSync: AbortController | null = null;
+
+      ipcMain.handle('sync:cancel', wrapIpcHandler(async () => {
+          if (!runningSync) return false;
+          runningSync.abort();
+          return true;
+      }));
 
       ipcMain.handle('sync:preview', wrapIpcHandler(async (_, sourcePath: string) => {
           if (!sourcePath || typeof sourcePath !== 'string') {
@@ -723,8 +747,10 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
           assertSyncRunAllowed(syncGuards);
           syncGuards.setSyncRunInProgress(true);
           rebuildApplicationMenu();
+          const controller = new AbortController();
+          runningSync = controller;
           try {
-              const out = await runSyncFromSource(sourcePath, false, pickedCandidates);
+              const out = await runSyncFromSource(sourcePath, false, pickedCandidates, controller.signal);
               if (out.dryRun) {
                   throw new Error('Internal: expected sync result');
               }
@@ -737,8 +763,10 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                   errors: out.errors,
                   thresholdDate: out.thresholdDate,
                   processing: out.processing,
+                  cancelled: out.cancelled,
               };
           } finally {
+              runningSync = null;
               syncGuards.setSyncRunInProgress(false);
               rebuildApplicationMenu();
           }

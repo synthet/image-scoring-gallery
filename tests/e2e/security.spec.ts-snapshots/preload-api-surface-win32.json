@@ -90,6 +90,7 @@
     "setShowEyes",
     "setShowFocusPoint",
     "setSingleImageViewOpen",
+    "syncCancel",
     "syncPreview",
     "syncRun",
     "updateImageDetails"
