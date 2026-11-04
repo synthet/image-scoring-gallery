@@ -29,10 +29,10 @@
 | [.cursor/rules/agent-memory.mdc](../.cursor/rules/agent-memory.mdc) | Project memory rule | governance | active | backend twin | Scripts in sibling backend |
 | [.agent-memory/CURSOR_USAGE.md](../.agent-memory/CURSOR_USAGE.md) | Memory pointer stub | governance | active | backend `.agent-memory/` | No local dream engine |
 | [.cursor/agents/*.md](../.cursor/agents/) | Subagents | coding | active | AGENTS.md | Sync `.claude/agents/` |
-| [.cursor/rules/external-cli-subagents.mdc](../.cursor/rules/external-cli-subagents.mdc) | External Codex/Gemini review safety | governance | active | subagent-orchestrator | Intent-only pack; enforced by the harness `PreToolUse(run_subagent)` hook |
+| [.cursor/rules/external-cli-subagents.mdc](../.cursor/rules/external-cli-subagents.mdc) | External Codex/Gemini review safety | governance | active | synthet-agent-swarm | Intent-only pack; enforced by the harness `PreToolUse(run_subagent)` hook |
 | [.cursor/rules/graphify.mdc](../.cursor/rules/graphify.mdc) | Soft Graphify architecture-graph guidance (`alwaysApply: false`) | coding | active | Graphify-Labs/graphify | Intent-only: served by the harness hook, not mirrored; optional third-party CLI |
-| [.cursor/skills/subagent-review/](../.cursor/skills/subagent-review/) | MCP external review workflow | workflow | active | `../subagent-orchestrator` | Mirror `.claude/skills/` |
-| [docs/technical/EXTERNAL_CLI_REVIEWS.md](../docs/technical/EXTERNAL_CLI_REVIEWS.md) | Setup for imgscore-el-subagent-orchestrator MCP | cross-repo | active | backend EXTERNAL_CLI_REVIEWS | None |
+| [.cursor/skills/subagent-review/](../.cursor/skills/subagent-review/) | MCP external review workflow | workflow | active | `../synthet-agent-swarm` | Mirror `.claude/skills/` |
+| [docs/technical/EXTERNAL_CLI_REVIEWS.md](../docs/technical/EXTERNAL_CLI_REVIEWS.md) | Setup for synthet-agent-swarm MCP | cross-repo | active | backend EXTERNAL_CLI_REVIEWS | None |
 | [.claude/commands/*.md](../.claude/commands/) | Claude commands | workflow | active | .cursor/commands | Keep aligned |
 | [.claude/skills/backlog-queue/SKILL.md](../.claude/skills/backlog-queue/SKILL.md) | Board contract mirror | cross-repo | duplicate-of | .cursor/skills/backlog-queue | Same-PR sync |
 | [.claude/agents/*.md](../.claude/agents/) | Subagent mirrors | coding | duplicate-of | .cursor/agents | Same-PR sync |

@@ -1,19 +1,19 @@
 ---
 type: "Technical Reference"
-title: "External CLI reviews (subagent-orchestrator)"
+title: "External CLI reviews (synthet-agent-swarm)"
 description: "Optional review-only second opinions from Codex or Gemini CLI for this gallery workspace."
 resource: "docs/technical/EXTERNAL_CLI_REVIEWS.md"
 tags: ["gallery-docs", "technical"]
 timestamp: 2026-06-16T00:00:00Z
 ---
 
-# External CLI reviews (subagent-orchestrator)
+# External CLI reviews (synthet-agent-swarm)
 
 Optional **review-only** second opinions from **Codex** or **Gemini CLI** for this gallery workspace.
 
 ## Setup
 
-Same as the backend doc: sibling **`../subagent-orchestrator`**, build `agent-orchestrator`, reload MCP.
+Same as the backend doc: sibling **`../synthet-agent-swarm`**, build `agent-orchestrator`, reload MCP.
 
 **Canonical setup and safety:** [image-scoring-pipeline EXTERNAL_CLI_REVIEWS.md](https://github.com/synthet/image-scoring-pipeline/blob/main/docs/technical/EXTERNAL_CLI_REVIEWS.md) (or `../image-scoring-pipeline/docs/technical/EXTERNAL_CLI_REVIEWS.md` when cloned as siblings).
 
@@ -21,7 +21,7 @@ Same as the backend doc: sibling **`../subagent-orchestrator`**, build `agent-or
 
 | Key | Purpose |
 |-----|---------|
-| `imgscore-el-subagent-orchestrator` | `detect_subagents`, `run_subagent` |
+| `synthet-agent-swarm` | `detect_subagents`, `run_subagent` |
 
 Outputs: **`.agent-runs/`** under this repo (gitignored).
 

@@ -44,7 +44,7 @@ environment.json
 # driftara / gallery live MCP server lock (written by the app while it runs)
 gallery-mcp.lock
 
-# External sub-agent run outputs (subagent-orchestrator MCP)
+# External sub-agent run outputs (synthet-agent-swarm MCP)
 .agent-runs/
 
 # Graphify local knowledge graph (optional; build with `graphify .`)

@@ -28,7 +28,7 @@
 
 - **execute_code** (when enabled on backend SSE) runs in the **WebUI process** — high risk on shared hosts. Prefer read-only gallery/backend MCP tools for triage.
 
-## External CLI reviews (subagent-orchestrator)
+## External CLI reviews (synthet-agent-swarm)
 
 - Review-only: never set `allowWrites: true` on `run_subagent` (rejected in v0.1).
 - Selected source files are sent to **Codex / Gemini** per their provider policies; do not use for proprietary code you cannot export.
