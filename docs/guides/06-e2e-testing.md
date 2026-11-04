@@ -25,7 +25,9 @@ npx playwright test security --update-snapshots                # after a reviewe
 
 Rebuild (`npx tsc -p electron/tsconfig.json && npx vite build`, or just `npm run test:e2e`) after changing app code; `npx playwright test` alone runs the existing build.
 
-- One worker; Electron can't run headless, so each test opens a real window. These windows don't take focus and most live only a few seconds.
+- One worker. Windows render offscreen, so a run shows nothing on the desktop and doesn't take focus. A test fails if it leaves a window on screen. The harness holds them at 10 fps, because at 60 fps painting competed with import and sync in the main process and runs slowed.
+- To watch a run or use `--debug`, set `GALLERY_E2E_HEADED=1`; the windows then open normally.
+- Offscreen rendering uses the same page, but not the native window's drawing path. A problem only a real window would show, such as GPU drawing or window chrome, needs a headed run.
 - 39 tests, about 2 minutes including the build on the reference Windows machine. Retries: none locally, 1 in CI.
 - On failure, Playwright keeps the trace, and the fixture attaches a window screenshot and the main-process log.
 

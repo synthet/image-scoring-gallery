@@ -1,5 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { readE2eOverrides, resolveConfigPath } from './e2eHooks';
+import { e2eWindowOptions, readE2eOverrides, resolveConfigPath } from './e2eHooks';
+
+describe('e2eWindowOptions', () => {
+    const options = { width: 800, webPreferences: { contextIsolation: true } };
+
+    it('leaves a normal launch alone', () => {
+        expect(e2eWindowOptions(options, {})).toEqual(options);
+        expect(e2eWindowOptions(options, { GALLERY_E2E_HEADED: '1' })).toEqual(options);
+    });
+
+    it('hides windows during an e2e run, keeps their options, and stops throttling them', () => {
+        expect(e2eWindowOptions(options, { GALLERY_E2E: '1' })).toEqual({
+            width: 800, show: false, webPreferences: { contextIsolation: true, offscreen: true, backgroundThrottling: false },
+        });
+    });
+
+    it('shows windows when a debugging run asks for them', () => {
+        expect(e2eWindowOptions(options, { GALLERY_E2E: '1', GALLERY_E2E_HEADED: '1' })).toEqual(options);
+    });
+});
 
 describe('readE2eOverrides', () => {
     it('is inert without GALLERY_E2E=1', () => {

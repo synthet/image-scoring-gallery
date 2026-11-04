@@ -1,8 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
 /**
- * Electron e2e (tests/e2e). Runs the built app (`npm run test:e2e` builds first), one app at a time:
- * Electron cannot run headless, so every test opens a real window.
+ * Electron e2e (tests/e2e). Runs the built app (`npm run test:e2e` builds first), one app at a time.
+ * Windows render offscreen, so a run shows nothing on the desktop; GALLERY_E2E_HEADED=1 shows them.
  */
 export default defineConfig({
     testDir: 'tests/e2e',

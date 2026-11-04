@@ -31,6 +31,7 @@ export const test = base.extend<Fixtures>({
             if (testInfo.status !== testInfo.expectedStatus && !l.page.isClosed()) {
                 await testInfo.attach('window', { body: await l.page.screenshot().catch(() => Buffer.alloc(0)), contentType: 'image/png' });
             }
+            const visibleWindows = await countVisibleWindows(l);
             await closeApp(l).catch(() => undefined);
             await testInfo.attach('main-process.log', { body: l.mainLog.join('\n'), contentType: 'text/plain' });
             const unexpected = [
@@ -39,9 +40,16 @@ export const test = base.extend<Fixtures>({
             ].filter((e) => !allowErrors.some((a) => e.includes(a)));
             if (testInfo.status === testInfo.expectedStatus) {
                 expect(unexpected, 'unexpected page or main-process errors').toEqual([]);
+                expect(visibleWindows, 'a window was shown during a hidden run').toBe(0);
             }
         }
     },
 });
+
+/** Windows on screen at the end of a test. Always 0 when GALLERY_E2E_HEADED=1 asks for them, or the app has quit. */
+async function countVisibleWindows({ app }: Launched): Promise<number> {
+    if (process.env.GALLERY_E2E_HEADED === '1') return 0;
+    return app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().filter((w) => w.isVisible()).length).catch(() => 0);
+}
 
 export { expect };

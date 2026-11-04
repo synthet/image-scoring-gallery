@@ -9,6 +9,7 @@ async function resize(app: ElectronApplication, page: Page, width: number, heigh
     await app.evaluate(({ BrowserWindow }, [w, h]) => BrowserWindow.getAllWindows()[0].setContentSize(w, h), [width, height]);
     // Electron may round the content size by one DIP.
     await expect.poll(() => page.evaluate(() => window.innerWidth)).toBeLessThanOrEqual(width + 1);
+    await expect.poll(() => page.evaluate(() => window.innerHeight)).toBeLessThanOrEqual(height + 1);
 }
 
 /** The page never scrolls sideways: everything fits the viewport width. */
@@ -22,15 +23,15 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 /** The element is inside the viewport and is what a click at its centre would hit (not covered by an overlay). */
 async function expectUncovered(locator: Locator, what: string): Promise<void> {
     await expect(locator, what).toBeVisible();
-    const hit = await locator.evaluate((el) => {
+    // Polled, because the first read can land while the layout is still settling after a resize.
+    await expect.poll(() => locator.evaluate((el) => {
         const r = el.getBoundingClientRect();
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const inViewport = r.left >= 0 && r.top >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight;
         const top = document.elementFromPoint(x, y);
         return { inViewport, onTop: !!top && (el === top || el.contains(top)) };
-    });
-    expect(hit, `${what} is in the viewport and not covered`).toEqual({ inViewport: true, onTop: true });
+    }), { message: `${what} is in the viewport and not covered`, timeout: 5_000 }).toEqual({ inViewport: true, onTop: true });
 }
 
 test.describe('Journey 6: layout at small sizes and 150% scaling', () => {
