@@ -17,7 +17,7 @@ Existing terminals and agent shells may still see the old PATH until restart.
 |------|----------|-------------|
 | **Shell CLI** | `fd`, `rg`, `bat`, `jq`, `yq`, `just`, `ruff`, `sg` | On PATH in agent shell |
 | **Project MCP** | `is-ui-mcp`, optional `fff-gallery` | [`.cursor/mcp.json`](../../../mcp.example.json) + `cd mcp-server && npm run build:registry` |
-| **User MCP** | `github`, `subagent-orchestrator` | `~/.cursor/mcp.json` per [mcp.user.example.json](../../../mcp.user.example.json) — **not** fff |
+| **User MCP** | `github`, `synthet-agent-swarm` | `~/.cursor/mcp.json` per [mcp.user.example.json](../../../mcp.user.example.json) — **not** fff |
 | **IDE built-in** | Grep, SemanticSearch, Glob | Always available in Cursor; no install |
 | **Project-local** | `eslint`, `vitest` | `npm install` in repo root |
 

@@ -88,7 +88,7 @@ See [WIKI_SCHEMA.md](WIKI_SCHEMA.md) for the canonical field rules and maintenan
 - [technical/DRIFTARA_MCP.md](technical/DRIFTARA_MCP.md) - driftara, the single MCP server + CLI: search, resolve, execute, catalog sources, tier policy, setup.
 - [technical/BACKEND_INDEPENDENCE.md](technical/BACKEND_INDEPENDENCE.md) - which features need the Python backend, which run locally, and the backend connection flag / reconnect menu.
 - [technical/DATABASE_REFACTOR_ANALYSIS.md](technical/DATABASE_REFACTOR_ANALYSIS.md) - analysis of backend `modules/db.py` decomposition (pointer).
-- [technical/EXTERNAL_CLI_REVIEWS.md](technical/EXTERNAL_CLI_REVIEWS.md) - Codex/Gemini review via subagent-orchestrator MCP.
+- [technical/EXTERNAL_CLI_REVIEWS.md](technical/EXTERNAL_CLI_REVIEWS.md) - Codex/Gemini review via synthet-agent-swarm MCP.
 - [api-contract/](../api-contract/) - synced API contract snapshot (`openapi.json` from backend).
 
 ## Planning
