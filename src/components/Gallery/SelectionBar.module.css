@@ -1,0 +1,36 @@
+/* Selection toolbar above the photo grid (#239). */
+.bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-bg-elevated);
+    border-bottom: 1px solid var(--color-accent);
+}
+
+.count {
+    margin-right: auto;
+    font-size: var(--font-base);
+    color: var(--color-text-primary);
+}
+
+.error {
+    font-size: var(--font-sm);
+    color: var(--color-danger);
+}
+
+.action {
+    padding: var(--space-xs) var(--space-md);
+    border-radius: 4px;
+    border: 1px solid var(--color-accent);
+    background: transparent;
+    color: var(--color-text-primary);
+    font-size: var(--font-sm);
+    cursor: pointer;
+}
+
+.action:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+}

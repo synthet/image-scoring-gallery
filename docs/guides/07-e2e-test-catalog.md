@@ -92,7 +92,9 @@ axe-core 4.14 with WCAG 2.1 A and AA tags, run in-page with `setLegacyMode(true)
 |---|---|---|
 | a 3000-photo folder virtualizes and shows its first thumbnail within budget | first loaded thumbnail within the budget (annotation `first-thumbnail-ms`); "3000 images"; the last photo is reached by wheel scrolling (annotation `scroll-to-end-ms`); at most 120 cards rendered at the top, middle and end | Pass |
 | keyboard navigation reaches photos outside the rendered window | with the grid focused, ArrowRight/ArrowLeft move keyboard focus between card slots; End focuses the last of 3,000 photos, loading pages until it is there, with at most 120 cards rendered; Home returns; Enter opens the viewer | Pass (was [#227](https://github.com/synthet/image-scoring-gallery/issues/227)) |
-| select-all selects every photo, not only the rendered ones | Ctrl/Cmd+A shows "3000 selected" | Known defect [#239](https://github.com/synthet/image-scoring-gallery/issues/239) (no selection model or bulk actions yet) |
+| select-all selects every photo, not only the rendered ones | Ctrl/Cmd+A shows "3000 selected" | Passes |
+| select-all exports every photo but the one left out, including photos never rendered | Ctrl/Cmd+A, Ctrl+click one photo off, Export originals: 2,999 files in the destination, without the excluded one; the source keeps all 3,000 | Passes |
+| a running export can be cancelled and leaves only whole copies | Cancel during a 3,000-photo export: fewer files than selected, no `.part` files, selection kept | Passes |
 
 Budgets and measurements are in [06 - End-to-end (Electron) testing § Budgets](06-e2e-testing.md#budgets-journey-7).
 
@@ -107,6 +109,18 @@ Budgets and measurements are in [06 - End-to-end (Electron) testing § Budgets](
 | a running sync can be cancelled, leaves no partial files, and the next sync copies the rest | Cancel during a 300-photo sync: "Sync cancelled"; no `.part` files; copied photos are whole and each has its row; fewer than 300 copied. A second sync then brings all 300 in, with nothing recorded twice | Pass (#238) |
 
 Backup has no end-to-end test: it selects photos by score from the database.
+
+## Journey 9: selection and export (`selection.spec.ts`)
+
+| Test | Asserts | Status |
+|---|---|---|
+| Ctrl+click and Shift+click select, Escape clears, and a plain click still opens the photo | counts 1, 3, 2; the grid still fits the window with the bar showing; after Escape, a plain click opens the viewer | Passes |
+| Escape clears a selection first, and only the next Escape leaves the folder | the first Escape keeps the folder open; the second goes to the parent | Passes |
+| Space toggles the focused photo | Space selects, and Space again clears | Passes |
+| export copies the selected originals, overwrites nothing, and clears the selection | bytes match the source, an existing file survives and the copy becomes `DSC_0002 (2).JPG`, the source folder is unchanged | Passes |
+| cancelling the folder dialog copies nothing and keeps the selection | the selection stays and the action is available again | Passes |
+| library view: select-all exports photos beyond the loaded pages | 120 rows from the fake database, loaded 50 at a time: all 120 files are exported | Passes |
+| the renderer cannot export a file outside the gallery | a direct `exportOriginals` call on a file outside the gallery copies nothing | Passes |
 
 ## Contract layer (Vitest)
 

@@ -37,6 +37,7 @@ import type {
     DuplicateResponse,
     ExportImageContext,
     ExportExifResult,
+    ExportOriginalsResult,
     FileImageMetadataResult,
     FolderRow,
     FsReadDirResult,
@@ -208,6 +209,11 @@ declare global {
             }>;
             /** Asks a running import to stop after the current photo; false when none is running. */
             importCancel: () => Promise<boolean>;
+            /** Asks for a folder and copies the files there; null when the folder dialog is cancelled. */
+            exportOriginals: (filePaths: string[]) => Promise<ExportOriginalsResult | null>;
+            /** Asks a running export to stop after the current file; false when none is running. */
+            exportOriginalsCancel: () => Promise<boolean>;
+            onExportOriginalsProgress: (callback: (data: { current: number; total: number }) => void) => () => void;
             onImportProgress: (callback: (data: { current: number; total: number; path?: string }) => void) => () => void;
             onShowNotification: (callback: (data: { message: string; type: 'info' | 'success' | 'warning' | 'error' }) => void) => () => void;
 

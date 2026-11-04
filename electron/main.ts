@@ -23,12 +23,14 @@ import { registerDbHandlers } from './ipc/registerDbHandlers';
 import { registerBackupHandlers } from './ipc/registerBackupHandlers';
 import { registerSyncHandlers } from './ipc/registerSyncHandlers';
 import { registerImportHandlers } from './ipc/registerImportHandlers';
+import { registerExportHandlers } from './ipc/registerExportHandlers';
+import { isServableMediaPath } from './fsMetadataHelpers';
 import { registerNefFsHandlers } from './ipc/registerNefFsHandlers';
 import { registerStudyHandlers } from './ipc/registerStudyHandlers';
 import { registerAppHandlers } from './ipc/registerAppHandlers';
 import { registerSystemHandlers } from './ipc/registerSystemHandlers';
 import { registerApiHandlers } from './ipc/registerApiHandlers';
-import { registerMediaProtocol, registerMediaScheme } from './ipc/registerMediaProtocol';
+import { createGalleryMediaAccess, registerMediaProtocol, registerMediaScheme } from './ipc/registerMediaProtocol';
 import { createApplicationMenu } from './menu';
 import { createBackendConnectionMonitor } from './backendConnection';
 import { DEFAULT_VIEW_PREFS, loadViewPrefs, saveViewPrefs } from './viewPrefsStore';
@@ -448,6 +450,13 @@ async function startFullApplication(): Promise<void> {
         apiService,
         exiftool,
         getMainWindow: () => mainWindow,
+    });
+
+    const isGalleryMedia = createGalleryMediaAccess({ electronDirname: __dirname, config });
+    registerExportHandlers({
+        ipcMain,
+        getMainWindow: () => mainWindow,
+        isGalleryFile: async (file) => isServableMediaPath(file) && isGalleryMedia(file),
     });
 
     registerSyncHandlers({

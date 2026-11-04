@@ -489,6 +489,11 @@ function createHttpBridge(): Window['electron'] {
         // Browser mode imports on the server in one request; there is nothing to cancel from here.
         importCancel: () => Promise.resolve(false),
 
+        // Export picks a local folder, which only the desktop app can do.
+        exportOriginals: () => Promise.reject(new Error('Export originals needs the desktop app')),
+        exportOriginalsCancel: () => Promise.resolve(false),
+        onExportOriginalsProgress: noop,
+
         syncPreview: (sourcePath) => get<SyncPreviewResult>('/sync/preview', { sourcePath }),
         syncRun: (sourcePath, pickedCandidates) => post<SyncRunResult>('/sync/run', { sourcePath, pickedCandidates }),
         // Browser mode syncs on the server in one request; there is nothing to cancel from here.

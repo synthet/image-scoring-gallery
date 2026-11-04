@@ -5,6 +5,8 @@ import { useFolders } from './hooks/useFolders';
 import { FolderTree } from './components/Tree/FolderTree';
 import type { Folder } from './components/Tree/treeUtils';
 import { GalleryGrid } from './components/Gallery/GalleryGrid';
+import { SelectionBar } from './components/Gallery/SelectionBar';
+import { useGridSelection } from './hooks/useGridSelection';
 import { FilterPanel } from './components/Sidebar/FilterPanel';
 import type { FilterState } from './components/Sidebar/FilterPanel';
 import { ImageViewer } from './components/Viewer/ImageViewer';
@@ -460,6 +462,17 @@ function AppContent() {
       : (stacksMode && !activeStackId)
         ? stacksTotalCount
         : (activeStackId ? (activeStackInfo?.imageCount || stackImages.length) : totalCount);
+  // Multi-selection (#239) works on the plain photo grid, where the total and the query are the grid's own.
+  const selectionEnabled = toolView === null && !stacksMode && !hasSubStackCards && !representative.enabled
+    && activeStackId === null && activeSubStackId === null && !activeUngroupedSubStack;
+  const [selection, setSelection, clearSelection] = useGridSelection(
+    JSON.stringify([selectedFolderId, imageFilters, selectionEnabled]),
+  );
+  const fetchSelectionPage = useCallback(
+    (offset: number, limit: number) => bridge.getImages({ limit, offset, folderId: selectedFolderId, ...imageFilters }),
+    [selectedFolderId, imageFilters],
+  );
+
   const currentTotalLabel = representative.enabled
     ? (representative.activeCard ? 'similar frames' : `representatives (${representative.hiddenCount} hidden)`)
     : hasSubStackCards
@@ -923,9 +936,20 @@ function AppContent() {
                     onFocusImage={setAgentHighlightImageId}
                   />
                 )}
+                {selectionEnabled && (
+                  <SelectionBar
+                    selection={selection}
+                    total={totalCount}
+                    loaded={images}
+                    fetchPage={fetchSelectionPage}
+                    onClear={clearSelection}
+                  />
+                )}
                 <GalleryGrid
                   key={`${selectedFolderId ?? 'all'}-${activeStackId ?? 'none'}-${activeSubStackId ?? 'none'}-${activeUngroupedSubStack ? 'ungrouped' : 'grouped'}-${stacksMode ? 'stacks' : 'images'}-${hasSubStackCards ? 'substacks' : 'flat'}-${representative.enabled ? `rep-${representative.activeCard?.representativeId ?? 'cards'}` : 'norep'}`}
                   images={currentImages}
+                  selection={selection}
+                  onSelectionChange={selectionEnabled ? setSelection : undefined}
                   onSelect={handleImageClick}
                   onEndReached={activeStackId || representative.enabled ? undefined : loadMore}
                   representativeMode={representative.enabled && !representative.activeCard}

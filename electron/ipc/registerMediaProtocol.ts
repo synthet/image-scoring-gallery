@@ -24,10 +24,10 @@ export function registerMediaScheme(): void {
     ]);
 }
 
-export function registerMediaProtocol(deps: MediaProtocolDeps): void {
-    const { electronDirname, config } = deps;
+/** Whether a file belongs to the gallery: the check media:// uses, shared with file operations. */
+export function createGalleryMediaAccess({ electronDirname, config }: MediaProtocolDeps): (file: string) => Promise<boolean> {
     const projectRoot = path.resolve(electronDirname, '..');
-    const isAllowedMediaFile = createMediaAccess({
+    return createMediaAccess({
         allowedRoots: () => [
             ...thumbnailRoots(projectRoot, config?.paths?.thumbnail_base_dir),
             readLightModeRootFromConfig(electronDirname),
@@ -36,6 +36,12 @@ export function registerMediaProtocol(deps: MediaProtocolDeps): void {
         isLibraryFile: async (file) => (await db.findImageByFilePath(file)) != null,
         realPath: (p) => fs.promises.realpath(p),
     });
+}
+
+export function registerMediaProtocol(deps: MediaProtocolDeps): void {
+    const { electronDirname, config } = deps;
+    const projectRoot = path.resolve(electronDirname, '..');
+    const isAllowedMediaFile = createGalleryMediaAccess(deps);
 
     protocol.handle('media', async (request) => {
         if (debugGalleryMedia()) {

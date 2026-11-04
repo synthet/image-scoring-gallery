@@ -2,6 +2,7 @@ import React from 'react';
 import { GalleryGrid } from '../Gallery/GalleryGrid';
 import type { Folder } from '../Tree/treeUtils';
 import type { FsImageRow } from './mapFsEntryToImageRow';
+import type { GridSelection } from '../../utils/gridSelection';
 
 interface FsImageGridProps {
     images: FsImageRow[];
@@ -11,6 +12,8 @@ interface FsImageGridProps {
     onSelectFolder: (folder: Folder) => void;
     onNavigateToParent?: () => void;
     viewerOpen: boolean;
+    selection: GridSelection;
+    onSelectionChange: (selection: GridSelection) => void;
 }
 
 /**
@@ -24,6 +27,8 @@ export const FsImageGrid: React.FC<FsImageGridProps> = ({
     onSelectFolder,
     onNavigateToParent,
     viewerOpen,
+    selection,
+    onSelectionChange,
 }) => {
     return (
         <GalleryGrid
@@ -34,6 +39,8 @@ export const FsImageGrid: React.FC<FsImageGridProps> = ({
             onSelectFolder={onSelectFolder}
             onNavigateToParent={onNavigateToParent}
             viewerOpen={viewerOpen}
+            selection={selection}
+            onSelectionChange={onSelectionChange}
             sortBy="score_technical"
             useGalleryThumbnail
         />

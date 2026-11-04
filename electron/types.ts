@@ -322,6 +322,14 @@ export interface FileImageMetadataResult {
     tags: Record<string, unknown>;
     detail: FileImageMetadataDetail;
 }
+/** Outcome of copying original files to a folder (#239). */
+export interface ExportOriginalsResult {
+    total: number;
+    copied: number;
+    failed: { file: string; error: string }[];
+    cancelled: boolean;
+}
+
 export interface ExportImageContext {
     imageBytes: number[];
     mimeType: string;

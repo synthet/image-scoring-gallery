@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { MainLayout } from '../Layout/MainLayout';
 import { FsSidebar } from './FsSidebar';
 import { FsImageGrid } from './FsImageGrid';
+import { SelectionBar } from '../Gallery/SelectionBar';
+import { useGridSelection } from '../../hooks/useGridSelection';
 import { LightModeConfig } from './LightModeConfig';
 import { useFsPagination } from './useFsPagination';
-import { fsPathToSyntheticId } from './mapFsEntryToImageRow';
+import { fsPathToSyntheticId, mapFsEntryToImageRow } from './mapFsEntryToImageRow';
 import type { FsImageRow } from './mapFsEntryToImageRow';
 import { ImageViewer } from '../Viewer/ImageViewer';
 import { NotificationTray } from '../Layout/NotificationTray';
@@ -70,6 +72,12 @@ export const FsGallery: React.FC = () => {
     const [folderCacheReload, setFolderCacheReload] = useState({ nonce: 0, folderPath: '' });
 
     const { sidebarOpen, toggleSidebar, closeSidebar } = useResponsiveSidebar();
+    const [selection, setSelection, clearSelection] = useGridSelection(selectedPath);
+    const fetchSelectionPage = useCallback(async (offset: number, limit: number) => {
+        const res = await bridge.readFsDir({ dirPath: selectedPath, offset, limit });
+        return res.images.map((im) => mapFsEntryToImageRow(im.path, im.name));
+    }, [selectedPath]);
+
     const { items, subDirectories, totalCount, loading, loadMore } = useFsPagination(
         selectedPath || null,
         folderCacheReload.nonce,
@@ -291,8 +299,18 @@ export const FsGallery: React.FC = () => {
                                     </p>
                                 </div>
                             ) : (
+                                <>
+                                <SelectionBar
+                                    selection={selection}
+                                    total={totalCount}
+                                    loaded={items}
+                                    fetchPage={fetchSelectionPage}
+                                    onClear={clearSelection}
+                                />
                                 <FsImageGrid
                                     images={items}
+                                    selection={selection}
+                                    onSelectionChange={setSelection}
                                     subfolders={subfolders}
                                     onSelect={handleImageClick}
                                     onEndReached={() => void loadMore()}
@@ -300,6 +318,7 @@ export const FsGallery: React.FC = () => {
                                     onNavigateToParent={canNavigateBack ? handleNavigateToParent : undefined}
                                     viewerOpen={!!openingImage}
                                 />
+                                </>
                             )}
                         </div>
                     ) : (
