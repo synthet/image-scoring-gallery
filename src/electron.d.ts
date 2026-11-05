@@ -74,6 +74,7 @@ export type {
     DuplicateResponse,
     ExportImageContext,
     ExportExifResult,
+    ExportOriginalsResult,
     FileImageMetadataResult,
     FolderRow,
     FsReadDirResult,
