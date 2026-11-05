@@ -95,6 +95,8 @@ describe('KeepOneReviewPage', () => {
 
         fireEvent.click(open);
         await waitFor(() => expect(load).toHaveBeenCalledTimes(1));
+        // The button is disabled while a load runs, so a second click needs the first load to finish.
+        await waitFor(() => expect(open).toHaveProperty('disabled', false));
         expect(screen.queryByRole('alert')).toBeNull();
 
         fireEvent.click(open);
