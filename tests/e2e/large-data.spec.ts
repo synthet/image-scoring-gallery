@@ -1,5 +1,7 @@
+import fs from 'node:fs';
 import path from 'node:path';
-import { setFolderModeRoot } from './harness';
+import type { Page } from '@playwright/test';
+import { setFolderModeRoot, stubOpenDialog, type E2eEnv, type Launched } from './harness';
 import { copyJpegs } from './fixtures';
 import { expect, test } from './fixture';
 
@@ -12,6 +14,18 @@ import { expect, test } from './fixture';
 const PHOTO_COUNT = 3_000;
 const FIRST_THUMBNAIL_BUDGET_MS = 4_000;
 const MAX_RENDERED_CARDS = 120;
+
+/** Opens the big folder and selects every photo with Ctrl/Cmd+A. */
+async function selectAllInBigFolder(launched: Launched, env: E2eEnv): Promise<Page> {
+    const { page } = launched;
+    await setFolderModeRoot(launched, env);
+    await page.getByText('big', { exact: true }).first().click();
+    await expect(page.getByTestId('virtuoso-item-list').getByTitle('DSC_0001.JPG')).toBeVisible();
+    await page.getByTestId('virtuoso-scroller').locator('..').focus();
+    await page.keyboard.press('ControlOrMeta+A');
+    await expect(page.getByText(`${PHOTO_COUNT} selected`)).toBeVisible({ timeout: 3_000 });
+    return page;
+}
 
 test.describe('Journey 7: large data', () => {
     test.describe.configure({ timeout: 120_000 });
@@ -99,14 +113,41 @@ test.describe('Journey 7: large data', () => {
     });
 
     test('select-all selects every photo, not only the rendered ones', async ({ env, launchApp }) => {
-        test.fail(true, '#239: the grid has no multi-selection or select-all yet');
+        await selectAllInBigFolder(await launchApp(), env);
+    });
+
+    test('select-all exports every photo but the one left out, including photos never rendered', async ({ env, launchApp }) => {
+        const dest = path.join(env.root, 'export');
+        fs.mkdirSync(dest);
         const launched = await launchApp();
-        const { page } = launched;
-        await setFolderModeRoot(launched, env);
-        await page.getByText('big', { exact: true }).first().click();
-        await expect(page.getByTestId('virtuoso-item-list').getByTitle('DSC_0001.JPG')).toBeVisible();
-        await page.getByTestId('virtuoso-scroller').locator('..').focus();
-        await page.keyboard.press('ControlOrMeta+A');
-        await expect(page.getByText(new RegExp(`${PHOTO_COUNT} selected`))).toBeVisible({ timeout: 3_000 });
+        const page = await selectAllInBigFolder(launched, env);
+        await page.getByTestId('virtuoso-item-list').getByTitle('DSC_0001.JPG').click({ modifiers: ['ControlOrMeta'] });
+        await expect(page.getByText(`${PHOTO_COUNT - 1} selected`)).toBeVisible();
+
+        await stubOpenDialog(launched.app, [dest]);
+        await page.getByRole('button', { name: 'Export originals…' }).click();
+        await expect(page.getByRole('toolbar', { name: 'Selected photos' })).toHaveCount(0, { timeout: 60_000 });
+
+        const copied = fs.readdirSync(dest);
+        expect(copied).toHaveLength(PHOTO_COUNT - 1);
+        expect(copied).not.toContain('DSC_0001.JPG');
+        expect(fs.readdirSync(path.join(env.photos, 'big'))).toHaveLength(PHOTO_COUNT);
+    });
+
+    test('a running export can be cancelled and leaves only whole copies', async ({ env, launchApp }) => {
+        const dest = path.join(env.root, 'export');
+        fs.mkdirSync(dest);
+        const launched = await launchApp();
+        const page = await selectAllInBigFolder(launched, env);
+
+        await stubOpenDialog(launched.app, [dest]);
+        await page.getByRole('button', { name: 'Export originals…' }).click();
+        await expect.poll(() => fs.readdirSync(dest).length, { timeout: 30_000 }).toBeGreaterThan(0);
+        await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+        await expect(page.getByText(`${PHOTO_COUNT} selected`)).toBeVisible({ timeout: 30_000 });
+
+        const copied = fs.readdirSync(dest);
+        expect(copied.length).toBeLessThan(PHOTO_COUNT);
+        expect(copied.filter((f) => f.endsWith('.part'))).toEqual([]);
     });
 });

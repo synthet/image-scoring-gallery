@@ -13,6 +13,7 @@ import type {
     DuplicateResponse,
     AppConfig,
     ExportImageContext,
+    ExportOriginalsResult,
     ExportExifResult,
     FsReadDirResult,
     FileImageMetadataResult,
@@ -456,6 +457,21 @@ contextBridge.exposeInMainWorld('electron', {
     importCancel: async () => {
         const response = await ipcRenderer.invoke('import:cancel');
         return unwrapEnvelope<boolean>(response);
+    },
+    exportOriginals: async (filePaths: string[]) => {
+        const response = await ipcRenderer.invoke('export:originals', filePaths);
+        return unwrapEnvelope<ExportOriginalsResult | null>(response);
+    },
+    exportOriginalsCancel: async () => {
+        const response = await ipcRenderer.invoke('export:originals-cancel');
+        return unwrapEnvelope<boolean>(response);
+    },
+    onExportOriginalsProgress: (callback: (data: { current: number; total: number }) => void) => {
+        const handler = (_: unknown, data: { current: number; total: number }) => callback(data);
+        ipcRenderer.on('export:originals-progress', handler);
+        return () => {
+            ipcRenderer.removeListener('export:originals-progress', handler);
+        };
     },
     onImportProgress: (callback: (data: { current: number; total: number; path?: string }) => void) => {
         const handler = (_: unknown, data: { current: number; total: number; path?: string }) => callback(data);

@@ -4,17 +4,22 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.32.0] — 2026-11-04
+
 ### Added
 - **End-to-end tests** (#221): `npm run test:e2e` builds the app and runs Playwright journeys on the real Electron window: startup, persistence, clean shutdown, security, accessibility (axe), small windows and 150% scaling, a 3,000-photo folder, and import. Each run gets a temporary profile, a generated config and a fake backend, so it never touches your settings, database or backend. Known defects (#223–#228) are recorded as expected failures. See [docs/guides/06-e2e-testing.md](docs/guides/06-e2e-testing.md).
-- **Keyboard navigation in the photo grid** (#227): With the grid focused, the arrow keys move between photos and rows, Home and End jump to the first and last photo (in folder mode End loads pages until it gets there), and Enter opens the focused photo. Select-all and multi-selection are tracked in #239.
+- **Keyboard navigation in the photo grid** (#227): With the grid focused, the arrow keys move between photos and rows, Home and End jump to the first and last photo, and Enter opens the focused photo. In folder mode End loads pages as it goes, but in a large folder it can stop early (#254).
+- **Select photos and export originals** (#239): In the photo grid, Ctrl/Cmd+click, Shift+click and Space select photos, Ctrl/Cmd+A selects every photo in the view, and Escape clears. **Export originals** copies the selected files to a folder, unchanged. It never overwrites a file, and nothing in the library changes. This copies the original files; File › Export still writes a JPEG of the open photo.
 - **Hidden e2e runs** (#247): `npm run test:e2e` no longer opens windows on the desktop or takes focus. Set `GALLERY_E2E_HEADED=1` to watch a run.
 - **Cancel sync** (#238): The Sync dialog has a Cancel button while copying. Copies already running finish, every copied photo is imported, and running Sync again copies the rest. Cancel for backup is still open.
+- **Driftara MCP** (#236): One `driftara` MCP server and CLI (search, resolve, execute) replaces the separate `is-ui-*` servers, which are deprecated.
 - **Cancel import** (#228): File › Import has a Cancel button. The import stops after the current photo and keeps every photo it already imported.
 
 ### Fixed
 - **Sync copies are atomic** (#238): Sync copies each photo to `<name>.part` and renames it when complete, so a crash can't leave a truncated photo that a later sync would skip as already on disk.
 - **Security** (#224): Pages can no longer open new windows or navigate the app away from itself. The `media://` protocol serves image files only. Only links to the configured backend open in your browser; other URLs, `file://` included, are refused. It also serves only files that belong to the gallery: thumbnails, the folder-mode root, and library folders (#237).
 - **Sidebar on small windows** (#226): Below 1100 px the sidebar drawer closes on Escape or a click beside it. Folder mode now starts with it closed on a narrow window and has its own sidebar toggle, so the drawer no longer covers the header and the first photos.
+- **Live updates** (#230): After a reconnect, late events from the old WebSocket no longer reach the new connection.
 - **Quit** (#223): Closing the main window also closes the Scoring window and quits the app, so shutdown cleanup always runs.
 - **IPC errors** (#222): Opening the backend's image page now reports a failure instead of silently doing nothing, and `findNearDuplicates` returns its result rather than the IPC envelope.
 - **Accessibility** (#225): The viewer's close button has an accessible name ("Close viewer"). Low-contrast secondary text now meets WCAG AA (4.5:1) through design tokens. This covers the Color Label **All** button, the folder-mode root label, and the viewer's date, empty-state and loading notes.

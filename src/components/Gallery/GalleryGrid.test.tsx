@@ -49,15 +49,32 @@ type VirtuosoGridMockProps = {
     itemContent?: (index: number) => ReactNode;
 };
 
-vi.mock('react-virtuoso', () => ({
-    VirtuosoGrid: ({ totalCount = 0, itemContent }: VirtuosoGridMockProps) => (
-        <div data-testid="virtuoso-grid">
-            {Array.from({ length: totalCount }, (_, index) => (
-                <div key={index}>{itemContent?.(index)}</div>
-            ))}
-        </div>
-    ),
-}));
+/** Lets a test render fewer cards, as the real grid does when it settles short of a scroll target. */
+const virtuoso = vi.hoisted(() => {
+    let setLast: (last: number) => void = () => {};
+    return {
+        bind: (set: (last: number) => void) => { setLast = set; },
+        renderUpTo: (last: number) => setLast(last),
+    };
+});
+
+vi.mock('react-virtuoso', async () => {
+    const { forwardRef, useEffect, useImperativeHandle, useState } = await vi.importActual<typeof import('react')>('react');
+    return {
+        VirtuosoGrid: forwardRef<{ scrollToIndex: () => void }, VirtuosoGridMockProps>(({ totalCount = 0, itemContent }, ref) => {
+            const [last, setLast] = useState<number | null>(null);
+            useEffect(() => virtuoso.bind(setLast), []);
+            useImperativeHandle(ref, () => ({ scrollToIndex: () => setLast(null) }), []);
+            return (
+                <div data-testid="virtuoso-grid">
+                    {Array.from({ length: last == null ? totalCount : last + 1 }, (_, index) => (
+                        <div key={index}>{itemContent?.(index)}</div>
+                    ))}
+                </div>
+            );
+        }),
+    };
+});
 
 import { GalleryGrid } from './GalleryGrid';
 
@@ -476,6 +493,34 @@ describe('GalleryGrid keyboard navigation (#227)', () => {
         await waitFor(() => expect(document.activeElement).toBe(slot(4)));
         fireEvent.keyDown(document.activeElement!, { key: 'Enter' });
         expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 5 }));
+    });
+
+    it('End recovers when the grid settles short and drops the card it just focused', async () => {
+        render(<GalleryGrid images={photos} />);
+        fireEvent.keyDown(grid(), { key: 'End' });
+        await waitFor(() => expect(document.activeElement).toBe(slot(4)));
+        act(() => virtuoso.renderUpTo(3));
+        expect(slot(4)).toBeNull();
+        await waitFor(() => expect(document.activeElement).toBe(slot(4)));
+    });
+
+    it('does not pull focus back once the user has moved it out of the grid', async () => {
+        render(<GalleryGrid images={photos} />);
+        fireEvent.keyDown(grid(), { key: 'End' });
+        await waitFor(() => expect(document.activeElement).toBe(slot(4)));
+        const outside = document.body.appendChild(document.createElement('button'));
+        outside.focus();
+        act(() => virtuoso.renderUpTo(3));
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(document.activeElement).toBe(outside);
+        outside.remove();
+    });
+
+    it('Shift+click selects photos without starting a text selection across the cards', () => {
+        render(<GalleryGrid images={photos} onSelectionChange={vi.fn()} />);
+        const card = slot(1)?.querySelector('[data-image-id]') as HTMLElement;
+        expect(fireEvent.mouseDown(card, { shiftKey: true })).toBe(false);
+        expect(fireEvent.mouseDown(card)).toBe(true);
     });
 
     it('leaves keys typed into controls inside a card alone', () => {

@@ -6,6 +6,7 @@ import styles from './GalleryGrid.module.css';
 import { toMediaUrl } from '../../utils/mediaUrl';
 import { isRaw } from '../../utils/imageFormats';
 import { pickServerFilesystemPath } from '../../utils/pickServerFilesystemPath';
+import { EMPTY_SELECTION, isSelected, selectAll, selectRange, toggleSelected, type GridSelection } from '../../utils/gridSelection';
 import { bridge } from '../../bridge';
 import type { AgentCullRecommendation } from '../../types/agentCullReview';
 import {
@@ -120,6 +121,9 @@ interface GalleryGridProps {
     onSelectRepresentative?: (image: Image) => void;
     /** Focus ordering hint by image id inside an opened representative group (display only). */
     focusById?: Record<number, number>;
+    /** Multi-selection (#239), in views where photos can be selected. */
+    selection?: GridSelection;
+    onSelectionChange?: (selection: GridSelection) => void;
 }
 
 
@@ -172,6 +176,9 @@ const SimpleMediaThumb: React.FC<{ src: string; alt: string; className: string; 
     );
 };
 
+/** How long a card must keep keyboard focus before the grid stops watching where the scroll settled. */
+const FOCUS_SETTLE_MS = 500;
+
 const ItemContainer = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ style, children, className, ...props }, ref) => (
     <div ref={ref} style={style} className={`${styles.listContainer} ${className || ''}`} {...props}>
         {children}
@@ -212,6 +219,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     filterEmptyActive = false,
     agentRecommendations, onAgentAction, highlightImageId = null,
     representativeMode = false, onSelectRepresentative, focusById,
+    selection = EMPTY_SELECTION, onSelectionChange,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const virtuosoRef = useRef<VirtuosoGridHandle>(null);
@@ -222,14 +230,19 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     const imageIds = useMemo(() => images.map((img) => img.id), [images]);
     const eyeKeypoints = useEyeKeypoints(imageIds, showEyes);
 
-    // Escape key handler for parent navigation (only when viewer is closed)
+    // Escape clears a selection first, then navigates to the parent (only when viewer is closed)
     useKeyboardLayer('page', useCallback((e: KeyboardEvent) => {
-        if (e.key === 'Escape' && onNavigateToParent) {
+        if (e.key !== 'Escape') return false;
+        if (onSelectionChange && (selection.all || selection.ids.size > 0)) {
+            onSelectionChange(EMPTY_SELECTION);
+            return true;
+        }
+        if (onNavigateToParent) {
             onNavigateToParent();
             return true;
         }
         return false;
-    }, [onNavigateToParent]), !viewerOpen);
+    }, [onNavigateToParent, onSelectionChange, selection]), !viewerOpen);
 
     useEffect(() => {
         let active = true;
@@ -407,26 +420,34 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         );
     }, [useGalleryThumbnail, showBoundingBox, showEyes, showFocusPoint, eyeKeypoints]);
 
-    const renderImageCard = useCallback((img: Image, onClick: () => void, showPickRejectStatus = false) => {
+    const renderImageCard = useCallback((img: Image, onClick: (e: React.MouseEvent) => void, showPickRejectStatus = false) => {
         const labelColor = getLabelColor(img.label);
         const rec = agentRecommendations?.get(img.id);
         const tone = rec ? agentRecommendationTone(rec) : null;
         const recAdvisory = rec ? isAdvisoryRecommendation(rec) : false;
+        const selected = !!onSelectionChange && isSelected(selection, img.id);
         const showAgentActions = !!rec && !!onAgentAction && rec.final_decision === 'remove' && !recAdvisory
             && rec.candidate_status !== 'operator_approved' && rec.candidate_status !== 'operator_rejected';
         const cardClass = [
             styles.cardInner,
             tone ? AGENT_TONE_CLASS[tone] : '',
             img.id === highlightImageId ? styles.agentHighlight : '',
+            selected ? styles.selected : '',
         ].filter(Boolean).join(' ');
         return (
             <div
                 onClick={onClick}
+                onMouseDown={(e) => {
+                    // Shift+click selects a range of photos; without this it also selects the text between them.
+                    if (onSelectionChange && e.shiftKey) e.preventDefault();
+                }}
                 onContextMenu={(e) => handleContextMenu(e, img)}
                 className={cardClass}
                 data-image-id={img.id}
+                data-grid-selected={selected || undefined}
             >
                 <div className={styles.imageArea}>
+                    {selected && <span className={styles.selectedMark} aria-hidden="true">✓</span>}
                     {rec && tone && (
                         <span
                             className={`${styles.agentBadge} ${AGENT_BADGE_CLASS[tone]}`}
@@ -480,7 +501,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 </div>
             </div>
         );
-    }, [getScoreDisplay, getLabelColor, renderPickRejectStatus, renderThumb, agentRecommendations, onAgentAction, highlightImageId, handleContextMenu, focusById]);
+    }, [selection, onSelectionChange, getScoreDisplay, getLabelColor, renderPickRejectStatus, renderThumb, agentRecommendations, onAgentAction, highlightImageId, handleContextMenu, focusById]);
 
     const renderStackCard = useCallback((stack: Image, onClick: () => void, kind: 'stack' | 'substack' | 'representative' = 'stack') => {
         const labelColor = getLabelColor(stack.label);
@@ -575,14 +596,24 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         const item = displayData[index];
         if (!item) return null;
 
-        const onClick = itemAction(item);
+        const open = itemAction(item);
+        // Ctrl/Cmd+click and Shift+click select; a plain click still opens the photo.
+        const onClick = (e: React.MouseEvent) => {
+            if (onSelectionChange && (e.ctrlKey || e.metaKey)) {
+                onSelectionChange(toggleSelected(selection, item.id, index));
+            } else if (onSelectionChange && e.shiftKey) {
+                onSelectionChange(selectRange(selection, displayData.map((d) => d.id), index));
+            } else {
+                open();
+            }
+        };
         let card: React.ReactNode;
         if (isStacksView) {
-            card = renderStackCard(item, onClick);
+            card = renderStackCard(item, open);
         } else if (isSubStacksView) {
-            card = renderStackCard(item, onClick, 'substack');
+            card = renderStackCard(item, open, 'substack');
         } else if (representativeMode && (item.image_count ?? 1) > 1) {
-            card = renderStackCard(item, onClick, 'representative');
+            card = renderStackCard(item, open, 'representative');
         } else {
             card = renderImageCard(item, onClick, activeStackId != null);
         }
@@ -592,7 +623,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
                 {card}
             </div>
         );
-    }, [activeStackId, displayData, isStacksView, isSubStacksView, renderStackCard, renderImageCard, representativeMode, itemAction]);
+    }, [selection, onSelectionChange, activeStackId, displayData, isStacksView, isSubStacksView, renderStackCard, renderImageCard, representativeMode, itemAction]);
 
     // ---- Keyboard navigation (#227) ----
     // `activeIndex` is the card with keyboard focus. It lives in the data model, not the DOM, so End and
@@ -603,18 +634,31 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
 
     useEffect(() => {
         if (activeIndex == null) return;
-        virtuosoRef.current?.scrollToIndex({ index: activeIndex, align: 'center' });
+        const scrollToActive = () => virtuosoRef.current?.scrollToIndex({ index: activeIndex, align: 'center' });
+        scrollToActive();
+        // After a long jump the scroller can settle a few rows short, unmounting the card just focused and
+        // dropping focus to the body. So watch the card until it has held focus for a moment.
         let frames = 0;
         let raf = 0;
-        const focusWhenRendered = () => {
-            const el = containerRef.current?.querySelector<HTMLElement>(`[data-grid-index="${activeIndex}"]`);
+        let focusedAt: number | null = null;
+        const focusWhenSettled = () => {
+            const container = containerRef.current;
+            const active = document.activeElement;
+            if (active && active !== document.body && !container?.contains(active)) return;
+            const el = container?.querySelector<HTMLElement>(`[data-grid-index="${activeIndex}"]`);
             if (el) {
-                el.focus({ preventScroll: true });
-            } else if (frames++ < 60) {
-                raf = requestAnimationFrame(focusWhenRendered);
+                if (active !== el) el.focus({ preventScroll: true });
+                focusedAt ??= performance.now();
+                if (performance.now() - focusedAt >= FOCUS_SETTLE_MS) return;
+            } else if (focusedAt != null) {
+                focusedAt = null;
+                scrollToActive();
+            } else if (frames++ >= 60) {
+                return;
             }
+            raf = requestAnimationFrame(focusWhenSettled);
         };
-        focusWhenRendered();
+        focusWhenSettled();
         return () => cancelAnimationFrame(raf);
     }, [activeIndex]);
 
@@ -644,9 +688,23 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     }, []);
 
     const handleGridKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (viewerOpen || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+        if (viewerOpen || e.altKey) return;
         const target = e.target as HTMLElement;
         if (target.closest('input, textarea, select, button, [contenteditable="true"]')) return;
+        if (onSelectionChange) {
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'a') {
+                e.preventDefault();
+                onSelectionChange(selectAll());
+                return;
+            }
+            const focused = activeIndex == null ? undefined : displayData[activeIndex];
+            if (e.key === ' ' && focused && activeIndex != null) {
+                e.preventDefault();
+                onSelectionChange(toggleSelected(selection, focused.id, activeIndex));
+                return;
+            }
+        }
+        if (e.ctrlKey || e.metaKey || e.shiftKey) return;
         const count = displayData.length;
         if (count === 0) return;
         const current = activeIndex ?? -1;
@@ -670,7 +728,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         e.preventDefault();
         followEndRef.current = e.key === 'End';
         setActiveIndex(Math.min(count - 1, Math.max(0, next)));
-    }, [viewerOpen, displayData, activeIndex, columnsPerRow, itemAction]);
+    }, [viewerOpen, displayData, activeIndex, columnsPerRow, itemAction, selection, onSelectionChange]);
 
     const handleEndReached = useCallback(() => {
         endReachedHandler?.();

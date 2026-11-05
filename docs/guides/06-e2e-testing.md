@@ -28,7 +28,7 @@ Rebuild (`npx tsc -p electron/tsconfig.json && npx vite build`, or just `npm run
 - One worker. Windows render offscreen, so a run shows nothing on the desktop and doesn't take focus. A test fails if it leaves a window on screen. The harness holds them at 10 fps, because at 60 fps painting competed with import and sync in the main process and runs slowed.
 - To watch a run or use `--debug`, set `GALLERY_E2E_HEADED=1`; the windows then open normally.
 - Offscreen rendering uses the same page, but not the native window's drawing path. A problem only a real window would show, such as GPU drawing or window chrome, needs a headed run.
-- 39 tests, about 2 minutes including the build on the reference Windows machine. Retries: none locally, 1 in CI.
+- 48 tests, about 3 minutes including the build on the reference Windows machine. Retries: none locally, 1 in CI.
 - On failure, Playwright keeps the trace, and the fixture attaches a window screenshot and the main-process log.
 
 ## The harness
@@ -89,6 +89,7 @@ Every test with its exact assertions and status: [07 - UX/UI test catalog](07-e2
 | 6 | `layout.spec.ts` | Library view at 1024×640, 800×600 and 640×480: no horizontal overflow, header controls not covered, the drawer collapses and opens. 150% scaling at 1280×720. |
 | 7 | `large-data.spec.ts` | 3,000 photos in folder mode: first thumbnail within budget, a bounded DOM at the top, middle and end, the last photo reachable by scrolling and by keyboard (arrows, End across 38 pages, Home, Enter opens the photo). |
 | 8 | `long-operations.spec.ts` | File › Import: one progress event per photo, each photo recorded once, a failed photo reported while the rest completes, and a cancel that keeps exactly the photos imported so far. File › Sync: every photo copied intact and recorded once; a cancel leaves no partial files, every copied photo has its row, and the next sync copies the rest. |
+| 9 | `selection.spec.ts` | Ctrl/Cmd+click, Shift+click, Space and Escape in the grid; Export originals copies the selected files without overwriting, in folder mode and the library view. |
 
 Notes:
 - axe runs in its **legacy (in-page) mode**, `AxeBuilder.setLegacyMode(true)`. The default mode opens a helper page, which Electron does not support.
@@ -111,9 +112,7 @@ The measured times are attached to each run as test annotations (`first-thumbnai
 
 A test for a known defect is marked `test.fail(true, '#<issue>: …')`. It passes while the defect exists. Once the fix lands, the test starts "unexpectedly passing" and Playwright fails it; remove the `test.fail` line at that point.
 
-| Issue | Tests |
-|---|---|
-| [#239](https://github.com/synthet/image-scoring-gallery/issues/239) | The grid has no multi-selection or select-all yet (waits for a decision on bulk actions). |
+There are none at the moment.
 
 The IPC contract test (`electron/ipcRegistry.test.ts`, Vitest) is strict: every wrapped handler's envelope must be unwrapped by the preload. Its two former defects were fixed in [#222](https://github.com/synthet/image-scoring-gallery/issues/222).
 

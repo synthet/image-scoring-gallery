@@ -145,6 +145,24 @@
         "Stops new copies; photos already copied are kept and imported. Run sync again to copy the rest."
       ]
     },
+    "export:originals": {
+      "tier": "write",
+      "intent_examples": [
+        "export the original files of these photos to a folder"
+      ],
+      "notes": [
+        "Opens a folder dialog in the app, then copies the files there. Never overwrites and changes nothing in the library."
+      ]
+    },
+    "export:originals-cancel": {
+      "tier": "write",
+      "intent_examples": [
+        "stop the running export of originals"
+      ],
+      "notes": [
+        "Stops between files; files already copied stay in the destination."
+      ]
+    },
     "import:cancel": {
       "tier": "write",
       "intent_examples": [

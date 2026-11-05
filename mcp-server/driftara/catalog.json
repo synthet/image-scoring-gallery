@@ -5778,6 +5778,99 @@
       ]
     },
     {
+      "action_id": "ipc.export.originals",
+      "source": "ipc",
+      "category": "ipc.export",
+      "title": "export: originals",
+      "description": "Electron IPC channel 'export:originals', window.electron.exportOriginals() in the renderer (registerExportHandlers.ts).",
+      "tags": [
+        "export",
+        "ipc",
+        "originals"
+      ],
+      "aliases": [
+        "export:originals"
+      ],
+      "intent_examples": [
+        "export the original files of these photos to a folder"
+      ],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "filePaths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "filePaths"
+        ],
+        "additionalProperties": false
+      },
+      "tier": "write",
+      "native_dry_run": false,
+      "executor": {
+        "kind": "ipc",
+        "channel": "export:originals",
+        "params": [
+          {
+            "name": "filePaths"
+          }
+        ],
+        "wrapped": true,
+        "file": "electron/ipc/registerExportHandlers.ts"
+      },
+      "legacy_tool_name": null,
+      "canonical_docs": [
+        "docs/technical/DRIFTARA_MCP.md"
+      ],
+      "notes": [
+        "Opens a folder dialog in the app, then copies the files there. Never overwrites and changes nothing in the library."
+      ]
+    },
+    {
+      "action_id": "ipc.export.originals-cancel",
+      "source": "ipc",
+      "category": "ipc.export",
+      "title": "export: originals cancel",
+      "description": "Electron IPC channel 'export:originals-cancel', window.electron.exportOriginalsCancel() in the renderer (registerExportHandlers.ts).",
+      "tags": [
+        "cancel",
+        "export",
+        "ipc",
+        "originals"
+      ],
+      "aliases": [
+        "export:originals-cancel"
+      ],
+      "intent_examples": [
+        "stop the running export of originals"
+      ],
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "tier": "write",
+      "native_dry_run": false,
+      "executor": {
+        "kind": "ipc",
+        "channel": "export:originals-cancel",
+        "params": [],
+        "wrapped": true,
+        "file": "electron/ipc/registerExportHandlers.ts"
+      },
+      "legacy_tool_name": null,
+      "canonical_docs": [
+        "docs/technical/DRIFTARA_MCP.md"
+      ],
+      "notes": [
+        "Stops between files; files already copied stay in the destination."
+      ]
+    },
+    {
       "action_id": "ipc.export.set-current-image-context",
       "source": "ipc",
       "category": "ipc.app",
