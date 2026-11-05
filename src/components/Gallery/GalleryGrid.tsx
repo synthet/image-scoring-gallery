@@ -437,6 +437,10 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         return (
             <div
                 onClick={onClick}
+                onMouseDown={(e) => {
+                    // Shift+click selects a range of photos; without this it also selects the text between them.
+                    if (onSelectionChange && e.shiftKey) e.preventDefault();
+                }}
                 onContextMenu={(e) => handleContextMenu(e, img)}
                 className={cardClass}
                 data-image-id={img.id}

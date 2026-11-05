@@ -516,6 +516,13 @@ describe('GalleryGrid keyboard navigation (#227)', () => {
         outside.remove();
     });
 
+    it('Shift+click selects photos without starting a text selection across the cards', () => {
+        render(<GalleryGrid images={photos} onSelectionChange={vi.fn()} />);
+        const card = slot(1)?.querySelector('[data-image-id]') as HTMLElement;
+        expect(fireEvent.mouseDown(card, { shiftKey: true })).toBe(false);
+        expect(fireEvent.mouseDown(card)).toBe(true);
+    });
+
     it('leaves keys typed into controls inside a card alone', () => {
         const onSelect = vi.fn();
         render(<GalleryGrid images={photos} onSelect={onSelect} />);

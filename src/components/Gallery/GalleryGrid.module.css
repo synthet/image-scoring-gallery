@@ -575,8 +575,18 @@
 
 /* Multi-selection (#239): an outline and a tick, so selection doesn't rest on colour alone. */
 .selected {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -2px;
+  position: relative;
+}
+
+/* Above the image, which would otherwise paint over an outline on the card. */
+.selected::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 2px solid var(--color-accent);
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .selectedMark {

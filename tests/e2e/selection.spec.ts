@@ -34,6 +34,7 @@ test.describe('Journey 9: selection and export', () => {
         await expect(page.getByText('1 selected')).toBeVisible();
         await expectGridFitsWindow(page);
         await card(page, 'DSC_0004.JPG').click({ modifiers: ['Shift'] });
+        expect(await page.evaluate(() => document.getSelection()?.toString()), 'no text selected across the cards').toBe('');
         await expect(page.getByText('3 selected')).toBeVisible();
         await expect(selectedCards(page)).toHaveCount(3);
         await expect(page.getByRole('button', { name: 'Close viewer' })).toHaveCount(0);
