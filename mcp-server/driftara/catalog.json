@@ -6628,6 +6628,16 @@
                       "type": "string"
                     }
                   ]
+                },
+                "captureKey": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "required": [
