@@ -33,7 +33,7 @@ describe('db.getDeletedImageKeys', () => {
     queryMock.mockResolvedValue([]);
     await getDeletedImageKeys();
     const [sql] = queryMock.mock.calls[0];
-    expect(sql).toContain('SELECT image_uuid, file_name, original_path FROM deleted_images');
+    expect(sql).toContain('SELECT image_uuid, file_name, original_path, capture_key FROM deleted_images');
   });
 
   it('builds uuid+filename keys with a lowercased file name', async () => {
@@ -69,16 +69,45 @@ describe('db.getDeletedImageKeys', () => {
     expect(uuidNameKeys.size).toBe(0);
   });
 
-  it('returns empty sets and warns when the deleted_images query fails', async () => {
+  it('collects capture keys and ignores empty ones', async () => {
+    queryMock.mockResolvedValue([
+      { image_uuid: null, file_name: 'a.NEF', original_path: null, capture_key: 'NIKON Z 8|1|2026-01-19T14:56:04' },
+      { image_uuid: null, file_name: 'b.NEF', original_path: null, capture_key: null },
+      { image_uuid: null, file_name: 'c.NEF', original_path: null, capture_key: '  ' },
+    ]);
+
+    const { captureKeys } = await getDeletedImageKeys();
+
+    expect([...captureKeys]).toEqual(['NIKON Z 8|1|2026-01-19T14:56:04']);
+  });
+
+  it('falls back to the older query when the column has not been migrated', async () => {
+    queryMock
+      .mockRejectedValueOnce(Object.assign(new Error('column "capture_key" does not exist'), { code: '42703' }))
+      .mockResolvedValueOnce([{ image_uuid: 'u', file_name: 'a.NEF', original_path: '/mnt/d/a.NEF' }]);
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { uuidNameKeys, originalPaths, captureKeys } = await getDeletedImageKeys();
+
+    expect(queryMock.mock.calls[1][0]).toContain('SELECT image_uuid, file_name, original_path FROM deleted_images');
+    expect(uuidNameKeys.has('u a.nef')).toBe(true);
+    expect(originalPaths.has('/mnt/d/a.NEF')).toBe(true);
+    expect(captureKeys.size).toBe(0);
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it('throws when the tombstones cannot be read', async () => {
+    queryMock.mockRejectedValueOnce(new Error('connection lost'));
+
+    await expect(getDeletedImageKeys()).rejects.toThrow('connection lost');
+  });
+
+  it('throws when the table is missing', async () => {
     queryMock.mockRejectedValueOnce(
       Object.assign(new Error('relation "deleted_images" does not exist'), { code: '42P01' }),
     );
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const { uuidNameKeys, originalPaths } = await getDeletedImageKeys();
-
-    expect(uuidNameKeys.size).toBe(0);
-    expect(originalPaths.size).toBe(0);
-    expect(warnSpy).toHaveBeenCalled();
+    await expect(getDeletedImageKeys()).rejects.toThrow('does not exist');
   });
 });

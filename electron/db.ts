@@ -1092,30 +1092,41 @@ export async function getDeletedImageMatchSets(): Promise<{
 export async function getDeletedImageKeys(): Promise<{
     uuidNameKeys: Set<string>;
     originalPaths: Set<string>;
+    captureKeys: Set<string>;
 }> {
+    type TombstoneRow = {
+        image_uuid: string | null;
+        file_name: string | null;
+        original_path: string | null;
+        capture_key?: string | null;
+    };
+    let rows: TombstoneRow[];
+    try {
+        rows = await query<TombstoneRow>('SELECT image_uuid, file_name, original_path, capture_key FROM deleted_images');
+    } catch (e) {
+        // 42703: a catalog not yet on migration 0049 still has its other two routes.
+        // Any other failure must reach the caller, so Sync stops instead of re-importing deleted frames.
+        if ((e as { code?: string }).code !== '42703') throw e;
+        console.warn('[DB] deleted_images has no capture_key column; run backend migration 0049');
+        rows = await query<TombstoneRow>('SELECT image_uuid, file_name, original_path FROM deleted_images');
+    }
     const uuidNameKeys = new Set<string>();
     const originalPaths = new Set<string>();
-    try {
-        const rows = await query<{
-            image_uuid: string | null;
-            file_name: string | null;
-            original_path: string | null;
-        }>('SELECT image_uuid, file_name, original_path FROM deleted_images');
-        for (const r of rows) {
-            const uuid = r.image_uuid?.trim();
-            if (uuid && r.file_name) {
-                uuidNameKeys.add(`${uuid} ${r.file_name.toLowerCase()}`);
-            }
-            const op = r.original_path;
-            if (op && op.trim()) {
-                originalPaths.add(normalizePathForDb(op));
-                originalPaths.add(op.replace(/\\/g, '/'));
-            }
+    const captureKeys = new Set<string>();
+    for (const r of rows) {
+        const uuid = r.image_uuid?.trim();
+        if (uuid && r.file_name) {
+            uuidNameKeys.add(`${uuid} ${r.file_name.toLowerCase()}`);
         }
-    } catch (e) {
-        console.warn('[DB] getDeletedImageKeys failed (ensure backend migration for deleted_images):', e);
+        const op = r.original_path;
+        if (op && op.trim()) {
+            originalPaths.add(normalizePathForDb(op));
+            originalPaths.add(op.replace(/\\/g, '/'));
+        }
+        const key = r.capture_key?.trim();
+        if (key) captureKeys.add(key);
     }
-    return { uuidNameKeys, originalPaths };
+    return { uuidNameKeys, originalPaths, captureKeys };
 }
 
 export interface InsertImageRow {

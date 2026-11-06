@@ -24,6 +24,8 @@ export interface SyncSeenEntry {
     camera: string;
     lens: string;
     imageUuid: string | null;
+    /** `undefined` on entries written before capture keys existed: re-read EXIF for those. */
+    captureKey?: string | null;
 }
 
 export interface DriveSession {

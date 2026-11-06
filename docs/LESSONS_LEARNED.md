@@ -54,7 +54,9 @@ The `deleted_images` tombstone table (viewable at
 `http://localhost:7860/ui/db/deleted_images`) records intentionally culled
 images. Sync must either skip files matching a tombstone or de-duplicate against
 it (by `image_uuid` / `image_hash` / `file_name` / `original_path`) — otherwise
-deleted images resurrect on the next sync.
+deleted images resurrect on the next sync. Card originals have no `image_uuid`,
+so `capture_key` is what catches them once the library path has changed. Never
+continue a sync after failing to read this table.
 
 ### Verification at scale: index once, match in memory
 Classifying 63 "missing" files by running 63 separate
