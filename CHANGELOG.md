@@ -4,6 +4,10 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+### Fixed
+- **Deleted photos coming back from memory cards** (#256): Sync recognises a deleted photo by its camera, shutter count and capture time, so it stays deleted after the library moves or a lens folder is renamed. Needs backend migration 0049.
+- **Sync when deleted-photo records can't be read** (#256): Sync now stops with an error and copies nothing. It used to carry on with no protection against re-importing deleted photos.
+
 ## [7.32.0] — 2026-11-04
 
 ### Added

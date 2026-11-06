@@ -531,6 +531,7 @@ export interface SyncCandidate {
     camera: string;
     lens: string;
     imageUuid: string | null;
+    captureKey?: string | null;
 }
 
 export interface SyncPreviewResult {

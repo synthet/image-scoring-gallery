@@ -5,6 +5,7 @@ import type { BrowserWindow, IpcMain } from 'electron';
 import type { ApiService } from '../apiService';
 import { ExifTool } from 'exiftool-vendored';
 import { cameraFolderFromExifModel } from '../cameraFolderName';
+import { captureKey as buildCaptureKey } from '../captureKey';
 import { normalizeLensFolderName } from '../lensFolderName';
 
 const UNKNOWN_CAMERA_FOLDER = '_unknown_camera';
@@ -270,7 +271,8 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
           const candidates: SyncCandidate[] = [];
 
           // Preload deleted_images tombstones once so previously-deleted files are not
-          // re-imported by Sync (matches by image_uuid+file_name or original_path).
+          // re-imported by Sync (matches by image_uuid+file_name, original_path or capture key).
+          // A read failure throws here, before any copy, so Sync reports it and copies nothing.
           const deletedKeys = await db.getDeletedImageKeys();
 
           // Per-drive session: reuse cached EXIF-derived facts (keyed by
@@ -321,6 +323,7 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                       let cameraModel: string | null = null;
                       let lensModel: string | null = null;
                       let imageUuid: string | null = null;
+                      let captureKey: string | null = null;
                       let camera = '';
                       let lens = '';
 
@@ -330,18 +333,22 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                           camera = c.camera;
                           lens = c.lens;
                           imageUuid = c.imageUuid;
+                          captureKey = c.captureKey ?? null;
                       } else {
                           const st = await fs.promises.stat(filePath);
                           const seenKey = `${syncRelDisplay(sourcePath, filePath)}|${st.size}|${st.mtimeMs}`;
                           const cached = seen.get(seenKey);
 
-                          if (cached) {
+                          // An entry with no captureKey predates the field, so it falls through
+                          // to the EXIF read; otherwise its frame would miss the tombstone check.
+                          if (cached && cached.captureKey !== undefined) {
                               // Same bytes as a prior scan on this drive — reuse the
                               // derived facts and skip the expensive EXIF read.
                               dateStr = cached.dateStr;
                               camera = cached.camera;
                               lens = cached.lens;
                               imageUuid = cached.imageUuid;
+                              captureKey = cached.captureKey;
                               exifSkipped++;
                           } else {
                               let exifFailed = false;
@@ -359,6 +366,7 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
 
                                   cameraModel = (tags.Model as string) ?? null;
                                   lensModel = (tags.LensModel as string) ?? (tags.Lens as string) ?? null;
+                                  captureKey = buildCaptureKey(tags.Model, tags.ShutterCount, tags.DateTimeOriginal);
 
                                   const uid = tags.ImageUniqueID ?? tags.DocumentID ?? null;
                                   if (uid && typeof uid === 'string') {
@@ -379,7 +387,7 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                               lens = normalizeLensFolderName(lensModel);
 
                               if (!exifFailed) {
-                                  newlySeen.set(seenKey, { dateStr, camera, lens, imageUuid });
+                                  newlySeen.set(seenKey, { dateStr, camera, lens, imageUuid, captureKey });
                               }
                           }
 
@@ -438,6 +446,7 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                       const uuidNameKey = imageUuid ? `${imageUuid} ${fileName.toLowerCase()}` : null;
                       const isTombstoned =
                           (uuidNameKey !== null && deletedKeys.uuidNameKeys.has(uuidNameKey)) ||
+                          (captureKey !== null && deletedKeys.captureKeys.has(captureKey)) ||
                           deletedKeys.originalPaths.has(db.normalizePathForDb(destFile)) ||
                           deletedKeys.originalPaths.has(destFile.replace(/\\/g, '/'));
                       if (isTombstoned) {
@@ -462,6 +471,7 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                                   camera,
                                   lens,
                                   imageUuid,
+                                  captureKey,
                               });
                           } else {
                               pendingImports.set(destFile, { imageUuid });
@@ -480,6 +490,7 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                                   camera,
                                   lens,
                                   imageUuid,
+                                  captureKey,
                               });
                           } else {
                               if (signal?.aborted) {
