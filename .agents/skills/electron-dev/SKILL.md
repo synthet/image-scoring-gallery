@@ -12,7 +12,7 @@ description: Development workflow, build commands, and IPC patterns for the Elec
 | `npm run dev` | Start dev mode (Vite HMR + Electron) |
 | `npm run build` | Production build + electron-builder |
 | `npm run lint` | ESLint checks |
-| `./run.bat` | Shortcut launcher for dev mode |
+| `./run-debug.bat` | Shortcut launcher for dev mode |
 
 ## Architecture
 

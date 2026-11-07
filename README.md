@@ -39,12 +39,20 @@ This application provides a high-performance interface for browsing and filterin
     ```
 
 3.  **Run the application**:
+
+    Debug mode (Vite hot reload, DevTools on port 9222, console output):
     ```bash
-    ./run.bat
+    ./run-debug.bat
     ```
     *Or via npm:*
     ```bash
     npm run dev
+    ```
+
+    Production mode runs the last build, with no dev server or console. Point a desktop shortcut at `run-prod.vbs`, which builds first if there is no build yet. Run `npm run build:app` after pulling, or the app keeps running the old build:
+    ```bash
+    npm run build:app
+    npm start
     ```
 
 ## Development
