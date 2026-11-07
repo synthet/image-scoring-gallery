@@ -558,6 +558,8 @@ if (webuiShellOnlyUrl) {
         createWebuiShellWindow(webuiShellOnlyUrl);
     });
 } else {
+    // Without an explicit id Windows groups the window under electron.exe and the taskbar shows its icon.
+    if (process.platform === 'win32') app.setAppUserModelId('com.electron.gallery');
     app.whenReady().then(() => void startFullApplication());
 }
 
