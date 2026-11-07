@@ -1,3 +1,4 @@
+import path from 'path';
 import type { IpcMain } from 'electron';
 import type { ExportImageContext } from '../types';
 import { revealInExplorer } from '../revealInExplorer';
@@ -64,7 +65,10 @@ export function registerAppHandlers(deps: AppHandlersDeps): void {
         return true;
     });
 
-    ipcMain.handle('app:set-selection-path', async (_, filePath: string | null) => {
+    ipcMain.handle('app:set-selection-path', async (_, filePath: unknown) => {
+        if (filePath !== null && (typeof filePath !== 'string' || !path.isAbsolute(filePath))) {
+            throw new Error('filePath must be an absolute path or null');
+        }
         deps.setSelectionPath(filePath);
         rebuildApplicationMenu();
         return true;
