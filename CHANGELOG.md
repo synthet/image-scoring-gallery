@@ -12,6 +12,7 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ### Fixed
 - **Sync and import finish every stage** (#262): New photos now go through Discovery and Bird Species too, so stacks form and folders reach 100% without running auto-drive. Discovery no longer shows as done before the photo has been indexed.
+- **Folder selection errors** (#118, #120): The app now rejects a selection path that isn't absolute, and logs a failed update instead of hiding it, so the File menu's state can be diagnosed.
 - **Slow Sync after a clock change** (#260): When daylight saving starts or ends, memory cards report every file an hour off, so Sync read each photo's EXIF again. Sync now recognises those files, so previews stay fast.
 - **Taskbar icon** (#259): On Windows the taskbar shows the Driftara Gallery icon instead of the default Electron icon.
 - **Deleted photos coming back from memory cards** (#256): Sync recognises a deleted photo by its camera, shutter count and capture time, so it stays deleted after the library moves or a lens folder is renamed. Needs backend migration 0049.

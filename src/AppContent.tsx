@@ -329,8 +329,13 @@ function AppContent() {
   ]);
 
   useEffect(() => {
+    const sendSelectionPath = (selectionPath: string | null) => {
+      void bridge.setSelectionPath(selectionPath).catch((err: unknown) => {
+        console.error('[AppContent] set-selection-path failed', err);
+      });
+    };
     if (selectedFolderId === undefined || selectedFolderId === null) {
-      void bridge.setSelectionPath(null);
+      sendSelectionPath(null);
       return;
     }
     const findFolder = (nodes: Folder[]): Folder | undefined => {
@@ -344,9 +349,9 @@ function AppContent() {
     };
     const folder = findFolder(folders);
     if (folder && folder.path) {
-      void bridge.setSelectionPath(folder.path);
+      sendSelectionPath(folder.path);
     } else {
-      void bridge.setSelectionPath(null);
+      sendSelectionPath(null);
     }
   }, [selectedFolderId, folders]);
 
