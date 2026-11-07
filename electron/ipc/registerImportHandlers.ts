@@ -125,11 +125,6 @@ export function registerImportHandlers(deps: ImportHandlersDeps): void {
                         folder_id: folderId,
                         image_uuid: imageUuid,
                     });
-                    try {
-                        await db.markImageIndexingPhaseDone(newImageId);
-                    } catch (phaseErr) {
-                        console.warn('[Main] Import: markImageIndexingPhaseDone failed:', phaseErr);
-                    }
                     newImageIds.push(newImageId);
                     added++;
                 } catch (e) {

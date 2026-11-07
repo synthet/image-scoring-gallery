@@ -8,6 +8,7 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 - **Backend status** (#258): The header shows the backend status as an icon only: green when connected, a crossed-out red server when offline. The tooltip still gives the details, and clicking still reconnects.
 
 ### Fixed
+- **Sync and import finish every stage** (#262): New photos now go through Discovery and Bird Species too, so stacks form and folders reach 100% without running auto-drive. Discovery no longer shows as done before the photo has been indexed.
 - **Slow Sync after a clock change** (#260): When daylight saving starts or ends, memory cards report every file an hour off, so Sync read each photo's EXIF again. Sync now recognises those files, so previews stay fast.
 - **Taskbar icon** (#259): On Windows the taskbar shows the Driftara Gallery icon instead of the default Electron icon.
 - **Deleted photos coming back from memory cards** (#256): Sync recognises a deleted photo by its camera, shutter count and capture time, so it stays deleted after the library moves or a lens folder is renamed. Needs backend migration 0049.

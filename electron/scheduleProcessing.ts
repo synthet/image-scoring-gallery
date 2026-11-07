@@ -1,7 +1,11 @@
 import type { ApiService } from './apiService';
 import * as db from './db';
 
-const PIPELINE_OPERATIONS = ['metadata', 'score', 'tag', 'cluster'] as const;
+/**
+ * Every stage, in the order auto-drive runs them. `indexing` stays in the plan because only the
+ * backend computes `image_hash`, and clustering skips any image without one.
+ */
+const PIPELINE_OPERATIONS = ['indexing', 'metadata', 'score', 'cluster', 'tag', 'bird_species'] as const;
 
 /** Keep in sync with `src/utils/scheduleProcessingOutcome.ts` (renderer). */
 export type ScheduleResult =

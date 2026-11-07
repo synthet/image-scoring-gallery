@@ -32,7 +32,7 @@ End-to-end behavior of **File → Sync** in Driftara Gallery: filesystem scan, o
 | Scanning source | `scanning` | Recursive listing of source files matching extensions. **No DB writes.** |
 | Preview (analyzing files) | `preview` | **Preview only (`dryRun`).** Per file: EXIF via exiftool, skip rules, duplicate checks. **DB reads** (`findImageByUuid`, `findImageByFilePath`). **No inserts.** |
 | Copying new files | `copying` | **Full sync only.** `mkdir` + `copyFile` into `destinationRoot/camera/lens/year/YYYY-MM-DD/`. |
-| Importing into database | `importing` | **Full sync only.** `insertImage`, `markImageIndexingPhaseDone`, then per-folder `scheduleProcessingForImages`. |
+| Importing into database | `importing` | **Full sync only.** `insertImage`, then per-folder `scheduleProcessingForImages`. |
 | Complete | `done` | Modal summary or end of preview. |
 
 Primary implementation: `runSyncFromSource` in `electron/main.ts`.
@@ -55,8 +55,8 @@ So the **copying** step’s progress denominator is typically **all matching sou
 |-------|--------|
 | Preview | None (reads only for threshold and dedupe). |
 | Copy | Files on disk under `destinationRoot`. |
-| Import | `folders` (via `getOrCreateFolder`), `images` (`insertImage`), `image_phase_status` for **indexing** = **done** (`markImageIndexingPhaseDone`), folder aggregate flags. |
-| After import | **`scheduleProcessingForImages`** in `electron/scheduleProcessing.ts`: on success, **`POST /api/pipeline/submit`** with `metadata`, `score`, `tag`, `cluster` and the new `image_ids`; on API failure, **`markImagePhasesPending`** for those ids. |
+| Import | `folders` (via `getOrCreateFolder`), `images` (`insertImage`). Discovery is not marked done here: `image_hash` is empty until the backend **indexing** stage computes it. |
+| After import | **`scheduleProcessingForImages`** in `electron/scheduleProcessing.ts`: on success, **`POST /api/pipeline/submit`** with `indexing`, `metadata`, `score`, `cluster`, `tag`, `bird_species` and the new `image_ids`, then **`markImagePhasesPending`** seeds `not_started` rows (and folder aggregate flags); on API failure, only **`markImagePhasesPending`** runs, so auto-drive can pick those ids up later. |
 
 Indexing in the **submit** call is intentionally **not** re-requested; Electron has already marked the **indexing** (`Discovery`) phase complete for those rows.
 
@@ -80,4 +80,4 @@ The gallery’s right-hand **Phases** block does **not** read PostgreSQL `image_
 | IPC bridge | `electron/preload.ts` (`sync:preview`, `sync:run`, `sync:progress`) |
 | Core sync | `electron/main.ts` (`runSyncFromSource`, `detectSyncThresholdDate`, `collectImageFiles`) |
 | Post-import schedule | `electron/scheduleProcessing.ts` |
-| DB helpers | `electron/db.ts` (`insertImage`, `markImageIndexingPhaseDone`, `markImagePhasesPending`, destination threshold queries) |
+| DB helpers | `electron/db.ts` (`insertImage`, `markImagePhasesPending`, destination threshold queries) |
