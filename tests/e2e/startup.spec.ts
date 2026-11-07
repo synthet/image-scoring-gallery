@@ -9,7 +9,7 @@ test.describe('Journey 1: startup and shell', () => {
         await expect(page.getByText('Image Gallery', { exact: true })).toBeVisible();
         await expect(page.getByText('(0 items)')).toBeVisible();
         // The fake backend answers /api/health, so the status chip must not stay offline.
-        await expect(page.getByText('Backend offline')).toHaveCount(0);
+        await expect(page.getByTestId('backend-status-chip')).toHaveAttribute('aria-label', /^Backend connected/);
     });
 
     test('folder mode: picking a root folder through the dialog shows its photos', async ({ env, launchApp }) => {

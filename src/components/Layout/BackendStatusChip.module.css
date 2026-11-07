@@ -1,14 +1,11 @@
 .chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
+  padding: 5px;
   border-radius: 16px;
   border: 1px solid var(--color-border);
   background: var(--color-bg-tertiary);
   color: var(--color-text-secondary);
-  font-size: 0.8em;
-  font-weight: 500;
   cursor: pointer;
 }
 
@@ -16,15 +13,8 @@
   cursor: progress;
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-text-muted);
-}
-
-.connected .dot {
-  background: var(--color-success);
+.connected {
+  color: var(--color-success);
 }
 
 .disconnected {
@@ -33,10 +23,6 @@
   color: var(--color-danger);
 }
 
-.disconnected .dot {
-  background: var(--color-danger);
-}
-
-.checking .dot {
-  background: var(--color-running);
+.checking {
+  color: var(--color-running);
 }

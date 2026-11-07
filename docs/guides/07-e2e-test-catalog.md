@@ -30,7 +30,7 @@ Status is as of `main` on 2026-11-02, after [#231](https://github.com/synthet/im
 
 | Test | Asserts | Status |
 |---|---|---|
-| a fresh profile shows the empty gallery with the backend connected | "Image Gallery" and "(0 items)" visible; no "Backend offline" chip | Pass |
+| a fresh profile shows the empty gallery with the backend connected | "Image Gallery" and "(0 items)" visible; status chip reports the backend connected | Pass |
 | folder mode: picking a root folder through the dialog shows its photos | View › Mode: Folder → Root folder… → Browse (stubbed dialog) → Save; the dated folder lists its 3 generated photos | Pass |
 | Tools › Scoring opens the scoring window on the local backend | the menu item becomes enabled after the health check; a second native window opens at `/ui/runs` | Pass |
 
