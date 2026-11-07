@@ -80,6 +80,7 @@ docs/private/
 .docs/private/
 codex-session-*.md
 2026-??-??-*.txt
+/2026-??-??-*.md
 /docs/_local/
 /.agent/local/
 /.cursor/mcp.json
