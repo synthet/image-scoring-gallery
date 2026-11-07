@@ -653,11 +653,6 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                       folder_id: folderId,
                       image_uuid: uuid,
                   });
-                  try {
-                      await db.markImageIndexingPhaseDone(newImageId);
-                  } catch (phaseErr) {
-                      console.warn('[Main] Sync: markImageIndexingPhaseDone failed:', phaseErr);
-                  }
                   const list = newImageIdsByFolder.get(folderPath) ?? [];
                   list.push(newImageId);
                   newImageIdsByFolder.set(folderPath, list);
