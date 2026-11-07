@@ -4,6 +4,9 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+### Added
+- **Production launcher** (#263): `run-prod.vbs` starts the built app with no dev server or console window, for use from a desktop shortcut. `npm run build:app` builds it and `npm start` runs it. `run.bat` is now `run-debug.bat`.
+
 ### Changed
 - **Backend status** (#258): The header shows the backend status as an icon only: green when connected, a crossed-out red server when offline. The tooltip still gives the details, and clicking still reconnects.
 
