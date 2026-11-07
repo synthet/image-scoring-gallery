@@ -26,10 +26,14 @@ describe('BackendStatusChip', () => {
 
         render(<BackendStatusChip />);
         const chip = screen.getByTestId('backend-status-chip');
-        expect(chip.textContent).toContain('Backend offline');
+        expect(chip.textContent).toBe('');
+        expect(chip.getAttribute('aria-label')).toContain('Backend not reachable');
+        expect(chip.querySelector('svg.lucide-server-off')).not.toBeNull();
 
         fireEvent.click(chip);
-        await waitFor(() => expect(screen.getByTestId('backend-status-chip').textContent).toBe('Backend'));
+        await waitFor(() => expect(screen.getByTestId('backend-status-chip').getAttribute('aria-label')).toContain('Backend connected'));
+        expect(screen.getByTestId('backend-status-chip').textContent).toBe('');
+        expect(screen.getByTestId('backend-status-chip').querySelector('svg.lucide-server')).not.toBeNull();
         expect(reconnect).toHaveBeenCalledTimes(1);
         expect(useBackendStatusStore.getState().reconnectCount).toBe(1);
         expect(useNotificationStore.getState().notifications[0]?.type).toBe('success');

@@ -1,13 +1,7 @@
+import { Server, ServerOff } from 'lucide-react';
 import { useBackendStatusStore } from '../../store/useBackendStatusStore';
 import { reconnectBackend } from '../../hooks/useBackendStatus';
 import styles from './BackendStatusChip.module.css';
-
-const LABEL: Record<string, string> = {
-    connected: 'Backend',
-    disconnected: 'Backend offline',
-    checking: 'Checking backend…',
-    unknown: 'Backend',
-};
 
 /** Header chip: backend reachability; click runs a reconnect (same as Tools › Connect to Backend). */
 export function BackendStatusChip() {
@@ -21,6 +15,7 @@ export function BackendStatusChip() {
         : state.status === 'disconnected'
             ? `Backend not reachable${state.url ? ` at ${state.url}` : ''}${state.error ? ` (${state.error})` : ''}. Scoring, AI search, agent review and diagnostics need it. Click to reconnect.`
             : 'Checking backend connection…';
+    const Icon = state.status === 'disconnected' ? ServerOff : Server;
 
     return (
         <button
@@ -32,8 +27,7 @@ export function BackendStatusChip() {
             aria-label={title}
             data-testid="backend-status-chip"
         >
-            <span className={styles.dot} aria-hidden="true" />
-            {LABEL[state.status]}
+            <Icon size={14} aria-hidden="true" />
         </button>
     );
 }

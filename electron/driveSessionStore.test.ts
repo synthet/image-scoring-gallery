@@ -6,6 +6,7 @@ import {
     reconcileSessions,
     createDriveSessionStore,
     createLocalFileLayer,
+    findSeenEntry,
     type DriveSession,
     type LayerAdapter,
 } from './driveSessionStore';
@@ -127,5 +128,27 @@ describe('createLocalFileLayer', () => {
         expect(await layer.read('D1')).toBeNull();
         await layer.write('D1', session('D1', '2026-07-05T00:00:00.000Z', { 'a|1|1': '2026-07-05' }));
         expect((await layer.read('D1'))?.driveId).toBe('D1');
+    });
+});
+
+describe('findSeenEntry', () => {
+    const entry = { dateStr: '2026-10-26', camera: 'Z8', lens: '105mm', imageUuid: null };
+    const HOUR = 3_600_000;
+    const seen = new Map([['DCIM/DSC_1.NEF|100|1000000000', entry]]);
+
+    it('finds an exact match', () => {
+        expect(findSeenEntry(seen, 'DCIM/DSC_1.NEF', 100, 1000000000)).toBe(entry);
+    });
+
+    it('finds a file whose mtime moved one hour with a clock change, in either direction', () => {
+        expect(findSeenEntry(seen, 'DCIM/DSC_1.NEF', 100, 1000000000 + HOUR)).toBe(entry);
+        expect(findSeenEntry(seen, 'DCIM/DSC_1.NEF', 100, 1000000000 - HOUR)).toBe(entry);
+    });
+
+    it('misses when the file really changed', () => {
+        expect(findSeenEntry(seen, 'DCIM/DSC_1.NEF', 100, 1000000000 + 1000)).toBeUndefined();
+        expect(findSeenEntry(seen, 'DCIM/DSC_1.NEF', 100, 1000000000 + 2 * HOUR)).toBeUndefined();
+        expect(findSeenEntry(seen, 'DCIM/DSC_1.NEF', 101, 1000000000 + HOUR)).toBeUndefined();
+        expect(findSeenEntry(seen, 'DCIM/DSC_2.NEF', 100, 1000000000)).toBeUndefined();
     });
 });
