@@ -19,6 +19,7 @@ import { copyFileAtomic } from '../atomicCopy';
 import { resolveDriveId } from '../driveIdentity';
 import { createStageLog } from '../stageLog';
 import {
+  findSeenEntry,
   getDriveSessionStore,
   type DriveSession,
   type SyncSeenEntry,
@@ -336,8 +337,9 @@ export function registerSyncHandlers(deps: SyncHandlersDeps): void {
                           captureKey = c.captureKey ?? null;
                       } else {
                           const st = await fs.promises.stat(filePath);
-                          const seenKey = `${syncRelDisplay(sourcePath, filePath)}|${st.size}|${st.mtimeMs}`;
-                          const cached = seen.get(seenKey);
+                          const relPath = syncRelDisplay(sourcePath, filePath);
+                          const seenKey = `${relPath}|${st.size}|${st.mtimeMs}`;
+                          const cached = findSeenEntry(seen, relPath, st.size, st.mtimeMs);
 
                           // An entry with no captureKey predates the field, so it falls through
                           // to the EXIF read; otherwise its frame would miss the tombstone check.

@@ -46,6 +46,25 @@ export interface DriveSession {
     };
 }
 
+const DST_SHIFT_MS = 3_600_000;
+
+/**
+ * Looks up a `relPath|size|mtimeMs` entry, also accepting an mtime one hour either side:
+ * FAT/exFAT cards store local time, so a daylight-saving change moves every file by an hour.
+ */
+export function findSeenEntry(
+    seen: ReadonlyMap<string, SyncSeenEntry>,
+    relPath: string,
+    size: number,
+    mtimeMs: number,
+): SyncSeenEntry | undefined {
+    for (const mtime of [mtimeMs, mtimeMs - DST_SHIFT_MS, mtimeMs + DST_SHIFT_MS]) {
+        const entry = seen.get(`${relPath}|${size}|${mtime}`);
+        if (entry) return entry;
+    }
+    return undefined;
+}
+
 export interface LayerAdapter {
     readonly name: string;
     read(driveId: string): Promise<DriveSession | null>;
