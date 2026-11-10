@@ -5,3 +5,5 @@ serve.json
 loop.json
 STOP
 *.tmp
+!config.json
+!tickets.jsonl
