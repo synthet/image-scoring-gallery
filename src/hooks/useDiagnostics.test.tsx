@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetDiagnosticsSessionForTests, useDiagnostics } from './useDiagnostics';
 import { DIAGNOSTIC_LAYERS, type DiagnosticManifest, type DiagnosticTransport } from '../types/diagnostics';
+import { BACKEND_UNAVAILABLE_HINT, useBackendStatusStore } from '../store/useBackendStatusStore';
 
 function manifest(imageId = 1): DiagnosticManifest {
     return { evidence_schema_version: 2, image_id: imageId, identity: `identity-${imageId}`, extractor_version: 'test', rendition: null,
@@ -14,7 +15,10 @@ function transport(): DiagnosticTransport {
 }
 
 describe('diagnostic viewer state', () => {
-    beforeEach(() => { localStorage.clear(); resetDiagnosticsSessionForTests(); });
+    beforeEach(() => {
+        localStorage.clear(); resetDiagnosticsSessionForTests();
+        useBackendStatusStore.getState().setState({ status: 'connected', url: null, lastCheckedAt: null, error: null });
+    });
 
     it('does not request computation until a layer is selected', async () => {
         const api = transport();
@@ -53,6 +57,29 @@ describe('diagnostic viewer state', () => {
         await waitFor(() => expect(result.current.manifest?.image_id).toBe(2));
         await act(async () => resolveOld(manifest(1)));
         expect(result.current.manifest?.image_id).toBe(2);
+    });
+
+    it('uses the local fallback only while the backend is unavailable', async () => {
+        const backend = transport(), local = transport();
+        const { result } = renderHook(() => useDiagnostics(1, backend, true, vi.fn(), local));
+        act(() => result.current.toggle('sharpness'));
+        await waitFor(() => expect(backend.request).toHaveBeenCalledWith(1, ['sharpness'], false));
+        expect(local.manifest).not.toHaveBeenCalled();
+        expect(result.current.local).toBe(false);
+
+        act(() => useBackendStatusStore.getState().setState({ status: 'disconnected', url: null, lastCheckedAt: null, error: null }));
+        await waitFor(() => expect(local.request).toHaveBeenCalledWith(1, ['sharpness'], false));
+        expect(result.current.local).toBe(true);
+        expect(result.current.error).toBeNull();
+    });
+
+    it('keeps the reconnect hint without a local fallback', async () => {
+        act(() => useBackendStatusStore.getState().setState({ status: 'disconnected', url: null, lastCheckedAt: null, error: null }));
+        const backend = transport();
+        const { result } = renderHook(() => useDiagnostics(1, backend, true, vi.fn()));
+        act(() => result.current.toggle('sharpness'));
+        expect(result.current.error).toBe(BACKEND_UNAVAILABLE_HINT);
+        expect(backend.manifest).not.toHaveBeenCalled();
     });
 
     it('enables Eyes for head detail and clears detail when Eyes is disabled', () => {

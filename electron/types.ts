@@ -89,6 +89,20 @@ export interface BirdBoundingBox {
 }
 
 /**
+ * Primary subject geometry for local eyes/head diagnostics: the authoritative, fresh `bird`
+ * selection and its current `bird_head_pose` keypoints, as the backend's diagnostics read them.
+ * Coordinates are 0..1 of the display-oriented frame of `display_width` x `display_height`.
+ */
+export interface HeadGeometry {
+    region: [number, number, number, number];
+    display_width: number;
+    display_height: number;
+    keypoints: Array<{ name: string; x: number; y: number; confidence: number; visible: boolean }>;
+}
+
+export type HeadGeometryResult = { geometry: HeadGeometry; reason?: undefined } | { geometry: null; reason: string };
+
+/**
  * Shadow subject keypoints for one image (backend #426): the current `bird_head_pose` run on the
  * primary region of the current `bird` localization run. `x`/`y` are 0..1 of the display-oriented
  * frame whose size is `display_width` x `display_height`.
