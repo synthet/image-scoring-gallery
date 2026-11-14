@@ -7,6 +7,7 @@ import type {
     ImageQueryOptions,
     ImageRow,
     ImageDetail,
+    HeadGeometryResult,
     ImageEyeKeypoints,
     ImageUpdates,
     FolderRow,
@@ -84,6 +85,10 @@ contextBridge.exposeInMainWorld('electron', {
     getEyeKeypoints: async (ids: number[]) => {
         const response = await ipcRenderer.invoke('db:get-eye-keypoints', ids);
         return unwrapEnvelope<Record<number, ImageEyeKeypoints>>(response);
+    },
+    getHeadGeometry: async (imageId: number) => {
+        const response = await ipcRenderer.invoke('db:get-head-geometry', imageId);
+        return unwrapEnvelope<HeadGeometryResult>(response);
     },
     getImageEvidence: async (imageId: number) => {
         const response = await ipcRenderer.invoke('api:evidence:get-image', imageId);

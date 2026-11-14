@@ -443,6 +443,7 @@ function createHttpBridge(): Window['electron'] {
         onShowFocusPointChanged: browserFocusPoint.subscribe,
 
         getEyeKeypoints: () => Promise.resolve({}),
+        getHeadGeometry: () => Promise.resolve({ geometry: null, reason: 'Head geometry needs the desktop app' }),
 
         selectDirectory: () => Promise.resolve(null),
 
@@ -622,6 +623,7 @@ const FOLDER_TOP_STUBS: Partial<Record<keyof Window['electron'], (...args: unkno
     getImageDetails: () => Promise.resolve(null),
     getImagePhaseStatuses: () => Promise.resolve([]),
     getEyeKeypoints: () => Promise.resolve({}),
+    getHeadGeometry: () => Promise.resolve({ geometry: null, reason: 'folder mode' }),
     getImageEvidence: () => Promise.resolve(null),
     exportEvidencePack: () => Promise.reject(new Error('folder mode')),
     updateImageDetails: () => Promise.resolve(false),

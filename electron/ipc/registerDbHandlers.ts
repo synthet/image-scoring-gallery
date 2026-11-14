@@ -59,6 +59,12 @@ export function registerDbHandlers(deps: DbHandlersDeps): void {
           return await db.getEyeKeypointsBatch(ids.map(Number));
       }));
 
+      ipcMain.handle('db:get-head-geometry', wrapIpcHandler(async (_, imageId: unknown) => {
+          const id = Number(imageId);
+          if (!Number.isInteger(id) || id <= 0) throw new Error('imageId must be a positive integer');
+          return await db.getHeadGeometry(id);
+      }));
+
       ipcMain.handle('api:evidence:get-image', wrapIpcHandler(async (_, imageId: unknown) => {
           const id = Number(imageId);
           if (!Number.isFinite(id)) throw new Error('imageId must be a number');
