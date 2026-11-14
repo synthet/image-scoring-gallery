@@ -12,6 +12,8 @@ import { useShowFocusPoint } from '../../hooks/useShowFocusPoint';
 import { BACKEND_UNAVAILABLE_HINT, useBackendUnavailable } from '../../store/useBackendStatusStore';
 import { useDiagnostics } from '../../hooks/useDiagnostics';
 import { diagnosticsTransport } from '../../services/diagnosticsTransport';
+import { createLocalDiagnosticsTransport, type LocalDiagnosticsTransport } from '../../services/localDiagnostics/transport';
+import { createWorkerEngine } from '../../services/localDiagnostics/workerEngine';
 import { DiagnosticControls, DiagnosticLegend } from '../Diagnostics/DiagnosticControls';
 import { DiagnosticOverlays } from '../Diagnostics/DiagnosticOverlays';
 import { useNotificationStore } from '../../store/useNotificationStore';
@@ -337,7 +339,20 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
     const showEyes = useShowEyes();
     const enableEyes = useCallback(() => { void bridge.setShowEyes(true); }, []);
-    const diagnostics = useDiagnostics(readOnlyFilesystemMode ? 0 : image.id, diagnosticsTransport, showEyes, enableEyes);
+    const [previewSrc, setPreviewSrc] = React.useState<string>('');
+    // Backend offline: compute what the gallery can from the preview it shows (and DB keypoints).
+    // Owned by an effect (not useMemo) so StrictMode remounts get a fresh, undisposed transport.
+    const [localDiagnostics, setLocalDiagnostics] = useState<LocalDiagnosticsTransport | null>(null);
+    useEffect(() => {
+        if (!previewSrc) {
+            setLocalDiagnostics(null);
+            return;
+        }
+        const transport = createLocalDiagnosticsTransport(previewSrc, createWorkerEngine(), id => bridge.getHeadGeometry(id));
+        setLocalDiagnostics(transport);
+        return () => transport.dispose();
+    }, [previewSrc]);
+    const diagnostics = useDiagnostics(readOnlyFilesystemMode ? 0 : image.id, diagnosticsTransport, showEyes, enableEyes, localDiagnostics);
     const { cyclePeaking, quickTogglePeaking, setOpen: setDiagnosticsOpen, toggle: toggleDiagnostic } = diagnostics;
     const [loadedDiagnosticPreview, setLoadedDiagnosticPreview] = useState<string | null>(null);
     const exportEvidence = useCallback(() => {
@@ -908,7 +923,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         }
     }, [addNotification, editForm.keywords, image.id, image.keywords, propagate, serverFsPath]);
 
-    const [previewSrc, setPreviewSrc] = React.useState<string>('');
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
     const [phaseStatuses, setPhaseStatuses] = React.useState<ImagePhaseStatus[] | null>(null);

@@ -101,11 +101,12 @@ export function DiagnosticControls({ controller: c, onExport }: { controller: Di
                     onChange={event => c.setDimming(Number(event.target.value))} />
             </label>
             <div className={styles.actions}>
-                <button type="button" onClick={c.refresh} disabled={!active || c.backendUnavailable}><RefreshCw size={14} /> Refresh</button>
+                <button type="button" onClick={c.refresh} disabled={!active || (c.backendUnavailable && !c.local)}><RefreshCw size={14} /> Refresh</button>
                 {pending && <button type="button" onClick={c.cancel}><X size={14} /> Cancel preparing</button>}
                 {onExport && <button type="button" onClick={onExport} disabled={c.backendUnavailable}>Export evidence pack</button>}
             </div>
             <small className={styles.hint}>P: cycle peaking · Shift+P: hide/restore</small>
+            {c.local && <small className={styles.hint}>Backend offline · local preview estimates</small>}
             {c.error && <div role="alert" className={styles.error}>{c.error}</div>}
         </div>, document.body)}
     </div>;
@@ -128,8 +129,10 @@ export function DiagnosticLegend({ controller: c }: { controller: DiagnosticsCon
                     <span>{m?.eyes?.map(eye => `${eye.name.replace('_', ' ')}: ${eye.sharpness_ratio == null ? 'ratio unavailable' : `${eye.sharpness_ratio.toFixed(2)}× eye/head`}${eye.limitation ? ` (${eye.limitation.replace('_', ' ')})` : ''}`).join(' · ')}</span>}
             </div>;
         })}
-        {c.manifest?.rendition && <div title="Computed from the decoded display image; RAW sensor noise is not measured.">
-            Decoded image · {c.manifest.rendition.display_width}×{c.manifest.rendition.display_height}
+        {c.manifest?.rendition && <div title={c.local
+            ? 'Computed in the gallery from the preview it shows while the backend is offline; values can differ from backend evidence.'
+            : 'Computed from the decoded display image; RAW sensor noise is not measured.'}>
+            {c.local ? 'Local preview estimate' : 'Decoded image'} · {c.manifest.rendition.display_width}×{c.manifest.rendition.display_height}
             {c.manifest.rendition.source_resolution === 'reduced' ? ' · reduced resolution' : ''}
         </div>}
         {c.error && <div role="alert" className={styles.error}>{c.error}</div>}

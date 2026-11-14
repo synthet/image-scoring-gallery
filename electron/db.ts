@@ -12,7 +12,7 @@ import { absolutizeThumbnailPath } from './thumbnailPathNormalize';
 import { protectedBirdBboxSelect } from './normalizedBirdBbox';
 import { visibleKeywordsSource } from './speciesVisibility';
 import { applyThumbnailPathRemaps } from './pathsRemap';
-import type { AFMetadata, AppConfig, DatabaseConfig, EyeKeypoint, ImageEyeKeypoints, ScoredImageForBackup } from './types';
+import type { AFMetadata, AppConfig, DatabaseConfig, EyeKeypoint, HeadGeometry, HeadGeometryResult, ImageEyeKeypoints, ScoredImageForBackup } from './types';
 import { createDatabaseConnector, IDatabaseConnector, QueryParam, TxQuery } from './db/provider';
 import type { RepresentativeLiveFlags } from './representativePreview';
 import type { KeepOneLiveRow } from './keepOneReview';
@@ -2640,6 +2640,45 @@ export async function getEyeKeypointsBatch(ids: number[]): Promise<Record<number
         });
     }
     return out;
+}
+
+/**
+ * Subject region and head keypoints for local eyes/head diagnostics. Mirrors the backend's
+ * `modules/visual_evidence/context.py`: the selected (not the current shadow) bird region (#714),
+ * fresh and display-normalized, and every visible keypoint of its current `bird_head_pose` run.
+ */
+export async function getHeadGeometry(imageId: number): Promise<HeadGeometryResult> {
+    let region: { region_id: number; x1: number; y1: number; x2: number; y2: number; coord_space: string;
+        display_width: number | null; display_height: number | null; selection_fresh: boolean | null } | undefined;
+    try {
+        [region] = await query(`
+            SELECT g.id AS region_id, g.x1, g.y1, g.x2, g.y2, r.coord_space, r.display_width, r.display_height,
+                   localization_selection_is_fresh(s.id) AS selection_fresh
+            FROM image_localization_selections s
+            JOIN image_regions g ON g.id = s.region_id
+            JOIN image_localization_runs r ON r.id = s.localization_run_id AND r.image_id = s.image_id
+            WHERE s.image_id = ? AND s.detector_key = 'bird' AND s.revoked_at IS NULL`, [imageId]);
+    } catch (err) {
+        // 42P01/42883: the backend has not created the selection tables or freshness function yet.
+        const code = (err as { code?: string }).code;
+        if (code === '42P01' || code === '42883') return { geometry: null, reason: 'The database has no subject selections yet' };
+        throw err;
+    }
+    if (!region) return { geometry: null, reason: 'No authoritative bird selection' };
+    if (region.selection_fresh !== true) return { geometry: null, reason: 'Bird selection is stale for this source or policy' };
+    const box = [region.x1, region.y1, region.x2, region.y2].map(Number) as HeadGeometry['region'];
+    const width = Number(region.display_width), height = Number(region.display_height);
+    if (region.coord_space !== 'display_normalized' || !(width > 0) || !(height > 0)
+        || !(0 <= box[0] && box[0] < box[2] && box[2] <= 1 && 0 <= box[1] && box[1] < box[3] && box[3] <= 1)) {
+        return { geometry: null, reason: 'Subject coordinates need regeneration for this source rendition' };
+    }
+    const points = await query<{ name: string; x: number; y: number; confidence: number | null; visible: boolean }>(`
+        SELECT k.name, k.x, k.y, k.confidence, k.visible
+        FROM image_keypoint_runs kr JOIN image_region_keypoints k ON k.keypoint_run_id = kr.id
+        WHERE kr.region_id = ? AND kr.is_current AND kr.status = 'detected'
+          AND kr.provider_key = 'bird_head_pose' AND k.visible`, [Number(region.region_id)]);
+    return { geometry: { region: box, display_width: width, display_height: height,
+        keypoints: points.map(p => ({ name: p.name, x: Number(p.x), y: Number(p.y), confidence: Number(p.confidence ?? 0), visible: Boolean(p.visible) })) } };
 }
 
 /** Parse pgvector text form "[0.1,0.2,...]" into Float32Array. */

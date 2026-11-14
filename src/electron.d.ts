@@ -174,6 +174,7 @@ declare global {
             onBackendStatusChanged?: (callback: (state: BackendConnectionState) => void) => () => void;
             onBackendReconnectResult?: (callback: (state: BackendConnectionState) => void) => () => void;
             getEyeKeypoints: (ids: number[]) => Promise<Record<number, ImageEyeKeypoints>>;
+            getHeadGeometry: (imageId: number) => Promise<import('../electron/types').HeadGeometryResult>;
             getImageEvidence: (imageId: number) => Promise<import('../electron/imageEvidenceTypes').ImageEvidencePayload | null>;
             getDiagnosticManifest: (imageId: number) => Promise<import('../electron/diagnosticTypes').DiagnosticManifest>;
             requestDiagnostics: (imageId: number, layers: import('../electron/diagnosticTypes').DiagnosticLayer[], refresh?: boolean) => Promise<import('../electron/diagnosticTypes').DiagnosticManifest>;
