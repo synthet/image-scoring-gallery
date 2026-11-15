@@ -62,6 +62,7 @@
     "db:get-images": { "tier": "read", "intent_examples": ["list images", "query gallery images by rating or keyword"] },
     "db:get-image-details": { "tier": "read", "intent_examples": ["show image details"] },
     "db:get-eye-keypoints": { "tier": "read" },
+    "db:get-head-geometry": { "tier": "read", "notes": ["Selected bird region and head keypoints for local eyes/head diagnostics; read-only SELECT."] },
     "db:get-image-phase-statuses": { "tier": "read" },
     "db:update-image-details": { "tier": "write", "notes": ["Updates one image row with the given columns."] },
     "db:delete-image": { "tier": "destructive", "notes": ["Deletes the source file on disk, then the images row. Not undoable."] },

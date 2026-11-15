@@ -47,7 +47,12 @@ function requireLayerManifest(manifest: DiagnosticManifest): DiagnosticManifest 
     return manifest;
 }
 
-export function useDiagnostics(imageId: number, transport: DiagnosticTransport, eyes: boolean, enableEyes: () => void) {
+/**
+ * `fallback` computes layers locally while the backend is unavailable; with the backend connected,
+ * `backend` is authoritative for every layer, so overlays never mix sources or renditions.
+ */
+export function useDiagnostics(imageId: number, backend: DiagnosticTransport, eyes: boolean, enableEyes: () => void,
+    fallback: DiagnosticTransport | null = null) {
     const view = useSyncExternalStore(subscribe, () => session);
     const [open, setOpen] = useState(false);
     const [result, setResult] = useState<DiagnosticManifest | null>(null);
@@ -60,9 +65,11 @@ export function useDiagnostics(imageId: number, transport: DiagnosticTransport, 
     const layers = { ...view.layers, head: view.layers.head && eyes };
     const selectedKey = DIAGNOSTIC_LAYERS.filter(layer => layers[layer]).join(',');
     const shouldLoad = open || !!selectedKey;
-    // Every layer is computed by the backend; wait for it and reload after a reconnect.
+    // Backend layers wait for it and reload after a reconnect; the local fallback covers the gap.
     const backendUnavailable = useBackendUnavailable();
     const backendReconnectCount = useBackendStatusStore((s) => s.reconnectCount);
+    const local = backendUnavailable && !!fallback;
+    const transport = local && fallback ? fallback : backend;
     const manifest = result?.image_id === imageId ? result : null;
 
     useEffect(() => {
@@ -84,7 +91,7 @@ export function useDiagnostics(imageId: number, transport: DiagnosticTransport, 
     }, [imageId, transport]);
 
     useEffect(() => {
-        if (!shouldLoad || !(imageId > 0) || backendUnavailable) return;
+        if (!shouldLoad || !(imageId > 0) || (backendUnavailable && !local)) return;
         let active = true;
         const controller = new AbortController();
         const selected = selectedKey ? selectedKey.split(',') as DiagnosticLayer[] : [];
@@ -119,7 +126,7 @@ export function useDiagnostics(imageId: number, transport: DiagnosticTransport, 
             }
         })();
         return () => { active = false; controller.abort(); };
-    }, [imageId, shouldLoad, selectedKey, refreshTick, transport, backendUnavailable, backendReconnectCount]);
+    }, [imageId, shouldLoad, selectedKey, refreshTick, transport, backendUnavailable, local, backendReconnectCount]);
 
     const identity = manifest?.identity;
     const artifacts = selectedKey && manifest?.rendition ? [manifest.rendition.preview_artifact,
@@ -186,8 +193,8 @@ export function useDiagnostics(imageId: number, transport: DiagnosticTransport, 
     }, []);
 
     const urls = loaded?.identity === manifest?.identity ? loaded?.urls ?? {} : {};
-    const errorMessage = backendUnavailable && shouldLoad ? BACKEND_UNAVAILABLE_HINT : error?.imageId === imageId ? error.message : null;
-    return { open, setOpen, layers, manifest, error: errorMessage, backendUnavailable, urls,
+    const errorMessage = backendUnavailable && !local && shouldLoad ? BACKEND_UNAVAILABLE_HINT : error?.imageId === imageId ? error.message : null;
+    return { open, setOpen, layers, manifest, error: errorMessage, backendUnavailable, local, urls,
         preview: selectedKey && manifest?.rendition ? urls[manifest.rendition.preview_artifact] ?? null : null,
         peakingMode: view.peakingMode, opacity: view.opacity, dimming: view.dimming, toggle, setPeakingMode, cyclePeaking,
         quickTogglePeaking, cancel, refresh: () => setRefreshTick(value => value + 1),
