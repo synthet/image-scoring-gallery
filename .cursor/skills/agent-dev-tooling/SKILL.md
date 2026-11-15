@@ -58,6 +58,22 @@ npm run typecheck
 npm run test:run
 ```
 
+### CI-only gates (run before a PR that touches IPC, `mcp-server/` or docs)
+
+`npm run test:run` is not all of CI. `.github/workflows/test-and-contract.yml` also runs these, and a red
+earlier step skips them, so a second failure can hide behind the first:
+
+```bash
+npm run build --prefix mcp-server && npm run test:unit --prefix mcp-server
+npm run check:driftara-catalog --prefix mcp-server   # every ipcMain.handle channel needs a reviewed tier
+npm run check:type-sync
+python scripts/lint_mcp_doc_vocabulary.py --error
+npm run contract:check                               # needs ../image-scoring-pipeline/openapi.json
+```
+
+Don't run two full vitest suites at the same time (for example a reviewer's run and `agent-flow submit`):
+timing-sensitive tests then hit their 5 s timeouts and fail spuriously.
+
 ### MCP server (when working on `mcp-server/`)
 
 ```bash

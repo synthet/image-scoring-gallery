@@ -67,6 +67,11 @@ gh pr status
 3. Never modify `.git/config` (project rule).
 4. PR body must include `Closes #<N>` per backlog contract — see [`backlog-queue`](../backlog-queue/SKILL.md).
 5. Only commit when the user explicitly asks.
+6. A Windows worktree has no `node_modules`. Link the main checkout's folders with PowerShell junctions
+   (`mklink /J` from Git Bash fails with "Parameter format not correct"), for the root and `mcp-server/`:
+   `New-Item -ItemType Junction -Path <wt>\node_modules -Target <repo>\node_modules`.
+   Before `git worktree remove`, delete each link with `(Get-Item <wt>\node_modules -Force).Delete()`;
+   a recursive delete or removal can follow the junction and empty the real `node_modules`.
 
 ## Commands requiring confirmation
 
