@@ -4454,6 +4454,56 @@
       "notes": []
     },
     {
+      "action_id": "ipc.db.get-head-geometry",
+      "source": "ipc",
+      "category": "ipc.db",
+      "title": "db: get head geometry",
+      "description": "Electron IPC channel 'db:get-head-geometry', window.electron.getHeadGeometry() in the renderer (registerDbHandlers.ts).",
+      "tags": [
+        "db",
+        "geometry",
+        "get",
+        "head",
+        "ipc"
+      ],
+      "aliases": [
+        "db:get-head-geometry"
+      ],
+      "intent_examples": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "imageId": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "imageId"
+        ],
+        "additionalProperties": false
+      },
+      "tier": "read",
+      "native_dry_run": false,
+      "executor": {
+        "kind": "ipc",
+        "channel": "db:get-head-geometry",
+        "params": [
+          {
+            "name": "imageId"
+          }
+        ],
+        "wrapped": true,
+        "file": "electron/ipc/registerDbHandlers.ts"
+      },
+      "legacy_tool_name": null,
+      "canonical_docs": [
+        "docs/technical/DRIFTARA_MCP.md"
+      ],
+      "notes": [
+        "Selected bird region and head keypoints for local eyes/head diagnostics; read-only SELECT."
+      ]
+    },
+    {
       "action_id": "ipc.db.get-image-count",
       "source": "ipc",
       "category": "ipc.db",
