@@ -222,6 +222,15 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     selection = EMPTY_SELECTION, onSelectionChange,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    // Stable, so React calls it on mount and unmount only: an inline ref re-runs on every
+    // render and would pull focus back from controls outside the grid (#276).
+    const attachContainer = useCallback((el: HTMLDivElement | null) => {
+        (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+        // Only focus if focus isn't already in the grid (a card can hold it, #227)
+        if (el && !el.contains(document.activeElement)) {
+            el.focus();
+        }
+    }, []);
     const virtuosoRef = useRef<VirtuosoGridHandle>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, image: Image } | null>(null);
     const [showBoundingBox, setShowBoundingBox] = useState(false);
@@ -772,17 +781,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
             className={styles.gridContainer}
             tabIndex={0}
             onKeyDown={handleGridKeyDown}
-            ref={(el) => {
-                if (containerRef) {
-                    (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-                }
-                if (el) {
-                    // Only focus if focus isn't already in the grid (a card can hold it, #227)
-                    if (!el.contains(document.activeElement)) {
-                        el.focus();
-                    }
-                }
-            }}
+            ref={attachContainer}
         >
             <VirtuosoGrid
                 ref={virtuosoRef}

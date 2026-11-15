@@ -516,6 +516,15 @@ describe('GalleryGrid keyboard navigation (#227)', () => {
         outside.remove();
     });
 
+    it('does not steal focus back from an outside control when the grid re-renders (#276)', () => {
+        const { rerender } = render(<GalleryGrid images={photos} />);
+        const outside = document.body.appendChild(document.createElement('button'));
+        outside.focus();
+        rerender(<GalleryGrid images={photos} highlightImageId={photos[0].id} />);
+        expect(document.activeElement).toBe(outside);
+        outside.remove();
+    });
+
     it('Shift+click selects photos without starting a text selection across the cards', () => {
         render(<GalleryGrid images={photos} onSelectionChange={vi.fn()} />);
         const card = slot(1)?.querySelector('[data-image-id]') as HTMLElement;
