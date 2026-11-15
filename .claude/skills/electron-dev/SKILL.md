@@ -32,7 +32,7 @@ Main Process (Node.js)          Renderer Process (Chromium)
 
 ## Adding a New IPC Handler (Step-by-Step)
 
-This is the most common task. Follow these 4 files in order:
+This is the most common task. Follow these steps in order:
 
 ### Step 1: Database function in `electron/db.ts`
 
@@ -42,19 +42,15 @@ export async function getMyData(options: MyOptions = {}): Promise<MyResult[]> {
 }
 ```
 
-### Step 2: IPC handler in `electron/main.ts`
+### Step 2: IPC handler in `electron/ipc/register*Handlers.ts`
 
-Add inside `app.whenReady().then(() => { ... })`:
+Handlers live in the `register*Handlers.ts` module for their area (DB channels: `registerDbHandlers.ts`),
+wrapped by `wrapIpcHandler` so errors reach the renderer as an envelope. Validate arguments:
 
 ```typescript
-ipcMain.handle('db:my-channel', async (_, options) => {
-    try {
-        return await db.getMyData(options);
-    } catch (e: any) {
-        console.error('DB Error:', e);
-        return [];
-    }
-});
+ipcMain.handle('db:my-channel', wrapIpcHandler(async (_, options: unknown) => {
+    return await db.getMyData(parseOptions(options));
+}));
 ```
 
 ### Step 3: Expose in `electron/preload.ts`
@@ -71,7 +67,24 @@ Add to the `Window.electron` interface:
 getMyData: (options?: { limit?: number; offset?: number }) => Promise<any[]>;
 ```
 
-### Step 5: Use in React
+### Step 5: Add `src/bridge.ts` stubs
+
+`bridge.ts` implements the same interface for browser (web) mode and folder mode. Add a method to both
+stub objects (usually a resolved empty/unavailable value), or `npm run typecheck` fails.
+
+### Step 6: Catalog the channel for the driftara MCP
+
+CI fails on any `ipcMain.handle` channel without a reviewed tier. Local `npm test` does not run this check.
+
+```bash
+# add "db:my-channel": { "tier": "read" } (read | write | destructive) to mcp-server/driftara/overrides.json
+cd mcp-server
+node scripts/build_driftara_catalog.mjs              # regenerate driftara/catalog.json
+node scripts/build_driftara_catalog.mjs --update-doc # regenerate the docs/technical/DRIFTARA_MCP.md block
+npm run check:driftara-catalog && npm run test:unit
+```
+
+### Step 7: Use in React
 
 ```typescript
 const data = await window.electron.getMyData({ limit: 50 });
@@ -112,3 +125,9 @@ The DB stores WSL-style paths (`/mnt/d/...`). The `convertPathToLocal()` functio
 2. **Blank gallery**: Check Electron main process console for DB errors
 3. **Images not loading**: Verify `media://` protocol and WSL path conversion
 4. **Type errors**: Run `npm run lint` — check `electron.d.ts` matches `preload.ts`
+5. **Verifying a production build**: an unpackaged `electron .` counts as dev (`electron-is-dev`) and loads
+   the Vite URL. Run `npm run build:app`, then `ELECTRON_IS_DEV=0 npx electron . --remote-debugging-port=<port>`
+   to load `dist/` through `loadFile`.
+6. **CDP screenshot times out**: an occluded window may stop painting, so `Page.captureScreenshot` hangs.
+   Assert on the DOM instead: `playwright-core` `chromium.connectOverCDP('http://127.0.0.1:<port>')`, then
+   `page.evaluate(...)` / `waitForSelector`.

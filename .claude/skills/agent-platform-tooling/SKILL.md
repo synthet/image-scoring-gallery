@@ -72,6 +72,8 @@ See [windows-wsl-split.md](../agent-cli-hub/references/windows-wsl-split.md) for
 - Store WSL clones under `~/src` when doing heavy I/O; use `/mnt/d/Projects` only when sharing with Windows tools.
 - Do not run backend Python in Windows PowerShell with system Python — use WSL + documented venvs.
 - Gallery Electron dev is routinely run on Windows; WSL X11/GUI is not required for typical workflows.
+- Git Bash (MSYS) rewrites `<rev>:<path>` arguments into Windows paths (`ambiguous argument 'origin\main;…'`).
+  Prefix `MSYS_NO_PATHCONV=1` for `git show` / `git rev-parse` / `git cat-file` with `rev:path`.
 
 ## Commands requiring confirmation
 

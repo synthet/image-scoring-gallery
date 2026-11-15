@@ -24,6 +24,7 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | llm-wiki | `.cursor/skills/llm-wiki/SKILL.md` | Shared evidence-bound LLM Wiki via MCP `llmwiki-ro-core` / CLI | L2 | Yes | 2026-09-21 |
 | eval | `.cursor/skills/eval/SKILL.md` | Capture task quality signals (test_pass_rate / first_try_success / iteration_count) → agent-memory feedback loop | L1 | Yes | 2026-06-19 |
 | gallery-electron-ts | `.cursor/skills/gallery-electron-ts/SKILL.md` | Electron / TS / db contract | L1 | Yes | 2026-07-26 |
+| electron-dev | `.cursor/skills/electron-dev/SKILL.md` | Electron dev workflow; adding an IPC channel (bridge stubs, driftara catalog); production-build checks | L1 | Yes | 2026-11-15 |
 | gallery-ui | `.cursor/skills/gallery-ui/SKILL.md` | Renderer UI, CSS Modules, design tokens | L1 | Yes | 2026-07-26 |
 | security-review | `.cursor/skills/security-review/SKILL.md` | Pre-merge security sanity | L1 | — | 2026-04-25 |
 | subagent-review | `.cursor/skills/subagent-review/SKILL.md` | External Codex/Gemini review via synthet-agent-swarm MCP | L2 | Yes | 2026-05-26 |
@@ -35,10 +36,10 @@ Central list of **first-party** `SKILL.md` files in **image-scoring-gallery** fo
 | agent-memory | `.cursor/skills/agent-memory/SKILL.md` | Log/dream/promote via sibling backend scripts | L2 | Yes | 2026-07-04 |
 | agent-cli-hub | `.cursor/skills/agent-cli-hub/SKILL.md` | CLI skill router; install tiers, agent-environment, shared references | L1 | Yes | 2026-07-21 |
 | agent-search | `.cursor/skills/agent-search/SKILL.md` | rg/grep/ast-grep/fd tool selection + fff + Graphify | L1 | Yes | 2026-07-21 |
-| agent-git-workflows | `.cursor/skills/agent-git-workflows/SKILL.md` | git/gh safe status, diff, PR workflows | L2 | Yes | 2026-07-04 |
+| agent-git-workflows | `.cursor/skills/agent-git-workflows/SKILL.md` | git/gh safe status, diff, PR workflows; Windows worktree junctions | L2 | Yes | 2026-11-15 |
 | agent-data-config | `.cursor/skills/agent-data-config/SKILL.md` | jq/yq/curl config and API inspection | L1 | Yes | 2026-07-04 |
-| agent-dev-tooling | `.cursor/skills/agent-dev-tooling/SKILL.md` | Gallery npm lint/tsc/vitest; optional backend tools | L1 | Yes | 2026-07-04 |
-| agent-platform-tooling | `.cursor/skills/agent-platform-tooling/SKILL.md` | Windows vs WSL2 environment choice | L1 | Yes | 2026-07-04 |
+| agent-dev-tooling | `.cursor/skills/agent-dev-tooling/SKILL.md` | Gallery npm lint/tsc/vitest; CI-only gates; optional backend tools | L1 | Yes | 2026-11-15 |
+| agent-platform-tooling | `.cursor/skills/agent-platform-tooling/SKILL.md` | Windows vs WSL2 environment choice | L1 | Yes | 2026-11-15 |
 | mcp-code-intelligence | `.cursor/skills/mcp-code-intelligence/SKILL.md` | MCP vs CLI code-intelligence tiers; fff + Graphify | L1 | Yes | 2026-07-21 |
 | graphify | `.cursor/skills/graphify/SKILL.md` | Graphify MCP (`graphify-gallery`) + CLI for architecture / connectivity | L1 | Yes | 2026-07-21 |
 | karpathy-guidelines | `.cursor/skills/karpathy-guidelines/SKILL.md` | Deliberate coding checklist (pairs with karpathy-coding rule) | L1 | Yes | 2026-07-21 |
