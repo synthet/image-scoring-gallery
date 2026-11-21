@@ -541,3 +541,44 @@ describe('GalleryGrid keyboard navigation (#227)', () => {
         expect(slot(4)).not.toBe(document.activeElement);
     });
 });
+
+describe('GalleryGrid AF-only tile shape (#280)', () => {
+    // Portrait shot: AF metadata keeps the raw sensor size (landscape) while the thumbnail is upright.
+    const rotatedImage = {
+        id: 247731,
+        file_path: 'D:/Photos/DSC_0039.NEF',
+        file_name: 'DSC_0039.NEF',
+        thumbnail_path: 'D:/photos/thumbs/DSC_0039.jpg',
+        score_general: 0.7,
+        rating: 4,
+        label: 'Blue',
+        bird_bbox: null,
+        af_metadata: {
+            box: { top: 0.5, left: 0.6, width: 0.02, height: 0.04, center_x: 0.61, center_y: 0.52 },
+            in_focus: true,
+            af_image_w: 8256,
+            af_image_h: 5504,
+        },
+    };
+
+    beforeEach(() => {
+        getShowBoundingBoxMock.mockReset();
+        getShowBoundingBoxMock.mockResolvedValue(false);
+        getShowFocusPointMock.mockReset();
+        getShowFocusPointMock.mockResolvedValue(true);
+    });
+
+    it('sizes the tile from the loaded thumbnail, not the sensor-oriented AF size', async () => {
+        render(<GalleryGrid images={[rotatedImage]} />);
+
+        await screen.findByTestId('af-reticle-overlay');
+        const img = screen.getByAltText('DSC_0039.NEF') as HTMLImageElement;
+        Object.defineProperty(img, 'naturalWidth', { configurable: true, value: 341 });
+        Object.defineProperty(img, 'naturalHeight', { configurable: true, value: 512 });
+        fireEvent.load(img);
+
+        await waitFor(() => {
+            expect(img.parentElement!.style.getPropertyValue('--thumb-aspect')).toBe(String(341 / 512));
+        });
+    });
+});

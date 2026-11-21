@@ -176,6 +176,43 @@ const SimpleMediaThumb: React.FC<{ src: string; alt: string; className: string; 
     );
 };
 
+/**
+ * Overlay frame sized to the overlay's image space. Bird boxes and eye keypoints carry upright
+ * dimensions, but AF metadata keeps the raw sensor size, so AF-only tiles take the loaded
+ * thumbnail's own shape instead (portrait shots were stretched to landscape, #280).
+ */
+const OverlayThumbFrame: React.FC<{ aspect: number; preferThumbnailShape: boolean; children: React.ReactNode }> = ({
+    aspect,
+    preferThumbnailShape,
+    children,
+}) => {
+    const contentRef = useRef<HTMLDivElement>(null);
+    const [thumbAspect, setThumbAspect] = useState<number | null>(null);
+    useEffect(() => {
+        const el = contentRef.current;
+        if (!el || !preferThumbnailShape) return;
+        const read = (img: HTMLImageElement) => {
+            if (img.naturalWidth > 0 && img.naturalHeight > 0) setThumbAspect(img.naturalWidth / img.naturalHeight);
+        };
+        // `load` does not bubble, but a capture listener still sees it from the <img> inside.
+        const onLoad = (e: Event) => {
+            if (e.target instanceof HTMLImageElement) read(e.target);
+        };
+        el.addEventListener('load', onLoad, true);
+        const loaded = el.querySelector('img');
+        if (loaded?.complete) queueMicrotask(() => read(loaded));
+        return () => el.removeEventListener('load', onLoad, true);
+    }, [preferThumbnailShape]);
+    const value = preferThumbnailShape && thumbAspect ? thumbAspect : aspect;
+    return (
+        <div className={styles.thumbFit}>
+            <div ref={contentRef} className={styles.thumbContent} style={{ '--thumb-aspect': String(value) } as React.CSSProperties}>
+                {children}
+            </div>
+        </div>
+    );
+};
+
 /** How long a card must keep keyboard focus before the grid stops watching where the scroll settled. */
 const FOCUS_SETTLE_MS = 500;
 
@@ -410,22 +447,20 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         const drawEyes = hasDrawableEyes(eyes);
         const af = showFocusPoint && img.af_metadata ? img.af_metadata : null;
         if (!bbox && !drawEyes && !af) return thumb;
-        const aspectRatio = bbox
-            ? `${bbox.img_w} / ${bbox.img_h}`
+        const aspect = bbox
+            ? bbox.img_w / bbox.img_h
             : drawEyes
-                ? `${eyes!.display_width} / ${eyes!.display_height}`
+                ? eyes!.display_width / eyes!.display_height
                 : af && af.af_image_w && af.af_image_h
-                    ? `${af.af_image_w} / ${af.af_image_h}`
-                    : '3 / 2';
+                    ? af.af_image_w / af.af_image_h
+                    : 3 / 2;
         return (
-            <div className={styles.thumbFit}>
-                <div className={styles.thumbContent} style={{ aspectRatio }}>
-                    {thumb}
-                    {bbox && <BirdBoxOverlay bbox={bbox} />}
-                    {drawEyes && <EyeKeypointsOverlay eyes={eyes!} size={10} />}
-                    {af && <AFReticleOverlay af={af} showDetails={false} />}
-                </div>
-            </div>
+            <OverlayThumbFrame key={img.id} aspect={aspect} preferThumbnailShape={!bbox && !drawEyes}>
+                {thumb}
+                {bbox && <BirdBoxOverlay bbox={bbox} />}
+                {drawEyes && <EyeKeypointsOverlay eyes={eyes!} size={10} />}
+                {af && <AFReticleOverlay af={af} showDetails={false} />}
+            </OverlayThumbFrame>
         );
     }, [useGalleryThumbnail, showBoundingBox, showEyes, showFocusPoint, eyeKeypoints]);
 
