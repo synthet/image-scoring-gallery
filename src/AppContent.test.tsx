@@ -2,6 +2,7 @@ import { StrictMode, type ReactNode } from 'react';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import AppContent from './AppContent';
+import { bridge } from './bridge';
 import { readGalleryBrowserSnapshot, writeGalleryBrowserSnapshot } from './utils/galleryBrowserPersistence';
 
 const state = vi.hoisted(() => ({ loading: true, refresh: vi.fn() }));
@@ -63,4 +64,15 @@ it('restores folder/stack state after folders load and normalizes a retired sort
         activeStackId: 10, activeSubStackId: 11,
         filters: { minRating: 3, sortBy: 'score_general' },
     });
+});
+
+it('logs a failed selection update instead of swallowing it', async () => {
+    const failure = new Error('main process not ready');
+    vi.mocked(bridge.setSelectionPath).mockRejectedValueOnce(failure);
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(<AppContent />);
+
+    await waitFor(() => expect(logged).toHaveBeenCalledWith('[AppContent] set-selection-path failed', failure));
+    logged.mockRestore();
 });
