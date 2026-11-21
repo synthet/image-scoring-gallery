@@ -4,8 +4,12 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 
 ## [Unreleased]
 
+## [7.33.0] — 2026-11-21
+
 ### Added
 - **Production launcher** (#263): `run-prod.vbs` starts the built app with no dev server or console window, for use from a desktop shortcut. `npm run build:app` builds it and `npm start` runs it. `run.bat` is now `run-debug.bat`.
+- **Diagnostic overlays without the backend** (#274): While the backend is disconnected, the viewer computes the sharpness map, noise map and focus peaking from the preview it shows, and eyes/head detail when the database is reachable. These local results are labelled as a preview estimate. Subject mask and evidence export still need the backend, and when the backend is connected it stays authoritative for every layer.
+- **Docker dev from another PC** (#281): Set `VITE_EXTRA_ALLOWED_HOST` in `.env` to open the Docker dev server by this PC's name (e.g. `http://<pc-name>:5173/`). Vite blocked hostnames other than `localhost` and IP addresses.
 
 ### Changed
 - **Backend status** (#258): The header shows the backend status as an icon only: green when connected, a crossed-out red server when offline. The tooltip still gives the details, and clicking still reconnects.
@@ -16,6 +20,8 @@ All notable changes to **Driftara Gallery** (`image-scoring-gallery`) will be do
 - **Taskbar icon** (#259): On Windows the taskbar shows the Driftara Gallery icon instead of the default Electron icon.
 - **Deleted photos coming back from memory cards** (#256): Sync recognises a deleted photo by its camera, shutter count and capture time, so it stays deleted after the library moves or a lens folder is renamed. Needs backend migration 0049.
 - **Sync when deleted-photo records can't be read** (#256): Sync now stops with an error and copies nothing. It used to carry on with no protection against re-importing deleted photos.
+- **Grid focus** (#276): The photo grid no longer pulls keyboard focus back from other controls whenever it re-renders. It takes focus only when it first appears.
+- **Portrait photos in the grid** (#280): With the AF point overlay on and bird boxes off, portrait (rotated) photos were stretched into landscape tiles. They now keep their shape. The AF point on rotated photos is still drawn unrotated.
 
 ## [7.32.0] — 2026-11-04
 
