@@ -12,6 +12,9 @@ services:
       - NODE_ENV=development
       # Photos bind source for the container
       - PHOTOS_BIND_SOURCE=${PHOTOS_BIND_SOURCE:-/mnt/d/Photos}
+      # Extra hostname Vite accepts besides localhost/IPs (e.g. this PC's LAN name).
+      # Set VITE_EXTRA_ALLOWED_HOST in a git-ignored .env; empty keeps Vite's default.
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=${VITE_EXTRA_ALLOWED_HOST:-}
     volumes:
       - .:/app
       - /app/node_modules
