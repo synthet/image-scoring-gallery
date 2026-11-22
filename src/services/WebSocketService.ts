@@ -1,4 +1,5 @@
 import { bridge } from '../bridge';
+import { apiBaseUrlForExternalOpen } from '../utils/apiBaseUrlForBrowser';
 
 interface WebSocketMessage {
     type: string;
@@ -33,6 +34,20 @@ type MessageHandler = (data: unknown) => void;
  *   stack_deleted - { stack_id }
  *   stacks_cleared - {}
  */
+
+/**
+ * Backend live-update socket URL. The desktop app connects to the configured backend url; the web
+ * version connects from the browser, so it uses the browser-reachable url (api.browserUrl, loopback
+ * swapped for the page's host) instead of the server-side one, which in Docker is a service name
+ * only Docker can resolve (#290).
+ */
+export function webSocketUrlFor(
+    config: { url: string; browserUrl?: string },
+    { desktop, pageHostname }: { desktop: boolean; pageHostname?: string },
+): string {
+    const base = desktop ? config.url.trim().replace(/\/$/, '') : apiBaseUrlForExternalOpen(config, pageHostname);
+    return base.replace(/^http/, 'ws') + '/ws/updates';
+}
 
 class WebSocketService {
     private ws: WebSocket | null = null;
@@ -77,7 +92,7 @@ class WebSocketService {
 
         try {
             const config = await bridge.getApiConfig();
-            this.url = config.url.replace('http', 'ws') + '/ws/updates'; // Assuming WS endpoint is at /ws/updates
+            this.url = webSocketUrlFor(config, { desktop: !!window.electron, pageHostname: window.electron ? undefined : window.location.hostname });
 
             console.log(`[WebSocket] Connecting to: ${this.url} (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
             // Handlers act only on their own socket: a replaced socket can still report its aborted
