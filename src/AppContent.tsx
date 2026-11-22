@@ -29,6 +29,7 @@ import { useGalleryNavigation } from './hooks/useGalleryNavigation';
 import { useStacksMode } from './hooks/useStacksMode';
 import { useRepresentativeView } from './hooks/useRepresentativeView';
 import { useImageOpener } from './hooks/useImageOpener';
+import { useImageUrlSync } from './hooks/useImageUrlSync';
 import { useGalleryWebSocket } from './hooks/useGalleryWebSocket';
 import { useBackendStatusSync } from './hooks/useBackendStatus';
 import { BackendStatusChip } from './components/Layout/BackendStatusChip';
@@ -447,6 +448,8 @@ function AppContent() {
     onNavigateToFolder: handleNavigateToFolder,
     onImageRemoved: removeImageFromActiveGrid,
   });
+
+  useImageUrlSync({ openImageId: openingImage?.id ?? null, openImageById, closeViewer });
 
   const handleSelectStack = (stack: Parameters<typeof handleSelectStackBase>[0]) => {
     handleSelectStackBase(stack, handleImageClick);
