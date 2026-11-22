@@ -242,3 +242,74 @@ describe('server /gallery-api contract envelope', () => {
     }
   });
 });
+
+describe('server eye keypoints and head geometry (#292)', () => {
+  let server: Server | undefined;
+  let baseUrl = '';
+  let dbMock: ReturnType<typeof createDbMock> & { getEyeKeypointsBatch: ReturnType<typeof vi.fn>; getHeadGeometry: ReturnType<typeof vi.fn> };
+
+  beforeEach(async () => {
+    dbMock = { ...createDbMock(), getEyeKeypointsBatch: vi.fn(), getHeadGeometry: vi.fn() };
+    const app = createServerApp({
+      dbModule: asDbModule(dbMock),
+      apiService: asApiService(createApiServiceMock()),
+      configPath: '/tmp/nope.json',
+      appConfig: {},
+      backendBaseUrl: 'http://127.0.0.1:7860',
+    });
+    await new Promise<void>((resolve) => {
+      server = app.listen(0, '127.0.0.1', () => {
+        const addr = server?.address();
+        if (addr && typeof addr !== 'string') baseUrl = `http://127.0.0.1:${addr.port}`;
+        resolve();
+      });
+    });
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => (server ? server.close(() => resolve()) : resolve()));
+    server = undefined;
+  });
+
+  it('returns eye keypoints for the requested ids', async () => {
+    const eyes = { 7: { display_width: 4000, display_height: 6000, keypoints: [] } };
+    dbMock.getEyeKeypointsBatch.mockResolvedValue(eyes);
+    const res = await fetch(`${baseUrl}/gallery-api/db/eye-keypoints?ids=7&ids=9`);
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ ok: true, data: eyes });
+    expect(dbMock.getEyeKeypointsBatch).toHaveBeenCalledWith([7, 9]);
+  });
+
+  it('accepts comma-separated ids and drops invalid ones', async () => {
+    dbMock.getEyeKeypointsBatch.mockResolvedValue({});
+    await fetch(`${baseUrl}/gallery-api/db/eye-keypoints?ids=3,x,-1,4`);
+    expect(dbMock.getEyeKeypointsBatch).toHaveBeenCalledWith([3, 4]);
+  });
+
+  it('returns an empty map without querying when no valid ids are given', async () => {
+    const res = await fetch(`${baseUrl}/gallery-api/db/eye-keypoints?ids=abc`);
+    await expect(res.json()).resolves.toEqual({ ok: true, data: {} });
+    expect(dbMock.getEyeKeypointsBatch).not.toHaveBeenCalled();
+  });
+
+  it('rejects more ids than one grid page can ask for', async () => {
+    const ids = Array.from({ length: 501 }, (_, i) => i + 1).join(',');
+    const res = await fetch(`${baseUrl}/gallery-api/db/eye-keypoints?ids=${ids}`);
+    expect(res.status).toBe(400);
+    expect(dbMock.getEyeKeypointsBatch).not.toHaveBeenCalled();
+  });
+
+  it('returns head geometry for an image', async () => {
+    const geometry = { geometry: null, reason: 'no head keypoints' };
+    dbMock.getHeadGeometry.mockResolvedValue(geometry);
+    const res = await fetch(`${baseUrl}/gallery-api/db/image/12/head-geometry`);
+    await expect(res.json()).resolves.toEqual({ ok: true, data: geometry });
+    expect(dbMock.getHeadGeometry).toHaveBeenCalledWith(12);
+  });
+
+  it('rejects a non-numeric image id for head geometry', async () => {
+    const res = await fetch(`${baseUrl}/gallery-api/db/image/abc/head-geometry`);
+    expect(res.status).toBe(400);
+    expect(dbMock.getHeadGeometry).not.toHaveBeenCalled();
+  });
+});

@@ -429,7 +429,7 @@ function createHttpBridge(): Window['electron'] {
 
         onShowBoundingBoxChanged: browserBoundingBox.subscribe,
 
-        // Eye keypoints are an Electron-only diagnostic overlay (View > Eyes).
+        // Eye keypoints overlay (View > Eyes in the desktop app; viewer button or key 3 here).
         getShowEyes: browserEyes.get,
         setShowEyes: browserEyes.set,
 
@@ -442,8 +442,9 @@ function createHttpBridge(): Window['electron'] {
 
         onShowFocusPointChanged: browserFocusPoint.subscribe,
 
-        getEyeKeypoints: () => Promise.resolve({}),
-        getHeadGeometry: () => Promise.resolve({ geometry: null, reason: 'Head geometry needs the desktop app' }),
+        getEyeKeypoints: (ids: number[]) =>
+            ids.length === 0 ? Promise.resolve({}) : get('/db/eye-keypoints', { ids: ids.join(',') }),
+        getHeadGeometry: (imageId: number) => get(`/db/image/${imageId}/head-geometry`),
 
         selectDirectory: () => Promise.resolve(null),
 

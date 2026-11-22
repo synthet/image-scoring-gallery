@@ -34,6 +34,9 @@ import { buildMediaPathCandidates } from './buildMediaPathCandidates';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
+/** Upper bound on ids per eye-keypoint request; the grid asks in chunks of 400 (useEyeKeypoints). */
+const EYE_KEYPOINTS_MAX_IDS = 500;
+
 const configPath = getConfigPath(path.resolve(__dirname, '../electron'));
 const appConfig = loadAppConfig(configPath);
 const apiService = new ApiService(() => appConfig);
@@ -110,11 +113,42 @@ export function createServerApp(deps: ServerDeps) {
         } catch (e) { fail(res, e); }
     }));
 
+    // DB: eye keypoints for grid/viewer overlays (#292). ids repeated or comma-separated.
+    router.get('/db/eye-keypoints', wrap(async (req, res) => {
+        const raw = ([] as unknown[]).concat(req.query.ids ?? []);
+        const ids = raw.flatMap((v) => String(v).split(','))
+            .map((s) => Number(s.trim()))
+            .filter((n) => Number.isInteger(n) && n > 0);
+        if (ids.length > EYE_KEYPOINTS_MAX_IDS) {
+            fail(res, new Error(`At most ${EYE_KEYPOINTS_MAX_IDS} ids per request`), 400);
+            return;
+        }
+        if (ids.length === 0) {
+            ok(res, {});
+            return;
+        }
+        try {
+            ok(res, await dbModule.getEyeKeypointsBatch(ids));
+        } catch (e) { fail(res, e); }
+    }));
+
     // DB: image details
     router.get('/db/image/:id', wrap(async (req, res) => {
         try {
             const result = await dbModule.getImageDetails(parseInt(req.params.id, 10));
             ok(res, result);
+        } catch (e) { fail(res, e); }
+    }));
+
+    // DB: head geometry for the viewer's local eyes/head diagnostic (#292)
+    router.get('/db/image/:id/head-geometry', wrap(async (req, res) => {
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+            fail(res, new Error('Invalid image id'), 400);
+            return;
+        }
+        try {
+            ok(res, await dbModule.getHeadGeometry(id));
         } catch (e) { fail(res, e); }
     }));
 
