@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { webSocketService } from './WebSocketService';
+import { webSocketService, webSocketUrlFor } from './WebSocketService';
 
 
 interface WebSocketServiceInternals {
@@ -267,5 +267,52 @@ describe('WebSocketService: replacing a socket that is still connecting (#230)',
     expect(fresh.close).not.toHaveBeenCalled();
     expect(consoleError).not.toHaveBeenCalledWith('[WebSocket] Error:', expect.anything());
     expect((webSocketService as unknown as WebSocketServiceInternals).reconnectTimeout).toBeNull();
+  });
+});
+
+describe('webSocketUrlFor (#290)', () => {
+  const docker = { url: 'http://image-scoring-webui:7860', browserUrl: 'http://127.0.0.1:7860' };
+
+  it('desktop app keeps the configured backend url', () => {
+    expect(webSocketUrlFor(docker, { desktop: true })).toBe('ws://image-scoring-webui:7860/ws/updates');
+  });
+
+  it('web version uses the browser-reachable url, swapping loopback for the page host', () => {
+    expect(webSocketUrlFor(docker, { desktop: false, pageHostname: 'gallery-pc' })).toBe('ws://gallery-pc:7860/ws/updates');
+    expect(webSocketUrlFor(docker, { desktop: false, pageHostname: 'localhost' })).toBe('ws://127.0.0.1:7860/ws/updates');
+  });
+
+  it('maps https to wss', () => {
+    expect(webSocketUrlFor({ url: 'https://scoring.example' }, { desktop: false, pageHostname: 'gallery-pc' })).toBe('wss://scoring.example/ws/updates');
+  });
+});
+
+describe('WebSocketService in the web version (#290)', () => {
+  let createdUrl = '';
+
+  beforeEach(() => {
+    createdUrl = '';
+    vi.stubGlobal('WebSocket', class {
+      readyState = 0;
+      onopen = null; onmessage = null; onclose = null; onerror = null;
+      close = vi.fn();
+      constructor(url: string) { createdUrl = url; }
+    } as unknown as new (url: string) => WebSocket);
+    vi.stubGlobal('electron', undefined);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ url: 'http://image-scoring-webui:7860', browserUrl: 'http://127.0.0.1:7860' }),
+    }));
+    (webSocketService as unknown as { reconnectAttempts: number }).reconnectAttempts = 0;
+  });
+
+  afterEach(() => {
+    webSocketService.disconnect();
+    vi.unstubAllGlobals();
+  });
+
+  it('connects to a host the browser can resolve, not the Docker service name', async () => {
+    await webSocketService.connect();
+    expect(createdUrl).toBe('ws://127.0.0.1:7860/ws/updates');
   });
 });
