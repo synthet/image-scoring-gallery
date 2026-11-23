@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
-import { HEATMAP_RAMP_RGBA, NOISE_RAMP_RGBA } from '@synthet/image-scoring-design';
+import { HEATMAP_RAMP_RGBA, NOISE_RAMP_RGBA } from '@synthet/synth-photo-design';
 import type { DiagnosticsController } from '../../hooks/useDiagnostics';
 import type { DiagnosticGrid } from '../../types/diagnostics';
 import styles from './Diagnostics.module.css';

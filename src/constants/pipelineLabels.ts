@@ -1,8 +1,8 @@
-import { STAGE_DISPLAY as SHARED_STAGE_DISPLAY } from '@synthet/image-scoring-design';
+import { STAGE_DISPLAY as SHARED_STAGE_DISPLAY } from '@synthet/synth-photo-design';
 import { UiStageCode, type StageCode } from '../types/pipelineStage';
 
 /**
- * User-facing pipeline stage names — sourced from @synthet/image-scoring-design
+ * User-facing pipeline stage names — sourced from @synthet/synth-photo-design
  * (aligns with image-scoring-pipeline `frontend/src/types/api.ts`).
  */
 export const STAGE_DISPLAY: Pick<typeof SHARED_STAGE_DISPLAY, StageCode> = {

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { HEATMAP_RAMP_RGBA, NOISE_RAMP_RGBA } from '@synthet/image-scoring-design';
+import { HEATMAP_RAMP_RGBA, NOISE_RAMP_RGBA } from '@synthet/synth-photo-design';
 import type { EvidenceGrid } from '../../types/imageEvidence';
 
 function sampleRamp(

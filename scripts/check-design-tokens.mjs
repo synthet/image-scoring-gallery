@@ -31,8 +31,8 @@ function checkLockfile() {
     console.error('design:check: package-lock.json missing — run npm install');
     process.exit(1);
   }
-  if (!lock.includes('"@synthet/image-scoring-design"')) {
-    console.error('design:check: @synthet/image-scoring-design not found in package-lock.json');
+  if (!lock.includes('"@synthet/synth-photo-design"')) {
+    console.error('design:check: @synthet/synth-photo-design not found in package-lock.json');
     process.exit(1);
   }
 }

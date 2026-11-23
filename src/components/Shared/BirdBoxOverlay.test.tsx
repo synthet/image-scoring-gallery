@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { LABEL_COLORS } from '@synthet/image-scoring-design';
+import { LABEL_COLORS } from '@synthet/synth-photo-design';
 import { BirdBoxOverlay } from './BirdBoxOverlay';
 import { birdBboxBorderCss } from './birdBboxStyle';
 import styles from './ImageOverlays.module.css';

@@ -7,7 +7,7 @@ import {
     X,
     Loader2,
 } from 'lucide-react';
-import { EmbeddingSpaceIcon, EMBEDDING_SPACE_LABELS } from '@synthet/image-scoring-design';
+import { EmbeddingSpaceIcon, EMBEDDING_SPACE_LABELS } from '@synthet/synth-photo-design';
 import type { TextSearchResultItem } from '../../../electron/apiTypes';
 import type { Folder } from '../Tree/treeUtils';
 import { bridge } from '../../bridge';

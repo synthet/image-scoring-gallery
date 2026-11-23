@@ -1,4 +1,4 @@
-import { EVIDENCE_LAYER_LABELS } from '@synthet/image-scoring-design';
+import { EVIDENCE_LAYER_LABELS } from '@synthet/synth-photo-design';
 import type { EvidenceDisplayGates, EvidenceLayerId, EvidenceLayerState } from '../../types/imageEvidence';
 
 const ORDER: EvidenceLayerId[] = ['region', 'mask', 'keypoints', 'sharpness', 'noise'];
