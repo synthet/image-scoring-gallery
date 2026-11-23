@@ -16,14 +16,14 @@ Mandatory UX/UI rules for **image-scoring-gallery** (Driftara Gallery Electron r
 
 - **Framework:** Electron + React 19 + Vite
 - **Styling:** Vanilla CSS + **CSS Modules** (`.module.css`) — **no Tailwind**
-- **Icons:** Lucide React (chrome); `EmbeddingSpaceIcon` from `@synthet/image-scoring-design` for embedding badges
+- **Icons:** Lucide React (chrome); `EmbeddingSpaceIcon` from `@synthet/synth-photo-design` for embedding badges
 - **Notifications:** `NotificationTray` + module CSS — severity via `--color-success|warning|danger|info`
 
 ## Token wiring
 
 | Layer | Path |
 |-------|------|
-| Shared package CSS | `src/styles/tokens.css` → `@import '@synthet/image-scoring-design/tokens.css'` |
+| Shared package CSS | `src/styles/tokens.css` → `@import '@synthet/synth-photo-design/tokens.css'` |
 | Gallery-only layout/spacing | `src/styles/tokens.local.css` (`--space-*`, `--font-*`, `--sidebar-width`, `--card-bg`, …) |
 | Global shell | `src/styles/layout.css`, `src/index.css` |
 | Stage labels | `src/constants/pipelineLabels.ts` — re-exports package `STAGE_DISPLAY` |

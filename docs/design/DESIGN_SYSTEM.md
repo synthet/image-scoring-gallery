@@ -11,7 +11,7 @@ timestamp: 2026-06-16T00:00:00Z
 
 **Canonical doc:** [image-scoring-ui `docs/DESIGN_SYSTEM.md`](https://github.com/synthet/image-scoring-ui/blob/main/docs/DESIGN_SYSTEM.md) (sibling clone: [`../image-scoring-ui/docs/DESIGN_SYSTEM.md`](../../image-scoring-ui/docs/DESIGN_SYSTEM.md)).
 
-**Shared package:** [`@synthet/image-scoring-design`](https://github.com/synthet/image-scoring-ui) **1.2.x** — installed from `package.json` (`github:synthet/image-scoring-ui#v1.2.x`). Rebuild the UI package (`npm run build` in **image-scoring-ui**) after editing `src/tokens.json`.
+**Shared package:** [`@synthet/synth-photo-design`](https://github.com/synthet/synth-photo-design) **2.0.x** — installed from `package.json` (`github:synthet/synth-photo-design#v2.0.0`). Rebuild the UI package (`npm run build` in **synth-photo-design**) after editing `src/tokens.json`.
 
 ## What lives in this repo
 

@@ -1,4 +1,4 @@
-import { HEATMAP_RAMP_RGBA, LIMITATION_LABEL } from '@synthet/image-scoring-design';
+import { HEATMAP_RAMP_RGBA, LIMITATION_LABEL } from '@synthet/synth-photo-design';
 import type { ImageEvidencePayload } from '../../types/imageEvidence';
 
 function rampCss(): string {

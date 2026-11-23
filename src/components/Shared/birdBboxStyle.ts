@@ -1,4 +1,4 @@
-import { LABEL_COLORS } from '@synthet/image-scoring-design';
+import { LABEL_COLORS } from '@synthet/synth-photo-design';
 import type { BirdBoundingBox } from '../../../electron/types';
 
 /** True when the box has usable detector dimensions for fractional positioning. */

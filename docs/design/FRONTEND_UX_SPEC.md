@@ -13,7 +13,7 @@ timestamp: 2026-06-16T00:00:00Z
 
 This document outlines the visual design, user experience, and UI specifications for the **Driftara Gallery** (`image-scoring-gallery`) frontend application.
 
-**Palette and icons:** canonical contract in [image-scoring-ui `DESIGN_SYSTEM.md`](https://github.com/synthet/image-scoring-ui/blob/main/docs/DESIGN_SYSTEM.md) via `@synthet/image-scoring-design` **1.2.x**. Local pointer: [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
+**Palette and icons:** canonical contract in [synth-photo-design `DESIGN_SYSTEM.md`](https://github.com/synthet/synth-photo-design/blob/main/docs/DESIGN_SYSTEM.md) via `@synthet/synth-photo-design` **2.0.x**. Local pointer: [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
 
 ### Stack differences (gallery vs backend `/ui/`)
 

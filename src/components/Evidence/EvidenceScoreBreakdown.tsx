@@ -1,4 +1,4 @@
-import { CRITERION_LABEL, resolveBandDisplay } from '@synthet/image-scoring-design';
+import { CRITERION_LABEL, resolveBandDisplay } from '@synthet/synth-photo-design';
 import type { CriterionBand, EvidenceLayerId, ImageEvidencePayload } from '../../types/imageEvidence';
 
 const CRITERION_LAYER: Partial<Record<string, EvidenceLayerId>> = {
